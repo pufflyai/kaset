@@ -1,7 +1,7 @@
 {
   "name": "describe-context",
   "description": "Analyze a folder and generate a compact Markdown context for LLMs or code review (library + CLI).",
-  "version": "0.1.1",
+  "version": "0.1.3",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
