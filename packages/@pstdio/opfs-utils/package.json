@@ -9,6 +9,18 @@
     "type": "git",
     "url": "git+https://github.com/pufflyai/core-utils.git"
   },
+  "scripts": {
+    "prepare": "npm run build",
+    "build": "tsc -b && vite build",
+    "visualize-bundle": "npx vite-bundle-visualizer",
+    "start": "storybook dev -p 6006",
+    "storybook": "storybook dev -p 6006",
+    "storybook:ci": "storybook dev -p 6006 --ci",
+    "storybook:test": "test-storybook --url http://127.0.0.1:6006 --browsers chromium",
+    "test-storybook": "concurrently -k -s first -n \"SB,TEST\" \"npm run storybook:ci\" \"wait-on http://127.0.0.1:6006 && npm run storybook:test\"",
+    "build-storybook": "storybook build",
+    "test": "vitest run"
+  },
   "keywords": [
     "opfs",
     "origin-private-file-system",
@@ -27,19 +39,8 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "build": "tsc -b && vite build",
-    "visualize-bundle": "npx vite-bundle-visualizer",
-    "start": "storybook dev -p 6006",
-    "storybook": "storybook dev -p 6006",
-    "storybook:ci": "storybook dev -p 6006 --ci",
-    "storybook:test": "test-storybook --url http://127.0.0.1:6006 --browsers chromium",
-    "test-storybook": "concurrently -k -s first -n \"SB,TEST\" \"npm run storybook:ci\" \"wait-on http://127.0.0.1:6006 && npm run storybook:test\"",
-    "build-storybook": "storybook build",
-    "test": "vitest run"
-  },
-  "volta": {
-    "node": "22.18.0"
+  "publishConfig": {
+    "access": "public"
   },
   "devDependencies": {
     "@au-re/vite-plugin-externalize-deps": "^0.9.1",
@@ -67,5 +68,8 @@
   "dependencies": {
     "diff": "^8.0.2",
     "isomorphic-git": "^1.33.1"
+  },
+  "volta": {
+    "node": "22.18.0"
   }
 }

@@ -1,13 +1,10 @@
 # Core Utils Monorepo (@pstdio)
 
-Utilities for building browser‑first apps with the Origin Private File System (OPFS), remote sync, prompt helpers, and repo description tooling. This is a TypeScript monorepo managed with npm workspaces and Lerna.
+Utilities for building browser‑first apps with the Origin Private File System (OPFS), remote sync, prompt helpers, and repo description tooling.
 
 - Node.js 22 is required (see `package.json` engines and Volta pin).
-- Use npm (not yarn/pnpm).
 
 ## Packages
-
-All packages are private workspace packages built and tested via the repo root.
 
 - `@pstdio/opfs-utils` — OPFS helpers: ls/tree, grep, safe file reads (text/binary/SVG/PDF), and patch utilities.
 - `@pstdio/opfs-sync` — Two‑way sync between an OPFS directory and a remote provider (includes a Supabase Storage remote).

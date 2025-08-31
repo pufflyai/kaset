@@ -9,6 +9,13 @@
     "type": "git",
     "url": "git+https://github.com/pufflyai/core-utils.git"
   },
+  "scripts": {
+    "prepare": "npm run build",
+    "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
+  },
   "keywords": [
     "opfs",
     "sync",
@@ -22,16 +29,10 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
-    "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
-  },
-  "volta": {
-    "node": "22.18.0"
-  },
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "peerDependencies": {
     "@supabase/supabase-js": "^2.48.1"
   },
@@ -51,5 +52,8 @@
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4",
     "@au-re/vite-plugin-externalize-deps": "^0.9.1"
+  },
+  "volta": {
+    "node": "22.18.0"
   }
 }

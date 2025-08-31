@@ -1,6 +1,8 @@
 ## @pstdio/prompt-utils
 
 [![npm version](https://img.shields.io/npm/v/@pstdio/prompt-utils.svg?color=blue)](https://www.npmjs.com/package/@pstdio/prompt-utils)
+[![license](https://img.shields.io/npm/l/@pstdio/prompt-utils)](https://github.com/pufflyai/core-utils/blob/main/LICENSE)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/%40pstdio%2Fprompt-utils)](https://bundlephobia.com/package/%40pstdio%2Fprompt-utils)
 
 Tiny utilities for building high-quality LLM prompts and working with JSON streams. Framework-agnostic, ESM-first.
 

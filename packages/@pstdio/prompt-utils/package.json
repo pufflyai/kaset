@@ -9,6 +9,12 @@
     "type": "git",
     "url": "git+https://github.com/pufflyai/core-utils.git"
   },
+  "scripts": {
+    "prepare": "npm run build",
+    "build": "tsc -b && vite build",
+    "test": "npx vitest run",
+    "visualize-bundle": "npx vite-bundle-visualizer"
+  },
   "keywords": [
     "llm",
     "prompt",
@@ -22,18 +28,13 @@
   "files": [
     "dist"
   ],
-  "scripts": {
-    "build": "tsc -b && vite build",
-    "test": "npx vitest run",
-    "visualize-bundle": "npx vite-bundle-visualizer"
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "common-tags": "^1.8.2",
     "json-stable-stringify": "^1.3.0",
     "nanoid": "^5.1.5"
-  },
-  "volta": {
-    "node": "22.18.0"
   },
   "devDependencies": {
     "@au-re/vite-plugin-externalize-deps": "^0.9.1",
@@ -43,5 +44,8 @@
     "vite-plugin-dts": "^4.5.4",
     "vite-plugin-svgr": "^4.3.0",
     "vitest": "^3.2.4"
+  },
+  "volta": {
+    "node": "22.18.0"
   }
 }

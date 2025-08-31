@@ -1,6 +1,8 @@
 # @pstdio/opfs-utils
 
 [![npm version](https://img.shields.io/npm/v/@pstdio/opfs-utils.svg?color=blue)](https://www.npmjs.com/package/@pstdio/opfs-utils)
+[![license](https://img.shields.io/npm/l/@pstdio/opfs-utils)](https://github.com/pufflyai/core-utils/blob/main/LICENSE)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/%40pstdio%2Fopfs-utils)](https://bundlephobia.com/package/%40pstdio%2Fopfs-utils)
 
 Small, dependency-light utilities for working with the Origin Private File System (OPFS) in the browser. Includes:
 

@@ -1,6 +1,8 @@
 # @pstdio/opfs-sync
 
 [![npm version](https://img.shields.io/npm/v/@pstdio/opfs-sync.svg?color=blue)](https://www.npmjs.com/package/@pstdio/opfs-sync)
+[![license](https://img.shields.io/npm/l/@pstdio/opfs-sync)](https://github.com/pufflyai/core-utils/blob/main/LICENSE)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/%40pstdio%2Fopfs-sync)](https://bundlephobia.com/package/%40pstdio%2Fopfs-sync)
 
 Small, dependency-light sync engine between the browser’s Origin Private File System (OPFS) and a remote storage provider. Ships with a Supabase Storage adapter and a minimal provider interface for custom backends.
 
