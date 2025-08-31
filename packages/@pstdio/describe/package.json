@@ -12,6 +12,7 @@
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc -b && vite build",
+    "postbuild": "chmod +x dist/generate-context.js",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
     "visualize-bundle": "npx vite-bundle-visualizer"
   },
