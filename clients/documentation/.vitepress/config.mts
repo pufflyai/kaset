@@ -2,7 +2,7 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  base: "/docs/",
+  // base: "/docs/",
   title: "Datazine Docs",
   description: "",
   srcDir: "./pages",
@@ -36,6 +36,6 @@ export default defineConfig({
         ],
       },
     ],
-    socialLinks: [{ icon: "discord", link: "https://discord.gg/3RxwUEk8fW" }],
+    // socialLinks: [{ icon: "discord", link: "" }],
   },
 });

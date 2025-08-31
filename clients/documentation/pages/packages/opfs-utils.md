@@ -64,7 +64,7 @@ Key options:
 
 Each LsEntry has { path, name, kind, depth, size?, lastModified?, type? }.
 
-### grep(dirHandle, options) → Promise<GrepMatch[]>
+### grep(dirHandle, options) → `Promise<GrepMatch[]>`
 
 Recursive text search with optional streaming via `onMatch`.
 
