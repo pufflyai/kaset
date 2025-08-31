@@ -4,11 +4,15 @@
   "private": true,
   "description": "Datazine Core Utils documentation",
   "author": "Pufflig AB",
-  "main": "index.js",
+  "email": "support@prompt.studio",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pufflyai/core-utils.git"
+  },
+  "main": "index.js",
   "scripts": {
     "build": "vitepress build",
-    "build:digitalocean": "npm install --production=false && npm run build && npm ci",
     "preview": "vitepress preview",
     "start": "vitepress dev"
   },
