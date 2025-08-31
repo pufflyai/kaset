@@ -12,6 +12,7 @@
   "scripts": {
     "prepare": "npm run build",
     "build": "tsc -b && vite build",
+    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
     "visualize-bundle": "npx vite-bundle-visualizer"
   },
   "keywords": [
