@@ -16,7 +16,7 @@ export function parseJSONStream(input: string): any | null {
   // If the full input parses, return it.
   try {
     return JSON.parse(input);
-  } catch (e) {
+  } catch {
     // fall through
   }
 
@@ -62,7 +62,7 @@ export function parseJSONStream(input: string): any | null {
     // First, try parsing the prefix as-is.
     try {
       return JSON.parse(prefix);
-    } catch (e) {
+    } catch {
       // not valid on its own, so if we expect an object/array, try to auto-close it
     }
 
@@ -74,7 +74,7 @@ export function parseJSONStream(input: string): any | null {
         const candidate = prefix + closingChar.repeat(unmatched);
         try {
           return JSON.parse(candidate);
-        } catch (e) {
+        } catch {
           // fall through to trying extra closings if needed
         }
       }
@@ -83,7 +83,7 @@ export function parseJSONStream(input: string): any | null {
         const candidate = prefix + closingChar.repeat(j);
         try {
           return JSON.parse(candidate);
-        } catch (e) {
+        } catch {
           // try next
         }
       }
