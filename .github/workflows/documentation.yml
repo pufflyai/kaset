@@ -2,10 +2,10 @@ name: Deploy docs to GitHub Pages
 
 on:
   push:
-    # branches: [main]
-    # paths:
-    #   - "clients/documentation/**"
-    #   - ".github/workflows/documentation.yml"
+    branches: [main]
+    paths:
+      - "clients/documentation/**"
+      - ".github/workflows/documentation.yml"
   workflow_dispatch:
 
 permissions:
