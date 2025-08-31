@@ -1,0 +1,32 @@
+name: Test and build when pushing to a branch
+on: push
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    env:
+      NODE_OPTIONS: "--max_old_space_size=8192"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: install monorepo dependencies
+        run: npm ci && npx playwright install --with-deps
+
+      - name: Check Prettier formatting (monorepo)
+        run: npm run format:check
+
+      - name: Lint monorepo
+        run: npm run lint
+
+      - name: build monorepo packages
+        run: npx lerna run build
+
+      - name: test monorepo
+        run: npx lerna run test

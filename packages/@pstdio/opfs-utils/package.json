@@ -1,0 +1,54 @@
+{
+  "name": "@pstdio/opfs-utils",
+  "version": "0.1.0",
+  "author": "Pufflig AB",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b && vite build",
+    "visualize-bundle": "npx vite-bundle-visualizer",
+    "start": "storybook dev -p 6006",
+    "storybook": "storybook dev -p 6006",
+    "storybook:ci": "storybook dev -p 6006 --ci",
+    "storybook:test": "test-storybook --url http://127.0.0.1:6006 --browsers chromium",
+    "test-storybook": "concurrently -k -s first -n \"SB,TEST\" \"npm run storybook:ci\" \"wait-on http://127.0.0.1:6006 && npm run storybook:test\"",
+    "build-storybook": "storybook build",
+    "test": "vitest run"
+  },
+  "volta": {
+    "node": "22.18.0"
+  },
+  "devDependencies": {
+    "@au-re/vite-plugin-externalize-deps": "^0.9.1",
+    "@storybook/addon-a11y": "^9.1.1",
+    "@storybook/addon-docs": "^9.1.1",
+    "@storybook/addon-themes": "^9.1.1",
+    "@storybook/addon-vitest": "^9.1.2",
+    "@storybook/react": "^9.1.2",
+    "@storybook/react-vite": "^9.1.1",
+    "@storybook/test-runner": "^0.23.0",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "concurrently": "^9.1.2",
+    "playwright": "^1.54.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "storybook": "^9.1.2",
+    "storybook-addon-vis": "^2.1.2",
+    "vite": "^7.1.0",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4",
+    "wait-on": "^8.0.3"
+  },
+  "dependencies": {
+    "diff": "^8.0.2",
+    "isomorphic-git": "^1.33.1",
+    "mime-types": "^3.0.1"
+  }
+}

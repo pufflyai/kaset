@@ -1,0 +1,24 @@
+{
+  "name": "documentation",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Datazine Core Utils documentation",
+  "author": "Pufflig AB",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "build": "vitepress build",
+    "build:digitalocean": "npm install --production=false && npm run build && npm ci",
+    "preview": "vitepress preview",
+    "start": "vitepress dev"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "volta": {
+    "node": "22.18.0"
+  }
+}

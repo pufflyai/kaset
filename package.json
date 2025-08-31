@@ -1,0 +1,43 @@
+{
+  "name": "root",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "reset:all": "npm run clean && npm i && npm run lint && npm run build && npm run test",
+    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" npx lerna run build",
+    "prebuild": "npm run format",
+    "test": "npx lerna run test",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,html,md,yml,yaml}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,html,md,yml,yaml}\" --ignore-path .gitignore",
+    "lint": "npx lerna run lint",
+    "clean": "find . -type d -name \"node_modules\" -prune -exec rm -rf '{}' + && find . -type d -name \"dist\" -prune -exec rm -rf '{}' + && find . -type d -name \".cache\" -prune -exec rm -rf '{}' + && rm -rf .nx"
+  },
+  "engines": {
+    "node": "22"
+  },
+  "workspaces": {
+    "packages": [
+      "packages/**",
+      "clients/*",
+      "services/*",
+      "scripts"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "cross-env": "^10.0.0",
+    "eslint": "^9.32.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "eslint-plugin-storybook": "^9.1.1",
+    "globals": "^16.3.0",
+    "lerna": "^8.2.3",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.0"
+  },
+  "volta": {
+    "node": "22.18.0"
+  }
+}

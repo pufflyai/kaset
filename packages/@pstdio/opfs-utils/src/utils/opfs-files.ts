@@ -1,0 +1,419 @@
+import mime from "mime-types";
+import { ErrorType } from "../errors";
+
+// ------------------------------
+// Constants for text processing
+// ------------------------------
+export const DEFAULT_MAX_LINES_TEXT_FILE = 2000;
+export const MAX_LINE_LENGTH_TEXT_FILE = 2000;
+
+// Default encoding (string literal; no Node BufferEncoding in browser)
+export const DEFAULT_ENCODING = "utf-8" as const;
+
+// ------------------------------
+// Small POSIX-style path helpers
+// ------------------------------
+function toPosix(p: string): string {
+  return p.replace(/\\/g, "/");
+}
+
+function normalizePosix(p: string): string {
+  p = toPosix(p);
+  const parts = p.split("/").filter(Boolean);
+  const stack: string[] = [];
+  for (const part of parts) {
+    if (part === ".") continue;
+    if (part === "..") stack.pop();
+    else stack.push(part);
+  }
+  return stack.join("/");
+}
+
+function splitSegments(p: string): string[] {
+  const n = normalizePosix(p);
+  return n ? n.split("/") : [];
+}
+
+/**
+ * Compute relative path `to` from base `from`.
+ * Keeps POSIX separators.
+ */
+function relativePosix(from: string, to: string): string {
+  const a = splitSegments(from);
+  const b = splitSegments(to);
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  const up = new Array(a.length - i).fill("..");
+  const down = b.slice(i);
+  const rel = [...up, ...down].join("/");
+  return rel || ".";
+}
+
+/**
+ * Looks up the specific MIME type for a file name or path.
+ */
+export function getSpecificMimeType(filePathOrName: string): string | undefined {
+  const lookedUpMime = mime.lookup(filePathOrName);
+  return typeof lookedUpMime === "string" ? lookedUpMime : undefined;
+}
+
+/**
+ * Checks if a path is within a given root directory (both POSIX-like strings).
+ */
+export function isWithinRoot(pathToCheck: string, rootDirectory: string): boolean {
+  const p = normalizePosix(pathToCheck);
+  const r = normalizePosix(rootDirectory);
+
+  if (!r) return true; // OPFS root: everything is "inside"
+  if (p === r) return true;
+  return p.startsWith(r + "/");
+}
+
+// ------------------------------
+// OPFS helpers
+// ------------------------------
+
+/**
+ * Traverse from `root` to a directory handle by POSIX path.
+ * @throws if any intermediate directory is missing.
+ */
+async function getDirectoryHandleByPath(
+  root: FileSystemDirectoryHandle,
+  dirPath: string,
+): Promise<FileSystemDirectoryHandle> {
+  const segments = splitSegments(dirPath);
+  let dir = root;
+  for (const seg of segments) {
+    dir = await dir.getDirectoryHandle(seg, { create: false });
+  }
+  return dir;
+}
+
+/**
+ * Try to get a file handle at `filePath` (relative to `root`).
+ * Returns null if not found. Throws on other errors.
+ */
+async function tryGetFileHandle(
+  root: FileSystemDirectoryHandle,
+  filePath: string,
+): Promise<FileSystemFileHandle | null> {
+  const segments = splitSegments(filePath);
+  if (segments.length === 0) return null; // root is a directory
+  const fileName = segments.pop()!;
+  let parent = root;
+  try {
+    if (segments.length > 0) {
+      parent = await getDirectoryHandleByPath(root, segments.join("/"));
+    }
+    return await parent.getFileHandle(fileName, { create: false });
+  } catch (e: any) {
+    if (e && (e.name === "NotFoundError" || e.code === 404)) return null;
+    if (e && e.name === "TypeMismatchError") return null;
+    throw e;
+  }
+}
+
+/**
+ * Check if a directory exists at `dirPath`.
+ */
+async function directoryExists(root: FileSystemDirectoryHandle, dirPath: string): Promise<boolean> {
+  try {
+    await getDirectoryHandleByPath(root, dirPath);
+    return true;
+  } catch (e: any) {
+    if (e && (e.name === "NotFoundError" || e.code === 404)) return false;
+    return false;
+  }
+}
+
+/**
+ * Base64-encode an ArrayBuffer (chunked to avoid call stack issues).
+ */
+function arrayBufferToBase64(ab: ArrayBuffer): string {
+  const bytes = new Uint8Array(ab);
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+  }
+  // btoa requires binary string
+  return btoa(binary);
+}
+
+// ------------------------------
+// Binary detection and file type
+// ------------------------------
+
+/**
+ * Determines if a file is likely binary based on content sampling.
+ * @param file A File object (from OPFS)
+ */
+export async function isBinaryFile(file: File): Promise<boolean> {
+  const fileSize = file.size;
+  if (fileSize === 0) return false;
+
+  const sampleSize = Math.min(4096, fileSize);
+  const buf = new Uint8Array(await file.slice(0, sampleSize).arrayBuffer());
+
+  let nonPrintableCount = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const b = buf[i];
+    if (b === 0) return true; // Null byte is a strong indicator
+    if (b < 9 || (b > 13 && b < 32)) nonPrintableCount++;
+  }
+  return nonPrintableCount / buf.length > 0.3;
+}
+
+/**
+ * Detects the type of file based on extension and content.
+ * @param fileName Name or path of the file (used for extension/MIME lookup).
+ * @param file Optional File for content-based fallback.
+ */
+export async function detectFileType(
+  fileName: string,
+  file?: File,
+): Promise<"text" | "image" | "pdf" | "audio" | "video" | "binary" | "svg"> {
+  const lower = fileName.toLowerCase();
+  const dotIdx = lower.lastIndexOf(".");
+  const ext = dotIdx >= 0 ? lower.slice(dotIdx) : "";
+
+  // TypeScript files can be mis-typed as video/MP2T; treat as text.
+  if ([".ts", ".mts", ".cts"].includes(ext)) return "text";
+  if (ext === ".svg") return "svg";
+
+  const lookedUpMimeType = getSpecificMimeType(fileName);
+  if (lookedUpMimeType) {
+    if (lookedUpMimeType === "image/svg+xml") return "svg";
+    if (lookedUpMimeType.startsWith("image/")) return "image";
+    if (lookedUpMimeType.startsWith("audio/")) return "audio";
+    if (lookedUpMimeType.startsWith("video/")) return "video";
+    if (lookedUpMimeType === "application/pdf") return "pdf";
+  }
+
+  // Common binary extensions (not exhaustive)
+  if (
+    [
+      ".zip",
+      ".tar",
+      ".gz",
+      ".7z",
+      ".exe",
+      ".dll",
+      ".so",
+      ".class",
+      ".jar",
+      ".war",
+      ".doc",
+      ".docx",
+      ".xls",
+      ".xlsx",
+      ".ppt",
+      ".pptx",
+      ".odt",
+      ".ods",
+      ".odp",
+      ".bin",
+      ".dat",
+      ".obj",
+      ".o",
+      ".a",
+      ".lib",
+      ".wasm",
+      ".pyc",
+      ".pyo",
+    ].includes(ext)
+  ) {
+    return "binary";
+  }
+
+  // Fallback to content-based detection when possible
+  if (file) {
+    return (await isBinaryFile(file)) ? "binary" : "text";
+  }
+
+  return "text";
+}
+
+// ------------------------------
+// Result interface (unchanged)
+// ------------------------------
+export interface ProcessedFileReadResult {
+  llmContent: any; // string for text, Part for image/pdf/unreadable binary
+  returnDisplay: string;
+  error?: string; // Optional error message for the LLM if file processing failed
+  errorType?: ErrorType; // Structured error type
+  isTruncated?: boolean; // For text files, indicates if content was truncated
+  originalLineCount?: number; // For text files
+  linesShown?: [number, number]; // For text files [startLine, endLine] (1-based for display)
+}
+
+// ------------------------------
+// Main: read & process a single OPFS file
+// ------------------------------
+
+/**
+ * Reads and processes a single file in OPFS, handling text, images, and PDFs.
+ * @param filePath POSIX-like path *within* OPFS (e.g., 'project/src/index.ts').
+ * @param rootDirectory POSIX-like path that serves as the logical project root for relative display (e.g., 'project').
+ * @param opfsRoot A FileSystemDirectoryHandle (typically from navigator.storage.getDirectory()).
+ * @param offset Optional offset for text files (0-based line number).
+ * @param limit Optional limit for text files (number of lines to read).
+ */
+export async function processSingleFileContent(
+  filePath: string,
+  rootDirectory: string,
+  opfsRoot: FileSystemDirectoryHandle,
+  offset?: number,
+  limit?: number,
+): Promise<ProcessedFileReadResult> {
+  const normalizedFilePath = normalizePosix(filePath);
+  const normalizedRootPath = normalizePosix(rootDirectory);
+
+  try {
+    // Resolve handle
+    const fileHandle = await tryGetFileHandle(opfsRoot, normalizedFilePath);
+    if (!fileHandle) {
+      // Distinguish: directory vs not found
+      const looksLikeDir = await directoryExists(opfsRoot, normalizedFilePath);
+      if (looksLikeDir) {
+        return {
+          llmContent: "Could not read file because the provided path is a directory, not a file.",
+          returnDisplay: "Path is a directory.",
+          error: `Path is a directory, not a file: ${normalizedFilePath}`,
+          errorType: ErrorType.TARGET_IS_DIRECTORY,
+        };
+      }
+      return {
+        llmContent: "Could not read file because no file was found at the specified path.",
+        returnDisplay: "File not found.",
+        error: `File not found: ${normalizedFilePath}`,
+        errorType: ErrorType.FILE_NOT_FOUND,
+      };
+    }
+
+    const file = await fileHandle.getFile();
+    const fileSizeInMB = file.size / (1024 * 1024);
+    if (fileSizeInMB > 20) {
+      return {
+        llmContent: "File size exceeds the 20MB limit.",
+        returnDisplay: "File size exceeds the 20MB limit.",
+        error: `File size exceeds the 20MB limit: ${normalizedFilePath} (${fileSizeInMB.toFixed(2)}MB)`,
+        errorType: ErrorType.FILE_TOO_LARGE,
+      };
+    }
+
+    // Determine type
+    const fileType = await detectFileType(file.name || normalizedFilePath, file);
+    const relativePathForDisplay = toPosix(relativePosix(normalizedRootPath, normalizedFilePath));
+
+    switch (fileType) {
+      case "binary": {
+        return {
+          llmContent: `Cannot display content of binary file: ${relativePathForDisplay}`,
+          returnDisplay: `Skipped binary file: ${relativePathForDisplay}`,
+        };
+      }
+
+      case "svg": {
+        const SVG_MAX_SIZE_BYTES = 1 * 1024 * 1024;
+        if (file.size > SVG_MAX_SIZE_BYTES) {
+          return {
+            llmContent: `Cannot display content of SVG file larger than 1MB: ${relativePathForDisplay}`,
+            returnDisplay: `Skipped large SVG file (>1MB): ${relativePathForDisplay}`,
+          };
+        }
+        const content = await file.text();
+        return {
+          llmContent: content,
+          returnDisplay: `Read SVG as text: ${relativePathForDisplay}`,
+        };
+      }
+
+      case "text": {
+        const content = await file.text();
+        const lines = content.split("\n");
+        const originalLineCount = lines.length;
+
+        const startLine = offset || 0;
+        const effectiveLimit = limit === undefined ? DEFAULT_MAX_LINES_TEXT_FILE : limit;
+        const endLine = Math.min(startLine + effectiveLimit, originalLineCount);
+        const actualStartLine = Math.min(startLine, originalLineCount);
+        const selectedLines = lines.slice(actualStartLine, endLine);
+
+        let linesWereTruncatedInLength = false;
+        const formattedLines = selectedLines.map((line) => {
+          if (line.length > MAX_LINE_LENGTH_TEXT_FILE) {
+            linesWereTruncatedInLength = true;
+            return line.substring(0, MAX_LINE_LENGTH_TEXT_FILE) + "... [truncated]";
+          }
+          return line;
+        });
+
+        const contentRangeTruncated = startLine > 0 || endLine < originalLineCount;
+        const isTruncated = contentRangeTruncated || linesWereTruncatedInLength;
+        const llmContent = formattedLines.join("\n");
+
+        let returnDisplay = "";
+        if (contentRangeTruncated) {
+          returnDisplay = `Read lines ${actualStartLine + 1}-${endLine} of ${originalLineCount} from ${relativePathForDisplay}`;
+          if (linesWereTruncatedInLength) {
+            returnDisplay += " (some lines were shortened)";
+          }
+        } else if (linesWereTruncatedInLength) {
+          returnDisplay = `Read all ${originalLineCount} lines from ${relativePathForDisplay} (some lines were shortened)`;
+        }
+
+        return {
+          llmContent,
+          returnDisplay,
+          isTruncated,
+          originalLineCount,
+          linesShown: [actualStartLine + 1, endLine],
+        };
+      }
+
+      case "image":
+      case "pdf":
+      case "audio":
+      case "video": {
+        const ab = await file.arrayBuffer();
+        const base64Data = arrayBufferToBase64(ab);
+        return {
+          llmContent: {
+            inlineData: {
+              data: base64Data,
+              mimeType: getSpecificMimeType(file.name) || file.type || "application/octet-stream",
+            },
+          },
+          returnDisplay: `Read ${fileType} file: ${relativePathForDisplay}`,
+        };
+      }
+
+      default: {
+        // Should not happen with current detectFileType logic
+        const exhaustiveCheck: never = fileType;
+        return {
+          llmContent: `Unhandled file type: ${exhaustiveCheck}`,
+          returnDisplay: `Skipped unhandled file type: ${relativePathForDisplay}`,
+          error: `Unhandled file type for ${normalizedFilePath}`,
+        };
+      }
+    }
+  } catch (error: any) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const displayPath = toPosix(relativePosix(normalizedRootPath, normalizedFilePath));
+    let errorType: ErrorType | undefined = ErrorType.READ_CONTENT_FAILURE;
+
+    // Map some DOMException names to existing error types for parity with Node version
+    if (error?.name === "NotFoundError") errorType = ErrorType.FILE_NOT_FOUND;
+    else if (error?.name === "TypeMismatchError") errorType = ErrorType.TARGET_IS_DIRECTORY;
+    else if (error?.name === "SecurityError") errorType = ErrorType.READ_CONTENT_FAILURE;
+
+    return {
+      llmContent: `Error reading file ${displayPath}: ${errorMessage}`,
+      returnDisplay: `Error reading file ${displayPath}: ${errorMessage}`,
+      error: `Error reading file ${normalizedFilePath}: ${errorMessage}`,
+      errorType,
+    };
+  }
+}
