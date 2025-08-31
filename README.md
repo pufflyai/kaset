@@ -158,12 +158,6 @@ npm run build --workspace @pstdio/opfs-utils
 npm run test --workspace @pstdio/opfs-sync
 ```
 
-Notes:
-
-- Nx is configured for build caching (`nx.json`).
-- Each package provides its own `vite.config.ts`/`vitest.config.ts` as needed.
-- Browser APIs (OPFS) require a secure context (https or localhost) and modern browsers.
-
 ## Docs site
 
 There is a VitePress documentation client under `clients/documentation/`.
@@ -172,19 +166,6 @@ There is a VitePress documentation client under `clients/documentation/`.
 # from repo root or within clients/documentation
 npm run start --workspace documentation    # dev server
 npm run build --workspace documentation    # static build
-```
-
-## Repository structure
-
-```
-packages/
-	@pstdio/
-		opfs-utils/             # OPFS helpers (ls/grep/read/patch)
-		opfs-sync/              # OPFS <-> remote sync (Supabase remote included)
-		prompt-utils/           # Prompt and JSON utilities
-		describe-context/       # Repo/folder analyzer to markdown
-clients/
-	documentation/  # VitePress site (local docs)
 ```
 
 ## License

@@ -20,9 +20,6 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: clients/documentation
     steps:
       - uses: actions/checkout@v4
 
@@ -32,10 +29,10 @@ jobs:
           node-version: 22
 
       - name: Install
-        run: npm ci --include=dev
+        run: npm ci
 
       - name: Build
-        run: npm run build
+        run: npm run build --workspace documentation
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
