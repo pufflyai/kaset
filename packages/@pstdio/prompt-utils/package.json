@@ -1,7 +1,15 @@
 {
   "name": "@pstdio/prompt-utils",
+  "description": "Tiny utilities for crafting LLM prompts, parsing partial JSON streams, and helpful text/JSON helpers.",
+  "keywords": [
+    "llm",
+    "prompt",
+    "prompt-engineering",
+    "ai"
+  ],
   "version": "0.1.0",
   "author": "Pufflig AB",
+  "email": "a.franky@prompt.studio",
   "license": "MIT",
   "type": "module",
   "main": "dist/index.js",

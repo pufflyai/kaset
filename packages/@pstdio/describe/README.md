@@ -1,5 +1,7 @@
 # describe-context
 
+[![npm version](https://img.shields.io/npm/v/describe-context.svg?color=blue)](https://www.npmjs.com/package/describe-context)
+
 Small utility to analyze a folder and generate a markdown context file suitable for LLMs or code review. It exposes a reusable API and includes a simple CLI entry script for local use.
 
 ## Install

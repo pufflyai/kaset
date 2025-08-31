@@ -1,5 +1,17 @@
 {
   "name": "@pstdio/opfs-utils",
+  "description": "Utilities for the browser's OPFS: ls, grep, safe file read, unified diff patching, and MIME helpers.",
+  "keywords": [
+    "opfs",
+    "origin-private-file-system",
+    "diff",
+    "patch",
+    "unified-diff",
+    "grep",
+    "glob",
+    "ls",
+    "utilities"
+  ],
   "version": "0.1.0",
   "author": "Pufflig AB",
   "license": "MIT",
@@ -26,6 +38,7 @@
   },
   "devDependencies": {
     "@au-re/vite-plugin-externalize-deps": "^0.9.1",
+    "@chromatic-com/storybook": "^4.1.1",
     "@storybook/addon-a11y": "^9.1.1",
     "@storybook/addon-docs": "^9.1.1",
     "@storybook/addon-themes": "^9.1.1",
@@ -48,7 +61,6 @@
   },
   "dependencies": {
     "diff": "^8.0.2",
-    "isomorphic-git": "^1.33.1",
-    "mime-types": "^3.0.1"
+    "isomorphic-git": "^1.33.1"
   }
 }

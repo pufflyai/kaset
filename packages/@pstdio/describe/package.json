@@ -1,5 +1,14 @@
 {
   "name": "describe-context",
+  "description": "Analyze a folder and generate a compact Markdown context for LLMs or code review (library + CLI).",
+  "keywords": [
+    "llm",
+    "context",
+    "documentation",
+    "summarize",
+    "repo-map",
+    "devtools"
+  ],
   "version": "0.1.0",
   "author": "Pufflig AB",
   "license": "MIT",

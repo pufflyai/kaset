@@ -1,5 +1,7 @@
 ## @pstdio/prompt-utils
 
+[![npm version](https://img.shields.io/npm/v/@pstdio/prompt-utils.svg?color=blue)](https://www.npmjs.com/package/@pstdio/prompt-utils)
+
 Tiny utilities for building high-quality LLM prompts and working with JSON streams. Framework-agnostic, ESM-first.
 
 ### Install

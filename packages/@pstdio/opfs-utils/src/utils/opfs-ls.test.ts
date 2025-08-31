@@ -25,6 +25,10 @@ describe("formatMtime", () => {
 });
 
 describe("formatLong and formatTree", () => {
+  it("shows <empty> for no entries", () => {
+    expect(formatTree([])).toBe("<empty>");
+  });
+
   const entries: LsEntry[] = [
     { path: "dir", name: "dir", kind: "directory", depth: 1 },
     {
@@ -57,6 +61,132 @@ describe("formatLong and formatTree", () => {
   });
 });
 
+describe("formatTree - complex inputs", () => {
+  const complexEntriesWithoutParents: LsEntry[] = [
+    { path: "nested/a", name: "a", kind: "directory", depth: 2 },
+    { path: "nested/a/b", name: "b", kind: "directory", depth: 3 },
+    { path: "nested/a/b/c", name: "c", kind: "directory", depth: 4 },
+    {
+      path: ".hidden/secret.txt",
+      name: "secret.txt",
+      kind: "file",
+      depth: 2,
+      size: 26,
+      lastModified: 1756636687767,
+      type: "text/plain",
+    },
+    {
+      path: "assets/logo.svg",
+      name: "logo.svg",
+      kind: "file",
+      depth: 2,
+      size: 274,
+      lastModified: 1756636687705,
+      type: "image/svg+xml",
+    },
+    {
+      path: "docs/notes.txt",
+      name: "notes.txt",
+      kind: "file",
+      depth: 2,
+      size: 50,
+      lastModified: 1756636687445,
+      type: "text/plain",
+    },
+    {
+      path: "docs/PROJECT_README.md",
+      name: "PROJECT_README.md",
+      kind: "file",
+      depth: 2,
+      size: 6450,
+      lastModified: 1756636687521,
+      type: "text/markdown",
+    },
+    {
+      path: "nested/a/b/c/deep.txt",
+      name: "deep.txt",
+      kind: "file",
+      depth: 5,
+      size: 30,
+      lastModified: 1756636687831,
+      type: "text/plain",
+    },
+    {
+      path: "src/index.ts",
+      name: "index.ts",
+      kind: "file",
+      depth: 2,
+      size: 115,
+      lastModified: 1756636687584,
+      type: "video/vnd.dlna.mpeg-tts",
+    },
+    {
+      path: "src/util.ts",
+      name: "util.ts",
+      kind: "file",
+      depth: 2,
+      size: 94,
+      lastModified: 1756636687647,
+      type: "video/vnd.dlna.mpeg-tts",
+    },
+  ];
+
+  it("renders full tree even when root parents are missing", () => {
+    const expected = [
+      "├── .hidden/",
+      "│   └── secret.txt",
+      "├── assets/",
+      "│   └── logo.svg",
+      "├── docs/",
+      "│   ├── notes.txt",
+      "│   └── PROJECT_README.md",
+      "├── nested/",
+      "│   └── a/",
+      "│       └── b/",
+      "│           └── c/",
+      "│               └── deep.txt",
+      "└── src/",
+      "    ├── index.ts",
+      "    └── util.ts",
+    ].join("\n");
+
+    expect(formatTree(complexEntriesWithoutParents)).toBe(expected);
+  });
+
+  // Legacy behavior tested emptiness; now we synthesize parents, so it renders.
+
+  it("renders correctly once top-level parent directories are included", () => {
+    const withParents: LsEntry[] = [
+      { path: ".hidden", name: ".hidden", kind: "directory", depth: 1 },
+      { path: "assets", name: "assets", kind: "directory", depth: 1 },
+      { path: "docs", name: "docs", kind: "directory", depth: 1 },
+      { path: "nested", name: "nested", kind: "directory", depth: 1 },
+      { path: "src", name: "src", kind: "directory", depth: 1 },
+      ...complexEntriesWithoutParents,
+    ];
+
+    const expected = [
+      "├── .hidden/",
+      "│   └── secret.txt",
+      "├── assets/",
+      "│   └── logo.svg",
+      "├── docs/",
+      "│   ├── notes.txt",
+      "│   └── PROJECT_README.md",
+      "├── nested/",
+      "│   └── a/",
+      "│       └── b/",
+      "│           └── c/",
+      "│               └── deep.txt",
+      "└── src/",
+      "    ├── index.ts",
+      "    └── util.ts",
+    ].join("\n");
+
+    expect(formatTree(withParents)).toBe(expected);
+  });
+});
+
 describe("ls over OPFS", () => {
   it("lists files via directory handles", async () => {
     setupTestOPFS();
@@ -67,5 +197,123 @@ describe("ls over OPFS", () => {
 
     const entries = await ls(root, { maxDepth: Infinity, stat: true });
     expect(entries.map((e) => e.path).sort()).toEqual(["dir", "dir/file.txt", "empty"]);
+  });
+});
+
+describe("ls over OPFS + formatTree interplay", () => {
+  async function seedComplexTree() {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+
+    await writeFile(root, "nested/a/b/c/deep.txt", "deep");
+    await writeFile(root, ".hidden/secret.txt", "secret");
+    await writeFile(root, "assets/logo.svg", "<svg />");
+    await writeFile(root, "docs/notes.txt", "notes");
+    await writeFile(root, "docs/PROJECT_README.md", "readme");
+    await writeFile(root, "src/index.ts", "export{};");
+    await writeFile(root, "src/util.ts", "export{};");
+
+    return root;
+  }
+
+  it("formatTree renders tree even when ls returns files only (parents synthesized)", async () => {
+    const root = await seedComplexTree();
+
+    const filesOnly = await ls(root, { maxDepth: Infinity, kinds: ["file"], stat: true, showHidden: true });
+
+    const expected = [
+      "├── .hidden/",
+      "│   └── secret.txt",
+      "├── assets/",
+      "│   └── logo.svg",
+      "├── docs/",
+      "│   ├── notes.txt",
+      "│   └── PROJECT_README.md",
+      "├── nested/",
+      "│   └── a/",
+      "│       └── b/",
+      "│           └── c/",
+      "│               └── deep.txt",
+      "└── src/",
+      "    ├── index.ts",
+      "    └── util.ts",
+    ].join("\n");
+
+    expect(formatTree(filesOnly)).toBe(expected);
+  });
+
+  it("formatTree renders a full tree when directories are included", async () => {
+    const root = await seedComplexTree();
+
+    const all = await ls(root, { maxDepth: Infinity, stat: true, showHidden: true });
+
+    const expected = [
+      "├── .hidden/",
+      "│   └── secret.txt",
+      "├── assets/",
+      "│   └── logo.svg",
+      "├── docs/",
+      "│   ├── notes.txt",
+      "│   └── PROJECT_README.md",
+      "├── nested/",
+      "│   └── a/",
+      "│       └── b/",
+      "│           └── c/",
+      "│               └── deep.txt",
+      "└── src/",
+      "    ├── index.ts",
+      "    └── util.ts",
+    ].join("\n");
+
+    expect(formatTree(all)).toBe(expected);
+  });
+
+  it("formatTree works when include is ['**/*'] (parents synthesized)", async () => {
+    const root = await seedComplexTree();
+
+    const filtered = await ls(root, {
+      maxDepth: Infinity,
+      include: ["**/*"],
+      showHidden: true,
+      // default kinds includes directories + files, but top-level dirs are filtered out by '**/*'
+    });
+
+    // Sanity: we did get entries; parents are synthesized by formatTree
+    expect(filtered.length).toBeGreaterThan(0);
+
+    const expected = [
+      "├── .hidden/",
+      "│   └── secret.txt",
+      "├── assets/",
+      "│   └── logo.svg",
+      "├── docs/",
+      "│   ├── notes.txt",
+      "│   └── PROJECT_README.md",
+      "├── nested/",
+      "│   └── a/",
+      "│       └── b/",
+      "│           └── c/",
+      "│               └── deep.txt",
+      "└── src/",
+      "    ├── index.ts",
+      "    └── util.ts",
+    ].join("\n");
+
+    expect(formatTree(filtered)).toBe(expected);
+  });
+
+  it("formatTree works when include is ['**'] (includes parents)", async () => {
+    const root = await seedComplexTree();
+
+    const allWithParents = await ls(root, {
+      maxDepth: Infinity,
+      include: ["**"],
+      showHidden: true,
+    });
+
+    expect(formatTree(allWithParents)).toContain("src/");
+    expect(formatTree(allWithParents)).toContain("docs/");
+    expect(formatTree(allWithParents)).toContain("nested/");
+    expect(formatTree(allWithParents)).toContain(".hidden/");
   });
 });

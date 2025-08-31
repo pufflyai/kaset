@@ -13,13 +13,29 @@ export default defineConfig({
     search: {
       provider: "local",
     },
-    // https://vitepress.dev/reference/default-theme-config
     nav: [
-      //  { text: "Guides", link: "/guides/getting-started" },
-      // { text: "API Reference", link: "/api/getting-started" },
-      // { text: "Blog", link: "https://prompt.studio/product-updates/" },
+      {
+        text: "Packages",
+        items: [
+          { text: "@pstdio/opfs-utils", link: "/packages/opfs-utils" },
+          { text: "@pstdio/opfs-sync", link: "/packages/opfs-sync" },
+          { text: "@pstdio/prompt-utils", link: "/packages/prompt-utils" },
+          { text: "describe-context", link: "/packages/describe" },
+        ],
+      },
     ],
-    sidebar: [{ text: "Introduction", link: "/" }],
+    sidebar: [
+      { text: "Introduction", link: "/" },
+      {
+        text: "Packages",
+        items: [
+          { text: "@pstdio/opfs-utils", link: "/packages/opfs-utils" },
+          { text: "@pstdio/opfs-sync", link: "/packages/opfs-sync" },
+          { text: "@pstdio/prompt-utils", link: "/packages/prompt-utils" },
+          { text: "describe-context", link: "/packages/describe" },
+        ],
+      },
+    ],
     socialLinks: [{ icon: "discord", link: "https://discord.gg/3RxwUEk8fW" }],
   },
 });

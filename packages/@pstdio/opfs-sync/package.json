@@ -1,5 +1,12 @@
 {
   "name": "@pstdio/opfs-sync",
+  "description": "Browser-based sync engine between OPFS and remote storage (Supabase adapter included).",
+  "keywords": [
+    "opfs",
+    "sync",
+    "synchronization",
+    "origin-private-file-system"
+  ],
   "version": "0.1.0",
   "author": "Pufflig AB",
   "license": "MIT",

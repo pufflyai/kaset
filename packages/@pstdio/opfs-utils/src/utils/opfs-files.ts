@@ -1,4 +1,3 @@
-import mime from "mime-types";
 import { ErrorType } from "../errors";
 
 // ------------------------------
@@ -52,9 +51,90 @@ function relativePosix(from: string, to: string): string {
 /**
  * Looks up the specific MIME type for a file name or path.
  */
+// Minimal, browser-safe extension -> MIME map to avoid Node path deps in bundles
+const EXT_TO_MIME: Record<string, string> = {
+  // Text
+  txt: "text/plain",
+  md: "text/markdown",
+  markdown: "text/markdown",
+  html: "text/html",
+  htm: "text/html",
+  css: "text/css",
+  csv: "text/csv",
+  tsv: "text/tab-separated-values",
+  sql: "application/sql",
+  xml: "application/xml",
+  json: "application/json",
+  yaml: "application/yaml",
+  yml: "application/yaml",
+  // Scripts
+  js: "application/javascript",
+  mjs: "application/javascript",
+  cjs: "application/javascript",
+  ts: "text/plain", // treat as text (avoid video/MP2T misclassification)
+  tsx: "text/plain",
+  jsx: "text/plain",
+  // Images
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  gif: "image/gif",
+  webp: "image/webp",
+  bmp: "image/bmp",
+  avif: "image/avif",
+  ico: "image/x-icon",
+  cur: "image/x-icon",
+  svg: "image/svg+xml",
+  svgz: "image/svg+xml",
+  // Audio
+  mp3: "audio/mpeg",
+  mpeg: "audio/mpeg",
+  wav: "audio/wav",
+  oga: "audio/ogg",
+  ogg: "audio/ogg",
+  m4a: "audio/mp4",
+  aac: "audio/aac",
+  flac: "audio/flac",
+  opus: "audio/opus",
+  // Video
+  mp4: "video/mp4",
+  m4v: "video/mp4",
+  mov: "video/quicktime",
+  webm: "video/webm",
+  ogv: "video/ogg",
+  mkv: "video/x-matroska",
+  // Docs/other
+  pdf: "application/pdf",
+  zip: "application/zip",
+  gz: "application/gzip",
+  tar: "application/x-tar",
+  "7z": "application/x-7z-compressed",
+  wasm: "application/wasm",
+  woff: "font/woff",
+  woff2: "font/woff2",
+  ttf: "font/ttf",
+  otf: "font/otf",
+};
+
+function getExtensionLower(pathOrName: string): string | undefined {
+  const name = pathOrName.split("/").pop() || pathOrName;
+  const idx = name.lastIndexOf(".");
+  if (idx < 0 || idx === name.length - 1) return undefined;
+  return name.slice(idx + 1).toLowerCase();
+}
+
 export function getSpecificMimeType(filePathOrName: string): string | undefined {
-  const lookedUpMime = mime.lookup(filePathOrName);
-  return typeof lookedUpMime === "string" ? lookedUpMime : undefined;
+  const ext = getExtensionLower(filePathOrName);
+  if (!ext) return undefined;
+  return EXT_TO_MIME[ext];
+}
+
+// Allow callers to extend/override the built-in map at runtime
+export function registerMimeTypes(map: Record<string, string>): void {
+  for (const [key, value] of Object.entries(map)) {
+    if (!key || !value) continue;
+    EXT_TO_MIME[key.toLowerCase()] = value;
+  }
 }
 
 /**

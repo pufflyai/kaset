@@ -40,4 +40,20 @@ describe("grep over OPFS", () => {
     expect(matches).toHaveLength(1);
     expect(matches[0].file).toBe("readme.txt");
   });
+
+  it("supports brace expansion in include/exclude globs", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+
+    await writeFile(root, "docs/notes.txt", "hello from notes\n");
+    await writeFile(root, "readme.md", "hello from readme\n");
+
+    const matches = await grep(root, {
+      pattern: /hello/,
+      include: ["**/*.{ts,tsx,md,txt}"],
+      exclude: ["**/*.md"],
+    });
+
+    expect(matches.map((m) => m.file)).toEqual(["docs/notes.txt"]);
+  });
 });

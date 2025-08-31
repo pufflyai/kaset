@@ -1,5 +1,7 @@
 # @pstdio/opfs-utils
 
+[![npm version](https://img.shields.io/npm/v/@pstdio/opfs-utils.svg?color=blue)](https://www.npmjs.com/package/@pstdio/opfs-utils)
+
 Small, dependency-light utilities for working with the Origin Private File System (OPFS) in the browser. Includes:
 
 - ls: list files and folders with depth, filters, and sorting
@@ -79,9 +81,21 @@ Example:
 const list = await ls(root, { maxDepth: Infinity, include: ["**/*"], stat: true });
 ```
 
+Pretty tree formatting:
+
+```ts
+import { ls, formatTree } from "@pstdio/opfs-utils";
+
+const entries = await ls(root, { maxDepth: Infinity });
+console.log(formatTree(entries));
+
+// Empty set renders a placeholder
+console.log(formatTree([])); // "<empty>"
+```
+
 Notes:
 
-- include/exclude are simple globs supporting \*_, _, ?
+- include/exclude are simple globs supporting `**`, `*`, `?`, and simple brace lists like `{ts,tsx,md,txt}`
 - When `stat: true`, file size/mtime are fetched with limited concurrency
 - Results can be streamed via `onEntry` as they’re discovered
 
@@ -180,7 +194,7 @@ Notes:
 
 ### getSpecificMimeType(filePathOrName)
 
-Thin wrapper over `mime-types` lookup. Returns a string mime type or `undefined`.
+Lightweight extension-to-MIME lookup (browser-safe). Returns a string mime type or `undefined`.
 
 ## TypeScript
 

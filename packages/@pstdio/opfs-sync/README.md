@@ -1,5 +1,7 @@
 # @pstdio/opfs-sync
 
+[![npm version](https://img.shields.io/npm/v/@pstdio/opfs-sync.svg?color=blue)](https://www.npmjs.com/package/@pstdio/opfs-sync)
+
 Small, dependency-light sync engine between the browser’s Origin Private File System (OPFS) and a remote storage provider. Ships with a Supabase Storage adapter and a minimal provider interface for custom backends.
 
 Works entirely in the browser. Ideal for offline-first apps that keep a local OPFS workspace and reconcile with the cloud using a simple last-writer-wins strategy.

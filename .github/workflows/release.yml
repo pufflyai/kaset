@@ -1,0 +1,51 @@
+name: Release (npm + artifacts)
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npm run format:check && npm run lint
+      - run: npx lerna run build
+      - run: npx lerna run test
+
+      # Create exact tarballs that will be published
+      - name: Pack packages
+        run: |
+          npm pack --workspace @pstdio/opfs-utils
+          npm pack --workspace @pstdio/opfs-sync
+          npm pack --workspace @pstdio/prompt-utils
+          npm pack --workspace describe-context
+        shell: bash
+
+      - name: Upload tarballs as build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-tarballs
+          path: "*.tgz"
+          if-no-files-found: error
+
+      - name: Attach tarballs to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.tgz"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

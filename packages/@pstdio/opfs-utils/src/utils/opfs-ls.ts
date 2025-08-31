@@ -182,16 +182,60 @@ export function formatLong(entries: LsEntry[]): string {
 
 /** Simple tree view (uses entries you already got; pass `maxDepth: Infinity`). */
 export function formatTree(entries: LsEntry[]): string {
-  // Build child lists keyed by parent path.
-  const children = new Map<string, LsEntry[]>();
+  // Build a synthetic tree that includes any missing parent directories
+  // implied by entry paths so we can always render a tree.
+
+  type Node = { path: string; name: string; kind: "file" | "directory" };
+
+  const children = new Map<string, Node[]>();
+  const present = new Set<string>();
+
+  const getName = (p: string) => {
+    const i = p.lastIndexOf("/");
+    return i === -1 ? p : p.slice(i + 1);
+  };
+
+  const ensureChildren = (key: string) => {
+    if (!children.has(key)) children.set(key, []);
+    return children.get(key)!;
+  };
+
+  const ensureDir = (path: string) => {
+    if (path === "" || present.has(path)) return;
+
+    const parent = parentPath(path);
+    ensureDir(parent);
+
+    const arr = ensureChildren(parent);
+    arr.push({ path, name: getName(path), kind: "directory" });
+    present.add(path);
+
+    ensureChildren(path);
+  };
+
   for (const e of entries) {
-    const parent = parentPath(e.path);
-    if (!children.has(parent)) children.set(parent, []);
-    children.get(parent)!.push(e);
+    const p = e.path.replace(/\\/g, "/");
+
+    if (e.kind === "directory") {
+      ensureDir(p);
+    } else {
+      const parent = parentPath(p);
+      ensureDir(parent);
+
+      if (!present.has(p)) {
+        const arr = ensureChildren(parent);
+        arr.push({ path: p, name: e.name, kind: "file" });
+        present.add(p);
+      }
+    }
   }
+
   // Sort each child array: dirs first, then name asc.
   for (const arr of children.values()) {
-    sortEntries(arr, { sortBy: "name", sortOrder: "asc", dirsFirst: true });
+    arr.sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === "directory" ? -1 : 1;
+      return a.name.localeCompare(b.name);
+    });
   }
 
   const lines: string[] = [];
@@ -209,7 +253,8 @@ export function formatTree(entries: LsEntry[]): string {
   };
 
   visit("", "");
-  return lines.join("\n");
+  const out = lines.join("\n");
+  return out || "<empty>";
 }
 
 // ---------- Internals ----------
