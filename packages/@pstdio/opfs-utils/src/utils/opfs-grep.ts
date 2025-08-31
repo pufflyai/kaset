@@ -64,12 +64,8 @@ export async function grep(dirHandle: FileSystemDirectoryHandle, options: GrepOp
   } = options;
 
   // Normalize patterns (expand simple {a,b,c} brace lists)
-  const includeREs = (include ?? [])
-    .flatMap(expandBraces)
-    .map(globToRegExp);
-  const excludeREs = (exclude ?? [])
-    .flatMap(expandBraces)
-    .map(globToRegExp);
+  const includeREs = (include ?? []).flatMap(expandBraces).map(globToRegExp);
+  const excludeREs = (exclude ?? []).flatMap(expandBraces).map(globToRegExp);
   const re = toGlobalRegex(pattern, flags);
 
   // Collect files first (so we can pool-process them)
@@ -268,7 +264,7 @@ function findFirstBrace(s: string): { start: number; end: number } | null {
       i++; // skip next char
       continue;
     }
-    if (ch === "{" ) {
+    if (ch === "{") {
       if (depth === 0) start = i;
       depth++;
     } else if (ch === "}") {

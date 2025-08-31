@@ -45,15 +45,26 @@ export interface ApplyPatchOptions {
 export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOperationResult> {
   const { root, workDir = "", diffContent, signal, git } = opts;
 
+  // Fast-path: treat a file-header-only diff (no hunks) as a no-op success.
+  // Many tools (or user copy/paste) can produce diffs with only ---/+++ lines.
+  // A unified diff requires at least one @@ hunk to describe changes.
+  // We return success to indicate "nothing to do" instead of an error.
+  const hasHeaders = /^(---|\+\+\+)\s/m.test(diffContent);
+  const hasHunks = /^@@\s/m.test(diffContent);
+  if (hasHeaders && !hasHunks) {
+    return { success: true, output: "No changes in patch (no hunks)." };
+  }
+
   // Parse the patch into per-file hunks
   let patches: StructuredPatch[];
   try {
     patches = parsePatch(diffContent);
   } catch (e) {
-    return {
-      success: false,
-      output: "Failed to parse patch: " + (e instanceof Error ? e.message : String(e)),
-    };
+    // If we failed to parse but there are clearly no hunks, treat as no-op.
+    if (hasHeaders && !hasHunks) {
+      return { success: true, output: "No changes in patch (no hunks)." };
+    }
+    return { success: false, output: "Failed to parse patch: " + (e instanceof Error ? e.message : String(e)) };
   }
   if (!patches.length) {
     return { success: false, output: "No file hunks found in patch." };

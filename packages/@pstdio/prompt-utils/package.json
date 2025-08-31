@@ -1,16 +1,20 @@
 {
   "name": "@pstdio/prompt-utils",
   "description": "Tiny utilities for crafting LLM prompts, parsing partial JSON streams, and helpful text/JSON helpers.",
+  "version": "0.1.0",
+  "author": "Pufflig AB",
+  "email": "support@prompt.studio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pufflyai/core-utils.git"
+  },
   "keywords": [
     "llm",
     "prompt",
     "prompt-engineering",
     "ai"
   ],
-  "version": "0.1.0",
-  "author": "Pufflig AB",
-  "email": "a.franky@prompt.studio",
-  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",

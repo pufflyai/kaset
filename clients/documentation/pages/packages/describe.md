@@ -27,3 +27,10 @@ After building this package (`npm run build` in the repo root), run:
 ```
 npx describe-context <folder>
 ```
+
+Outputs markdown to stdout and basic stats to stderr.
+
+## Notes
+
+- Designed for developer tooling and LLM context preparation
+- Keep folder sizes reasonable to avoid excessive output

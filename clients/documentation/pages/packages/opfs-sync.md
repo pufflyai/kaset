@@ -33,6 +33,14 @@ await sync.initialSync();
 sync.startWatching();
 ```
 
+## Features
+
+- Pluggable remote providers (Supabase adapter included)
+- Last-writer-wins by mtime with optional sha256 equality short-circuit
+- Evented progress reporting and error bubbling
+- Periodic background scans with `scanInterval`
+- ESM-only; no Node.js deps
+
 ## RemoteProvider interface
 
 ```ts
@@ -45,4 +53,39 @@ interface RemoteProvider {
 }
 ```
 
-See the package README for full API and caveats.
+Contract notes:
+
+- list("") returns a flat list under the configured remote root/prefix
+- mtimeMs is epoch ms; approximate consistently if backend lacks precise mtimes
+- sha256 is optional but helps skip identical content even if mtimes differ
+
+## API
+
+class OpfsSync
+
+- constructor(options: { localDir, remote, scanInterval?, encryptionKey? })
+- initialSync(): `Promise<void>`
+- startWatching(): void
+- stopWatching(): void
+
+Events dispatched on the instance:
+
+- "progress" → `CustomEvent<{ phase: "upload"|"download"; key: string; transferred: number; total: number }>`
+- "error" → `CustomEvent<any>`
+
+### SupabaseRemote
+
+Provided adapter: `new SupabaseRemote(client, bucket, prefix?)`
+
+- list uses `updated_at` for mtimeMs; upload uses upsert; download returns Blob; remove deletes; updateAuth rotates JWT.
+
+## Requirements
+
+- Secure context (https or localhost)
+- Browser support for OPFS
+
+## Caveats
+
+- Last-writer-wins can overwrite changes on clock skew or racing edits
+- No rename detection (appears as delete+create)
+- Initial hashing on large trees may be slow; consider narrowing scope

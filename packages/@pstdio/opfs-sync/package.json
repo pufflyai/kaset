@@ -1,15 +1,20 @@
 {
   "name": "@pstdio/opfs-sync",
   "description": "Browser-based sync engine between OPFS and remote storage (Supabase adapter included).",
+  "version": "0.1.0",
+  "author": "Pufflig AB",
+  "email": "support@prompt.studio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pufflyai/core-utils.git"
+  },
   "keywords": [
     "opfs",
     "sync",
     "synchronization",
     "origin-private-file-system"
   ],
-  "version": "0.1.0",
-  "author": "Pufflig AB",
-  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",

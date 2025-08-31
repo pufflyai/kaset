@@ -1,6 +1,14 @@
 {
   "name": "@pstdio/opfs-utils",
   "description": "Utilities for the browser's OPFS: ls, grep, safe file read, unified diff patching, and MIME helpers.",
+  "version": "0.1.0",
+  "author": "Pufflig AB",
+  "email": "support@prompt.studio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pufflyai/core-utils.git"
+  },
   "keywords": [
     "opfs",
     "origin-private-file-system",
@@ -12,9 +20,6 @@
     "ls",
     "utilities"
   ],
-  "version": "0.1.0",
-  "author": "Pufflig AB",
-  "license": "MIT",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
