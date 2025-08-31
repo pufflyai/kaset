@@ -8,8 +8,8 @@
 
 import { existsSync } from "fs";
 import { writeFile } from "fs/promises";
-import { basename } from "path";
-import { fileURLToPath } from "url";
+import { basename, resolve } from "path";
+import { pathToFileURL } from "url";
 import { generateContext } from "./core";
 
 async function main() {
@@ -52,5 +52,14 @@ async function main() {
 }
 
 // Run the script
-const isMain = typeof process !== "undefined" && fileURLToPath(import.meta.url) === process.argv[1];
-if (isMain) main().catch(console.error);
+const isMain =
+  typeof process !== "undefined" &&
+  !!process.argv[1] &&
+  pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+
+if (isMain) {
+  main().catch((err) => {
+    console.error(err);
+    process.exitCode = 1;
+  });
+}
