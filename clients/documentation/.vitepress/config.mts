@@ -2,14 +2,14 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  // base: "/docs/",
+  base: "/core-utils/",
   title: "Datazine Docs",
   description: "",
   srcDir: "./pages",
   lastUpdated: true,
-  head: [["link", { rel: "icon", href: "/docs/favicon.ico" }]],
+  head: [["link", { rel: "icon", href: "/core-utils/favicon.ico" }]],
   themeConfig: {
-    logo: "/logo_inverted.svg",
+    logo: "/core-utils/logo_inverted.svg",
     search: {
       provider: "local",
     },
