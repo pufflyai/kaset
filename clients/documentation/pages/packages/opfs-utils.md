@@ -124,6 +124,39 @@ if (result.success) {
 }
 ```
 
+### Upload Files
+
+```ts
+import { pickAndUploadFilesToDirectory } from "@pstdio/opfs-utils";
+
+const root = await navigator.storage.getDirectory();
+const destRoot = await root.getDirectoryHandle("data", { create: true });
+
+const result = await pickAndUploadFilesToDirectory(destRoot, {
+  destSubdir: "incoming",
+  overwrite: "rename",
+});
+
+console.log(result.uploadedFiles, result.errors);
+```
+
+### Watch a Directory
+
+```ts
+import { watchDirectory } from "@pstdio/opfs-utils";
+
+const root = await navigator.storage.getDirectory();
+const dir = await root.getDirectoryHandle("data", { create: true });
+
+const stop = await watchDirectory(dir, (changes) => {
+  for (const c of changes) {
+    console.log(`[${c.type}]`, c.path.join("/"));
+  }
+});
+
+// Later: stop();
+```
+
 ## Interactive Playground
 
 Want to experiment with `@pstdio/opfs-utils`? The package includes a comprehensive **Storybook playground** where you can:
