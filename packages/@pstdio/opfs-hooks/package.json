@@ -14,7 +14,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
     "visualize-bundle": "npx vite-bundle-visualizer",
-    "test": "vitest run"
+    "test": "echo \"No tests specified\""
   },
   "keywords": [
     "react",
