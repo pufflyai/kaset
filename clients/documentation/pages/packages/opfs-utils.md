@@ -86,8 +86,8 @@ Safely reads one file with type-aware behavior (text, svg, media, binary) and se
 
 Apply a unified diff to OPFS. Creates/modifies/deletes/renames.
 
-- Optional isomorphic-git staging: pass { git, fs, dir, stage? }
-- Returns { success, output, details: { created, modified, deleted, renamed, failed } }
+- Optional isomorphic-git staging: pass `{ git, fs, dir, stage? }`
+- Returns `{ success, output, details: { created, modified, deleted, renamed, failed } }`
 
 ### formatTree(entries) → string
 
