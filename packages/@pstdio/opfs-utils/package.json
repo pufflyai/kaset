@@ -5,12 +5,13 @@
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
+  "homepage": "https://pufflyai.github.io/core-utils/packages/opfs-utils.html",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/pufflyai/core-utils.git"
   },
   "scripts": {
-    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
     "build": "tsc -b && vite build",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
     "visualize-bundle": "npx vite-bundle-visualizer",

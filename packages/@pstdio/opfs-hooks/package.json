@@ -10,7 +10,7 @@
     "url": "git+https://github.com/pufflyai/core-utils.git"
   },
   "scripts": {
-    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
     "build": "tsc -b && vite build",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
     "visualize-bundle": "npx vite-bundle-visualizer",
@@ -46,7 +46,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@pstdio/opfs-utils": "^0.1.0"
+    "@pstdio/opfs-utils": "*"
   },
   "volta": {
     "node": "22.18.0"
