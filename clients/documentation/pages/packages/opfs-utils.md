@@ -28,12 +28,7 @@ OPFS is perfect for applications that need to handle large files, perform comple
 
 ## Browser Compatibility
 
-| Browser    | OPFS Support | Notes                                |
-| ---------- | ------------ | ------------------------------------ |
-| Chrome 86+ | ✅ Full      | Complete OPFS implementation         |
-| Edge 86+   | ✅ Full      | Complete OPFS implementation         |
-| Safari 17+ | ✅ Partial   | Basic OPFS support, some limitations |
-| Firefox    | ❌ None      | OPFS not yet implemented             |
+For the latest browser support information, see [MDN's Origin Private File System documentation](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system).
 
 **Detection**: Use `'storage' in navigator && 'getDirectory' in navigator.storage` to check for OPFS availability.
 
@@ -951,15 +946,5 @@ async function getFileListFromIndexedDB() {
 ## Requirements
 
 - **Secure Context**: HTTPS or localhost required
-- **Browser Support**: Chromium 86+, Safari 17+ (partial), Edge 86+
+- **Browser Support**: Modern browsers with OPFS implementation (see compatibility section)
 - **Permissions**: User consent may be required for OPFS access
-
-## Tips & Best Practices
-
-- **Use specific glob patterns** in `include`/`exclude` to avoid scanning unnecessary files
-- **Set reasonable concurrency limits** (4-8) to prevent overwhelming the system
-- **Handle large files carefully** with size limits and streaming where appropriate
-- **Always handle errors gracefully** as OPFS operations can fail due to permissions or quota
-- **Use AbortController** for long-running operations to enable cancellation
-- **Test across browsers** as OPFS implementation varies between vendors
-- **Cache directory handles** when possible to avoid repeated `getDirectory()` calls
