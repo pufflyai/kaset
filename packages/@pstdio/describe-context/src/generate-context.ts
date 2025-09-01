@@ -6,9 +6,9 @@
  * Converts the reusable library in core.ts to a simple CLI.
  */
 
-import { existsSync } from "fs";
+import { existsSync, realpathSync } from "fs";
 import { writeFile } from "fs/promises";
-import { basename, resolve } from "path";
+import { basename } from "path";
 import { pathToFileURL } from "url";
 import { generateContext } from "./core";
 
@@ -16,7 +16,7 @@ async function main() {
   const args = process.argv.slice(2);
 
   if (args.length === 0) {
-    console.error("Usage: node dist/generate-context.js <folder-path> [output-file]");
+    console.error("Usage: describe-context <folder-path> [output-file]");
     process.exit(1);
   }
 
@@ -51,11 +51,17 @@ async function main() {
   }
 }
 
-// Run the script
-const isMain =
-  typeof process !== "undefined" &&
-  !!process.argv[1] &&
-  pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+// Run the script when executed directly (robust against symlinks/.bin shims)
+const isMain = (() => {
+  if (typeof process === "undefined" || !process.argv[1]) return false;
+
+  try {
+    const entryHref = pathToFileURL(realpathSync(process.argv[1])).href;
+    return entryHref === import.meta.url;
+  } catch {
+    return false;
+  }
+})();
 
 if (isMain) {
   main().catch((err) => {
