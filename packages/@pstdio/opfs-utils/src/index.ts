@@ -22,3 +22,4 @@ export {
   type DirectoryWatcherCleanup,
   type WatchOptions,
 } from "./utils/opfs-watch";
+export { readFile, writeFile, deleteFile, downloadFile } from "./utils/opfs-crud";

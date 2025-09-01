@@ -124,6 +124,19 @@ if (result.success) {
 }
 ```
 
+### CRUD helpers
+
+```ts
+import { readFile, writeFile, deleteFile, downloadFile } from "@pstdio/opfs-utils";
+
+await writeFile("data/inbox/hello.txt", "Hi!");
+const text = await readFile("data/inbox/hello.txt"); // "Hi!"
+await deleteFile("data/inbox/hello.txt");
+
+// In a browser page:
+await downloadFile("data/report.csv"); // triggers a download
+```
+
 ### Upload Files
 
 ```ts
