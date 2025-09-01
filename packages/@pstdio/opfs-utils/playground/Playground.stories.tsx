@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { CrudPanel } from "./components/CrudPanel";
 import { GrepPanel } from "./components/GrepPanel";
 import { LsPanel } from "./components/LsPanel";
 import { PatchPanel } from "./components/PatchPanel";
@@ -51,6 +52,7 @@ function Playground() {
       <UploadPanel root={root} baseDir={baseDir} onStatus={setStatus} />
       <WatchPanel root={root} baseDir={baseDir} onStatus={setStatus} />
       <ShellPanel root={root} baseDir={baseDir} onStatus={setStatus} />
+      <CrudPanel baseDir={baseDir} onStatus={setStatus} />
     </div>
   );
 }
