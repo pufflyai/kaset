@@ -39,7 +39,7 @@ Examples:
 npx describe-context . repo-context.md
 
 # use the default name: <basename(folder)>-context.md
-npx describe-context packages/opfs-utils
+npx describe-context my-project
 ```
 
 What it does:
