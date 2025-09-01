@@ -6,6 +6,7 @@ import { PatchPanel } from "./components/PatchPanel";
 import { ReadPanel } from "./components/ReadPanel";
 import { SetupPanel } from "./components/SetupPanel";
 import { Row, TextInput } from "./components/ui";
+import { ShellPanel } from "./components/ShellPanel";
 import { useOPFS } from "./hooks/useOPFS";
 
 const meta: Meta = {
@@ -45,6 +46,7 @@ function Playground() {
       <ReadPanel root={root} baseDir={baseDir} onStatus={setStatus} />
       <GrepPanel root={root} baseDir={baseDir} onStatus={setStatus} />
       <PatchPanel root={root} baseDir={baseDir} onStatus={setStatus} />
+      <ShellPanel root={root} baseDir={baseDir} onStatus={setStatus} />
     </div>
   );
 }
