@@ -36,6 +36,9 @@ export default defineConfig({
         ],
       },
     ],
-    // socialLinks: [{ icon: "discord", link: "" }],
+
+    socialLinks: [
+      { icon: "github", link: "https://github.com/pufflyai/core-utils" },
+    ],
   },
 });
