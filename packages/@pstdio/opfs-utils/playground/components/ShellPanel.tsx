@@ -19,11 +19,11 @@ export function ShellPanel({
     { label: "ls -la", cmd: "ls -la" },
     { label: "ls -lR src", cmd: "ls -lR src" },
     { label: "ls -la nested/a/b/c", cmd: "ls -la nested/a/b/c" },
-    { label: "rg -n \"TODO|examples\" docs", cmd: 'rg -n "TODO|examples" docs' },
-    { label: "rg -n -S \"readme\" .", cmd: 'rg -n -S "readme" .' },
+    { label: 'rg -n "TODO|examples" docs', cmd: 'rg -n "TODO|examples" docs' },
+    { label: 'rg -n -S "readme" .', cmd: 'rg -n -S "readme" .' },
     { label: "sed -n '1,40p' docs/PROJECT_README.md", cmd: "sed -n '1,40p' docs/PROJECT_README.md" },
     { label: "ls -la | sed -n '1,20p'", cmd: "ls -la | sed -n '1,20p'" },
-    { label: "rg -n \"function|class\" src", cmd: 'rg -n "function|class" src' },
+    { label: 'rg -n "function|class" src', cmd: 'rg -n "function|class" src' },
   ];
 
   async function run() {
