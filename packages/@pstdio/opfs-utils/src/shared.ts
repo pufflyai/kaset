@@ -8,3 +8,19 @@ export async function getOPFSRoot(): Promise<FileSystemDirectoryHandle> {
 
   return getDir.call(storage);
 }
+
+export async function getDirectoryHandle(path = ""): Promise<FileSystemDirectoryHandle> {
+  const root = await getOPFSRoot();
+
+  if (!path) return root;
+
+  const segments = path.replace(/\\/g, "/").split("/").filter(Boolean);
+
+  let dir = root;
+
+  for (const seg of segments) {
+    dir = await dir.getDirectoryHandle(seg, { create: false });
+  }
+
+  return dir;
+}

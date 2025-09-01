@@ -10,7 +10,7 @@
     "url": "git+https://github.com/pufflyai/core-utils.git"
   },
   "scripts": {
-    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
     "build": "tsc -b && vite build",
     "postbuild": "chmod +x dist/generate-context.js",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",

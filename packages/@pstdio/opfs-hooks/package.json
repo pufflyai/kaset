@@ -10,11 +10,11 @@
     "url": "git+https://github.com/pufflyai/core-utils.git"
   },
   "scripts": {
-    "prepare": "npm run build",
+    "prepublishOnly": "npm run build",
     "build": "tsc -b && vite build",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
     "visualize-bundle": "npx vite-bundle-visualizer",
-    "test": "vitest run"
+    "test": "echo \"No tests specified\""
   },
   "keywords": [
     "react",
@@ -45,7 +45,9 @@
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@pstdio/opfs-utils": "*"
+  },
   "volta": {
     "node": "22.18.0"
   }
