@@ -6,6 +6,8 @@ import { PatchPanel } from "./components/PatchPanel";
 import { ReadPanel } from "./components/ReadPanel";
 import { SetupPanel } from "./components/SetupPanel";
 import { ShellPanel } from "./components/ShellPanel";
+import { UploadPanel } from "./components/UploadPanel";
+import { WatchPanel } from "./components/WatchPanel";
 import { Row, TextInput } from "./components/ui";
 import { useOPFS } from "./hooks/useOPFS";
 
@@ -46,6 +48,8 @@ function Playground() {
       <ReadPanel root={root} baseDir={baseDir} onStatus={setStatus} />
       <GrepPanel root={root} baseDir={baseDir} onStatus={setStatus} />
       <PatchPanel root={root} baseDir={baseDir} onStatus={setStatus} />
+      <UploadPanel root={root} baseDir={baseDir} onStatus={setStatus} />
+      <WatchPanel root={root} baseDir={baseDir} onStatus={setStatus} />
       <ShellPanel root={root} baseDir={baseDir} onStatus={setStatus} />
     </div>
   );
