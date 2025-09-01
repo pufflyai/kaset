@@ -38,7 +38,7 @@ Examples:
 # write to an explicit file
 npx describe-context . repo-context.md
 
-# use the default name: <basename(folder)>-context.md
+# use the default name: <folder's basename>-context.md
 npx describe-context my-project
 ```
 
