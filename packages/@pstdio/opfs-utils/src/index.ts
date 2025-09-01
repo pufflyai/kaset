@@ -1,3 +1,4 @@
+export { runOpfsCommandLine } from "./cli/opfs-shell";
 export {
   DEFAULT_MAX_LINES_TEXT_FILE,
   getSpecificMimeType,
@@ -6,7 +7,5 @@ export {
   type ProcessedFileReadResult,
 } from "./utils/opfs-files";
 export { grep } from "./utils/opfs-grep";
-export { ls } from "./utils/opfs-ls";
-export { formatTree } from "./utils/opfs-ls";
+export { formatTree, ls } from "./utils/opfs-ls";
 export { applyPatchInOPFS as patch } from "./utils/opfs-patch";
-export { runOpfsCommandLine } from "./cli/opfs-shell";

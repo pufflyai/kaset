@@ -5,8 +5,8 @@ import { LsPanel } from "./components/LsPanel";
 import { PatchPanel } from "./components/PatchPanel";
 import { ReadPanel } from "./components/ReadPanel";
 import { SetupPanel } from "./components/SetupPanel";
-import { Row, TextInput } from "./components/ui";
 import { ShellPanel } from "./components/ShellPanel";
+import { Row, TextInput } from "./components/ui";
 import { useOPFS } from "./hooks/useOPFS";
 
 const meta: Meta = {
