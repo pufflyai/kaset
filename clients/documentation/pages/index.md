@@ -115,7 +115,7 @@ const sync = new OpfsSync('/local-folder', new SupabaseRemote(config));
 await sync.syncToRemote();
 
 // Generate context for LLMs
-import { generateContext } from '@pstdio/describe-context';
+import { generateContext } from 'describe-context';
 
 const context = await generateContext('./src');
 ```
@@ -148,7 +148,7 @@ Features: `prompt()`, `parseJSONStream()`, `getSchema()`, `safeStringify()`, UUI
 
 ---
 
-### [@pstdio/describe-context](/packages/describe-context)
+### [@pstdio/describe-context](/packages/describe)
 
 **Code context generation** — Transform folder structures into LLM-friendly Markdown documentation.
 
