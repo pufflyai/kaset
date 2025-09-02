@@ -26,6 +26,31 @@ Build powerful web apps with OPFS, cloud sync, LLM workflows, and developer tool
 
 ---
 
+## 🤔 Why Core Utils?
+
+### The Problem
+
+Modern web applications increasingly need to:
+- **Store and process files locally** without server dependencies
+- **Sync data between browser and cloud** for offline-first experiences  
+- **Integrate with AI/LLM services** for intelligent features
+- **Analyze codebases** for documentation and AI-assisted development
+
+Traditional solutions are fragmented, server-dependent, or lack browser-first design.
+
+### What Core Utils Solves
+
+**Core Utils** provides a comprehensive, browser-first toolkit for building next-generation web applications that work offline, sync seamlessly with the cloud, and integrate naturally with AI workflows.
+
+**Perfect for:**
+- 📝 **Note-taking and document apps** that work offline and sync across devices
+- 🛠️ **Developer tools and IDEs** that analyze code and provide AI assistance
+- 📊 **Data analysis applications** that process files locally without server uploads
+- 🤖 **AI-powered applications** that need local file processing and LLM integration
+- 🔄 **Offline-first web apps** with selective cloud synchronization
+
+---
+
 ## ✨ What's Inside
 
 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin: 2rem 0;">
