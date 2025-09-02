@@ -94,7 +94,7 @@ npm install @pstdio/opfs-sync
 npm install @pstdio/prompt-utils
 
 # Context generation
-npm install @pstdio/describe-context
+npm install @pstdio/describe
 ```
 
 ### Basic Usage
