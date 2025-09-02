@@ -148,7 +148,7 @@ Features: `prompt()`, `parseJSONStream()`, `getSchema()`, `safeStringify()`, UUI
 
 ---
 
-### [@pstdio/describe-context](/packages/describe)
+### [@pstdio/describe-context](/packages/describe-context)
 
 **Code context generation** — Transform folder structures into LLM-friendly Markdown documentation.
 
