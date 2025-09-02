@@ -12,7 +12,7 @@ Build powerful web apps with OPFS, cloud sync, LLM workflows, and developer tool
 
 <div style="display: flex; justify-content: center; gap: 0.5rem; flex-wrap: wrap; margin: 1.5rem 0;">
 
-![npm](https://img.shields.io/badge/npm-0.1.0-blue)
+![npm](https://img.shields.io/npm/v/@pstdio/opfs-utils?label=npm)
 ![node](https://img.shields.io/badge/node-22.x-green)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
