@@ -112,7 +112,7 @@ export async function loadGitignoreContext(targetDir: string): Promise<Gitignore
       }
       
       gitignoreFiles.push(gitignorePath);
-    } catch (error) {
+    } catch {
       // .gitignore file doesn't exist or can't be read, continue
     }
     
