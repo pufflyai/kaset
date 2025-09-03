@@ -2,14 +2,14 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  base: "/core-utils/",
-  title: "Datazine Docs",
-  description: "",
+  // base: "/core-utils/",
+  title: "Datazine Tools",
+  description: "A collection of tools to build browser-first, agentic web applications",
   srcDir: "./pages",
   lastUpdated: true,
-  head: [["link", { rel: "icon", href: "/core-utils/favicon.ico" }]],
+  head: [["link", { rel: "icon", href: "/favicon.ico" }]],
   themeConfig: {
-    logo: "/core-utils/logo_inverted.svg",
+    logo: "/logo_inverted.svg",
     search: {
       provider: "local",
     },
@@ -37,8 +37,6 @@ export default defineConfig({
       },
     ],
 
-    socialLinks: [
-      { icon: "github", link: "https://github.com/pufflyai/core-utils" },
-    ],
+    socialLinks: [{ icon: "github", link: "https://github.com/pufflyai/core-utils" }],
   },
 });

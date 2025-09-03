@@ -1,19 +1,51 @@
 ---
-title: Datazine Core Utils
+title: Datazine Tools
 ---
 
-# Datazine Core Utils
+# Datazine Tools
 
-Utilities for building browser‑first apps using the Origin Private File System (OPFS), remote sync, prompt helpers, and repo description tooling.
+**A collection of tools to build browser-first, agentic web applications**
 
-- OPFS utilities: list/grep/patch, safe reads, and tree formatting (browser)
-- OPFS ↔ Cloud sync with pluggable remotes (Supabase adapter included)
-- Prompt helpers and JSON utilities for LLM workflows
-- Folder → Markdown context generator for code review and LLMs
+## 🤔 Why do these packages exist?
 
-## Packages overview
+Coding agents have now become good enough that they can be applied to a wider range of tasks, provided the correct environment and project structure.
 
-- @pstdio/opfs-utils — OPFS helpers for listing, grepping, safe reads, patching, and tree formatting. See [opfs-utils](/packages/opfs-utils).
-- @pstdio/opfs-sync — Browser‑only sync engine between OPFS and a remote provider. See [opfs-sync](/packages/opfs-sync).
-- @pstdio/prompt-utils — Prompt and JSON helpers for LLM workflows. See [prompt-utils](/packages/prompt-utils).
-- describe-context — Analyze a folder and generate an LLM‑ready Markdown context. See [describe-context](/packages/describe).
+These packages help bring them to the browser, running next to your webapp, to edit, mod, extend your application files as desired by your users.
+
+![architecture](/images/architecture.png)
+
+## 📦 Packages Overview
+
+<div style="margin: 1.5rem 0;">
+
+### [@pstdio/opfs-utils](/packages/opfs-utils)
+
+**OPFS helpers for modern browsers** — Advanced file system operations including listing, grep search, safe file reading, and patch utilities.
+
+Key features: `ls()`, `grep()`, `processSingleFileContent()`, `patch()`, `formatTree()`
+
+---
+
+### [@pstdio/opfs-sync](/packages/opfs-sync)
+
+**Browser-cloud synchronization** — Two-way sync engine between OPFS and remote providers with conflict resolution.
+
+Includes: Core `OpfsSync` class, `SupabaseRemote` adapter, change detection
+
+---
+
+### [@pstdio/prompt-utils](/packages/prompt-utils)
+
+**LLM workflow utilities** — Optimized tools for prompt engineering and JSON stream processing.
+
+Features: `prompt()`, `parseJSONStream()`, `getSchema()`, `safeStringify()`, UUID generation
+
+---
+
+### [describe-context](/packages/describe-context)
+
+**Code context generation** — Transform folder structures into LLM-friendly Markdown documentation.
+
+Tools: Library API `generateContext()`, CLI tool, selective file content inclusion
+
+</div>
