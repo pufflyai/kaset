@@ -1,4 +1,6 @@
 export { runOpfsCommandLine } from "./cli/opfs-shell";
+export { getDirectoryHandle, getOPFSRoot } from "./shared";
+export { deleteFile, downloadFile, readFile, writeFile } from "./utils/opfs-crud";
 export {
   DEFAULT_MAX_LINES_TEXT_FILE,
   getSpecificMimeType,
@@ -16,11 +18,9 @@ export {
   type FileUploadResult,
 } from "./utils/opfs-upload";
 export {
-  watchOPFS,
   watchDirectory,
+  watchOPFS,
   type ChangeRecord,
   type DirectoryWatcherCleanup,
   type WatchOptions,
 } from "./utils/opfs-watch";
-export { readFile, writeFile, deleteFile, downloadFile } from "./utils/opfs-crud";
-export { getDirectoryHandle } from "./shared";
