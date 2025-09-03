@@ -2,7 +2,7 @@ import { defineConfig } from "vitepress";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  // base: "/core-utils/",
+  base: "/core-utils/",
   title: "Datazine Tools",
   description: "A collection of tools to build browser-first, agentic web applications",
   srcDir: "./pages",

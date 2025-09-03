@@ -45,4 +45,3 @@ See the [monorepo README](https://github.com/pufflyai/core-utils#readme) for con
 ## License
 
 MIT © Pufflig AB
-
