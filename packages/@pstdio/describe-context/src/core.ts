@@ -102,6 +102,7 @@ const SKIP_FILES = new Set([
   "npm-debug.log",
   "yarn-error.log",
   "yarn-debug.log",
+  ".env",
   ".env.local",
   ".env.development",
   ".env.production",
