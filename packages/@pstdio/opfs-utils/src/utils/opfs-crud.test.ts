@@ -38,4 +38,24 @@ describe("opfs-crud (node env)", () => {
 
     expect(text).toBe("content");
   });
+
+  it("sanitizes ANSI sequences in paths", async () => {
+    setupTestOPFS();
+
+    const red = "\u001b[31m";
+    const reset = "\u001b[0m";
+    const pathWithAnsi = `${red}dir${reset}/${red}file${reset}.txt`;
+
+    await writeFile(pathWithAnsi, "ansi-ok");
+
+    // Reading with a clean path should succeed
+    await expect(readFile("dir/file.txt")).resolves.toBe("ansi-ok");
+
+    // The underlying in-memory FS should only contain sanitized names
+    const root = await getOPFSRoot();
+    const dir = await (root as any).getDirectoryHandle("dir");
+    const fh = await dir.getFileHandle("file.txt");
+    const text = await (await fh.getFile()).text();
+    expect(text).toBe("ansi-ok");
+  });
 });

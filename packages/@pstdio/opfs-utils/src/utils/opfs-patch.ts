@@ -1,4 +1,5 @@
 import { applyPatch, parsePatch } from "diff";
+import { stripAnsi } from "../shared";
 import type * as IsomorphicGit from "isomorphic-git";
 type StructuredPatch = any;
 
@@ -24,6 +25,12 @@ export interface ApplyPatchOptions {
   /** The unified diff content */
   diffContent: string;
 
+  /**
+   * Strip ANSI/VT escape sequences from diffContent before parsing.
+   * Defaults to true, to make copy/pasted colored diffs parse cleanly.
+   */
+  sanitizeAnsiDiff?: boolean;
+
   /** Abort if needed */
   signal?: AbortSignal;
 
@@ -43,14 +50,16 @@ export interface ApplyPatchOptions {
  * Apply a unified diff to OPFS files, optionally staging with isomorphic-git.
  */
 export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOperationResult> {
-  const { root, workDir = "", diffContent, signal, git } = opts;
+  const { root, workDir = "", diffContent, signal, git, sanitizeAnsiDiff = true } = opts;
+
+  const cleanDiff = sanitizeAnsiDiff ? stripAnsi(diffContent) : diffContent;
 
   // Fast-path: treat a file-header-only diff (no hunks) as a no-op success.
   // Many tools (or user copy/paste) can produce diffs with only ---/+++ lines.
   // A unified diff requires at least one @@ hunk to describe changes.
   // We return success to indicate "nothing to do" instead of an error.
-  const hasHeaders = /^(---|\+\+\+)\s/m.test(diffContent);
-  const hasHunks = /^@@\s/m.test(diffContent);
+  const hasHeaders = /^(---|\+\+\+)\s/m.test(cleanDiff);
+  const hasHunks = /^@@\s/m.test(cleanDiff);
   if (hasHeaders && !hasHunks) {
     return { success: true, output: "No changes in patch (no hunks)." };
   }
@@ -58,7 +67,7 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
   // Parse the patch into per-file hunks
   let patches: StructuredPatch[];
   try {
-    patches = parsePatch(diffContent);
+    patches = parsePatch(cleanDiff);
   } catch (e) {
     // If we failed to parse but there are clearly no hunks, treat as no-op.
     if (hasHeaders && !hasHunks) {

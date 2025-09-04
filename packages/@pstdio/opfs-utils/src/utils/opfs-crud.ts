@@ -1,8 +1,11 @@
-import { getOPFSRoot } from "../shared";
+import { getOPFSRoot, stripAnsi } from "../shared";
 
 /** Normalize to POSIX-ish, strip leading slashes. */
 function normalizeRelPath(p: string): string {
-  return p.replace(/\\/g, "/").replace(/^\/+/, "").trim();
+  // Sanitize terminal escape sequences that may have leaked into paths
+  // from colored CLI output or copy/paste.
+  const cleaned = stripAnsi(p);
+  return cleaned.replace(/\\/g, "/").replace(/^\/+/, "").trim();
 }
 
 /** Walk to the parent directory of a path. */
@@ -102,4 +105,50 @@ export const downloadFile = async (path: string): Promise<void> => {
   } finally {
     URL.revokeObjectURL(url);
   }
+};
+
+/**
+ * Move (rename) a file within OPFS.
+ * - Creates destination directories as needed.
+ * - Overwrites the destination if it exists.
+ * - Uses copy+delete for broad compatibility.
+ */
+export const moveFile = async (fromPath: string, toPath: string): Promise<void> => {
+  const root = await getOPFSRoot();
+
+  const from = normalizeRelPath(fromPath);
+  const to = normalizeRelPath(toPath);
+
+  if (!from) throw new Error("moveFile: 'fromPath' is empty");
+  if (!to) throw new Error("moveFile: 'toPath' is empty");
+  if (from === to) return; // no-op
+
+  const fromDir = await getParentDirHandle(root, from, /*create*/ false);
+  const toDir = await getParentDirHandle(root, to, /*create*/ true);
+
+  const fromBase = from.split("/").pop()!;
+  const toBase = to.split("/").pop()!;
+
+  // Try native move if available (experimental in some browsers)
+  const fh = await fromDir.getFileHandle(fromBase, { create: false });
+  const maybeMove = (fh as any)?.move;
+
+  if (typeof maybeMove === "function") {
+    await maybeMove.call(fh, toDir as any, toBase);
+    return;
+  }
+
+  // Fallback: copy bytes then delete source
+  const file = await fh.getFile();
+  const destHandle = await toDir.getFileHandle(toBase, { create: true });
+  const writable = await destHandle.createWritable({ keepExistingData: false } as any);
+
+  try {
+    const buf = await file.arrayBuffer();
+    await writable.write(buf);
+  } finally {
+    await writable.close();
+  }
+
+  await fromDir.removeEntry(fromBase);
 };
