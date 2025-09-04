@@ -1,4 +1,4 @@
-# Kaset
+![Kaset banner](https://pufflyai.github.io/kaset/images/kaset.png)
 
 **Kaset** [kaˈset] is a collection of open source tools to build browser-first, agentic web apps.
 
