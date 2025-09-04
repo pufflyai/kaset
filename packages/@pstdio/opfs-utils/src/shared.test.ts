@@ -12,4 +12,3 @@ describe("stripAnsi", () => {
     expect(stripAnsi(input)).toBe("startline");
   });
 });
-

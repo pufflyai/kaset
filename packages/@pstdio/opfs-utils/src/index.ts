@@ -1,6 +1,6 @@
 export { runOpfsCommandLine } from "./cli/opfs-shell";
 export { getDirectoryHandle, getOPFSRoot, stripAnsi } from "./shared";
-export { deleteFile, downloadFile, readFile, writeFile, moveFile } from "./utils/opfs-crud";
+export { deleteFile, downloadFile, moveFile, readFile, writeFile } from "./utils/opfs-crud";
 export {
   DEFAULT_MAX_LINES_TEXT_FILE,
   getSpecificMimeType,
