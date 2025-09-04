@@ -5,10 +5,10 @@
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
-  "homepage": "https://pufflyai.github.io/core-utils/packages/opfs-utils.html",
+  "homepage": "https://pufflyai.github.io/kaset/packages/opfs-utils.html",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pufflyai/core-utils.git"
+    "url": "git+https://github.com/pufflyai/kaset.git"
   },
   "scripts": {
     "prepublishOnly": "npm run build",

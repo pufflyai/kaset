@@ -1,4 +1,4 @@
-# Core Utils – Agent Instructions
+# Kaset – Agent Instructions
 
 Guidance for working in this TypeScript monorepo. This repo provides browser‑first utilities under the `@pstdio` scope: OPFS helpers, OPFS↔remote sync, prompt utilities, and a folder‑to‑markdown descriptor.
 
@@ -33,12 +33,13 @@ Utilities:
 
 ```
 packages/@pstdio/
-  opfs-utils/   # OPFS helpers (ls/grep/read/patch)
-  opfs-sync/    # OPFS <-> remote sync (Supabase remote included)
-  prompt-utils/ # Prompt & JSON utilities
-  describe/     # Analyze a folder and emit markdown context
+  opfs-utils/      # OPFS helpers (ls/grep/read/patch)
+  opfs-hooks/      # React hooks for OPFS (uses opfs-utils)
+  opfs-sync/       # OPFS <-> remote sync (Supabase remote included)
+  prompt-utils/    # Prompt & JSON utilities
+  describe-context/# Analyze a folder and emit markdown context (library + CLI)
 clients/
-  documentation/ # VitePress docs site
+  documentation/   # VitePress docs site
 ```
 
 Import rules:
@@ -67,6 +68,20 @@ Run (from root):
 ```bash
 npm run build --workspace @pstdio/opfs-utils
 npm run test --workspace @pstdio/opfs-utils
+```
+
+### @pstdio/opfs-hooks
+
+React hooks for working with the browser's OPFS.
+
+- Depends on `@pstdio/opfs-utils` for core operations
+- Scripts: `build`, `test`
+
+Run (from root):
+
+```bash
+npm run build --workspace @pstdio/opfs-hooks
+npm run test --workspace @pstdio/opfs-hooks
 ```
 
 ### @pstdio/opfs-sync
@@ -98,13 +113,19 @@ npm run build --workspace @pstdio/prompt-utils
 npm run test --workspace @pstdio/prompt-utils
 ```
 
-### @pstdio/describe
+### describe-context
 
 Analyze a folder and produce an LLM‑friendly markdown context (directory tree + selected file content).
 
 - Library: `generateContext(path)`
-- CLI (after building): `node packages/@pstdio/describe/dist/generate-context.js <folder> [output-file]`
-- Scripts: `build`, `test`
+- CLI (after building): `node packages/@pstdio/describe-context/dist/generate-context.js <folder> [output-file]`
+- Scripts: `build`
+
+Run (from root):
+
+```bash
+npm run build --workspace describe-context
+```
 
 ## Docs site
 
@@ -122,7 +143,11 @@ npm run build --workspace documentation
 3. Nx caching is enabled for builds (`nx.json`).
 4. Tests use Vitest; avoid introducing other frameworks.
 
-## Quick reference
+Import notes:
+
+- Prefer `@pstdio/<package>` imports where applicable. The `describe-context` package is currently unscoped in its `package.json` and uses the workspace name `describe-context`.
+
+### Quick reference
 
 - Validate: `npm run format:check && npm run lint && npm run build && npm run test`
 - Single package build: `npm run build --workspace <name>`
@@ -130,14 +155,14 @@ npm run build --workspace documentation
 
 ---
 
-# Code Spacing & Readability Guide
+## Code Style Guide
 
-### 1. Avoid Code Clumping
+## 1. Avoid Code Clumping
 
 - Don’t stack multiple operations together without whitespace.
 - Clumped code makes it harder to visually parse what’s happening.
 
-### 2. Use Whitespace to Communicate Intent
+## 2. Use Whitespace to Communicate Intent
 
 - Insert blank lines between logical sections of code.
 - Each section should represent a distinct step:
@@ -146,16 +171,16 @@ npm run build --workspace documentation
   - parsing/transformation
   - return statements
 
-### 3. Group Related Statements, Separate Unrelated Ones
+## 3. Group Related Statements, Separate Unrelated Ones
 
 - Keep closely related lines together.
 - Add a blank line before/after a shift in purpose.
 
-### 4. Prioritize Readability Over Compactness
+## 4. Prioritize Readability Over Compactness
 
 - Prefer clear, spaced code over dense, hard‑to‑scan blocks.
 
-### 5. Consistency Matters
+## 5. Consistency Matters
 
 - Apply spacing consistently; aim for a rhythm of setup → work → finish.
 
@@ -195,4 +220,40 @@ const existing = new Set(parsed.items.map((i: any) => i.id));
 const newItems = items.filter((i: any) => i && !existing.has(i.id));
 parsed.items = [...parsed.items, ...newItems];
 await fs.writeFile(path, JSON.stringify(parsed));
+```
+
+## 6. React component properties
+
+Extract complex prop objects into an interface and destructure
+outside the function definition to help readability.
+
+✅ Example (good):
+
+```ts
+interface MessagePartsProps {
+  message: Message;
+  streaming?: boolean;
+  onOpenFile?: (filePath: string) => void;
+}
+
+export function MessagePartsRenderer(props: MessagePartsProps) {
+  const { message, streaming, onOpenFile } = props;
+  ...
+}
+```
+
+❌ Example (bad):
+
+```ts
+export function MessagePartsRenderer({
+  message,
+  streaming,
+  onOpenFile,
+}: {
+  message: Message;
+  streaming?: boolean;
+  onOpenFile?: (filePath: string) => void;
+}) {
+  ...
+}
 ```

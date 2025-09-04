@@ -8,7 +8,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pufflyai/core-utils.git"
+    "url": "git+https://github.com/pufflyai/kaset.git"
   },
   "main": "index.js",
   "scripts": {

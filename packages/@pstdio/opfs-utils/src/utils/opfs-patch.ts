@@ -1,6 +1,7 @@
 import { applyPatch, parsePatch } from "diff";
-import { stripAnsi } from "../shared";
 import type * as IsomorphicGit from "isomorphic-git";
+import { stripAnsi } from "../shared";
+
 type StructuredPatch = any;
 
 export interface FileOperationResult {

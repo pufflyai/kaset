@@ -16,14 +16,25 @@ export function ShellPanel({
   const [out, setOut] = useState("");
 
   const examples: Array<{ label: string; cmd: string }> = [
+    // ls
     { label: "ls -la", cmd: "ls -la" },
     { label: "ls -lR src", cmd: "ls -lR src" },
     { label: "ls -la nested/a/b/c", cmd: "ls -la nested/a/b/c" },
+    // rg
     { label: 'rg -n "TODO|examples" docs', cmd: 'rg -n "TODO|examples" docs' },
     { label: 'rg -n -S "readme" .', cmd: 'rg -n -S "readme" .' },
+    { label: 'rg -n "function|class" src', cmd: 'rg -n "function|class" src' },
+    // sed / echo
     { label: "sed -n '1,40p' docs/PROJECT_README.md", cmd: "sed -n '1,40p' docs/PROJECT_README.md" },
     { label: "ls -la | sed -n '1,20p'", cmd: "ls -la | sed -n '1,20p'" },
-    { label: 'rg -n "function|class" src', cmd: 'rg -n "function|class" src' },
+    { label: 'echo "alpha beta" | sed -n "1p"', cmd: 'echo "alpha beta" | sed -n "1p"' },
+    // find
+    { label: "find . -name '*.md'", cmd: "find . -name '*.md'" },
+    { label: "find docs -type f -maxdepth 1", cmd: "find docs -type f -maxdepth 1" },
+    // wc
+    { label: "wc -l README.md", cmd: "wc -l README.md" },
+    { label: 'echo "alpha beta gamma" | wc -w', cmd: 'echo "alpha beta gamma" | wc -w' },
+    { label: "wc -l README.md docs/notes.txt", cmd: "wc -l README.md docs/notes.txt" },
   ];
 
   async function run() {
@@ -40,7 +51,7 @@ export function ShellPanel({
   }
 
   return (
-    <Section title="Shell (ls | sed | rg)">
+    <Section title="Shell (ls | echo | sed | rg | find | wc)">
       <Row>
         <TextInput label="Command(s)" value={cmd} onChange={(e) => setCmd(e.currentTarget.value)} height={120} />
         <Button onClick={run} disabled={!root}>

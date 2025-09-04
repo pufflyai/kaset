@@ -77,6 +77,22 @@ describe("opfs-shell: sed", () => {
   });
 });
 
+describe("opfs-shell: echo", () => {
+  it("prints joined arguments", async () => {
+    const root = await seedBasicTree();
+    const { stdout, code, stderr } = await runOpfsCommandLine("echo hello world", { root });
+    expect(code).toBe(0);
+    expect(stderr).toBe("");
+    expect(stdout.trim()).toBe("hello world");
+  });
+
+  it("supports quoted strings and piping to sed", async () => {
+    const root = await seedBasicTree();
+    const { stdout } = await runOpfsCommandLine('echo "alpha beta" | sed -n "1p"', { root });
+    expect(stdout.trim()).toBe("alpha beta");
+  });
+});
+
 describe("opfs-shell: rg", () => {
   it("finds matches with and without -n", async () => {
     const root = await seedBasicTree();
@@ -119,6 +135,54 @@ describe("opfs-shell: rg", () => {
     const res = await runOpfsCommandLine("rg 'a*' .", { root });
     expect(res.code).toBe(0);
     expect(typeof res.stdout).toBe("string");
+  });
+});
+
+describe("opfs-shell: find", () => {
+  it("finds files by -name and honors -type/-depth", async () => {
+    const root = await seedBasicTree();
+
+    // By name across tree (includes hidden directory file)
+    let res = await runOpfsCommandLine("find . -name '*.txt'", { root });
+    const lines = res.stdout.trim().split("\n");
+    expect(lines).toEqual(expect.arrayContaining(["docs/notes.txt", "dir/sub/file.txt", ".hidden/secret.txt"]));
+
+    // Limit to files under docs only (depth 1)
+    res = await runOpfsCommandLine("find docs -type f -maxdepth 1", { root });
+    const docsFiles = res.stdout.trim().split("\n").filter(Boolean);
+    expect(docsFiles).toEqual(expect.arrayContaining(["docs/notes.txt", "docs/Upper.md"]));
+
+    // File input prints itself
+    res = await runOpfsCommandLine("find README.md", { root });
+    expect(res.stdout.trim()).toBe("README.md");
+  });
+});
+
+describe("opfs-shell: wc", () => {
+  it("counts lines/words/bytes for files and stdin", async () => {
+    const root = await seedBasicTree();
+
+    // README.md has: "hello world\nbye\n" => lines=2, words=3, bytes=16
+    let res = await runOpfsCommandLine("wc -l README.md", { root });
+    expect(res.stdout.trim()).toBe("2\tREADME.md");
+
+    res = await runOpfsCommandLine("wc -w README.md", { root });
+    expect(res.stdout.trim()).toBe("3\tREADME.md");
+
+    res = await runOpfsCommandLine("wc -c README.md", { root });
+    expect(res.stdout.trim()).toBe("16\tREADME.md");
+
+    // stdin
+    res = await runOpfsCommandLine('echo "alpha beta gamma" | wc -w', { root });
+    expect(res.stdout.trim()).toBe("3");
+
+    // Multiple files -> total line present
+    res = await runOpfsCommandLine("wc -l README.md docs/notes.txt", { root });
+    const out = res.stdout.trim().split("\n");
+    expect(out.length).toBe(3);
+    expect(out[0]).toMatch(/^2\tREADME\.md$/);
+    expect(out[1]).toMatch(/^3\tdocs\/notes\.txt$/);
+    expect(out[2]).toMatch(/^5\ttotal$/);
   });
 });
 

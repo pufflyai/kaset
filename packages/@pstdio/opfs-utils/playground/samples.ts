@@ -19,15 +19,13 @@ export const SAMPLE_SVG = `<?xml version="1.0" encoding="UTF-8"?>
 
 export const PATCH_MODIFY_INDEX = `--- a/src/index.ts
 +++ b/src/index.ts
-@@ -1,7 +1,7 @@
-// index.ts sample
-export function hello(name: string) {
-  return \`Hello, \${name}!\`;
-}
+@@ -2,5 +2,5 @@
+ export function hello(name: string) {
+   return \`Hello, \${name}!\`;
+ }
  
 -export const meaning = 42;
-+export const meaning = 43;
-`;
++export const meaning = 41;`;
 
 export const PATCH_CREATE_FILE = `--- /dev/null
 +++ b/notes/added.txt
@@ -35,4 +33,35 @@ export const PATCH_CREATE_FILE = `--- /dev/null
 +This is a new file
 +Created via patch
 +Hello!
+`;
+
+export const PATCH_MULTI_FILE = `--- a/src/index.ts
++++ b/src/index.ts
+@@ -2,5 +2,5 @@
+ export function hello(name: string) {
+   return \`Hello, \${name}!\`;
+ }
+ 
+-export const meaning = 42;
++export const meaning = 41;
+
+--- a/src/util.ts
++++ b/src/util.ts
+@@ -1,2 +1,2 @@
+ export const add = (a: number, b: number) => a + b;
+-export const todo = "TODO: replace this";
++export const todo = "done";
+
+--- /dev/null
++++ b/notes/added.txt
+@@ -0,0 +1,3 @@
++This is a new file
++Created via patch
++Hello!
+
+--- a/docs/notes.txt
++++ /dev/null
+@@ -1,2 +0,0 @@
+-Notes about the project.
+-TODO: add more examples.
 `;
