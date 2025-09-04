@@ -10,7 +10,7 @@ import { Button, MonoBlock, Row, Section, TextArea, TextInput } from "./ui";
 export function CrudPanel({ baseDir: _baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {
   void _baseDir;
 
-  const [path, setPath] = useState("playground/docs/sample.txt");
+  const [path, setPath] = useState("playground/docs/PROJECT_README.md");
   const [contents, setContents] = useState("Hello OPFS!");
   const [output, setOutput] = useState<string>("");
 
