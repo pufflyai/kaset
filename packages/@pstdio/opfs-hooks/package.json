@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/opfs-hooks",
   "description": "React hooks for working with the browser's Origin Private File System (OPFS).",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -14,7 +14,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
     "visualize-bundle": "npx vite-bundle-visualizer",
-    "test": "echo \"No tests specified\""
+    "test": "vitest run"
   },
   "keywords": [
     "react",
