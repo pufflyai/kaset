@@ -1,12 +1,12 @@
 # @pstdio/opfs-sync
 
 [![npm version](https://img.shields.io/npm/v/@pstdio/opfs-sync.svg?color=blue)](https://www.npmjs.com/package/@pstdio/opfs-sync)
-[![license](https://img.shields.io/npm/l/@pstdio/opfs-sync)](https://github.com/pufflyai/core-utils/blob/main/LICENSE)
+[![license](https://img.shields.io/npm/l/@pstdio/opfs-sync)](https://github.com/pufflyai/kaset/blob/main/LICENSE)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/%40pstdio%2Fopfs-sync)](https://bundlephobia.com/package/%40pstdio%2Fopfs-sync)
 
 Sync the browser's OPFS with a remote storage provider. Includes a Supabase adapter and a minimal interface for custom backends.
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/core-utils/packages/opfs-sync).
+For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/opfs-sync).
 
 ## Quick Start
 
@@ -34,7 +34,7 @@ await sync.initialSync();
 
 ## Contributing
 
-See the [monorepo README](https://github.com/pufflyai/core-utils#readme) for contribution guidelines.
+See the [monorepo README](https://github.com/pufflyai/kaset#readme) for contribution guidelines.
 
 ## License
 

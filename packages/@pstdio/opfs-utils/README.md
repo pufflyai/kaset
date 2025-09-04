@@ -1,12 +1,12 @@
 # @pstdio/opfs-utils
 
 [![npm version](https://img.shields.io/npm/v/@pstdio/opfs-utils.svg?color=blue)](https://www.npmjs.com/package/@pstdio/opfs-utils)
-[![license](https://img.shields.io/npm/l/@pstdio/opfs-utils)](https://github.com/pufflyai/core-utils/blob/main/LICENSE)
+[![license](https://img.shields.io/npm/l/@pstdio/opfs-utils)](https://github.com/pufflyai/kaset/blob/main/LICENSE)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/%40pstdio%2Fopfs-utils)](https://bundlephobia.com/package/%40pstdio%2Fopfs-utils)
 
 Small utilities for working with the browser's Origin Private File System (OPFS).
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/core-utils/packages/opfs-utils).
+For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/opfs-utils).
 
 ## Quick Start
 
@@ -31,7 +31,7 @@ await ls(root);
 
 ## Contributing
 
-See the [monorepo README](https://github.com/pufflyai/core-utils#readme) for contribution guidelines.
+See the [monorepo README](https://github.com/pufflyai/kaset#readme) for contribution guidelines.
 
 ## License
 

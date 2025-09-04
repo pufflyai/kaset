@@ -145,9 +145,7 @@ describe("opfs-shell: find", () => {
     // By name across tree (includes hidden directory file)
     let res = await runOpfsCommandLine("find . -name '*.txt'", { root });
     const lines = res.stdout.trim().split("\n");
-    expect(lines).toEqual(
-      expect.arrayContaining(["docs/notes.txt", "dir/sub/file.txt", ".hidden/secret.txt"]),
-    );
+    expect(lines).toEqual(expect.arrayContaining(["docs/notes.txt", "dir/sub/file.txt", ".hidden/secret.txt"]));
 
     // Limit to files under docs only (depth 1)
     res = await runOpfsCommandLine("find docs -type f -maxdepth 1", { root });

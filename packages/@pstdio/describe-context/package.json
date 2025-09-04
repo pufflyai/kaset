@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pufflyai/core-utils.git"
+    "url": "git+https://github.com/pufflyai/kaset.git"
   },
   "scripts": {
     "prepublishOnly": "npm run build",

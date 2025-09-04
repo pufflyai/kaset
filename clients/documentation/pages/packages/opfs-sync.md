@@ -577,7 +577,7 @@ A: Use `stopWatching()` and `startWatching()` to control background sync. Manual
 
 ## Contributing
 
-See the [monorepo README](https://github.com/pufflyai/core-utils#readme) for contribution guidelines.
+See the [monorepo README](https://github.com/pufflyai/kaset#readme) for contribution guidelines.
 
 ## License
 

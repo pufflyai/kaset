@@ -7,7 +7,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/pufflyai/core-utils.git"
+    "url": "git+https://github.com/pufflyai/kaset.git"
   },
   "scripts": {
     "reset:all": "npm run clean && npm i && npm run lint && npm run build && npm run test",

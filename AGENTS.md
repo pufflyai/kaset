@@ -1,4 +1,4 @@
-# Core Utils – Agent Instructions
+# Kaset – Agent Instructions
 
 Guidance for working in this TypeScript monorepo. This repo provides browser‑first utilities under the `@pstdio` scope: OPFS helpers, OPFS↔remote sync, prompt utilities, and a folder‑to‑markdown descriptor.
 

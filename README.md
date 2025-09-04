@@ -1,12 +1,26 @@
-# @pstdio Core Utils
+# Kaset
 
-Small, focused utilities for browser‑first apps: OPFS helpers, OPFS↔remote sync, prompt utilities, and repo context generation.
+**Kaset** [kaˈset] is a collection of open source tools to build browser-first, agentic web apps.
 
-[Docs](https://pufflyai.github.io/core-utils/) • [Issues](https://github.com/pufflyai/core-utils/issues) • [MIT License](https://github.com/pufflyai/core-utils/blob/main/LICENSE)
+[Docs](https://pufflyai.github.io/kaset/) • [Issues](https://github.com/pufflyai/kaset/issues) • [MIT License](https://github.com/pufflyai/kaset/blob/main/LICENSE)
 
 ![node](https://img.shields.io/badge/node-22.x-3C873A?logo=node.js&logoColor=white)
 ![lerna](https://img.shields.io/badge/monorepo-lerna-9333EA)
 ![docs](https://img.shields.io/badge/docs-vitepress-2ea043)
+
+> Kaset is in early development, [join our discussions](https://github.com/pufflyai/kaset/discussions) and help shape it.
+
+## Introduction
+
+Programming has always been a _prelude_: developers write code, ship it, and users consume it.
+
+Now imagine your average user being able to create plugins for your web app on the fly.
+
+No coding experience required.
+
+Directly _inside_ your app.
+
+Curious? Checkout our [documentation](https://pufflyai.github.io/kaset/).
 
 ## Contents
 
@@ -16,19 +30,19 @@ Small, focused utilities for browser‑first apps: OPFS helpers, OPFS↔remote s
 
 ## Packages
 
-> ### [@pstdio/opfs-utils](https://pufflyai.github.io/core-utils/packages/opfs-utils)
+> ### [@pstdio/opfs-utils](https://pufflyai.github.io/kaset/packages/opfs-utils)
 >
 > OPFS helpers: ls/tree, grep, safe file reads (text/binary/SVG/PDF), patch utilities.
 
-> ### [@pstdio/opfs-sync](https://pufflyai.github.io/core-utils/packages/opfs-sync)
+> ### [@pstdio/opfs-sync](https://pufflyai.github.io/kaset/packages/opfs-sync)
 >
 > Two‑way sync between OPFS and a remote S3 like provider (Supabase adapter included).
 
-> ### [@pstdio/prompt-utils](https://pufflyai.github.io/core-utils/packages/prompt-utils)
+> ### [@pstdio/prompt-utils](https://pufflyai.github.io/kaset/packages/prompt-utils)
 >
 > Prompt/JSON helpers for LLM workflows.
 
-> ### [@pstdio/describe-context](https://pufflyai.github.io/core-utils/packages/describe)
+> ### [@pstdio/describe-context](https://pufflyai.github.io/kaset/packages/describe)
 >
 > Generate an LLM‑ready Markdown context for a folder (library + CLI).
 
