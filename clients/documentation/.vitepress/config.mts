@@ -4,10 +4,19 @@ import { defineConfig } from "vitepress";
 export default defineConfig({
   base: "/kaset/",
   title: "Kaset",
-  description: "A proto-framework to embed coding agents into your web apps.",
+  description: "Make your webapps modable with built-in coding agents.",
   srcDir: "./pages",
   lastUpdated: true,
-  head: [["link", { rel: "icon", href: "/favicon.ico" }]],
+  head: [
+    ["link", { rel: "icon", href: "/favicon.ico" }],
+    [
+      "meta",
+      {
+        property: "og:image",
+        content: "/images/kaset.png",
+      },
+    ],
+  ],
   themeConfig: {
     logo: "/logo_inverted.svg",
     search: {
@@ -20,6 +29,8 @@ export default defineConfig({
           { text: "@pstdio/opfs-utils", link: "/packages/opfs-utils" },
           { text: "@pstdio/opfs-sync", link: "/packages/opfs-sync" },
           { text: "@pstdio/prompt-utils", link: "/packages/prompt-utils" },
+          { text: "@pstdio/tiny-ai-tasks", link: "/packages/tiny-ai-tasks" },
+          { text: "@pstdio/tiny-tasks", link: "/packages/tiny-tasks" },
           { text: "describe-context", link: "/packages/describe-context" },
         ],
       },
@@ -36,11 +47,12 @@ export default defineConfig({
           { text: "@pstdio/opfs-utils", link: "/packages/opfs-utils" },
           { text: "@pstdio/opfs-sync", link: "/packages/opfs-sync" },
           { text: "@pstdio/prompt-utils", link: "/packages/prompt-utils" },
+          { text: "@pstdio/tiny-ai-tasks", link: "/packages/tiny-ai-tasks" },
+          { text: "@pstdio/tiny-tasks", link: "/packages/tiny-tasks" },
           { text: "describe-context", link: "/packages/describe-context" },
         ],
       },
     ],
-
     socialLinks: [{ icon: "github", link: "https://github.com/pufflyai/kaset" }],
   },
 });

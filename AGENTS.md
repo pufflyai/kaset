@@ -37,6 +37,8 @@ packages/@pstdio/
   opfs-hooks/      # React hooks for OPFS (uses opfs-utils)
   opfs-sync/       # OPFS <-> remote sync (Supabase remote included)
   prompt-utils/    # Prompt & JSON utilities
+  tiny-ai-tasks/   # AI workflows and tool-using agents (LLM + tools)
+  tiny-tasks/      # Composable, interrupt-friendly workflows (pause/resume)
   describe-context/# Analyze a folder and emit markdown context (library + CLI)
 clients/
   documentation/   # VitePress docs site
@@ -111,6 +113,34 @@ Run (from root):
 ```bash
 npm run build --workspace @pstdio/prompt-utils
 npm run test --workspace @pstdio/prompt-utils
+```
+
+### @pstdio/tiny-ai-tasks
+
+AI workflows and tool-using agents for building streaming LLM tasks, minimal agents, and history summarization/truncation.
+
+- APIs: `createLLMTask`, `createAgent`, `Tool`, `createToolTask`, `toOpenAITools`, `truncateToBudget`, `createSummarizer`
+- Scripts: `build`, `test`
+
+Run (from root):
+
+```bash
+npm run build --workspace @pstdio/tiny-ai-tasks
+npm run test  --workspace @pstdio/tiny-ai-tasks
+```
+
+### @pstdio/tiny-tasks
+
+Composable, interrupt-friendly workflows for TypeScript/JavaScript. Turn async functions into checkpoint-able generators that can pause, persist, and resume.
+
+- APIs: `task`, `createRuntime`, `MemorySaver`
+- Scripts: `build`, `test`
+
+Run (from root):
+
+```bash
+npm run build --workspace @pstdio/tiny-tasks
+npm run test --workspace @pstdio/tiny-tasks
 ```
 
 ### describe-context

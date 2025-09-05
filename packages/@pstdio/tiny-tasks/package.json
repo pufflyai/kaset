@@ -1,0 +1,46 @@
+{
+  "name": "@pstdio/tiny-tasks",
+  "description": "A library for creating resumable, interruptible async tasks.",
+  "version": "0.1.0",
+  "author": "Pufflig AB",
+  "email": "support@prompt.studio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pufflyai/kaset.git"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "npm run typecheck && vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "visualize-bundle": "npx vite-bundle-visualizer"
+  },
+  "devDependencies": {
+    "@au-re/vite-plugin-externalize-deps": "^0.9.1",
+    "@types/node": "^22.15.18",
+    "typescript": "^5.7.3",
+    "vite": "^7.1.0",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "browser",
+    "interrupt",
+    "task",
+    "typescript"
+  ],
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "volta": {
+    "node": "22.18.0"
+  }
+}

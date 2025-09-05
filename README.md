@@ -42,6 +42,14 @@ Curious? Checkout our [documentation](https://pufflyai.github.io/kaset/).
 >
 > Prompt/JSON helpers for LLM workflows.
 
+> ### [@pstdio/tiny-ai-tasks](https://pufflyai.github.io/kaset/packages/tiny-ai-tasks)
+>
+> AI task building blocks: streaming LLM tasks with tool calls, a minimal agent loop, history truncation/summarization, and scratchpad utilities.
+
+> ### [@pstdio/tiny-tasks](https://pufflyai.github.io/kaset/packages/tiny-tasks)
+>
+> Composable, interrupt-friendly workflows for TypeScript/JavaScript. Pause, persist, and resume long-running work.
+
 > ### [@pstdio/describe-context](https://pufflyai.github.io/kaset/packages/describe)
 >
 > Generate an LLM‑ready Markdown context for a folder (library + CLI).
