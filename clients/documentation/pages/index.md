@@ -97,6 +97,14 @@ Features: `prompt()`, `parseJSONStream()`, `getSchema()`, `safeStringify()`, UUI
 
 ---
 
+### [@pstdio/tiny-tasks](/packages/tiny-tasks)
+
+**Composable workflows** — Interrupt-friendly async generators you can pause, persist, and resume.
+
+Includes: `task`, `createRuntime`, `MemorySaver`
+
+---
+
 ### [describe-context](/packages/describe-context)
 
 **Code context generation** — Transform folder structures into LLM-friendly Markdown documentation.
