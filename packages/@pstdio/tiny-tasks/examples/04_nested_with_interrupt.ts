@@ -1,4 +1,4 @@
-import { createRuntime } from "../index";
+import { createRuntime } from "../src/index";
 
 const { task, MemorySaver } = createRuntime();
 
