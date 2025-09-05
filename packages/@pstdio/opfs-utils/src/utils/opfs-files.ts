@@ -140,14 +140,7 @@ export function registerMimeTypes(map: Record<string, string>): void {
 /**
  * Checks if a path is within a given root directory (both POSIX-like strings).
  */
-export function isWithinRoot(pathToCheck: string, rootDirectory: string): boolean {
-  const p = normalizePosix(pathToCheck);
-  const r = normalizePosix(rootDirectory);
-
-  if (!r) return true; // OPFS root: everything is "inside"
-  if (p === r) return true;
-  return p.startsWith(r + "/");
-}
+export { isWithinRoot } from "./path";
 
 // ------------------------------
 // OPFS helpers

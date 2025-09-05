@@ -12,6 +12,16 @@ export { grep } from "./utils/opfs-grep";
 export { formatTree, ls } from "./utils/opfs-ls";
 export { applyPatchInOPFS as patch } from "./utils/opfs-patch";
 export {
+  basename,
+  hasParentTraversal,
+  isWithinRoot,
+  joinPath,
+  joinUnderWorkspace,
+  normalizeSegments,
+  normalizeSlashes,
+  parentOf,
+} from "./utils/path";
+export {
   pickAndUploadFilesToDirectory,
   uploadFilesToDirectory,
   type FileUploadBaseOptions,

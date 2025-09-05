@@ -1,6 +1,8 @@
 import { applyPatch, parsePatch } from "diff";
 import type * as IsomorphicGit from "isomorphic-git";
 import { stripAnsi } from "../shared";
+import { basename, normalizeSegments, parentOf } from "./path";
+export { normalizeSegments } from "./path";
 
 type StructuredPatch = any;
 
@@ -276,30 +278,6 @@ export function normalizeGitPath(input?: string): string | null {
     .replace(/\\/g, "/");
   const segs = normalizeSegments(p);
   return segs.join("/");
-}
-
-export function normalizeSegments(p: string): string[] {
-  const out: string[] = [];
-  for (const raw of p.split("/")) {
-    const s = raw.trim();
-    if (!s || s === ".") continue;
-    if (s === "..") {
-      // Do not allow escaping the provided root
-      if (out.length) out.pop();
-      continue;
-    }
-    out.push(s);
-  }
-  return out;
-}
-
-function parentOf(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? "" : p.slice(0, i);
-}
-function basename(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? p : p.slice(i + 1);
 }
 
 /** Map OPFS path to isomorphic-git `filepath` when staging */

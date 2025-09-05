@@ -1,5 +1,6 @@
 // Programmatic globbing over the browser's OPFS.
 // Emulates the behavior of the Node `glob` call shown in your code.
+import { basename, joinPath, normalizeSegments, normalizeSlashes, parentOf } from "./path";
 
 /* =========================
  * Types & public API
@@ -506,40 +507,4 @@ function escapeGlobLiteral(s: string): string {
 function matchesAny(path: string, regs: RegExp[]): boolean {
   for (const r of regs) if (r.test(path)) return true;
   return false;
-}
-
-/* =========================
- * Small path helpers
- * ========================= */
-
-function normalizeSegments(p: string): string[] {
-  const out: string[] = [];
-  for (const raw of p.split("/")) {
-    if (!raw || raw === ".") continue;
-    if (raw === "..") {
-      if (out.length) out.pop();
-      continue;
-    }
-    out.push(raw);
-  }
-  return out;
-}
-
-function normalizeSlashes(p: string): string {
-  return p.split("/").filter(Boolean).join("/");
-}
-
-function joinPath(a: string, b: string): string {
-  if (!a) return normalizeSlashes(b);
-  if (!b) return normalizeSlashes(a);
-  return normalizeSlashes(a + "/" + b);
-}
-
-function parentOf(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? "" : p.slice(0, i);
-}
-function basename(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? p : p.slice(i + 1);
 }
