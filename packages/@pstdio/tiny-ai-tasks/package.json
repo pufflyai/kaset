@@ -1,0 +1,48 @@
+{
+  "name": "@pstdio/tiny-ai-tasks",
+  "description": "A tiny AI framework with agents.",
+  "version": "0.1.0",
+  "author": "Pufflig AB",
+  "email": "support@prompt.studio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pufflyai/kaset.git"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "npm run typecheck && vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "start": "storybook dev -p 6006",
+    "storybook": "storybook dev -p 6006",
+    "storybook:ci": "storybook dev -p 6006 --ci",
+    "storybook:test": "test-storybook --url http://127.0.0.1:6006 --browsers chromium",
+    "test-storybook": "concurrently -k -s first -n \"SB,TEST\" \"npm run storybook:ci\" \"wait-on http://127.0.0.1:6006 && npm run storybook:test\"",
+    "build-storybook": "storybook build"
+  },
+  "devDependencies": {
+    "@au-re/vite-plugin-externalize-deps": "^0.9.1",
+    "@types/node": "^22.15.18",
+    "eslint": "^9.32.0",
+    "typescript": "^5.7.3",
+    "vite": "^7.1.0",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@pstdio/prompt-utils": "^0.1.0",
+    "@pstdio/tiny-tasks": "*",
+    "openai": "^5.15.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "volta": {
+    "node": "22.18.0"
+  }
+}

@@ -97,6 +97,14 @@ Features: `prompt()`, `parseJSONStream()`, `getSchema()`, `safeStringify()`, UUI
 
 ---
 
+### [@pstdio/tiny-ai-tasks](/packages/tiny-ai-tasks)
+
+**AI task building blocks** — Streaming LLM tasks with tool calls, tiny agent loop, history truncation/summarization, and scratchpad utilities.
+
+Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSummarizer`
+
+---
+
 ### [@pstdio/tiny-tasks](/packages/tiny-tasks)
 
 **Composable workflows** — Interrupt-friendly async generators you can pause, persist, and resume.
