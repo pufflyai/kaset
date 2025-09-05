@@ -88,10 +88,29 @@ export class Pregel<I, O, Y = unknown> {
 
   async invoke(input: I | Command, options: PregelOptions = {}): Promise<O> {
     const iterator = this.stream(input, options);
+
     let result = await iterator.next();
+
+    // If an interrupt is yielded at any point, surface an error instead of
+    // returning an undefined value cast to O.
     while (!result.done) {
+      const tuple = result.value as [Y | undefined, Snapshot | undefined, unknown | undefined];
+      const interrupt = tuple ? tuple[2] : undefined;
+
+      if (interrupt !== undefined) {
+        try {
+          // Ensure the iterator is closed to avoid dangling work
+          await iterator.return(undefined as any);
+        } catch {
+          // ignore cleanup errors
+        }
+
+        throw new Error("Pregel interrupted: no output value available");
+      }
+
       result = await iterator.next();
     }
+
     return result.value as O;
   }
 

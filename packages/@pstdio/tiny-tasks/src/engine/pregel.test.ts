@@ -77,4 +77,29 @@ describe("Pregel", () => {
     const results = await Promise.all([p.invoke(1), p.invoke(2), p.invoke(3)]);
     expect(results).toEqual([2, 3, 4]);
   });
+
+  test("invoke throws on interrupt and closes generator", async () => {
+    let finalized = false;
+
+    const p = new Pregel(
+      async function* (_x: number, ctx: { interrupt: <I, R>(v: I) => R }) {
+        try {
+          // Trigger an interrupt without providing a resume value
+          ctx.interrupt("halt");
+          // Unreachable, but keeps the generator shape realistic
+          yield 0;
+          return 1 as any;
+        } finally {
+          finalized = true;
+        }
+      },
+    );
+
+    await expect(p.invoke(42)).rejects.toThrowError(
+      "Pregel interrupted: no output value available",
+    );
+
+    // Ensure the user generator saw finalization (no dangling work)
+    expect(finalized).toBe(true);
+  });
 });
