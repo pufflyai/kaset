@@ -17,7 +17,8 @@
     "dev": "vite build --watch",
     "test": "npm run typecheck && vitest run",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "visualize-bundle": "npx vite-bundle-visualizer"
   },
   "devDependencies": {
     "@au-re/vite-plugin-externalize-deps": "^0.9.1",

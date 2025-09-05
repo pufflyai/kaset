@@ -18,12 +18,7 @@
     "test": "npm run typecheck && vitest run",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "start": "storybook dev -p 6006",
-    "storybook": "storybook dev -p 6006",
-    "storybook:ci": "storybook dev -p 6006 --ci",
-    "storybook:test": "test-storybook --url http://127.0.0.1:6006 --browsers chromium",
-    "test-storybook": "concurrently -k -s first -n \"SB,TEST\" \"npm run storybook:ci\" \"wait-on http://127.0.0.1:6006 && npm run storybook:test\"",
-    "build-storybook": "storybook build"
+    "visualize-bundle": "npx vite-bundle-visualizer"
   },
   "devDependencies": {
     "@au-re/vite-plugin-externalize-deps": "^0.9.1",
