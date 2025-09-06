@@ -1,10 +1,10 @@
 import { ConversationContent, ConversationRoot, ConversationScrollButton } from "@/components/ui/ai-conversation";
+import { formatUSD, getModelPricing, type ModelPricing } from "@/models";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Message } from "@/types";
 import { Button, Flex, HStack, Input, Stack, Text, type FlexProps } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { useEstimatedTokens } from "../hooks/useEstimatedTokens";
-import { formatUSD, getModelPricing, type ModelPricing } from "@/models";
 import { AutoScroll } from "./AutoScroll";
 import { MessageList } from "./MessageList";
 
@@ -25,7 +25,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
   const estimatedTokens = useEstimatedTokens(messages, input);
 
   const [modelPricing, setModelPricing] = useState<ModelPricing | undefined>(undefined);
-  const modelId = useWorkspaceStore((s) => s.local.modelId);
+  const modelId = useWorkspaceStore((s) => s.modelId);
 
   // Load selected model from localStorage and resolve pricing
   // Only input tokens are known before sending; we price those

@@ -6,9 +6,9 @@ import { createOpfsTools } from "./tools/createOpfsTools";
 
 export function getAgent() {
   const state = useWorkspaceStore.getState();
-  const model = state.local.modelId || "gpt-4.1-mini";
-  const apiKey = state.local.apiKey;
-  const baseUrl = state.local.baseUrl;
+  const model = state.modelId;
+  const apiKey = state.apiKey;
+  const baseUrl = state.baseUrl;
 
   if (!apiKey) {
     throw new Error("Missing OpenAI API key. Set it in Settings.");
@@ -22,7 +22,7 @@ export function getAgent() {
   });
 
   const tools = createOpfsTools({
-    workspaceDir: state.local.namespace,
+    workspaceDir: `${state.selectedProjectId || "todo"}`,
     onShellChunk: (s) => console.debug("opfs_shell:", s),
     requestApproval,
   });

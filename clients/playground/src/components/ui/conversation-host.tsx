@@ -8,14 +8,13 @@ import { ApprovalModal } from "./approval-modal";
 
 export function ConversationHost() {
   const messages = useWorkspaceStore((s) =>
-    s.local.selectedConversationId ? (s.conversations[s.local.selectedConversationId!]?.messages ?? []) : [],
+    s.selectedConversationId ? (s.conversations[s.selectedConversationId!]?.messages ?? []) : [],
   );
 
   const [streaming, setStreaming] = useState(false);
-  const hasKey = useWorkspaceStore((s) => !!s.local.apiKey);
+  const hasKey = useWorkspaceStore((s) => !!s.apiKey);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
-
 
   useEffect(() => {
     setApprovalHandler(
@@ -40,7 +39,7 @@ export function ConversationHost() {
   }, []);
 
   const handleSendMessage = async (text: string) => {
-    const conversationId = useWorkspaceStore.getState().local.selectedConversationId;
+    const conversationId = useWorkspaceStore.getState().selectedConversationId;
     if (!conversationId) return;
 
     const userMessage: Message = {
@@ -68,7 +67,7 @@ export function ConversationHost() {
     try {
       setStreaming(true);
       for await (const updated of sendMessage(base, "")) {
-        const id = useWorkspaceStore.getState().local.selectedConversationId;
+        const id = useWorkspaceStore.getState().selectedConversationId;
         if (!id) continue;
         useWorkspaceStore.setState(
           (state) => {
@@ -93,7 +92,7 @@ export function ConversationHost() {
         ],
       };
 
-      const id = useWorkspaceStore.getState().local.selectedConversationId;
+      const id = useWorkspaceStore.getState().selectedConversationId;
       if (id) {
         useWorkspaceStore.setState(
           (state) => {
@@ -121,8 +120,8 @@ export function ConversationHost() {
         onSelectFile={(path) => {
           useWorkspaceStore.setState(
             (state) => {
-              state.local.filePath = path ?? undefined;
-              if (path) state.local.selectedTab = "code";
+              state.filePath = path ?? undefined;
+              if (path) state.selectedTab = "code";
             },
             false,
             "conversation/select-file",

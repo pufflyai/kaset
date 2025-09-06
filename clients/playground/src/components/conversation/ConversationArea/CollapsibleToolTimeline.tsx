@@ -20,7 +20,7 @@ export function CollapsibleToolTimeline({
   const data: TimelineDoc = invocationsToTimeline(invocations, { labeledBlocks: false });
 
   return (
-    <Box width="full">
+    <Box width="full" maxW="820px" mx="auto">
       <HStack
         onClick={toggle}
         align="center"

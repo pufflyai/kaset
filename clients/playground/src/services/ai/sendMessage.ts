@@ -106,8 +106,16 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
 
   if (uiMessages.length <= 1) {
     try {
-      const ns = useWorkspaceStore.getState().local.namespace || "playground";
-      const pathsToTry = ["agents.md", "AGENTS.md"].map((f) => `${ns}/${f}`);
+      const s = useWorkspaceStore.getState().local;
+      const ns = s.namespace || "playground";
+      const proj = s.selectedProjectId || "todo";
+      const baseProj = `${ns}/${proj}`;
+      const pathsToTry = [
+        `${baseProj}/agents.md`,
+        `${baseProj}/AGENTS.md`,
+        `${ns}/agents.md`,
+        `${ns}/AGENTS.md`,
+      ];
       let content: string | null = null;
 
       for (const p of pathsToTry) {

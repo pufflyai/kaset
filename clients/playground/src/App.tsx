@@ -6,23 +6,31 @@ import { ConversationHost } from "./components/ui/conversation-host";
 import { DragOverlay } from "./components/ui/drag-overlay";
 import { FileExplorer } from "./components/ui/file-explorer";
 import { TopBar } from "./components/ui/top-bar";
-import { useDragAndDropUpload } from "./services/drag-n-drop";
-import { setupPlayground } from "./examples/todo/setup";
-import { useWorkspaceStore } from "./state/WorkspaceProvider";
+import { setupSlides } from "./examples/slides/setup";
 import { TodoList } from "./examples/todo/component";
-
-const rootDir = "playground";
+import { setupPlayground as setupTodo } from "./examples/todo/setup";
+import { useDragAndDropUpload } from "./services/drag-n-drop";
+import { useWorkspaceStore } from "./state/WorkspaceProvider";
 
 export function App() {
-  useEffect(() => {
-    // Initialize OPFS workspace with a default README
-    setupPlayground().catch((err) => {
-      console.error("Failed to setup playground:", err);
-    });
-  }, []);
+  const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
+  const rootDir = `playground/${selectedProject}`;
 
-  const selectedPath = useWorkspaceStore((s) => s.local.filePath ?? null);
-  const selectedTab = useWorkspaceStore((s) => s.local.selectedTab ?? "preview");
+  useEffect(() => {
+    // Initialize OPFS workspace for the selected project
+    if (selectedProject === "todo") {
+      setupTodo({ folderName: rootDir }).catch((err) => {
+        console.error("Failed to setup todo playground:", err);
+      });
+    } else if (selectedProject === "slides") {
+      setupSlides({ folderName: rootDir }).catch((err) => {
+        console.error("Failed to setup slides playground:", err);
+      });
+    }
+  }, [selectedProject, rootDir]);
+
+  const selectedPath = useWorkspaceStore((s) => s.filePath ?? null);
+  const selectedTab = useWorkspaceStore((s) => s.selectedTab ?? "preview");
 
   const { isDragging, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } = useDragAndDropUpload({
     targetDir: rootDir,
@@ -65,7 +73,7 @@ export function App() {
                   if (next !== "preview" && next !== "code") return;
                   useWorkspaceStore.setState(
                     (state) => {
-                      state.local.selectedTab = next;
+                      state.selectedTab = next;
                     },
                     false,
                     "ui/tabs/change",
@@ -95,7 +103,13 @@ export function App() {
                 {/* Preview panel: render the example component */}
                 <Tabs.Content value="preview" flex="1" display="flex" overflow="hidden" padding="0">
                   <Box flex="1" overflow="hidden">
-                    <TodoList rootDir={rootDir} />
+                    {selectedProject === "todo" ? (
+                      <TodoList rootDir={rootDir} />
+                    ) : (
+                      <Flex align="center" justify="center" height="100%">
+                        <Text color="fg.secondary">Slides — coming soon</Text>
+                      </Flex>
+                    )}
                   </Box>
                 </Tabs.Content>
 
@@ -111,8 +125,8 @@ export function App() {
                             onSelect={(path) => {
                               useWorkspaceStore.setState(
                                 (state) => {
-                                  state.local.filePath = path ?? undefined;
-                                  if (path) state.local.selectedTab = "code";
+                                  state.filePath = path ?? undefined;
+                                  if (path) state.selectedTab = "code";
                                 },
                                 false,
                                 "file/select",

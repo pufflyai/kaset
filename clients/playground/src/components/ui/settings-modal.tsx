@@ -13,17 +13,17 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   useEffect(() => {
     if (!isOpen) return;
     const s = useWorkspaceStore.getState();
-    setApiKey(s.local.apiKey || "");
-    setBaseUrl(s.local.baseUrl || "");
-    setModel(s.local.modelId || "gpt-5-mini");
+    setApiKey(s.apiKey || "");
+    setBaseUrl(s.baseUrl || "");
+    setModel(s.modelId || "gpt-5-mini");
   }, [isOpen]);
 
   const save = () => {
     useWorkspaceStore.setState(
       (state) => {
-        state.local.apiKey = apiKey || undefined;
-        state.local.baseUrl = baseUrl || undefined;
-        state.local.modelId = model || "gpt-4.1-mini";
+        state.apiKey = apiKey || undefined;
+        state.baseUrl = baseUrl || undefined;
+        state.modelId = model || "gpt-4.1-mini";
       },
       false,
       "settings/save-llm-config",
@@ -34,9 +34,9 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const clear = () => {
     useWorkspaceStore.setState(
       (state) => {
-        state.local.apiKey = undefined;
-        state.local.baseUrl = undefined;
-        state.local.modelId = "gpt-5-mini";
+        state.apiKey = undefined;
+        state.baseUrl = undefined;
+        state.modelId = "gpt-5-mini";
       },
       false,
       "settings/clear-llm-config",

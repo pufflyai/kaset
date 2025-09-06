@@ -8,7 +8,7 @@ import {
   watchDirectory,
   writeFile,
 } from "@pstdio/opfs-utils";
-import { TrashIcon } from "lucide-react";
+import { PencilIcon, TrashIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface TodoListProps {
@@ -62,6 +62,21 @@ function toggleCheckboxAtLine(md: string, lineIndex: number, checked: boolean): 
   return lines.join("\n");
 }
 
+function replaceTodoTextAtLine(md: string, lineIndex: number, nextText: string): string {
+  const lines = md.split("\n");
+  const line = lines[lineIndex] ?? "";
+
+  // Replace the trailing text of a markdown todo, preserving prefix like "- [x] "
+  const replaced = line.replace(/^(\s*[-*]\s*\[(?: |x|X)\]\s*)(.*)$/u, (_m, p1) => `${p1}${nextText}`);
+
+  lines[lineIndex] = replaced;
+  return lines.join("\n");
+}
+
+function displayListName(name: string): string {
+  return name.replace(/\.md$/i, "");
+}
+
 export function TodoList(props: TodoListProps) {
   const rootDir = (props.rootDir ?? "playground").replace(/\/+$/, "");
   const listsDirName = (props.fileName ?? "todos").replace(/\/+$/, "");
@@ -77,6 +92,9 @@ export function TodoList(props: TodoListProps) {
 
   const [newListName, setNewListName] = useState<string>("");
   const [newItemText, setNewItemText] = useState<string>("");
+
+  const [editingLine, setEditingLine] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState<string>("");
 
   const dirAbortRef = useRef<AbortController | null>(null);
 
@@ -251,6 +269,36 @@ export function TodoList(props: TodoListProps) {
     [content, listsDirPath, selectedList, parse],
   );
 
+  const startEditing = useCallback((line: number, currentText: string) => {
+    setEditingLine(line);
+    setEditingText(currentText);
+  }, []);
+
+  const cancelEditing = useCallback(() => {
+    setEditingLine(null);
+    setEditingText("");
+  }, []);
+
+  const saveEditing = useCallback(async () => {
+    if (editingLine == null || !selectedList || content == null) return;
+
+    const next = replaceTodoTextAtLine(content, editingLine, editingText.trim());
+
+    setContent(next);
+    setItems(parse(next));
+    setEditingLine(null);
+    setEditingText("");
+
+    try {
+      await writeFile(`${listsDirPath}/${selectedList}`, next);
+    } catch (e) {
+      // Revert
+      setContent(content);
+      setItems(parse(content));
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [content, editingLine, editingText, listsDirPath, selectedList, parse]);
+
   useEffect(() => {
     let cleanup: null | (() => void) = null;
     let cancelled = false;
@@ -337,7 +385,7 @@ export function TodoList(props: TodoListProps) {
                     textDecoration={selected ? "underline" : "none"}
                   >
                     <Text fontSize="sm" cursor="pointer" onClick={() => selectList(name)} title={name} flex="1">
-                      {name}
+                      {displayListName(name)}
                     </Text>
                     <IconButton size="xs" variant="ghost" onClick={() => removeList(name)} colorPalette="red">
                       <TrashIcon size={12} />
@@ -355,7 +403,7 @@ export function TodoList(props: TodoListProps) {
             <HStack justify="space-between" align="center" marginBottom="3">
               <HStack>
                 <Text fontSize="sm" color="fg.secondary">
-                  {selectedList}
+                  {displayListName(selectedList)}
                 </Text>
               </HStack>
             </HStack>
@@ -390,19 +438,46 @@ export function TodoList(props: TodoListProps) {
                           <Checkbox.HiddenInput />
                           <Checkbox.Control />
                           <Checkbox.Label>
-                            <Text
-                              fontSize="sm"
-                              textDecoration={t.done ? "line-through" : "none"}
-                              color={t.done ? "fg.muted" : "fg.primary"}
-                            >
-                              {t.text || "(empty)"}
-                            </Text>
+                            {editingLine === t.line ? (
+                              <Input
+                                size="xs"
+                                autoFocus
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.currentTarget.value)}
+                                onBlur={saveEditing}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveEditing();
+                                  if (e.key === "Escape") cancelEditing();
+                                }}
+                                width="auto"
+                              />
+                            ) : (
+                              <Text
+                                fontSize="sm"
+                                textDecoration={t.done ? "line-through" : "none"}
+                                color={t.done ? "fg.muted" : "fg.primary"}
+                                onDoubleClick={() => startEditing(t.line, t.text)}
+                              >
+                                {t.text || "(empty)"}
+                              </Text>
+                            )}
                           </Checkbox.Label>
                         </HStack>
                       </Checkbox.Root>
-                      <Button size="xs" variant="ghost" colorPalette="red" onClick={() => removeItem(t.line)}>
-                        Delete
-                      </Button>
+                      <HStack>
+                        {editingLine === t.line ? (
+                          <Button size="xs" onClick={saveEditing}>
+                            Save
+                          </Button>
+                        ) : (
+                          <IconButton size="xs" variant="ghost" onClick={() => startEditing(t.line, t.text)}>
+                            <PencilIcon size={14} />
+                          </IconButton>
+                        )}
+                        <IconButton size="xs" variant="ghost" colorPalette="red" onClick={() => removeItem(t.line)}>
+                          <TrashIcon size={14} />
+                        </IconButton>
+                      </HStack>
                     </HStack>
                   ))}
                 </VStack>
