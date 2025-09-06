@@ -76,7 +76,7 @@ async function run() {
           const parsed = JSON.parse(String(m.content));
           resultFromToolMessage = { a: parsed.a, b: parsed.b, result: parsed.result };
         } catch {
-          // ignore unparseable tool messages
+          // ignore
         }
       }
     }

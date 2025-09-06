@@ -1,128 +1,104 @@
-import { getDirectoryHandle, getOPFSRoot } from "@pstdio/opfs-utils";
+import { getDirectoryHandle, getOPFSRoot, writeFile } from "@pstdio/opfs-utils";
 
 /**
- * Setup the OPFS `playground` directory with demo files.
- * Currently creates a single README.md if it does not exist.
+ * Options when applying a bundle of example files into OPFS.
  */
-export type SetupOptions = {
-  /** Directory name under OPFS root. Defaults to `playground`. */
-  folderName?: string;
-  /** README content to write when creating the file. */
-  readmeContent?: string;
-  /** Optional initial todo.md content; created if file missing. */
-  todoContent?: string;
-  /** If true, overwrite README content even if it exists. */
+export type ApplyFilesOptions = {
+  /**
+   * Root directory name under OPFS. Example: "playground" (default).
+   * Files will be written under `${rootDir}/...` maintaining relative paths.
+   */
+  rootDir?: string;
+
+  /**
+   * Record of file paths to contents. Paths should be absolute (e.g. `/src/...`).
+   */
+  files: Record<string, string>;
+
+  /**
+   * Prefix to strip from `files` keys when computing the OPFS relative path.
+   * Example: `/src/examples/todo/files`
+   */
+  baseDir?: string;
+
+  /** Overwrite existing OPFS files. Defaults to true. */
   overwrite?: boolean;
 };
 
-export const DEFAULT_README_CONTENT = `# Playground
-
-Welcome! This is your Kaset playground folder.
-
-What's here:
-- README.md (this file) — created by the setup script as a starting point.
-
-Tips:
-- Files you add here live in the browser's Origin Private File System (OPFS).
-- Use the file explorer to browse; select a file to preview it.
-- You can safely delete or edit this file.
-`;
-
-export const DEFAULT_TODO_CONTENT = `# Todo
-
-- [ ] Set up your project
-- [ ] Create components
-- [ ] Connect data
-- [ ] Explore the playground
-`;
-
-/**
- * Ensures a `playground` directory exists in OPFS and provides a README.md.
- *
- * Returns information about whether files were created.
- */
-export async function setupPlayground(options: SetupOptions = {}) {
-  const folderName = options.folderName?.trim() || "playground";
-  const readmeContent = options.readmeContent ?? DEFAULT_README_CONTENT;
-  const todoContent = options.todoContent ?? DEFAULT_TODO_CONTENT;
-  const overwrite = Boolean(options.overwrite);
-
-  // Ensure the target directory exists. Fallback to creating the path if needed.
-  let dir: FileSystemDirectoryHandle;
+/** Ensure an OPFS directory path exists; returns the handle. */
+async function ensureOpfsDir(path: string): Promise<FileSystemDirectoryHandle> {
+  // Try fast path via utility; if missing, create via manual walk
   try {
-    dir = await getDirectoryHandle(folderName);
+    return await getDirectoryHandle(path);
   } catch (err: any) {
-    // If the utility does not create missing directories, create them here.
-    if (err?.name === "NotFoundError" || err?.code === 404) {
-      const root = await getOPFSRoot();
-      const parts = folderName.split("/").filter(Boolean);
+    if (err?.name !== "NotFoundError" && err?.code !== 404) throw err;
 
-      let current = root;
-      for (const part of parts) {
-        current = await current.getDirectoryHandle(part, { create: true });
-      }
+    const root = await getOPFSRoot();
+    const parts = path.split("/").filter(Boolean);
 
-      dir = current;
-    } else {
-      throw err;
+    let current = root;
+    for (const part of parts) {
+      current = await current.getDirectoryHandle(part, { create: true });
     }
+
+    return current;
   }
-
-  let createdReadme = false;
-  let createdTodo = false;
-
-  // Create README.md if it does not exist, or overwrite when requested.
-  let needsWrite = overwrite;
-
-  if (!overwrite) {
-    try {
-      await dir.getFileHandle("README.md");
-    } catch (err: any) {
-      if (err?.name === "NotFoundError" || err?.code === 404) {
-        needsWrite = true;
-      } else {
-        throw err;
-      }
-    }
-  }
-
-  if (needsWrite) {
-    const fh = await dir.getFileHandle("README.md", { create: true });
-    const writable = await fh.createWritable();
-
-    await writable.write(readmeContent);
-    await writable.close();
-
-    createdReadme = true;
-  }
-
-  // Create a starter todo.md if missing (never overwrite unless explicitly requested)
-  let hasTodo = true;
-  try {
-    await dir.getFileHandle("todo.md");
-  } catch (err: any) {
-    if (err?.name === "NotFoundError" || err?.code === 404) {
-      hasTodo = false;
-    } else {
-      throw err;
-    }
-  }
-
-  if (!hasTodo) {
-    const fh = await dir.getFileHandle("todo.md", { create: true });
-    const writable = await fh.createWritable();
-
-    await writable.write(todoContent);
-    await writable.close();
-
-    createdTodo = true;
-  }
-
-  return {
-    folderName,
-    createdReadme,
-    createdTodo,
-  };
 }
 
-export default setupPlayground;
+/** Normalize a path to POSIX and remove leading slash. */
+function normalizeRel(p: string): string {
+  return p.replace(/\\/g, "/").replace(/^\/+/, "");
+}
+
+/**
+ * Apply a map of source files (bundled via Vite import.meta.glob) into OPFS.
+ * Maintains directory structure under `rootDir`, stripping `baseDir` from keys.
+ */
+export async function applyFilesToOpfs(options: ApplyFilesOptions): Promise<{
+  rootDir: string;
+  written: number;
+}> {
+  const rootDir = (options.rootDir ?? "playground").trim().replace(/\/+$/, "");
+  const { files } = options;
+  const baseDir = (options.baseDir ?? "").replace(/\\/g, "/").replace(/\/$/, "");
+  const overwrite = options.overwrite ?? true;
+
+  await ensureOpfsDir(rootDir);
+
+  let written = 0;
+
+  const entries = Object.entries(files);
+  for (const [absKey, content] of entries) {
+    const normalizedKey = absKey.replace(/\\/g, "/");
+
+    let rel = normalizedKey;
+    if (baseDir && normalizedKey.startsWith(baseDir)) {
+      rel = normalizedKey.slice(baseDir.length);
+    }
+
+    rel = rel.replace(/^\/+/, "");
+    if (!rel) continue;
+
+    const target = normalizeRel(`${rootDir}/${rel}`);
+
+    if (!overwrite) {
+      // Cheap existence check: try to get a handle; skip if present
+      try {
+        const dirPath = target.split("/").slice(0, -1).join("/");
+        const base = target.split("/").pop()!;
+        const dir = await getDirectoryHandle(dirPath);
+        await dir.getFileHandle(base);
+        continue; // exists; skip
+      } catch (e: any) {
+        // Missing is fine; we'll write it
+      }
+    }
+
+    await writeFile(target, content);
+    written++;
+  }
+
+  return { rootDir, written };
+}
+
+export default applyFilesToOpfs;

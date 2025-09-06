@@ -7,7 +7,7 @@ import { DragOverlay } from "./components/ui/drag-overlay";
 import { FileExplorer } from "./components/ui/file-explorer";
 import { TopBar } from "./components/ui/top-bar";
 import { useDragAndDropUpload } from "./services/drag-n-drop";
-import { setupPlayground } from "./services/playground/setup";
+import { setupPlayground } from "./examples/todo/setup";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
 
 const rootDir = "playground";
