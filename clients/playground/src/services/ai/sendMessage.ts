@@ -1,3 +1,5 @@
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import { readFile } from "@pstdio/opfs-utils";
 import { type AssistantMessage, type BaseMessage } from "@pstdio/tiny-ai-tasks";
 import type { Message, ToolInvocation, UIConversation } from "../../types";
 import { getAgent } from "./KAS/agent";
@@ -101,6 +103,27 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
 
   // Build full history from the UI conversation so the agent has context
   const initial: BaseMessage[] = toMessageHistory(uiMessages);
+
+  if (uiMessages.length <= 1) {
+    try {
+      const ns = useWorkspaceStore.getState().local.namespace || "playground";
+      const pathsToTry = ["agents.md", "AGENTS.md"].map((f) => `${ns}/${f}`);
+      let content: string | null = null;
+
+      for (const p of pathsToTry) {
+        try {
+          content = await readFile(p);
+          if (content) break;
+        } catch (err) {
+          content = null;
+        }
+      }
+
+      if (content && content.trim().length > 0) {
+        initial.unshift({ role: "system", content });
+      }
+    } catch {}
+  }
 
   const agent = getAgent();
   

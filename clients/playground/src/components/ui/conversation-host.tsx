@@ -122,6 +122,7 @@ export function ConversationHost() {
           useWorkspaceStore.setState(
             (state) => {
               state.local.filePath = path ?? undefined;
+              if (path) state.local.selectedTab = "code";
             },
             false,
             "conversation/select-file",

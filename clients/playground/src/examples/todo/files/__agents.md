@@ -1,5 +1,7 @@
 # Agents Guide — Todo Lists (Markdown)
 
+IMPORTANT: assume the user is not technical, avoid technical jargon.
+
 Operate exclusively on Markdown files that represent todo lists.
 
 ## Core Model

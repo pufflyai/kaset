@@ -28,7 +28,6 @@
     "katex": "^0.16.22",
     "lexical": "^0.34.0",
     "lucide-react": "^0.542.0",
-    "nuqs": "^2.5.2",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-helmet": "^6.1.0",

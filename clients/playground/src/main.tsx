@@ -1,7 +1,6 @@
 import "allotment/dist/style.css";
 
 import { ChakraProvider } from "@chakra-ui/react";
-import { NuqsAdapter } from "nuqs/adapters/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
@@ -23,11 +22,9 @@ const initialWorkspaceState: WorkspaceState = {
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ChakraProvider value={theme}>
-      <NuqsAdapter>
-        <WorkspaceProvider namespace="playground" initialState={initialWorkspaceState}>
-          <App />
-        </WorkspaceProvider>
-      </NuqsAdapter>
+      <WorkspaceProvider namespace="playground" initialState={initialWorkspaceState}>
+        <App />
+      </WorkspaceProvider>
     </ChakraProvider>
   </StrictMode>,
 );

@@ -16,9 +16,10 @@ export interface WorkspaceState {
 export interface WorkspaceLocalState {
   namespace: string;
   featureFlags?: Partial<Record<FeatureFlag, boolean>>;
-  selectedConversationId?: string;
+  selectedConversationId: string;
   filePath?: string;
-  modelId?: string;
+  selectedTab: "preview" | "code";
+  modelId: string;
   apiKey?: string;
   baseUrl?: string;
 }

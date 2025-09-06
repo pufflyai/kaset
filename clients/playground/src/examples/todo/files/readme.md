@@ -1,6 +1,9 @@
-# Kaset Demo - Todos
+# Kaset Playground — Todos
 
-Welcome! This is a simple todo app.
+A tiny, file-based todo example to try the playground.
 
-What's here:
-- README.md (this file) — created by the setup script as a starting point.
+- Purpose: experiment with simple Markdown todos and agent/file actions.
+- Structure:
+  - `todos/` — each list is a `.md` file; items use `- [ ]` / `- [x]`.
+  - `agents.md` — rules the agent follows (humans can ignore).
+- Try it: edit `todos/My Todos.md` directly or ask the agent to add, toggle, remove items, or create/rename lists.

@@ -22,7 +22,7 @@ export function getAgent() {
   });
 
   const tools = createOpfsTools({
-    workspaceDir: "playground",
+    workspaceDir: state.local.namespace,
     onShellChunk: (s) => console.debug("opfs_shell:", s),
     requestApproval,
   });

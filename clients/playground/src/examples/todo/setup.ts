@@ -23,7 +23,7 @@ export async function setupPlayground(options: SetupOptions = {}) {
 
   // Rewrite special filenames for OPFS targets:
   // - __agents.md  -> agents.md (placed at folder root)
-  // - readme.md    -> readme.md (already at folder root)
+  // - readme.md    -> readme.md (placed at folder root)
   const files: Record<string, string> = {};
   for (const [absKey, content] of Object.entries(rawFiles)) {
     const key = absKey.endsWith("/__agents.md") ? absKey.replace(/\/__agents\.md$/, "/agents.md") : absKey;

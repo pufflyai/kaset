@@ -1,4 +1,3 @@
-import type { ComponentProps } from "react";
 import {
   AlertTriangle,
   ArrowDown,
@@ -12,8 +11,9 @@ import {
   Play,
   Plug,
   Search,
-  type LucideIcon,
+  type LucideIcon
 } from "lucide-react";
+import type { ComponentProps } from "react";
 
 export type IconName =
   | "plugin"
