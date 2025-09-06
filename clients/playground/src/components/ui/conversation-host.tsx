@@ -12,8 +12,10 @@ export function ConversationHost() {
   );
 
   const [streaming, setStreaming] = useState(false);
+  const hasKey = useWorkspaceStore((s) => !!s.local.apiKey);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
+
 
   useEffect(() => {
     setApprovalHandler(
@@ -114,6 +116,7 @@ export function ConversationHost() {
       <ConversationArea
         messages={messages}
         streaming={streaming}
+        canSend={hasKey && !streaming}
         onSendMessage={handleSendMessage}
         onSelectFile={(path) => {
           useWorkspaceStore.setState(

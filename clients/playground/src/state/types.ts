@@ -18,6 +18,9 @@ export interface WorkspaceLocalState {
   featureFlags?: Partial<Record<FeatureFlag, boolean>>;
   selectedConversationId?: string;
   filePath?: string;
+  modelId?: string;
+  apiKey?: string;
+  baseUrl?: string;
 }
 
 export interface WorkspaceActions {

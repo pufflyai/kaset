@@ -29,7 +29,6 @@ export const createStore = (
         name: `kaset-workspace-${namespace}`,
         partialize: (state) => {
           setLocalState(state.local);
-          // Persist conversations and local UI state; omit actions
           return { conversations: state.conversations, local: state.local, version: state.version };
         },
         merge: mergeLocalState,

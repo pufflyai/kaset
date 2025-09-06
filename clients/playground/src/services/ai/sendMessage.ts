@@ -1,6 +1,6 @@
 import { type AssistantMessage, type BaseMessage } from "@pstdio/tiny-ai-tasks";
 import type { Message, ToolInvocation, UIConversation } from "../../types";
-import { agent } from "./KAS/agent";
+import { getAgent } from "./KAS/agent";
 import { getLastUserText, toMessageHistory, uid } from "./utils";
 
 /**
@@ -102,6 +102,8 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
   // Build full history from the UI conversation so the agent has context
   const initial: BaseMessage[] = toMessageHistory(uiMessages);
 
+  const agent = getAgent();
+  
   for await (const [chunk] of agent(initial as any)) {
     const items = Array.isArray(chunk) ? (chunk as (AssistantMessage | any)[]) : [];
 

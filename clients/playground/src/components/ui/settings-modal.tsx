@@ -1,3 +1,4 @@
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { Button, Dialog, Field, HStack, Input } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
@@ -11,42 +12,38 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
 
   useEffect(() => {
     if (!isOpen) return;
-    try {
-      setApiKey(localStorage.getItem("tiny-ai-api-key") || "");
-      setBaseUrl(localStorage.getItem("tiny-ai-base-url") || "");
-      setModel(localStorage.getItem("tiny-ai-model") || "gpt-4.1-mini");
-    } catch {
-      // ignore
-    }
+    const s = useWorkspaceStore.getState();
+    setApiKey(s.local.apiKey || "");
+    setBaseUrl(s.local.baseUrl || "");
+    setModel(s.local.modelId || "gpt-5-mini");
   }, [isOpen]);
 
   const save = () => {
-    try {
-      if (apiKey) localStorage.setItem("tiny-ai-api-key", apiKey);
-      else localStorage.removeItem("tiny-ai-api-key");
-
-      if (baseUrl) localStorage.setItem("tiny-ai-base-url", baseUrl);
-      else localStorage.removeItem("tiny-ai-base-url");
-
-      if (model) localStorage.setItem("tiny-ai-model", model);
-      else localStorage.removeItem("tiny-ai-model");
-    } catch {
-      // ignore storage errors (private mode, etc.)
-    }
+    useWorkspaceStore.setState(
+      (state) => {
+        state.local.apiKey = apiKey || undefined;
+        state.local.baseUrl = baseUrl || undefined;
+        state.local.modelId = model || "gpt-4.1-mini";
+      },
+      false,
+      "settings/save-llm-config",
+    );
     onClose();
   };
 
   const clear = () => {
-    try {
-      localStorage.removeItem("tiny-ai-api-key");
-      localStorage.removeItem("tiny-ai-base-url");
-      localStorage.removeItem("tiny-ai-model");
-    } catch {
-      // ignore
-    }
+    useWorkspaceStore.setState(
+      (state) => {
+        state.local.apiKey = undefined;
+        state.local.baseUrl = undefined;
+        state.local.modelId = "gpt-5-mini";
+      },
+      false,
+      "settings/clear-llm-config",
+    );
     setApiKey("");
     setBaseUrl("");
-    setModel("gpt-4.1-mini");
+    setModel("gpt-5-mini");
   };
 
   return (
@@ -58,7 +55,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
           <Dialog.Body>
             <Field.Root mb={3}>
               <Field.Label>Model</Field.Label>
-              <Input placeholder="gpt-4.1-mini" value={model} onChange={(e) => setModel(e.target.value)} />
+              <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
             </Field.Root>
             <Field.Root mb={3}>
               <Field.Label>OpenAI API Key</Field.Label>
