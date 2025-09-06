@@ -1,4 +1,11 @@
-import { createAgent, createLLMTask, createScratchpad, createScratchpadTool } from "../src/index";
+import {
+  createAgent,
+  createLLMTask,
+  createScratchpad,
+  createScratchpadTool,
+  mergeStreamingMessages,
+} from "../src/index";
+import type { MessageHistory } from "../src/index";
 import { prompt } from "@pstdio/prompt-utils";
 
 // Create a host-side scratchpad and expose it as a tool
@@ -21,17 +28,22 @@ const agent = createAgent({
   tools: [scratchTool],
 });
 
-const messages = [
+const conversation = [
   {
     role: "user" as const,
     content: "Plan a small JS project and outline tasks step-by-step. USE THE SCRATCHPAD.",
   },
 ];
 
-// Stream the agent's incremental outputs (assistant/tool messages)
-for await (const [newMessages] of agent(messages)) {
+let history: MessageHistory = [];
+
+console.log("Thinking...");
+
+// Stream the agent's incremental outputs and display full conversation
+for await (const [newMessages] of agent(conversation)) {
+  history = mergeStreamingMessages(history, newMessages);
   console.clear();
-  console.log(JSON.stringify(newMessages, null, 2));
+  console.log(JSON.stringify(history, null, 2));
 }
 
 // Inspect what the model wrote to the scratchpad

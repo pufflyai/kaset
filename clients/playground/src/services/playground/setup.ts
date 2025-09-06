@@ -9,6 +9,8 @@ export type SetupOptions = {
   folderName?: string;
   /** README content to write when creating the file. */
   readmeContent?: string;
+  /** Optional initial todo.md content; created if file missing. */
+  todoContent?: string;
   /** If true, overwrite README content even if it exists. */
   overwrite?: boolean;
 };
@@ -26,6 +28,14 @@ Tips:
 - You can safely delete or edit this file.
 `;
 
+export const DEFAULT_TODO_CONTENT = `# Todo
+
+- [ ] Set up your project
+- [ ] Create components
+- [ ] Connect data
+- [ ] Explore the playground
+`;
+
 /**
  * Ensures a `playground` directory exists in OPFS and provides a README.md.
  *
@@ -34,6 +44,7 @@ Tips:
 export async function setupPlayground(options: SetupOptions = {}) {
   const folderName = options.folderName?.trim() || "playground";
   const readmeContent = options.readmeContent ?? DEFAULT_README_CONTENT;
+  const todoContent = options.todoContent ?? DEFAULT_TODO_CONTENT;
   const overwrite = Boolean(options.overwrite);
 
   // Ensure the target directory exists. Fallback to creating the path if needed.
@@ -58,6 +69,7 @@ export async function setupPlayground(options: SetupOptions = {}) {
   }
 
   let createdReadme = false;
+  let createdTodo = false;
 
   // Create README.md if it does not exist, or overwrite when requested.
   let needsWrite = overwrite;
@@ -84,9 +96,32 @@ export async function setupPlayground(options: SetupOptions = {}) {
     createdReadme = true;
   }
 
+  // Create a starter todo.md if missing (never overwrite unless explicitly requested)
+  let hasTodo = true;
+  try {
+    await dir.getFileHandle("todo.md");
+  } catch (err: any) {
+    if (err?.name === "NotFoundError" || err?.code === 404) {
+      hasTodo = false;
+    } else {
+      throw err;
+    }
+  }
+
+  if (!hasTodo) {
+    const fh = await dir.getFileHandle("todo.md", { create: true });
+    const writable = await fh.createWritable();
+
+    await writable.write(todoContent);
+    await writable.close();
+
+    createdTodo = true;
+  }
+
   return {
     folderName,
     createdReadme,
+    createdTodo,
   };
 }
 

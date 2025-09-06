@@ -36,7 +36,6 @@ export const ConversationArea = (props: ConversationAreaProps) => {
       setModelPricing(undefined);
     }
   }, []);
-  
 
   const handleSend = () => {
     const text = input.trim();
@@ -61,10 +60,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
             <Text textStyle="label/XS" color="foreground.secondary">
               {estimatedTokens} tokens
               {modelPricing && (
-                <>
-                  {" "}·{" "}
-                  {formatUSD((estimatedTokens / modelPricing.perTokens) * modelPricing.inputTokenCost)}
-                </>
+                <> · {formatUSD((estimatedTokens / modelPricing.perTokens) * modelPricing.inputTokenCost)}</>
               )}
             </Text>
           </Flex>

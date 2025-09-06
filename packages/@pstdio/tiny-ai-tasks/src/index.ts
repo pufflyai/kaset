@@ -11,6 +11,7 @@ export type { ToolConfig, ToolDefinition } from "./tools/Tool";
 export { toOpenAITools } from "./tools/toOpenAITools";
 
 export * from "./messages/bus";
+export { mergeStreamingMessages } from "./messages/mergeStreaming";
 export * from "./messages/scratchpad";
 export * from "./utils/errors";
 export * from "./utils/messageTypes";

@@ -1,4 +1,4 @@
-import { createAgent, createLLMTask, Tool } from "../src/index";
+import { createAgent, createLLMTask, MessageHistory, Tool, mergeStreamingMessages } from "../src/index";
 
 // Weather tool
 const weatherTool = Tool(
@@ -64,6 +64,12 @@ const conversation = [
   },
 ];
 
-for await (const history of agent(conversation)) {
+let history: MessageHistory = [];
+
+console.log("Thinking...");
+
+for await (const [newMessages] of agent(conversation)) {
+  history = mergeStreamingMessages(history, newMessages);
+  console.clear();
   console.log(JSON.stringify(history, null, 2));
 }
