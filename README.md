@@ -2,7 +2,7 @@
 
 **Kaset** [kaˈset] is a collection of open source tools to build browser-first, agentic web apps.
 
-[Docs](https://pufflyai.github.io/kaset/) • [Issues](https://github.com/pufflyai/kaset/issues) • [MIT License](https://github.com/pufflyai/kaset/blob/main/LICENSE)
+[Docs](https://pufflyai.github.io/kaset/) • [Playground](https://kaset.dev) • [Issues](https://github.com/pufflyai/kaset/issues) • [MIT License](https://github.com/pufflyai/kaset/blob/main/LICENSE)
 
 ![node](https://img.shields.io/badge/node-22.x-3C873A?logo=node.js&logoColor=white)
 ![lerna](https://img.shields.io/badge/monorepo-lerna-9333EA)

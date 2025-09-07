@@ -7,6 +7,7 @@ export {
   MAX_LINE_LENGTH_TEXT_FILE,
   processSingleFileContent,
   type ProcessedFileReadResult,
+  type ProcessSingleFileOptions,
 } from "./utils/opfs-files";
 export { grep } from "./utils/opfs-grep";
 export { formatTree, ls } from "./utils/opfs-ls";
@@ -24,3 +25,13 @@ export {
   type DirectoryWatcherCleanup,
   type WatchOptions,
 } from "./utils/opfs-watch";
+export {
+  basename,
+  hasParentTraversal,
+  isWithinRoot,
+  joinPath,
+  joinUnderWorkspace,
+  normalizeSegments,
+  normalizeSlashes,
+  parentOf,
+} from "./utils/path";

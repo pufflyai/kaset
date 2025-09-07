@@ -13,6 +13,7 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "vite build",
     "dev": "vite build --watch",
     "test": "npm run typecheck && vitest run",
@@ -33,6 +34,9 @@
     "@pstdio/prompt-utils": "^0.1.0",
     "@pstdio/tiny-tasks": "*",
     "openai": "^5.15.0"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "files": [
     "dist"

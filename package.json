@@ -12,7 +12,6 @@
   "scripts": {
     "reset:all": "npm run clean && npm i && npm run lint && npm run build && npm run test",
     "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" npx lerna run build",
-    "prepare": "npm run build",
     "test": "npx lerna run test",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,html,md,yml,yaml}\" --ignore-path .gitignore",
     "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,html,md,yml,yaml}\" --ignore-path .gitignore",

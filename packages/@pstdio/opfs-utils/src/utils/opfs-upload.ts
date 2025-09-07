@@ -1,3 +1,5 @@
+import { basename, joinPath, normalizeSegments, parentOf } from "./path";
+
 export interface FileUploadBaseOptions {
   destSubdir?: string;
   pathMapper?: (file: File) => string;
@@ -152,36 +154,6 @@ async function getDirHandle(root: FileSystemDirectoryHandle, path: string, creat
     cur = await cur.getDirectoryHandle(seg, { create });
   }
   return cur;
-}
-
-function normalizeSegments(p: string): string[] {
-  const out: string[] = [];
-
-  for (const part of p.split("/")) {
-    const s = part.trim();
-    if (!s || s === ".") continue;
-    if (s === "..") {
-      if (out.length) out.pop();
-      continue;
-    }
-    out.push(s);
-  }
-
-  return out;
-}
-
-function joinPath(a: string, b: string) {
-  return normalizeSegments(`${a}/${b}`).join("/");
-}
-
-function parentOf(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? "" : p.slice(0, i);
-}
-
-function basename(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? p : p.slice(i + 1);
 }
 
 function splitExt(name: string): { name: string; ext: string } {

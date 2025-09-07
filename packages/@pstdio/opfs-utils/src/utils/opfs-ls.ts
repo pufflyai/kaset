@@ -1,6 +1,8 @@
 // A small, dependency-free "ls" for the Origin Private File System (OPFS).
 // Works with OPFS (navigator.storage.getDirectory())
 
+import { expandBraces, globToRegExp } from "./glob";
+
 // ---------- Types ----------
 export interface LsEntry {
   /** POSIX-like path relative to the provided dir handle */
@@ -46,9 +48,6 @@ export interface LsOptions {
   dirsFirst?: boolean;
 }
 
-/**
- * List files & directories under `dirHandle` honoring filters, depth, and sorting.
- */
 export async function ls(dirHandle: FileSystemDirectoryHandle, opts: LsOptions = {}): Promise<LsEntry[]> {
   const {
     maxDepth = 1,
@@ -65,8 +64,12 @@ export async function ls(dirHandle: FileSystemDirectoryHandle, opts: LsOptions =
     dirsFirst = true,
   } = opts;
 
-  const includeREs = (include ?? []).map(globToRegExp);
-  const excludeREs = (exclude ?? []).map(globToRegExp);
+  const includeREs = (include ?? [])
+    .flatMap((p) => expandBraces(p))
+    .map((g) => globToRegExp(g, { dot: true, caseSensitive: true }));
+  const excludeREs = (exclude ?? [])
+    .flatMap((p) => expandBraces(p))
+    .map((g) => globToRegExp(g, { dot: true, caseSensitive: true }));
 
   const results: LsEntry[] = [];
   const statTasks: Array<() => Promise<void>> = [];
@@ -312,27 +315,7 @@ function shouldFilterOut(
   return false;
 }
 
-function globToRegExp(glob: string): RegExp {
-  // Supports **, *, ?  — no brace expansion.
-  let re = "^";
-  for (let i = 0; i < glob.length; i++) {
-    const c = glob[i];
-    if (c === "*") {
-      if (glob[i + 1] === "*") {
-        re += ".*";
-        i++;
-      } else {
-        re += "[^/]*";
-      }
-    } else if (c === "?") {
-      re += "[^/]";
-    } else {
-      re += /[\\^$.*+?()[\]{}|]/.test(c) ? "\\" + c : c;
-    }
-  }
-  re += "$";
-  return new RegExp(re);
-}
+// globToRegExp now shared in ./glob-util
 
 async function runPool<T>(items: T[], limit: number, worker: (item: T) => Promise<void>): Promise<void> {
   let idx = 0;

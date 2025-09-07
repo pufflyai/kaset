@@ -273,12 +273,15 @@ describe("opfs-shell: ls edge cases", () => {
     expect(res.stdout.trim()).toBe("notes.txt");
   });
 
-  it("current behavior: -l for paths with glob chars does not match (documents limitation)", async () => {
+  it("-l matches a literal filename containing glob characters", async () => {
     const root = await seedBasicTree();
     await writeFile(root, "weird/a[b]c?{x}.txt", "x");
     const res = await runOpfsCommandLine("ls -l weird/a[b]c?{x}.txt", { root });
-    // Known limitation: escaping + glob-to-regex interaction misses this literal file
-    expect(res.stdout).toBe("");
+    const out = res.stdout.trim();
+    // Expect a single long-format line ending with the literal filename
+    expect(out).toMatch(/^-/);
+    expect(out).toMatch(/\b1 B\b/);
+    expect(out.endsWith("a[b]c?{x}.txt")).toBe(true);
   });
 
   it("does not support parent directory '..' in paths (documents current behavior)", async () => {

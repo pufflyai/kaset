@@ -140,14 +140,7 @@ export function registerMimeTypes(map: Record<string, string>): void {
 /**
  * Checks if a path is within a given root directory (both POSIX-like strings).
  */
-export function isWithinRoot(pathToCheck: string, rootDirectory: string): boolean {
-  const p = normalizePosix(pathToCheck);
-  const r = normalizePosix(rootDirectory);
-
-  if (!r) return true; // OPFS root: everything is "inside"
-  if (p === r) return true;
-  return p.startsWith(r + "/");
-}
+export { isWithinRoot } from "./path";
 
 // ------------------------------
 // OPFS helpers
@@ -331,6 +324,15 @@ export interface ProcessedFileReadResult {
 // Main: read & process a single OPFS file
 // ------------------------------
 
+export interface ProcessSingleFileOptions {
+  /** Maximum file size in megabytes for text read path (default 20). */
+  maxFileSizeMB?: number;
+  /** Default max lines when `limit` is not specified (default 2000). */
+  defaultMaxLines?: number;
+  /** Max characters per line before truncation (default 2000). */
+  maxLineLength?: number;
+}
+
 /**
  * Reads and processes a single file in OPFS, handling text, images, and PDFs.
  * @param filePath POSIX-like path *within* OPFS (e.g., 'project/src/index.ts').
@@ -338,6 +340,7 @@ export interface ProcessedFileReadResult {
  * @param opfsRoot A FileSystemDirectoryHandle (typically from navigator.storage.getDirectory()).
  * @param offset Optional offset for text files (0-based line number).
  * @param limit Optional limit for text files (number of lines to read).
+ * @param options Optional thresholds to override defaults (file size, lines, line length).
  */
 export async function processSingleFileContent(
   filePath: string,
@@ -345,6 +348,7 @@ export async function processSingleFileContent(
   opfsRoot: FileSystemDirectoryHandle,
   offset?: number,
   limit?: number,
+  options?: ProcessSingleFileOptions,
 ): Promise<ProcessedFileReadResult> {
   const normalizedFilePath = normalizePosix(filePath);
   const normalizedRootPath = normalizePosix(rootDirectory);
@@ -372,12 +376,13 @@ export async function processSingleFileContent(
     }
 
     const file = await fileHandle.getFile();
+    const maxMB = options?.maxFileSizeMB ?? 20;
     const fileSizeInMB = file.size / (1024 * 1024);
-    if (fileSizeInMB > 20) {
+    if (fileSizeInMB > maxMB) {
       return {
-        llmContent: "File size exceeds the 20MB limit.",
-        returnDisplay: "File size exceeds the 20MB limit.",
-        error: `File size exceeds the 20MB limit: ${normalizedFilePath} (${fileSizeInMB.toFixed(2)}MB)`,
+        llmContent: `File size exceeds the ${maxMB}MB limit.`,
+        returnDisplay: `File size exceeds the ${maxMB}MB limit.`,
+        error: `File size exceeds the ${maxMB}MB limit: ${normalizedFilePath} (${fileSizeInMB.toFixed(2)}MB)`,
         errorType: ErrorType.FILE_TOO_LARGE,
       };
     }
@@ -415,16 +420,18 @@ export async function processSingleFileContent(
         const originalLineCount = lines.length;
 
         const startLine = offset || 0;
-        const effectiveLimit = limit === undefined ? DEFAULT_MAX_LINES_TEXT_FILE : limit;
+        const defaultMax = options?.defaultMaxLines ?? DEFAULT_MAX_LINES_TEXT_FILE;
+        const effectiveLimit = limit === undefined ? defaultMax : limit;
         const endLine = Math.min(startLine + effectiveLimit, originalLineCount);
         const actualStartLine = Math.min(startLine, originalLineCount);
         const selectedLines = lines.slice(actualStartLine, endLine);
 
         let linesWereTruncatedInLength = false;
         const formattedLines = selectedLines.map((line) => {
-          if (line.length > MAX_LINE_LENGTH_TEXT_FILE) {
+          const maxLen = options?.maxLineLength ?? MAX_LINE_LENGTH_TEXT_FILE;
+          if (line.length > maxLen) {
             linesWereTruncatedInLength = true;
-            return line.substring(0, MAX_LINE_LENGTH_TEXT_FILE) + "... [truncated]";
+            return line.substring(0, maxLen) + "... [truncated]";
           }
           return line;
         });

@@ -1,6 +1,7 @@
 import { processSingleFileContent } from "../utils/opfs-files";
 import { globToRegExp as globToRegExpGrep, grep } from "../utils/opfs-grep";
 import { formatLong, ls } from "../utils/opfs-ls";
+import { basename, joinPath, normalizeSlashes, parentOf } from "../utils/path";
 
 /**
  * Configuration options for running OPFS shell commands
@@ -417,10 +418,7 @@ function countText(text: string): { lines: number; words: number; bytes: number 
 /** Internal context type combining RunOptions with normalized current working directory */
 type Ctx = Required<Pick<RunOptions, "root">> & { cwd: string; onChunk?: (s: string) => void };
 
-/** Normalizes file paths by removing empty segments and joining with forward slashes */
-function normalizeSlashes(p: string): string {
-  return p.split("/").filter(Boolean).join("/");
-}
+// Path helpers imported from ../utils/path
 
 /** Removes surrounding quotes from a string if present */
 function unquote(s: string): string {
@@ -531,7 +529,7 @@ function tokenize(input: string): string[] {
 
 /** Resolves a path as a directory handle relative to the current context */
 async function resolveAsDir(path: string, ctx: Ctx): Promise<{ dir: FileSystemDirectoryHandle; full: string }> {
-  const full = normalizeSlashes(join(ctx.cwd, path));
+  const full = normalizeSlashes(joinPath(ctx.cwd, path));
   const dir = await getDir(ctx.root, full);
   return { dir, full };
 }
@@ -541,7 +539,7 @@ async function resolveAsFile(
   ctx: Ctx,
   filePath: string,
 ): Promise<{ dir: FileSystemDirectoryHandle; rel: { path: string } }> {
-  const relPath = normalizeSlashes(join(ctx.cwd, filePath));
+  const relPath = normalizeSlashes(joinPath(ctx.cwd, filePath));
   const parent = parentOf(relPath);
   const base = basename(relPath);
   const dir = await getDir(ctx.root, parent);
@@ -557,7 +555,7 @@ async function resolveAsDirOrFile(
   ctx: Ctx,
   inputPath: string,
 ): Promise<{ dir: FileSystemDirectoryHandle; rel: { path: string; kind: "file" | "directory" } }> {
-  const full = normalizeSlashes(join(ctx.cwd, inputPath));
+  const full = normalizeSlashes(joinPath(ctx.cwd, inputPath));
   try {
     // Try as directory first
     const dir = await getDir(ctx.root, full);
@@ -581,23 +579,4 @@ async function getDir(root: FileSystemDirectoryHandle, path: string): Promise<Fi
   let cur = root;
   for (const s of segs) cur = await cur.getDirectoryHandle(s, { create: false });
   return cur;
-}
-
-/** Returns the parent directory path of a given path */
-function parentOf(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? "" : p.slice(0, i);
-}
-
-/** Returns the filename/basename portion of a path */
-function basename(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? p : p.slice(i + 1);
-}
-
-/** Joins two path segments with proper normalization */
-function join(a: string, b: string): string {
-  if (!a) return normalizeSlashes(b);
-  if (!b) return normalizeSlashes(a);
-  return normalizeSlashes(a + "/" + b);
 }
