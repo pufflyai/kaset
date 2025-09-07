@@ -19,7 +19,7 @@ export function getAgent() {
     model,
     apiKey,
     reasoning: {
-      effort: "minimal",
+      effort: "low",
     },
     ...(baseUrl ? { baseUrl } : {}),
     dangerouslyAllowBrowser: true,

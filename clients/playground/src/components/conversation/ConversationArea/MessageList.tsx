@@ -1,9 +1,12 @@
 import { MessageContent, MessageRoot } from "@/components/ui/ai-message";
 import { EmptyState } from "@/components/ui/empty-state";
+import { examplePrompts as slidesPrompts } from "@/examples/slides/example-prompts";
+import { examplePrompts as todoPrompts } from "@/examples/todo/example-prompts";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Message, ToolInvocation } from "@/types";
-import { Box, Button, VStack } from "@chakra-ui/react";
-import { useMemo } from "react";
+import { Box, Button, Link, Text, VStack } from "@chakra-ui/react";
 import type { ReactNode } from "react";
+import { useMemo } from "react";
 import { CollapsibleToolTimeline } from "./CollapsibleToolTimeline";
 import { MessagePartsRenderer } from "./MessagePartsRenderer";
 
@@ -63,26 +66,37 @@ export function MessageList({
   }
 
   if (!messages.length) {
-    const examplePrompts = [
-      "What can you do?",
-      "Make a todo list for surviving Monday",
-      "If my life were a 90s rom-com, what should I do today?",
-      "Plan my Saturday like I'm living in a video game quest",
-      "Make a heroic quest list for surviving a trip to IKEA",
-      "Add a task to reward myself with pizza after finishing 3 todos",
-      "Give me three random quests from an alternate universe",
-      "Gamify my todos: assign XP points to each one",
-    ];
+    const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
+
+    const byProject: Record<string, string[]> = {
+      todo: todoPrompts,
+      slides: slidesPrompts,
+    };
+
+    const projectPrompts = byProject[selectedProject] ?? todoPrompts;
 
     const examplesToShow = useMemo(() => {
-      const shuffled = [...examplePrompts].sort(() => Math.random() - 0.5);
+      const shuffled = [...projectPrompts].sort(() => Math.random() - 0.5);
       return shuffled.slice(0, 4);
-    }, [messages.length]);
+    }, [messages.length, selectedProject]);
 
     out.push(
       <Box key="empty" w="full">
-        <EmptyState title="No messages yet" description="Start the conversation by sending a message.">
+        <EmptyState
+          title="Welcome to the Kaset playground!"
+          description="Kaset [ka'set] is an experimental open source toolkit to add coding agents directly into your webapp."
+        >
+          <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
+            Why? Checkout our{" "}
+            <Link color="blue" href="https://pufflyai.github.io/kaset/">
+              documentation
+            </Link>
+            .
+          </Text>
           <VStack gap="sm" mt="sm" align="stretch">
+            <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
+              Try one of these example prompts to get see it in action:
+            </Text>
             {examplesToShow.map((p) => (
               <Button key={p} variant="outline" size="sm" onClick={() => onUseExample?.(p)}>
                 {p}

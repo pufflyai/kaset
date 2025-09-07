@@ -45,6 +45,15 @@ const recipe = defineSlotRecipe({
           width: "full",
         },
       },
+      developer: {
+        root: {
+          width: "full",
+          flexDirection: "row-reverse",
+        },
+        content: {
+          width: "full",
+        },
+      },
     },
   },
   defaultVariants: {

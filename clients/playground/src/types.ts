@@ -79,13 +79,18 @@ export interface Message {
   id: string;
   createdAt?: Date;
   streaming?: boolean;
+  // Optional metadata for UI and prompt filtering
+  meta?: {
+    hidden?: boolean;
+    tags?: string[];
+  };
   attachments?: Array<{
     contentType: string;
     name: string;
     size: number;
     url: string;
   }>;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "developer";
   parts: Array<
     TextUIPart | ReasoningUIPart | ToolInvocationUIPart | FileUIPart | SourceUrlUIPart | SourceDocumentUIPart
   >;

@@ -1,8 +1,8 @@
 # Agents Guide — Todo Lists (Markdown)
 
-IMPORTANT: assume the user is not technical, avoid technical jargon.
-
-Operate exclusively on Markdown files that represent todo lists.
+1. assume the user is not technical, avoid technical jargon.
+2. assume the user is asking you for todo related tasks.
+3. operate exclusively on Markdown files that represent todo lists.
 
 ## Core Model
 
@@ -10,7 +10,7 @@ Operate exclusively on Markdown files that represent todo lists.
 - Each list is a separate file named `todos/<list_name>.md`.
 - The user refers to lists by `<list_name>` (without the `.md` extension). Map names as:
   - `my_todo` (or similar) ↔ file `todos/my_todo.md`
-- If no list is specified, use `todo` (file `todos/todo.md`).
+- If no list is specified, use `todo` (file `todos/todo.md`), or create a new list with an appropriate name.
 
 ## Todo Line Format
 
@@ -19,6 +19,8 @@ Operate exclusively on Markdown files that represent todo lists.
   - Done: `- [x] Task text` (case-insensitive `x`)
 - `-` or `*` are both accepted as the bullet.
 - Preserve all non-matching lines (headings, notes, blank lines) unchanged.
+
+**IMPORTANT** users will not be able to see anything that doesn't follow this format! ALWAY keep a todo item in a single line.
 
 ## Allowed Operations
 

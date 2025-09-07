@@ -1,6 +1,12 @@
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { readFile } from "@pstdio/opfs-utils";
-import { type AssistantMessage, type BaseMessage } from "@pstdio/tiny-ai-tasks";
+import {
+  type AssistantMessage,
+  type BaseMessage,
+  type ExtendedMessage,
+  filterHistory,
+  toBaseMessages,
+} from "@pstdio/tiny-ai-tasks";
 import type { Message, ToolInvocation, UIConversation } from "../../types";
 import { getAgent } from "./KAS/agent";
 import { PROJECTS_ROOT } from "@/constant";
@@ -13,6 +19,22 @@ import { getLastUserText, toMessageHistory, uid } from "./utils";
  */
 export async function* sendMessage(conversation: UIConversation, _cwd?: string) {
   let uiMessages: UIConversation = [...conversation];
+
+  // Determine if this is the first user turn before we add our developer message
+  const isFirstTurn = uiMessages.length <= 1;
+
+  // Insert a hidden developer note that is visible in the UI but filtered from the LLM prompt
+  const thoughtId = uid();
+  const thoughtStart = Date.now();
+  let thoughtMarked = false;
+  const developerThinking: Message = {
+    id: thoughtId,
+    role: "developer",
+    meta: { hidden: true, tags: ["thinking"] },
+    parts: [{ type: "reasoning", text: "Thinking...", state: "streaming" }],
+  } as Message;
+
+  uiMessages = [...uiMessages, developerThinking];
   yield uiMessages;
 
   const userText = getLastUserText(uiMessages);
@@ -103,9 +125,11 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
   };
 
   // Build full history from the UI conversation so the agent has context
-  const initial: BaseMessage[] = toMessageHistory(uiMessages);
+  // Use ExtendedMessage and filterHistory to exclude hidden developer notes from the LLM prompt
+  const baseFromUI: BaseMessage[] = toMessageHistory(uiMessages);
+  const extendedFromUI: ExtendedMessage[] = baseFromUI.map((m) => ({ ...m }));
 
-  if (uiMessages.length <= 1) {
+  if (isFirstTurn) {
     // Use the same namespace and project as the UI (see App.tsx)
     const ns = PROJECTS_ROOT;
     const proj = useWorkspaceStore.getState().selectedProjectId || "todo";
@@ -124,9 +148,14 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
     }
 
     if (content && content.trim().length > 0) {
-      initial.unshift({ role: "system", content });
+      extendedFromUI.unshift({ role: "system", content } as ExtendedMessage);
     }
   }
+
+  // Also append our hidden developer note to history (so filterHistory can remove it for LLM)
+  extendedFromUI.push({ role: "developer", content: "Thinking...", meta: { hidden: true, tags: ["thinking"] } });
+
+  const initial: BaseMessage[] = toBaseMessages(filterHistory(extendedFromUI, { excludeHidden: true }));
 
   const agent = getAgent();
 
@@ -137,6 +166,20 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
       // Assistant text and tool-calls (streamed)
       if ((msg as AssistantMessage)?.role === "assistant") {
         const a = msg as AssistantMessage;
+
+        // Mark developer thinking note with elapsed time on first assistant chunk
+        if (!thoughtMarked) {
+          const secs = Math.max(0, Math.round((Date.now() - thoughtStart) / 1000));
+          uiMessages = uiMessages.map((m) =>
+            m.id === thoughtId
+              ? ({
+                  ...m,
+                  parts: [{ type: "reasoning", text: `Thought for ${secs} seconds`, state: "done" }],
+                } as Message)
+              : m,
+          );
+          thoughtMarked = true;
+        }
 
         // If tool calls are present in this assistant chunk, surface them first
         const calls = Array.isArray(a.tool_calls) ? a.tool_calls : [];
@@ -184,6 +227,19 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
 
       // Tool outputs (role: "tool")
       if ((msg as any)?.role === "tool" && typeof (msg as any)?.content === "string") {
+        // In rare cases, tool messages may arrive before assistant text; mark the developer note
+        if (!thoughtMarked) {
+          const secs = Math.max(0, Math.round((Date.now() - thoughtStart) / 1000));
+          uiMessages = uiMessages.map((m) =>
+            m.id === thoughtId
+              ? ({
+                  ...m,
+                  parts: [{ type: "reasoning", text: `Thought for ${secs} seconds`, state: "done" }],
+                } as Message)
+              : m,
+          );
+          thoughtMarked = true;
+        }
         const toolCallId = (msg as any).tool_call_id as string;
         const meta = toolMeta.get(toolCallId) || { name: "tool", input: undefined };
 
@@ -231,6 +287,17 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
   // Mark the last assistant text as done if present
   if (currentAssistantId) {
     finalizeAssistantTextIfAny();
+    // If for some reason no assistant/tool chunk was processed, finalize the developer note, too
+    if (!thoughtMarked) {
+      const secs = Math.max(0, Math.round((Date.now() - thoughtStart) / 1000));
+      uiMessages = uiMessages.map((m) =>
+        m.id === thoughtId
+          ? ({ ...m, parts: [{ type: "reasoning", text: `Thought for ${secs} seconds`, state: "done" }] } as Message)
+          : m,
+      );
+      thoughtMarked = true;
+    }
+
     yield uiMessages;
   }
 }

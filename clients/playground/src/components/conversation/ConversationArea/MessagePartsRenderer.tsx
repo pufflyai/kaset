@@ -1,9 +1,8 @@
-import { ReasoningContent, ReasoningRoot, ReasoningTrigger } from "@/components/ui/ai-reasoning";
 import { Response } from "@/components/ui/ai-response";
 import { ResourceBadge } from "@/components/ui/resource-badge";
 import { TimelineFromJSON } from "@/components/ui/timeline";
 import type { Message, ToolInvocation } from "@/types";
-import { Box } from "@chakra-ui/react";
+import { Box, Text } from "@chakra-ui/react";
 import type { ReactNode } from "react";
 import { invocationsToTimeline } from "../utils/timeline";
 
@@ -14,7 +13,7 @@ interface MessagePartsProps {
 }
 
 export function MessagePartsRenderer(props: MessagePartsProps) {
-  const { message, streaming, onOpenFile } = props;
+  const { message, onOpenFile } = props;
   const nodes: ReactNode[] = [];
 
   for (let partIndex = 0; partIndex < message.parts.length; partIndex++) {
@@ -32,10 +31,9 @@ export function MessagePartsRenderer(props: MessagePartsProps) {
 
     if (part.type === "reasoning") {
       nodes.push(
-        <ReasoningRoot width="full" streaming={streaming} key={key}>
-          <ReasoningTrigger />
-          <ReasoningContent pt="0">{part.text}</ReasoningContent>
-        </ReasoningRoot>,
+        <Text textStyle="label/S/regular" color="foreground.secondary" pt="sm" pb="0">
+          {part.text}
+        </Text>,
       );
       continue;
     }
