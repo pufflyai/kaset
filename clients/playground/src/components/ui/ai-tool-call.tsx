@@ -47,7 +47,7 @@ export const ToolInvocationView = (props: { invocation: ToolInvocation; streamin
   return (
     <Box width="full" bg="background.secondary" borderWidth="1px" borderColor="border.secondary" rounded="md" p="sm">
       <HStack justify="space-between" align="center" mb="xs">
-        <HStack gap="2" align="center">
+        <HStack gap="sm" align="center">
           <Icon name="plugin" size="xs" aria-label="Tool" />
           <Text textStyle="label/SM/regular">{toolLabel || "Tool"}</Text>
           <Text color="fg.secondary" textStyle="label/XS/regular">

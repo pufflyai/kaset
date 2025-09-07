@@ -11,6 +11,7 @@ import { TodoList } from "./examples/todo/component";
 import { useDragAndDropUpload } from "./services/drag-n-drop";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
 import { PROJECTS_ROOT } from "./constant";
+import { GithubCorner } from "./components/ui/github-corner";
 
 export function App() {
   const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
@@ -29,7 +30,8 @@ export function App() {
   const selectedTab = useWorkspaceStore((s) => s.selectedTab ?? "preview");
 
   const { isDragging, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } = useDragAndDropUpload({
-    targetDir: rootDir,
+    // Upload dropped files into a dedicated project sources folder
+    targetDir: `${rootDir}/sources`,
   });
 
   return (
@@ -46,7 +48,7 @@ export function App() {
     >
       <Allotment>
         {/* Conversation pane */}
-        <Allotment.Pane minSize={260} preferredSize={420}>
+        <Allotment.Pane minSize={260} preferredSize={420} maxSize={580}>
           <Flex direction="column" height="100%" padding="3" gap="3">
             <TopBar />
             <Box flex="1" overflow="hidden" borderWidth="1px" borderRadius="md">
@@ -60,6 +62,7 @@ export function App() {
           <Flex direction="column" height="100%" padding="3" gap="3">
             <Box flex="1" overflow="hidden" borderWidth="1px" borderRadius="md">
               <Tabs.Root
+                variant="enclosed"
                 display="flex"
                 flexDirection="column"
                 height="100%"
@@ -81,16 +84,16 @@ export function App() {
                   borderBottom="1px solid"
                   borderColor="border.secondary"
                   borderRadius={0}
-                  paddingX="2"
+                  paddingX="sm"
                   paddingY="1.5"
                 >
                   <Tabs.Trigger maxHeight="32px" value="preview">
-                    <HStack gap="2" align="center">
+                    <HStack gap="sm" align="center">
                       <Text>Preview</Text>
                     </HStack>
                   </Tabs.Trigger>
                   <Tabs.Trigger maxHeight="32px" value="code">
-                    <HStack gap="2" align="center">
+                    <HStack gap="sm" align="center">
                       <Text>Files</Text>
                     </HStack>
                   </Tabs.Trigger>
@@ -114,7 +117,7 @@ export function App() {
                   <Box flex="1" display="flex" overflow="hidden">
                     <Allotment>
                       <Allotment.Pane minSize={220} preferredSize={280}>
-                        <Box height="100%" overflowY="auto" padding="2">
+                        <Box height="100%" overflowY="auto" padding="sm">
                           <FileExplorer
                             rootDir={rootDir}
                             selectedPath={selectedPath}
@@ -149,6 +152,9 @@ export function App() {
           </Flex>
         </Allotment.Pane>
       </Allotment>
+
+      {/* GitHub corner link */}
+      <GithubCorner href="https://github.com/pufflyai/kaset" />
 
       <DragOverlay visible={isDragging} />
     </Flex>

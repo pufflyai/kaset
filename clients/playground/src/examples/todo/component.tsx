@@ -1,3 +1,4 @@
+import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 import { PROJECTS_ROOT } from "@/constant";
 import { Box, Button, Checkbox, HStack, IconButton, Input, Text, VStack } from "@chakra-ui/react";
 import {
@@ -9,7 +10,7 @@ import {
   watchDirectory,
   writeFile,
 } from "@pstdio/opfs-utils";
-import { PencilIcon, TrashIcon } from "lucide-react";
+import { PencilIcon, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface TodoListProps {
@@ -92,6 +93,10 @@ export function TodoList() {
 
   const [editingLine, setEditingLine] = useState<number | null>(null);
   const [editingText, setEditingText] = useState<string>("");
+
+  // Delete confirmation modal state for lists
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [pendingDeleteList, setPendingDeleteList] = useState<string | null>(null);
 
   const dirAbortRef = useRef<AbortController | null>(null);
 
@@ -195,6 +200,23 @@ export function TodoList() {
     },
     [listsDirPath, selectedList, refreshLists],
   );
+
+  const requestDeleteList = useCallback((name: string) => {
+    setPendingDeleteList(name);
+    setDeleteModalOpen(true);
+  }, []);
+
+  const cancelDeleteList = useCallback(() => {
+    setDeleteModalOpen(false);
+    setPendingDeleteList(null);
+  }, []);
+
+  const confirmDeleteList = useCallback(async () => {
+    if (!pendingDeleteList) return;
+    await removeList(pendingDeleteList);
+    setPendingDeleteList(null);
+    setDeleteModalOpen(false);
+  }, [pendingDeleteList, removeList]);
 
   const setChecked = useCallback(
     async (line: number, checked: boolean) => {
@@ -342,158 +364,183 @@ export function TodoList() {
   }, [ensureDir, listsDirPath, refreshLists, readAndParse, selectedList]);
 
   return (
-    <Box height="100%" display="flex" flexDirection="column">
-      <Box flex="1" overflow="hidden" display="flex">
-        {/* Left: lists */}
-        <Box width="240px" borderRightWidth="1px" overflowY="auto" padding="2">
-          <HStack gap="2" marginBottom="3" borderBottom="1px solid" borderColor="border.secondary" paddingBottom="2">
-            <Input
-              value={newListName}
-              onChange={(e) => setNewListName(e.currentTarget.value)}
-              placeholder="New list name"
-              size="sm"
-              width="180px"
-            />
-            <Button size="sm" onClick={addList}>
-              Add List
-            </Button>
-          </HStack>
-
-          {lists.length === 0 && (
-            <Text fontSize="sm" color="fg.secondary">
-              No todo lists. Create one above.
-            </Text>
-          )}
-
-          {lists.length > 0 && (
-            <VStack align="stretch" gap="1">
-              {lists.map((name) => {
-                const selected = name === selectedList;
-                return (
-                  <HStack
-                    key={name}
-                    justify="space-between"
-                    align="center"
-                    paddingX="2"
-                    paddingY="1.5"
-                    borderRadius="md"
-                    textDecoration={selected ? "underline" : "none"}
-                  >
-                    <Text fontSize="sm" cursor="pointer" onClick={() => selectList(name)} title={name} flex="1">
-                      {displayListName(name)}
-                    </Text>
-                    <IconButton size="xs" variant="ghost" onClick={() => removeList(name)} colorPalette="red">
-                      <TrashIcon size={12} />
-                    </IconButton>
-                  </HStack>
-                );
-              })}
-            </VStack>
-          )}
-        </Box>
-
-        {/* Right: items of selected list */}
-        <Box flex="1" overflowY="auto" padding="3">
-          {selectedList && (
-            <HStack justify="space-between" align="center" marginBottom="3">
-              <HStack>
-                <Text fontSize="sm" color="fg.secondary">
-                  {displayListName(selectedList)}
-                </Text>
-              </HStack>
+    <>
+      <Box height="100%" display="flex" flexDirection="column">
+        <Box flex="1" overflow="hidden" display="flex">
+          {/* Left: lists */}
+          <Box width="240px" borderRightWidth="1px" overflowY="auto" padding="sm">
+            <HStack
+              gap="sm"
+              marginBottom="3"
+              borderBottom="1px solid"
+              borderColor="border.secondary"
+              paddingBottom="sm"
+            >
+              <Input
+                value={newListName}
+                onChange={(e) => setNewListName(e.currentTarget.value)}
+                placeholder="New list name"
+                size="sm"
+                width="180px"
+              />
+              <Button size="sm" onClick={addList}>
+                Add List
+              </Button>
             </HStack>
-          )}
 
-          {!error && selectedList && (
-            <VStack align="stretch" gap="3">
-              <HStack>
-                <Input
-                  value={newItemText}
-                  onChange={(e) => setNewItemText(e.currentTarget.value)}
-                  placeholder="Add a new todo"
-                  size="sm"
-                />
-                <Button size="sm" onClick={addItem} disabled={!newItemText.trim()}>
-                  Add
-                </Button>
-              </HStack>
+            {lists.length === 0 && (
+              <Text fontSize="sm" color="fg.secondary">
+                No todo lists. Create one above.
+              </Text>
+            )}
 
-              {items.length === 0 && (
-                <Text fontSize="sm" color="fg.secondary">
-                  Todo list is empty.
-                </Text>
+            {lists.length > 0 && (
+              <VStack align="stretch" gap="xs">
+                {lists.map((name) => {
+                  const selected = name === selectedList;
+                  return (
+                    <HStack
+                      key={name}
+                      justify="space-between"
+                      align="center"
+                      paddingX="sm"
+                      paddingY="1.5"
+                      borderRadius="md"
+                      cursor="pointer"
+                      textDecoration={selected ? "underline" : "none"}
+                    >
+                      <Text fontSize="sm" cursor="pointer" onClick={() => selectList(name)} title={name} flex="1">
+                        {displayListName(name)}
+                      </Text>
+                      <IconButton size="xs" variant="ghost" onClick={() => requestDeleteList(name)} colorPalette="red">
+                        <Trash2 size={12} />
+                      </IconButton>
+                    </HStack>
+                  );
+                })}
+              </VStack>
+            )}
+          </Box>
+
+          {/* Right: items of selected list */}
+          <Box flex="1" overflowY="auto" padding="3">
+            <Box maxW="720px" mx="auto">
+              {selectedList && (
+                <HStack justify="space-between" align="center" marginBottom="3">
+                  <HStack>
+                    <Text fontSize="lg" color="fg.secondary">
+                      {displayListName(selectedList)}
+                    </Text>
+                  </HStack>
+                </HStack>
               )}
 
-              {items.length > 0 && (
-                <VStack align="stretch" gap="2">
-                  {items.map((t) => (
-                    <HStack key={t.line} justify="space-between" align="center">
-                      <Checkbox.Root checked={t.done} onCheckedChange={(e) => setChecked(t.line, !!e.checked)}>
-                        <HStack>
-                          <Checkbox.HiddenInput />
-                          <Checkbox.Control />
-                          <Checkbox.Label>
+              {!error && selectedList && (
+                <VStack align="stretch" gap="3">
+                  <HStack>
+                    <Input
+                      value={newItemText}
+                      onChange={(e) => setNewItemText(e.currentTarget.value)}
+                      placeholder="Add a new todo"
+                      size="sm"
+                    />
+                    <Button size="sm" onClick={addItem} disabled={!newItemText.trim()}>
+                      Add
+                    </Button>
+                  </HStack>
+
+                  {items.length === 0 && (
+                    <Text fontSize="sm" color="fg.secondary">
+                      Todo list is empty.
+                    </Text>
+                  )}
+
+                  {items.length > 0 && (
+                    <VStack align="stretch" gap="sm">
+                      {items.map((t) => (
+                        <HStack key={t.line} justify="space-between" align="center">
+                          <Checkbox.Root
+                            width="100%"
+                            cursor="pointer"
+                            checked={t.done}
+                            onCheckedChange={(e) => setChecked(t.line, !!e.checked)}
+                          >
+                            <HStack>
+                              <Checkbox.HiddenInput />
+                              <Checkbox.Control cursor="pointer" />
+                              <Checkbox.Label cursor="pointer">
+                                {editingLine === t.line ? (
+                                  <Input
+                                    size="xs"
+                                    autoFocus
+                                    value={editingText}
+                                    onChange={(e) => setEditingText(e.currentTarget.value)}
+                                    onBlur={saveEditing}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") saveEditing();
+                                      if (e.key === "Escape") cancelEditing();
+                                    }}
+                                  />
+                                ) : (
+                                  <Text
+                                    fontSize="sm"
+                                    textDecoration={t.done ? "line-through" : "none"}
+                                    color={t.done ? "fg.muted" : "fg.primary"}
+                                    onDoubleClick={() => startEditing(t.line, t.text)}
+                                  >
+                                    {t.text || "(empty)"}
+                                  </Text>
+                                )}
+                              </Checkbox.Label>
+                            </HStack>
+                          </Checkbox.Root>
+                          <HStack>
                             {editingLine === t.line ? (
-                              <Input
-                                size="xs"
-                                autoFocus
-                                value={editingText}
-                                onChange={(e) => setEditingText(e.currentTarget.value)}
-                                onBlur={saveEditing}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") saveEditing();
-                                  if (e.key === "Escape") cancelEditing();
-                                }}
-                                width="auto"
-                              />
+                              <Button size="xs" onClick={saveEditing}>
+                                Save
+                              </Button>
                             ) : (
-                              <Text
-                                fontSize="sm"
-                                textDecoration={t.done ? "line-through" : "none"}
-                                color={t.done ? "fg.muted" : "fg.primary"}
-                                onDoubleClick={() => startEditing(t.line, t.text)}
-                              >
-                                {t.text || "(empty)"}
-                              </Text>
+                              <IconButton size="xs" variant="ghost" onClick={() => startEditing(t.line, t.text)}>
+                                <PencilIcon size={14} />
+                              </IconButton>
                             )}
-                          </Checkbox.Label>
+                            <IconButton size="xs" variant="ghost" colorPalette="red" onClick={() => removeItem(t.line)}>
+                              <Trash2 size={14} />
+                            </IconButton>
+                          </HStack>
                         </HStack>
-                      </Checkbox.Root>
-                      <HStack>
-                        {editingLine === t.line ? (
-                          <Button size="xs" onClick={saveEditing}>
-                            Save
-                          </Button>
-                        ) : (
-                          <IconButton size="xs" variant="ghost" onClick={() => startEditing(t.line, t.text)}>
-                            <PencilIcon size={14} />
-                          </IconButton>
-                        )}
-                        <IconButton size="xs" variant="ghost" colorPalette="red" onClick={() => removeItem(t.line)}>
-                          <TrashIcon size={14} />
-                        </IconButton>
-                      </HStack>
-                    </HStack>
-                  ))}
+                      ))}
+                    </VStack>
+                  )}
                 </VStack>
               )}
-            </VStack>
-          )}
 
-          {!selectedList && (
-            <Text fontSize="sm" color="fg.secondary">
-              Select or create a list.
-            </Text>
-          )}
+              {!selectedList && (
+                <Text fontSize="sm" color="fg.secondary">
+                  Select or create a list.
+                </Text>
+              )}
 
-          {error && (
-            <Text fontSize="sm" color="red.400">
-              {String(error)}
-            </Text>
-          )}
+              {error && (
+                <Text fontSize="sm" color="red.400">
+                  {String(error)}
+                </Text>
+              )}
+            </Box>
+          </Box>
         </Box>
       </Box>
-    </Box>
+      <DeleteConfirmationModal
+        open={deleteModalOpen}
+        onClose={cancelDeleteList}
+        onDelete={confirmDeleteList}
+        headline="Delete List"
+        notificationText={`Are you sure you want to delete "${displayListName(
+          pendingDeleteList ?? "",
+        )}"? This action cannot be undone.`}
+        buttonText="Delete"
+      />
+    </>
   );
 }
 

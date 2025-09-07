@@ -48,7 +48,7 @@ export const ConversationScrollButton = (props: ConversationScrollButtonProps) =
 
   return (
     !isAtBottom && (
-      <AbsoluteCenter axis="horizontal" bottom="4">
+      <AbsoluteCenter axis="horizontal" bottom="md">
         <IconButton rounded="full" onClick={handleScrollToBottom} variant="outline" size="xs" {...props}>
           <Icon name="arrow-down" />
         </IconButton>

@@ -13,7 +13,7 @@ export const DiffBubble = (props: DiffBubbleProps) => {
     <Span
       display="inline-flex"
       alignItems="center"
-      gap="1"
+      gap="xs"
       border="1px solid"
       borderColor="border.secondary"
       color="foreground.secondary"

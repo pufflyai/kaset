@@ -102,7 +102,7 @@ export const ResourceBadge = (props: ResourceBadgeProps) => {
         <IconButton
           aria-label="Remove reference"
           size="2xs"
-          ml="1"
+          ml="xs"
           variant="ghost"
           _hover={{
             bg: "transparent",

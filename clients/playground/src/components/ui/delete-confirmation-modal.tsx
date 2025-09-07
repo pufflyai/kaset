@@ -29,7 +29,7 @@ export const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => 
           </Dialog.Header>
           <Dialog.Body>{notificationText}</Dialog.Body>
           <Dialog.Footer>
-            <Stack direction="row" gap="1">
+            <Stack direction="row" gap="xs">
               <Button onClick={onClose}>Close</Button>
               <Button
                 loading={isDeleting}

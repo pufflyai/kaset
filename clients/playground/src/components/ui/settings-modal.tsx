@@ -87,7 +87,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
               />
             </Field.Root>
           </Dialog.Body>
-          <Dialog.Footer gap={2}>
+          <Dialog.Footer gap="sm">
             <Button variant="outline" onClick={clear}>
               Clear
             </Button>

@@ -17,14 +17,14 @@ export function ApprovalModal(props: { request: ApprovalRequest | null; onApprov
             </Dialog.CloseTrigger>
           </Dialog.Header>
           <Dialog.Body>
-            <Text fontSize="sm" color="foreground.secondary" mb={2}>
+            <Text fontSize="sm" color="foreground.secondary" mb="sm">
               A tool requested permission to modify files in your workspace.
             </Text>
-            <Field.Root mb={2}>
+            <Field.Root mb="sm">
               <Field.Label>Tool</Field.Label>
               <Input value={request?.tool || ""} readOnly />
             </Field.Root>
-            <Field.Root mb={2}>
+            <Field.Root mb="sm">
               <Field.Label>Workspace</Field.Label>
               <Input value={request?.workspaceDir || ""} readOnly />
             </Field.Root>
@@ -37,11 +37,11 @@ export function ApprovalModal(props: { request: ApprovalRequest | null; onApprov
               </Field.Root>
             ) : null}
           </Dialog.Body>
-          <Dialog.Footer gap={2}>
+          <Dialog.Footer gap="sm">
             <Button onClick={onDeny} variant="outline">
               Deny
             </Button>
-            <Button onClick={onApprove} colorPalette="blue">
+            <Button onClick={onApprove} variant="solid">
               Approve
             </Button>
           </Dialog.Footer>

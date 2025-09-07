@@ -20,8 +20,8 @@ import {
   Check as CheckIcon,
   ChevronDownIcon,
   EditIcon,
-  FolderHeartIcon,
   HistoryIcon,
+  ExternalLink as ExternalLinkIcon,
   RotateCcw,
   Settings as SettingsIcon,
   Trash2 as TrashIcon,
@@ -176,11 +176,29 @@ export function TopBar() {
   return (
     <HStack justify="space-between" align="center">
       <HStack>
-        <Logo />
+        <Menu.Root>
+          <Menu.Trigger asChild>
+            <Box cursor="pointer" aria-label="Kaset menu">
+              <Logo />
+            </Box>
+          </Menu.Trigger>
+          <Menu.Positioner>
+            <Menu.Content bg="background.primary">
+              <Menu.ItemGroup>
+                <Menu.ItemGroupLabel>Kaset Playground</Menu.ItemGroupLabel>
+                <MenuItem
+                  primaryLabel="Documentation"
+                  leftIcon={<ExternalLinkIcon size={16} />}
+                  onClick={() => window.open("https://pufflyai.github.io/kaset/", "_blank", "noopener,noreferrer")}
+                />
+              </Menu.ItemGroup>
+            </Menu.Content>
+          </Menu.Positioner>
+        </Menu.Root>
         <Menu.Root ids={{ trigger: triggerId }}>
-          <Tooltip ids={{ trigger: triggerId }} content="Switch Project">
+          <Tooltip ids={{ trigger: triggerId }} content="Switch Demo Project">
             <Menu.Trigger asChild>
-              <Button size="xs" variant="ghost" aria-label="Switch project">
+              <Button size="xs" variant="ghost" aria-label="Switch Demo Project">
                 <Text fontSize="sm">{selectedProjectName}</Text>
                 <ChevronDownIcon />
               </Button>
@@ -190,7 +208,7 @@ export function TopBar() {
             <Menu.Positioner>
               <Menu.Content bg="background.primary">
                 <Menu.ItemGroup>
-                  <Menu.ItemGroupLabel ml="2xs">Projects</Menu.ItemGroupLabel>
+                  <Menu.ItemGroupLabel>Projects</Menu.ItemGroupLabel>
                   {PROJECTS.map((p) => (
                     <MenuItem
                       key={p.id}
@@ -248,7 +266,7 @@ export function TopBar() {
         <Menu.Root>
           <Menu.Trigger asChild>
             <Box>
-              <Tooltip content="New Conversation">
+              <Tooltip content="History">
                 <IconButton size="xs" variant="ghost">
                   <HistoryIcon />
                 </IconButton>
@@ -267,7 +285,7 @@ export function TopBar() {
                 leftIcon={<TrashIcon size={16} />}
                 onClick={deleteAll.onOpen}
               />
-              <Separator marginY="2" />
+              <Separator marginY="sm" />
               {ids.length === 0 && <MenuItem primaryLabel="No conversations" isDisabled />}
               {ids.map((id) => (
                 <MenuItem

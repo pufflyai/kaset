@@ -5,9 +5,7 @@ export const menuSlotRecipe = defineSlotRecipe({
   slots: menuAnatomy.keys(),
   base: {
     itemGroupLabel: {
-      ml: "{sm}",
-      mb: "{xs}",
-      mt: "0",
+      ml: "{2xs}",
       textStyle: "label/S/regular",
       fontWeight: "normal",
       color: "foreground.secondary",

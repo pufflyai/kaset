@@ -93,15 +93,18 @@ export const CodeEditor = (props: CodeEditorProps) => {
   const writeToOpfs = async (fullPath: string, content: string) => {
     const dir = await getDirectoryHandle(rootDir);
 
-    const parts = fullPath.split("/").filter(Boolean);
-    const startIndex = parts[0] === rootDir ? 1 : 0;
+    // Resolve path relative to rootDir if provided and prefixed, else treat as absolute
+    const idParts = fullPath.split("/").filter(Boolean);
+    const rootParts = (rootDir ?? "").split("/").filter(Boolean);
+    const hasRootPrefix = rootDir && idParts.slice(0, rootParts.length).join("/") === rootDir;
+    const relParts = hasRootPrefix ? idParts.slice(rootParts.length) : idParts;
 
     let currentDir: FileSystemDirectoryHandle = dir;
-    for (let i = startIndex; i < parts.length - 1; i++) {
-      currentDir = await currentDir.getDirectoryHandle(parts[i]);
+    for (let i = 0; i < Math.max(0, relParts.length - 1); i++) {
+      currentDir = await currentDir.getDirectoryHandle(relParts[i]);
     }
 
-    const fileName = parts[parts.length - 1];
+    const fileName = relParts[relParts.length - 1];
     const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(content);

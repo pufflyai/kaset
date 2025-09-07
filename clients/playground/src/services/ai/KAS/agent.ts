@@ -18,6 +18,9 @@ export function getAgent() {
   const llm = createLLMTask({
     model,
     apiKey,
+    reasoning: {
+      effort: "minimal",
+    },
     ...(baseUrl ? { baseUrl } : {}),
     dangerouslyAllowBrowser: true,
   });

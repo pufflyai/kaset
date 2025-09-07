@@ -1,8 +1,8 @@
 import { MessageContent, MessageRoot } from "@/components/ui/ai-message";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { Message, ToolInvocation } from "@/types";
-import { Box } from "@chakra-ui/react";
-import { File as FileIcon } from "lucide-react";
+import { Box, Button, VStack } from "@chakra-ui/react";
+import { useMemo } from "react";
 import type { ReactNode } from "react";
 import { CollapsibleToolTimeline } from "./CollapsibleToolTimeline";
 import { MessagePartsRenderer } from "./MessagePartsRenderer";
@@ -11,10 +11,12 @@ export function MessageList({
   messages,
   streaming,
   onOpenFile,
+  onUseExample,
 }: {
   messages: Message[];
   streaming: boolean;
   onOpenFile?: (filePath: string) => void;
+  onUseExample?: (text: string) => void;
 }) {
   const isToolOnlyMessage = (m: Message) =>
     m.parts.length > 0 && m.parts.every((p) => (p as any).type === "tool-invocation");
@@ -61,13 +63,33 @@ export function MessageList({
   }
 
   if (!messages.length) {
+    const examplePrompts = [
+      "What can you do?",
+      "Make a todo list for surviving Monday",
+      "If my life were a 90s rom-com, what should I do today?",
+      "Plan my Saturday like I'm living in a video game quest",
+      "Make a heroic quest list for surviving a trip to IKEA",
+      "Add a task to reward myself with pizza after finishing 3 todos",
+      "Give me three random quests from an alternate universe",
+      "Gamify my todos: assign XP points to each one",
+    ];
+
+    const examplesToShow = useMemo(() => {
+      const shuffled = [...examplePrompts].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, 4);
+    }, [messages.length]);
+
     out.push(
       <Box key="empty" w="full">
-        <EmptyState
-          title="No messages yet"
-          description="Start the conversation by sending a message."
-          icon={<FileIcon size={16} />}
-        />
+        <EmptyState title="No messages yet" description="Start the conversation by sending a message.">
+          <VStack gap="sm" mt="sm" align="stretch">
+            {examplesToShow.map((p) => (
+              <Button key={p} variant="outline" size="sm" onClick={() => onUseExample?.(p)}>
+                {p}
+              </Button>
+            ))}
+          </VStack>
+        </EmptyState>
       </Box>,
     );
   }

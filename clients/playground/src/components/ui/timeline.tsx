@@ -143,7 +143,7 @@ function BlockView({ b }: { b: Block }) {
       );
     case "references":
       return (
-        <Stack mt="1" gap="1" flexDir="row" flexWrap="wrap">
+        <Stack mt="xs" gap="xs" flexDir="row" flexWrap="wrap">
           {b.references.map((ref) => {
             return <ResourceBadge key={ref} fileName={ref} />;
           })}

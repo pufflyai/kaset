@@ -1,4 +1,4 @@
-import { getDirectoryHandle, uploadFilesToDirectory } from "@pstdio/opfs-utils";
+import { getDirectoryHandle, getOPFSRoot, uploadFilesToDirectory } from "@pstdio/opfs-utils";
 import { useRef, useState } from "react";
 
 export type DragAndDropHandlers = {
@@ -19,6 +19,25 @@ type UseDragAndDropUploadOptions = {
 export function useDragAndDropUpload({ targetDir, onUploaded }: UseDragAndDropUploadOptions): DragAndDropHandlers {
   const [isDragging, setIsDragging] = useState(false);
   const dragDepthRef = useRef(0);
+
+  // Ensure an OPFS directory path exists (mkdir -p behavior)
+  async function ensureDir(path: string): Promise<FileSystemDirectoryHandle> {
+    try {
+      return await getDirectoryHandle(path);
+    } catch (err: any) {
+      if (err?.name !== "NotFoundError" && err?.code !== 404) throw err;
+
+      const root = await getOPFSRoot();
+      const parts = path.split("/").filter(Boolean);
+
+      let current = root;
+      for (const part of parts) {
+        current = await current.getDirectoryHandle(part, { create: true });
+      }
+
+      return current;
+    }
+  }
 
   const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -53,7 +72,7 @@ export function useDragAndDropUpload({ targetDir, onUploaded }: UseDragAndDropUp
     if (!files.length) return;
 
     try {
-      const dir = await getDirectoryHandle(targetDir);
+      const dir = await ensureDir(targetDir);
       await uploadFilesToDirectory(dir, files);
       onUploaded?.(files);
     } catch (err) {

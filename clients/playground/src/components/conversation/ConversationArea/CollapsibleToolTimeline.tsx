@@ -29,7 +29,7 @@ export function CollapsibleToolTimeline({
         _hover={{ color: "foreground.primary" }}
         color="foreground.secondary"
       >
-        <HStack className="group" gap="2" align="center" cursor="pointer">
+        <HStack className="group" gap="sm" align="center" cursor="pointer">
           <Text textStyle="label/SM/regular">{completed ? "Done" : "Working..."}</Text>
           <Box
             transition="transform 200ms ease, color 200ms ease"
@@ -47,7 +47,7 @@ export function CollapsibleToolTimeline({
         </HStack>
       </HStack>
       {open ? (
-        <Box mt="2">
+        <Box mt="sm">
           <TimelineFromJSON data={data} onOpenFile={onOpenFile} />
         </Box>
       ) : null}

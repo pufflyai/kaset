@@ -47,13 +47,23 @@ export const ConversationArea = (props: ConversationAreaProps) => {
       <ConversationRoot>
         <AutoScroll userMessageCount={messages.reduce((count, m) => count + (m.role === "user" ? 1 : 0), 0)} />
         <ConversationContent>
-          <MessageList messages={messages} streaming={streaming} onOpenFile={onSelectFile} />
+          <MessageList
+            messages={messages}
+            streaming={streaming}
+            onOpenFile={onSelectFile}
+            onUseExample={(text) => {
+              const trimmed = text.trim();
+              if (!trimmed || !canSend) return;
+              onSendMessage?.(trimmed);
+              setInput("");
+            }}
+          />
         </ConversationContent>
         <ConversationScrollButton />
       </ConversationRoot>
 
       <Flex p="sm" borderTopWidth="1px" borderColor="border.secondary">
-        <Stack direction="column" gap="2" width="full">
+        <Stack direction="column" gap="sm" width="full">
           <Flex w="full" justify="flex-end">
             <Text textStyle="label/XS" color="foreground.secondary">
               {estimatedTokens} tokens
@@ -73,7 +83,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
               }
             }}
           />
-          <HStack gap="2">
+          <HStack gap="sm">
             <Button onClick={handleSend} disabled={!input.trim() || !canSend}>
               Send
             </Button>

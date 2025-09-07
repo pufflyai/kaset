@@ -28,13 +28,7 @@ export function ConversationHost() {
     return () => {
       // On unmount, reset handler and resolve any pending approval as denied
       setApprovalHandler(null);
-      if (approvalResolve.current) {
-        try {
-          approvalResolve.current(false);
-        } catch {
-          /* noop */
-        }
-      }
+      approvalResolve.current?.(false);
     };
   }, []);
 

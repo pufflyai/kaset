@@ -5,7 +5,7 @@ import { TreeView } from "@lexical/react/LexicalTreeView";
 export function TreeViewPlugin() {
   const [editor] = useLexicalComposerContext();
   return (
-    <Box fontSize="xs" color="foreground.secondary" padding="4">
+    <Box fontSize="xs" color="foreground.secondary" padding="md">
       <TreeView
         treeTypeButtonClassName="debug-treetype-button"
         timeTravelButtonClassName="debug-timetravel-button"

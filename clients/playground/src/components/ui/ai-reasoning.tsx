@@ -101,7 +101,7 @@ export const ReasoningTrigger = memo(function ReasoningTrigger(props: Collapsibl
     <Collapsible.Trigger
       display="flex"
       alignItems="center"
-      gap="2"
+      gap="sm"
       mt="lg"
       color={{ base: "foreground.secondary", _hover: "foreground.primary" }}
       textStyle="label/M/regular"
@@ -130,10 +130,10 @@ export type ReasoningContentProps = Collapsible.ContentProps & {
 };
 
 export const ReasoningContent = memo(function ReasoningContent(props: ReasoningContentProps) {
-  const { children, pt = "4", ...rest } = props;
+  const { children, pt = "md", ...rest } = props;
   return (
     <Collapsible.Content textStyle="label/XS/regular" color="foreground.secondary" outline="none" {...rest}>
-      <Response display="grid" gap="2" pt={pt}>
+      <Response display="grid" gap="sm" pt={pt}>
         {children}
       </Response>
     </Collapsible.Content>

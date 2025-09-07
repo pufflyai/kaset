@@ -1,12 +1,12 @@
 import { TreeView as ChakraTreeView, createTreeCollection, Menu, Portal } from "@chakra-ui/react";
-import { useEffect, useMemo, useState } from "react";
 import { useFolder } from "@pstdio/opfs-hooks";
 import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
+import type { LucideIcon } from "lucide-react";
+import { ChevronDown, ChevronRight, Download, Folder, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { getFileTypeIcon } from "../../utils/getFileTypeIcon";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { MenuItem } from "./menu-item";
-import type { LucideIcon } from "lucide-react";
-import { ChevronDown, ChevronRight, Download, Folder, Trash2 } from "lucide-react";
 
 export interface Node {
   id: string;
@@ -260,8 +260,11 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
   useEffect(() => {
     if (!selectedPath) return;
 
+    const rootParts = rootDir.split("/").filter(Boolean);
     const parts = selectedPath.split("/").filter(Boolean);
-    const ensureRootPrefixed = parts[0] === rootDir ? parts : [rootDir, ...parts];
+
+    const hasRootPrefix = parts.slice(0, rootParts.length).join("/") === rootDir;
+    const ensureRootPrefixed = hasRootPrefix ? parts : [...rootParts, ...parts];
 
     const parentDirs: string[] = [];
     for (let i = 0; i < ensureRootPrefixed.length - 1; i++) {
@@ -287,20 +290,62 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
         try {
           const dir = await getDirectoryHandle(rootDir);
 
-          const parts = node.id.split("/").filter(Boolean);
-          const startIndex = parts[0] === rootDir ? 1 : 0;
+          // Compute the path relative to the provided rootDir,
+          // regardless of how many segments rootDir contains.
+          const idParts = node.id.split("/").filter(Boolean);
+          const rootParts = rootDir.split("/").filter(Boolean);
 
+          const hasRootPrefix = idParts.slice(0, rootParts.length).join("/") === rootDir;
+          const relParts = hasRootPrefix ? idParts.slice(rootParts.length) : idParts;
+
+          // Navigate to the parent directory of the target file
           let currentDir: FileSystemDirectoryHandle = dir;
-          for (let i = startIndex; i < parts.length - 1; i++) {
-            currentDir = await currentDir.getDirectoryHandle(parts[i]);
+          for (let i = 0; i < Math.max(0, relParts.length - 1); i++) {
+            currentDir = await currentDir.getDirectoryHandle(relParts[i]);
           }
 
-          const fileName = parts[parts.length - 1];
-          await currentDir.removeEntry(fileName);
+          const fileName = relParts[relParts.length - 1];
+          if (fileName) {
+            await currentDir.removeEntry(fileName);
+          }
 
+          // If we just deleted the currently selected file, move selection.
           if ((selectedPath ?? null) === node.id) {
-            setSelectedValue([]);
-            onSelect?.(null);
+            // Prefer another file in the same directory.
+            const siblings = await ls(currentDir, { maxDepth: 1, kinds: ["file"], sortBy: "name" });
+
+            const dirRelParts = relParts.slice(0, -1);
+            const dirRelPath = dirRelParts.join("/");
+
+            const toAbs = (name: string) => [rootDir, dirRelPath, name].filter((s) => !!s && s.length > 0).join("/");
+
+            let nextPath: string | null = null;
+
+            if (siblings.length > 0) {
+              // Pick the first sibling by name (already sorted)
+              nextPath = toAbs(siblings[0].name);
+            } else {
+              // Otherwise, pick the first file anywhere under the project root
+              const all = await ls(dir, {
+                maxDepth: Infinity,
+                kinds: ["file"],
+                sortBy: "path",
+                dirsFirst: false,
+              });
+
+              if (all.length > 0) {
+                // all[i].path is relative to dir (rootDir)
+                nextPath = [rootDir, all[0].path].filter(Boolean).join("/");
+              }
+            }
+
+            if (nextPath) {
+              setSelectedValue([nextPath]);
+              onSelect?.(nextPath);
+            } else {
+              setSelectedValue([]);
+              onSelect?.(null);
+            }
           }
         } catch (err) {
           console.error("Failed to delete file:", err);
