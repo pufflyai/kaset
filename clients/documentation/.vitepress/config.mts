@@ -23,6 +23,7 @@ export default defineConfig({
       provider: "local",
     },
     nav: [
+      { text: "Playground", link: "https://kaset.dev" },
       {
         text: "Packages",
         items: [

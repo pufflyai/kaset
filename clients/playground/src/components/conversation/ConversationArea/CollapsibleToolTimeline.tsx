@@ -30,7 +30,7 @@ export function CollapsibleToolTimeline({
         color="foreground.secondary"
       >
         <HStack className="group" gap="sm" align="center" cursor="pointer">
-          <Text textStyle="label/SM/regular">{completed ? "Done" : "Working..."}</Text>
+          <Text textStyle="label/SM/regular">{completed ? "Finished working" : "Working..."}</Text>
           <Box
             transition="transform 200ms ease, color 200ms ease"
             color="transparent"
