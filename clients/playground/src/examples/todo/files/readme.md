@@ -6,7 +6,7 @@ It lives in plain Markdown files, but it also has a secret: an agent that can me
 
 ## ✨ What's going on here?
 
-> Kaset [ka'set] is an open source toolkit for building browser-first, agent-powered apps.
+> Kaset [kaˈset] is an open source toolkit for building browser-first, agent-powered apps.
 >
 > Drop coding agents straight into your app and let them play alongside your users.
 
