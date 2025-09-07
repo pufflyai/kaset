@@ -1,3 +1,4 @@
+import { PROJECTS_ROOT } from "@/constant";
 import { Box, Button, Checkbox, HStack, IconButton, Input, Text, VStack } from "@chakra-ui/react";
 import {
   deleteFile,
@@ -12,8 +13,6 @@ import { PencilIcon, TrashIcon } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface TodoListProps {
-  /** OPFS root folder for the playground (e.g., "playground"). */
-  rootDir?: string;
   /**
    * Folder name under `rootDir` that contains individual todo lists as `.md` files.
    * Default: "todos". Previously this component used a single file; it now manages multiple lists.
@@ -77,10 +76,8 @@ function displayListName(name: string): string {
   return name.replace(/\.md$/i, "");
 }
 
-export function TodoList(props: TodoListProps) {
-  const rootDir = (props.rootDir ?? "playground").replace(/\/+$/, "");
-  const listsDirName = (props.fileName ?? "todos").replace(/\/+$/, "");
-  const listsDirPath = `${rootDir}/${listsDirName}`;
+export function TodoList() {
+  const listsDirPath = `${PROJECTS_ROOT}/todo/todos`;
 
   const [error, setError] = useState<string | null>(null);
 
@@ -139,7 +136,6 @@ export function TodoList(props: TodoListProps) {
       }
     } catch (e: any) {
       setError(e?.message ?? String(e));
-    } finally {
     }
   }, [ensureDir, listsDirPath, selectedList]);
 
@@ -152,7 +148,6 @@ export function TodoList(props: TodoListProps) {
         setItems(parse(md));
       } catch (e: any) {
         setError(e?.name === "NotFoundError" ? `File not found: ${path}` : (e?.message ?? String(e)));
-      } finally {
       }
     },
     [listsDirPath, parse],

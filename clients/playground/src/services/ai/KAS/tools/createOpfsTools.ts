@@ -26,6 +26,8 @@ export function createOpfsTools(opts: CreateToolsOptions) {
   const { workspaceDir, requestApproval, onShellChunk } = opts;
   const gate = createApprovalGate(requestApproval);
 
+  console.log("OPFS tools using workspaceDir", workspaceDir);
+
   const opfsShell = Tool(
     async ({ command, cwd = "" }: { command: string; cwd?: string }, { toolCall }) => {
       if (hasParentTraversal(cwd)) throw new Error("Path escapes workspace: invalid cwd");

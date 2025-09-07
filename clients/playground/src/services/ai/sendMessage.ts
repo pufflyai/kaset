@@ -3,6 +3,7 @@ import { readFile } from "@pstdio/opfs-utils";
 import { type AssistantMessage, type BaseMessage } from "@pstdio/tiny-ai-tasks";
 import type { Message, ToolInvocation, UIConversation } from "../../types";
 import { getAgent } from "./KAS/agent";
+import { PROJECTS_ROOT } from "@/constant";
 import { getLastUserText, toMessageHistory, uid } from "./utils";
 
 /**
@@ -105,36 +106,30 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
   const initial: BaseMessage[] = toMessageHistory(uiMessages);
 
   if (uiMessages.length <= 1) {
-    try {
-      const s = useWorkspaceStore.getState().local;
-      const ns = s.namespace || "playground";
-      const proj = s.selectedProjectId || "todo";
-      const baseProj = `${ns}/${proj}`;
-      const pathsToTry = [
-        `${baseProj}/agents.md`,
-        `${baseProj}/AGENTS.md`,
-        `${ns}/agents.md`,
-        `${ns}/AGENTS.md`,
-      ];
-      let content: string | null = null;
+    // Use the same namespace and project as the UI (see App.tsx)
+    const ns = PROJECTS_ROOT;
+    const proj = useWorkspaceStore.getState().selectedProjectId || "todo";
+    const baseProj = `${ns}/${proj}`;
 
-      for (const p of pathsToTry) {
-        try {
-          content = await readFile(p);
-          if (content) break;
-        } catch (err) {
-          content = null;
-        }
-      }
+    const pathsToTry = [`${baseProj}/agents.md`, `${baseProj}/AGENTS.md`, `${ns}/agents.md`, `${ns}/AGENTS.md`];
 
-      if (content && content.trim().length > 0) {
-        initial.unshift({ role: "system", content });
+    let content: string | null = null;
+    for (const p of pathsToTry) {
+      try {
+        content = await readFile(p);
+        if (content) break;
+      } catch {
+        content = null;
       }
-    } catch {}
+    }
+
+    if (content && content.trim().length > 0) {
+      initial.unshift({ role: "system", content });
+    }
   }
 
   const agent = getAgent();
-  
+
   for await (const [chunk] of agent(initial as any)) {
     const items = Array.isArray(chunk) ? (chunk as (AssistantMessage | any)[]) : [];
 
@@ -227,8 +222,6 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
         );
 
         yield uiMessages;
-
-        console.log({ uiMessages });
 
         continue;
       }

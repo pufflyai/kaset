@@ -1,7 +1,17 @@
+import { PROJECTS_ROOT } from "@/constant";
+import { setupExample } from "@/services/playground/setup";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Conversation } from "@/state/types";
 import { HStack, IconButton, Menu, Portal, Separator, Spacer, Text, useDisclosure } from "@chakra-ui/react";
-import { Check as CheckIcon, EditIcon, HistoryIcon, Settings as SettingsIcon, Trash2 as TrashIcon } from "lucide-react";
+import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
+import {
+  Check as CheckIcon,
+  EditIcon,
+  HistoryIcon,
+  RotateCcw,
+  Settings as SettingsIcon,
+  Trash2 as TrashIcon,
+} from "lucide-react";
 import { SettingsModal } from "../../components/ui/settings-modal";
 import { Tooltip } from "../../components/ui/tooltip";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
@@ -10,6 +20,7 @@ import { MenuItem } from "./menu-item";
 export function TopBar() {
   const { open: isOpen, onOpen, onClose } = useDisclosure();
   const deleteAll = useDisclosure();
+  const resetProject = useDisclosure();
   const conversations = useWorkspaceStore((s) => s.conversations);
   const selectedId = useWorkspaceStore((s) => s.selectedConversationId);
   const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
@@ -18,6 +29,8 @@ export function TopBar() {
     { id: "todo", label: "Todos" },
     { id: "slides", label: "Slides" },
   ];
+
+  const selectedProjectLabel = PROJECTS.find((p) => p.id === selectedProject)?.label ?? selectedProject;
 
   const ids = Object.keys(conversations).filter((id) => (conversations[id]?.projectId ?? "todo") === selectedProject);
 
@@ -102,6 +115,45 @@ export function TopBar() {
     );
   };
 
+  const handleResetProject = async () => {
+    const rootDir = `${PROJECTS_ROOT}/${selectedProject}`;
+
+    try {
+      // Remove all entries under the project directory
+      const dir = await getDirectoryHandle(rootDir);
+      const children = await ls(dir, { maxDepth: 1 });
+
+      for (const entry of children) {
+        try {
+          await (dir as any).removeEntry(entry.name, { recursive: true } as any);
+        } catch (err) {
+          console.warn(`Failed to remove ${entry.name} during reset:`, err);
+        }
+      }
+    } catch (err) {
+      // If directory doesn't exist yet, that's fine; we'll re-create below
+      console.warn(`Project directory not found for reset (${rootDir}); will recreate.`, err);
+    }
+
+    try {
+      // Re-apply bundled example files for the selected project
+      await setupExample(selectedProject, { folderName: rootDir, overwrite: true });
+    } catch (err) {
+      console.error(`Failed to setup example for ${selectedProject}:`, err);
+    }
+
+    // If a file from this project was selected, clear the selection
+    useWorkspaceStore.setState(
+      (state) => {
+        if (state.filePath && state.filePath.startsWith(rootDir + "/")) {
+          state.filePath = undefined;
+        }
+      },
+      false,
+      "project/reset",
+    );
+  };
+
   return (
     <HStack justify="space-between" align="center">
       <HStack>
@@ -181,6 +233,11 @@ export function TopBar() {
             <Menu.Positioner>
               <Menu.Content bg="background.primary">
                 <MenuItem
+                  primaryLabel={`Reset ${selectedProjectLabel} project`}
+                  leftIcon={<RotateCcw size={16} />}
+                  onClick={resetProject.onOpen}
+                />
+                <MenuItem
                   primaryLabel="Delete all conversations"
                   leftIcon={<TrashIcon size={16} />}
                   onClick={deleteAll.onOpen}
@@ -219,6 +276,14 @@ export function TopBar() {
         onDelete={() => deleteAllConversations()}
         headline="Delete all conversations"
         buttonText="Delete all"
+      />
+      <DeleteConfirmationModal
+        open={resetProject.open}
+        onClose={resetProject.onClose}
+        onDelete={handleResetProject}
+        headline={`Reset ${selectedProjectLabel} project`}
+        notificationText={`Remove all files under "${PROJECTS_ROOT}/${selectedProject}" and restore defaults for ${selectedProjectLabel}?`}
+        buttonText="Reset project"
       />
     </HStack>
   );

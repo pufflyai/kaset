@@ -11,7 +11,7 @@ import {
   Play,
   Plug,
   Search,
-  type LucideIcon
+  type LucideIcon,
 } from "lucide-react";
 import type { ComponentProps } from "react";
 

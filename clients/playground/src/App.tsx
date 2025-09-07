@@ -6,25 +6,21 @@ import { ConversationHost } from "./components/ui/conversation-host";
 import { DragOverlay } from "./components/ui/drag-overlay";
 import { FileExplorer } from "./components/ui/file-explorer";
 import { TopBar } from "./components/ui/top-bar";
-import { setupSlides } from "./examples/slides/setup";
+import { setupExample } from "./services/playground/setup";
 import { TodoList } from "./examples/todo/component";
-import { setupPlayground as setupTodo } from "./examples/todo/setup";
 import { useDragAndDropUpload } from "./services/drag-n-drop";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
+import { PROJECTS_ROOT } from "./constant";
 
 export function App() {
   const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
-  const rootDir = `playground/${selectedProject}`;
+  const rootDir = `${PROJECTS_ROOT}/${selectedProject}`;
 
   useEffect(() => {
     // Initialize OPFS workspace for the selected project
-    if (selectedProject === "todo") {
-      setupTodo({ folderName: rootDir }).catch((err) => {
-        console.error("Failed to setup todo playground:", err);
-      });
-    } else if (selectedProject === "slides") {
-      setupSlides({ folderName: rootDir }).catch((err) => {
-        console.error("Failed to setup slides playground:", err);
+    if (selectedProject) {
+      setupExample(selectedProject, { folderName: rootDir }).catch((err) => {
+        console.error(`Failed to setup ${selectedProject} playground:`, err);
       });
     }
   }, [selectedProject, rootDir]);
@@ -104,7 +100,7 @@ export function App() {
                 <Tabs.Content value="preview" flex="1" display="flex" overflow="hidden" padding="0">
                   <Box flex="1" overflow="hidden">
                     {selectedProject === "todo" ? (
-                      <TodoList rootDir={rootDir} />
+                      <TodoList />
                     ) : (
                       <Flex align="center" justify="center" height="100%">
                         <Text color="fg.secondary">Slides — coming soon</Text>

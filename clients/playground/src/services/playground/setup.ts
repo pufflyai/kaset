@@ -1,4 +1,5 @@
 import { getDirectoryHandle, getOPFSRoot, writeFile } from "@pstdio/opfs-utils";
+import { PROJECTS_ROOT } from "@/constant";
 
 /**
  * Options when applying a bundle of example files into OPFS.
@@ -58,7 +59,7 @@ export async function applyFilesToOpfs(options: ApplyFilesOptions): Promise<{
   rootDir: string;
   written: number;
 }> {
-  const rootDir = (options.rootDir ?? "playground").trim().replace(/\/+$/, "");
+  const rootDir = (options.rootDir ?? PROJECTS_ROOT).trim().replace(/\/+$/, "");
   const { files } = options;
   const baseDir = (options.baseDir ?? "").replace(/\\/g, "/").replace(/\/$/, "");
   const overwrite = options.overwrite ?? true;
@@ -88,8 +89,8 @@ export async function applyFilesToOpfs(options: ApplyFilesOptions): Promise<{
         const base = target.split("/").pop()!;
         const dir = await getDirectoryHandle(dirPath);
         await dir.getFileHandle(base);
-        continue; // exists; skip
-      } catch (e: any) {
+        continue;
+      } catch {
         // Missing is fine; we'll write it
       }
     }
@@ -102,3 +103,47 @@ export async function applyFilesToOpfs(options: ApplyFilesOptions): Promise<{
 }
 
 export default applyFilesToOpfs;
+
+/** Example kinds supported by the playground. */
+export type ExampleKind = string;
+
+/** Options shared by example setup helpers. */
+export type SetupOptions = {
+  /** OPFS root folder name. Defaults to `${PROJECTS_ROOT}/<kind>`. */
+  folderName?: string;
+  /** Overwrite existing files. Defaults to true. */
+  overwrite?: boolean;
+};
+
+/**
+ * Reusable example setup that bundles files with Vite and writes them to OPFS.
+ * Handles special filename rewrites (e.g. `__agents.md` -> `agents.md`).
+ */
+export async function setupExample(kind: ExampleKind, options: SetupOptions = {}) {
+  const overwrite = options.overwrite ?? true;
+  const folderName = options.folderName?.trim() || `${PROJECTS_ROOT}/${kind}`;
+
+  // Bundle all files under /src/examples/** once, then filter by example kind
+  const allFiles = import.meta.glob("/src/examples/**", {
+    query: "?raw",
+    import: "default",
+    eager: true,
+  }) as Record<string, string>;
+
+  const examplePrefix = `/src/examples/${kind}/files`;
+  const rawFiles = Object.fromEntries(
+    Object.entries(allFiles).filter(([path]) => path.startsWith(examplePrefix)),
+  ) as Record<string, string>;
+
+  const filesSubdirPrefix = `${examplePrefix}/`;
+  const hasFilesSubdir = Object.keys(rawFiles).some((p) => p.startsWith(filesSubdirPrefix));
+  const baseDir = (hasFilesSubdir ? `${examplePrefix}` : examplePrefix).replace(/\/$/, "");
+
+  const files: Record<string, string> = {};
+  for (const [absKey, content] of Object.entries(rawFiles)) {
+    const key = absKey.endsWith("/__agents.md") ? absKey.replace(/\/__agents\.md$/, "/agents.md") : absKey;
+    files[key] = content;
+  }
+
+  return applyFilesToOpfs({ rootDir: folderName, files, baseDir, overwrite });
+}

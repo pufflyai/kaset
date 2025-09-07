@@ -35,7 +35,7 @@ interface CodeEditorProps {
 
   // When using filePath, automatically persist changes to OPFS
   autoSave?: boolean;
-  // Root directory for OPFS resolution (defaults to "playground")
+  // Root directory for OPFS resolution
   rootDir?: string;
 }
 
@@ -50,7 +50,7 @@ export const CodeEditor = (props: CodeEditorProps) => {
     onChange,
     disableScroll,
     autoSave = true,
-    rootDir = "playground",
+    rootDir,
   } = props;
 
   const usingFilePath = Boolean(filePath);
