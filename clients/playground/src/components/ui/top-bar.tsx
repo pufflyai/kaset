@@ -1,12 +1,26 @@
 import { PROJECTS_ROOT } from "@/constant";
+import { Logo } from "@/icons/logos";
 import { setupExample } from "@/services/playground/setup";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Conversation } from "@/state/types";
-import { HStack, IconButton, Menu, Portal, Separator, Spacer, Text, useDisclosure } from "@chakra-ui/react";
+import {
+  Box,
+  Button,
+  HStack,
+  IconButton,
+  Menu,
+  Portal,
+  Separator,
+  Spacer,
+  Text,
+  useDisclosure,
+} from "@chakra-ui/react";
 import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
 import {
   Check as CheckIcon,
+  ChevronDownIcon,
   EditIcon,
+  FolderHeartIcon,
   HistoryIcon,
   RotateCcw,
   Settings as SettingsIcon,
@@ -16,6 +30,7 @@ import { SettingsModal } from "../../components/ui/settings-modal";
 import { Tooltip } from "../../components/ui/tooltip";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { MenuItem } from "./menu-item";
+import { useId } from "react";
 
 export function TopBar() {
   const { open: isOpen, onOpen, onClose } = useDisclosure();
@@ -24,6 +39,8 @@ export function TopBar() {
   const conversations = useWorkspaceStore((s) => s.conversations);
   const selectedId = useWorkspaceStore((s) => s.selectedConversationId);
   const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
+
+  const triggerId = useId();
 
   const PROJECTS: Array<{ id: string; label: string }> = [
     { id: "todo", label: "Todos" },
@@ -154,68 +171,73 @@ export function TopBar() {
     );
   };
 
+  const selectedProjectName = PROJECTS.find((p) => p.id === selectedProject)?.label ?? selectedProject;
+
   return (
     <HStack justify="space-between" align="center">
       <HStack>
-        <Text fontSize="sm" color="fg.secondary">
-          Kaset Playground
-        </Text>
-        <Separator orientation="vertical" marginX="2" />
-        <Menu.Root>
-          <Menu.Trigger asChild>
-            <IconButton size="xs" variant="ghost" aria-label="Select project">
-              <Text fontSize="sm">{PROJECTS.find((p) => p.id === selectedProject)?.label ?? selectedProject}</Text>
-            </IconButton>
-          </Menu.Trigger>
+        <Logo />
+        <Menu.Root ids={{ trigger: triggerId }}>
+          <Tooltip ids={{ trigger: triggerId }} content="Switch Project">
+            <Menu.Trigger asChild>
+              <Button size="xs" variant="ghost" aria-label="Switch project">
+                <Text fontSize="sm">{selectedProjectName}</Text>
+                <ChevronDownIcon />
+              </Button>
+            </Menu.Trigger>
+          </Tooltip>
           <Portal>
             <Menu.Positioner>
               <Menu.Content bg="background.primary">
-                {PROJECTS.map((p) => (
-                  <MenuItem
-                    key={p.id}
-                    id={p.id}
-                    primaryLabel={p.label}
-                    isSelected={selectedProject === p.id}
-                    rightIcon={selectedProject === p.id ? <CheckIcon size={16} /> : undefined}
-                    onClick={() => {
-                      useWorkspaceStore.setState(
-                        (state) => {
-                          state.selectedProjectId = p.id as "todo" | "slides";
+                <Menu.ItemGroup>
+                  <Menu.ItemGroupLabel ml="2xs">Projects</Menu.ItemGroupLabel>
+                  {PROJECTS.map((p) => (
+                    <MenuItem
+                      key={p.id}
+                      id={p.id}
+                      primaryLabel={p.label}
+                      isSelected={selectedProject === p.id}
+                      rightIcon={selectedProject === p.id ? <CheckIcon size={16} /> : undefined}
+                      onClick={() => {
+                        useWorkspaceStore.setState(
+                          (state) => {
+                            state.selectedProjectId = p.id as "todo" | "slides";
 
-                          // Ensure a selected conversation for this project
-                          const projectIds = Object.keys(state.conversations).filter(
-                            (id) => (state.conversations[id]?.projectId ?? "todo") === p.id,
-                          );
+                            // Ensure a selected conversation for this project
+                            const projectIds = Object.keys(state.conversations).filter(
+                              (id) => (state.conversations[id]?.projectId ?? "todo") === p.id,
+                            );
 
-                          const findIsEmpty = (id: string) =>
-                            !state.conversations[id]?.messages || state.conversations[id]!.messages.length === 0;
+                            const findIsEmpty = (id: string) =>
+                              !state.conversations[id]?.messages || state.conversations[id]!.messages.length === 0;
 
-                          let nextSelected = projectIds.find((id) => findIsEmpty(id)) || projectIds[0];
+                            let nextSelected = projectIds.find((id) => findIsEmpty(id)) || projectIds[0];
 
-                          if (!nextSelected) {
-                            const newId = (
-                              typeof crypto !== "undefined" && (crypto as any).randomUUID
-                                ? (crypto as any).randomUUID()
-                                : Math.random().toString(36).slice(2)
-                            ) as string;
-                            const number = 1;
-                            state.conversations[newId] = {
-                              id: newId,
-                              name: `Conversation ${number}`,
-                              messages: [],
-                              projectId: p.id,
-                            };
-                            nextSelected = newId;
-                          }
+                            if (!nextSelected) {
+                              const newId = (
+                                typeof crypto !== "undefined" && (crypto as any).randomUUID
+                                  ? (crypto as any).randomUUID()
+                                  : Math.random().toString(36).slice(2)
+                              ) as string;
+                              const number = 1;
+                              state.conversations[newId] = {
+                                id: newId,
+                                name: `Conversation ${number}`,
+                                messages: [],
+                                projectId: p.id,
+                              };
+                              nextSelected = newId;
+                            }
 
-                          state.selectedConversationId = nextSelected;
-                        },
-                        false,
-                        "project/select",
-                      );
-                    }}
-                  />
-                ))}
+                            state.selectedConversationId = nextSelected;
+                          },
+                          false,
+                          "project/select",
+                        );
+                      }}
+                    />
+                  ))}
+                </Menu.ItemGroup>
               </Menu.Content>
             </Menu.Positioner>
           </Portal>
@@ -225,40 +247,42 @@ export function TopBar() {
       <HStack>
         <Menu.Root>
           <Menu.Trigger asChild>
-            <IconButton size="xs" variant="ghost">
-              <HistoryIcon />
-            </IconButton>
+            <Box>
+              <Tooltip content="New Conversation">
+                <IconButton size="xs" variant="ghost">
+                  <HistoryIcon />
+                </IconButton>
+              </Tooltip>
+            </Box>
           </Menu.Trigger>
-          <Portal>
-            <Menu.Positioner>
-              <Menu.Content bg="background.primary">
+          <Menu.Positioner>
+            <Menu.Content bg="background.primary">
+              <MenuItem
+                primaryLabel={`Reset ${selectedProjectLabel} project`}
+                leftIcon={<RotateCcw size={16} />}
+                onClick={resetProject.onOpen}
+              />
+              <MenuItem
+                primaryLabel="Delete all conversations"
+                leftIcon={<TrashIcon size={16} />}
+                onClick={deleteAll.onOpen}
+              />
+              <Separator marginY="2" />
+              {ids.length === 0 && <MenuItem primaryLabel="No conversations" isDisabled />}
+              {ids.map((id) => (
                 <MenuItem
-                  primaryLabel={`Reset ${selectedProjectLabel} project`}
-                  leftIcon={<RotateCcw size={16} />}
-                  onClick={resetProject.onOpen}
+                  key={id}
+                  id={id}
+                  primaryLabel={conversations[id]?.name ?? id}
+                  isSelected={selectedId === id}
+                  rightIcon={selectedId === id ? <CheckIcon size={16} /> : undefined}
+                  onClick={() => selectConversation(id)}
                 />
-                <MenuItem
-                  primaryLabel="Delete all conversations"
-                  leftIcon={<TrashIcon size={16} />}
-                  onClick={deleteAll.onOpen}
-                />
-                <Separator marginY="2" />
-                {ids.length === 0 && <MenuItem primaryLabel="No conversations" isDisabled />}
-                {ids.map((id) => (
-                  <MenuItem
-                    key={id}
-                    id={id}
-                    primaryLabel={conversations[id]?.name ?? id}
-                    isSelected={selectedId === id}
-                    rightIcon={selectedId === id ? <CheckIcon size={16} /> : undefined}
-                    onClick={() => selectConversation(id)}
-                  />
-                ))}
-              </Menu.Content>
-            </Menu.Positioner>
-          </Portal>
+              ))}
+            </Menu.Content>
+          </Menu.Positioner>
         </Menu.Root>
-        <Tooltip content="New conversation">
+        <Tooltip content="New Conversation">
           <IconButton aria-label="New" size="xs" variant="ghost" onClick={createConversation}>
             <EditIcon size={16} />
           </IconButton>

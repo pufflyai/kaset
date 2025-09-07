@@ -56,7 +56,7 @@ export const MenuItem = (props: MenuItemProps) => {
     >
       <Flex justifyContent="space-between" alignItems="center" gap="xs" flex="1">
         <Tooltip positioning={{ placement: "right" }} content={tooltipLabel} disabled={!tooltipLabel}>
-          <Flex alignItems="flex-start" gap="xs" flex="1">
+          <Flex alignItems="center" gap="xs" flex="1">
             {leftIcon}
             <Flex gap="xxs" flexDirection="column">
               <Text textOverflow="ellipsis" textStyle="label/M/regular">

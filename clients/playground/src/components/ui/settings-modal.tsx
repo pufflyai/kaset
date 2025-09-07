@@ -1,5 +1,5 @@
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Button, Dialog, Field, HStack, Input } from "@chakra-ui/react";
+import { Button, CloseButton, Dialog, Field, HStack, Input } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
 export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
@@ -28,7 +28,6 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
       false,
       "settings/save-llm-config",
     );
-    onClose();
   };
 
   const clear = () => {
@@ -47,11 +46,21 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && onClose()}>
+    <Dialog.Root
+      open={isOpen}
+      onOpenChange={(e) => !e.open && onClose()}
+      closeOnInteractOutside={false}
+      closeOnEscape={false}
+    >
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content>
-          <Dialog.Header>Settings</Dialog.Header>
+          <Dialog.Header>
+            Settings
+            <Dialog.CloseTrigger>
+              <CloseButton size="sm" />
+            </Dialog.CloseTrigger>
+          </Dialog.Header>
           <Dialog.Body>
             <Field.Root mb={3}>
               <Field.Label>Model</Field.Label>
@@ -82,7 +91,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
             <Button variant="outline" onClick={clear}>
               Clear
             </Button>
-            <Button onClick={save} colorPalette="blue">
+            <Button onClick={save} variant="solid">
               Save
             </Button>
           </Dialog.Footer>

@@ -1,9 +1,28 @@
 # Kaset Playground — Todos
 
-A tiny, file-based todo example to try the playground.
+Welcome to a really weird todo app!
 
-- Purpose: experiment with simple Markdown todos and agent/file actions.
-- Structure:
-  - `todos/` — each list is a `.md` file; items use `- [ ]` / `- [x]`.
-  - `agents.md` — rules the agent follows (humans can ignore).
-- Try it: edit `todos/My Todos.md` directly or ask the agent to add, toggle, remove items, or create/rename lists.
+It lives in plain Markdown files, but it also has a secret: an agent that can mess with your todos right alongside you.
+
+## ✨ What’s going on here?
+
+> Kaset [kaˈset] is an open source toolkit for building browser-first, agent-powered apps.
+>
+> Drop coding agents straight into your app and let them play alongside your users.
+
+## 📂 How it’s set up
+
+```
+todos/ → your lists live here as .md files.
+
+- [ ] means not done
+- [x] means donezo
+
+agents.md → rules the agent follows.
+
+Humans can ignore it. Agents obey. Mostly.
+```
+
+## 🚀 Try it, break it, bend it
+
+This isn’t about a perfect todo app. It’s about poking at the edges of what’s possible when you let users and agents share the same playground.
