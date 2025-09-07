@@ -74,7 +74,12 @@ function replaceTodoTextAtLine(md: string, lineIndex: number, nextText: string):
 }
 
 function displayListName(name: string): string {
-  return name.replace(/\.md$/i, "");
+  const base = name.replace(/\.md$/i, "");
+
+  const words = base.split(/[\-_\s]+/).filter(Boolean);
+  if (words.length === 0) return base;
+
+  return words.map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : "")).join(" ");
 }
 
 export function TodoList() {

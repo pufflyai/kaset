@@ -22,7 +22,7 @@ export type ApplyFilesOptions = {
    */
   baseDir?: string;
 
-  /** Overwrite existing OPFS files. Defaults to true. */
+  /** Overwrite existing OPFS files. Defaults to false. */
   overwrite?: boolean;
 };
 
@@ -62,7 +62,7 @@ export async function applyFilesToOpfs(options: ApplyFilesOptions): Promise<{
   const rootDir = (options.rootDir ?? PROJECTS_ROOT).trim().replace(/\/+$/, "");
   const { files } = options;
   const baseDir = (options.baseDir ?? "").replace(/\\/g, "/").replace(/\/$/, "");
-  const overwrite = options.overwrite ?? true;
+  const overwrite = options.overwrite ?? false;
 
   await ensureOpfsDir(rootDir);
 
@@ -111,7 +111,7 @@ export type ExampleKind = string;
 export type SetupOptions = {
   /** OPFS root folder name. Defaults to `${PROJECTS_ROOT}/<kind>`. */
   folderName?: string;
-  /** Overwrite existing files. Defaults to true. */
+  /** Overwrite existing files. Defaults to false. */
   overwrite?: boolean;
 };
 
@@ -120,7 +120,7 @@ export type SetupOptions = {
  * Handles special filename rewrites (e.g. `__agents.md` -> `agents.md`).
  */
 export async function setupExample(kind: ExampleKind, options: SetupOptions = {}) {
-  const overwrite = options.overwrite ?? true;
+  const overwrite = options.overwrite ?? false;
   const folderName = options.folderName?.trim() || `${PROJECTS_ROOT}/${kind}`;
 
   // Bundle all files under /src/examples/** once, then filter by example kind

@@ -25,6 +25,7 @@ import {
   RotateCcw,
   Settings as SettingsIcon,
   Trash2 as TrashIcon,
+  CassetteTapeIcon,
 } from "lucide-react";
 import { SettingsModal } from "../../components/ui/settings-modal";
 import { Tooltip } from "../../components/ui/tooltip";
@@ -175,11 +176,11 @@ export function TopBar() {
 
   return (
     <HStack justify="space-between" align="center">
-      <HStack>
+      <HStack gap="2xs">
         <Menu.Root>
           <Menu.Trigger asChild>
             <Box cursor="pointer" aria-label="Kaset menu">
-              <Logo />
+              <CassetteTapeIcon />
             </Box>
           </Menu.Trigger>
           <Menu.Positioner>

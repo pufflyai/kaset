@@ -9,6 +9,7 @@ import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { CollapsibleToolTimeline } from "./CollapsibleToolTimeline";
 import { MessagePartsRenderer } from "./MessagePartsRenderer";
+import { CassetteTapeIcon } from "lucide-react";
 
 export function MessageList({
   messages,
@@ -67,6 +68,7 @@ export function MessageList({
 
   if (!messages.length) {
     const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
+    const hasKey = useWorkspaceStore((s) => !!s.apiKey);
 
     const byProject: Record<string, string[]> = {
       todo: todoPrompts,
@@ -83,6 +85,7 @@ export function MessageList({
     out.push(
       <Box key="empty" w="full">
         <EmptyState
+          icon={<CassetteTapeIcon />}
           title="Welcome to the Kaset playground!"
           description="Kaset [ka'set] is an experimental open source toolkit to add coding agents directly into your webapp."
         >
@@ -93,16 +96,18 @@ export function MessageList({
             </Link>
             .
           </Text>
-          <VStack gap="sm" mt="sm" align="stretch">
-            <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
-              Try one of these example prompts to get see it in action:
-            </Text>
-            {examplesToShow.map((p) => (
-              <Button key={p} variant="outline" size="sm" onClick={() => onUseExample?.(p)}>
-                {p}
-              </Button>
-            ))}
-          </VStack>
+          {hasKey && (
+            <VStack gap="sm" mt="sm" align="stretch">
+              <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
+                Try one of these example prompts to get see it in action:
+              </Text>
+              {examplesToShow.map((p) => (
+                <Button key={p} variant="outline" size="sm" onClick={() => onUseExample?.(p)}>
+                  {p}
+                </Button>
+              ))}
+            </VStack>
+          )}
         </EmptyState>
       </Box>,
     );

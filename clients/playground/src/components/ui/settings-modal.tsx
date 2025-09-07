@@ -1,5 +1,5 @@
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Button, CloseButton, Dialog, Field, HStack, Input } from "@chakra-ui/react";
+import { Alert, Button, CloseButton, Dialog, Field, HStack, Input, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 
 export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
@@ -28,6 +28,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
       false,
       "settings/save-llm-config",
     );
+
+    onClose();
   };
 
   const clear = () => {
@@ -46,46 +48,53 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   };
 
   return (
-    <Dialog.Root
-      open={isOpen}
-      onOpenChange={(e) => !e.open && onClose()}
-      closeOnInteractOutside={false}
-      closeOnEscape={false}
-    >
+    <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && onClose()} closeOnInteractOutside={false}>
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content>
           <Dialog.Header>
-            Settings
+            <Text textStyle="heading/M">Settings</Text>
             <Dialog.CloseTrigger>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
           </Dialog.Header>
           <Dialog.Body>
-            <Field.Root mb={3}>
-              <Field.Label>Model</Field.Label>
-              <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
-            </Field.Root>
-            <Field.Root mb={3}>
-              <Field.Label>OpenAI API Key</Field.Label>
-              <HStack>
+            <VStack gap="md">
+              <Alert.Root status="info">
+                <Alert.Indicator />
+                <Alert.Content>
+                  <Alert.Title fontWeight="bold">Local Playground</Alert.Title>
+                  <Alert.Description>
+                    Everything you create and configure here stays on your device. No data is uploaded or stored in the
+                    cloud.
+                  </Alert.Description>
+                </Alert.Content>
+              </Alert.Root>
+              <Field.Root>
+                <Field.Label>Model</Field.Label>
+                <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
+              </Field.Root>
+              <Field.Root>
+                <Field.Label>OpenAI API Key</Field.Label>
+                <HStack>
+                  <Input
+                    type={showKey ? "text" : "password"}
+                    placeholder="sk-..."
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                  />
+                  <Button onClick={() => setShowKey((v) => !v)}>{showKey ? "Hide" : "Show"}</Button>
+                </HStack>
+              </Field.Root>
+              <Field.Root>
+                <Field.Label>OpenAI Base URL (optional)</Field.Label>
                 <Input
-                  type={showKey ? "text" : "password"}
-                  placeholder="sk-..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
+                  placeholder="https://api.openai.com/v1"
+                  value={baseUrl}
+                  onChange={(e) => setBaseUrl(e.target.value)}
                 />
-                <Button onClick={() => setShowKey((v) => !v)}>{showKey ? "Hide" : "Show"}</Button>
-              </HStack>
-            </Field.Root>
-            <Field.Root>
-              <Field.Label>OpenAI Base URL (optional)</Field.Label>
-              <Input
-                placeholder="https://api.openai.com/v1"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-              />
-            </Field.Root>
+              </Field.Root>
+            </VStack>
           </Dialog.Body>
           <Dialog.Footer gap="sm">
             <Button variant="outline" onClick={clear}>
