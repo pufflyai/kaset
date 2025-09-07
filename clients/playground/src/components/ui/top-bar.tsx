@@ -1,5 +1,4 @@
 import { PROJECTS_ROOT } from "@/constant";
-import { Logo } from "@/icons/logos";
 import { setupExample } from "@/services/playground/setup";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Conversation } from "@/state/types";
@@ -17,20 +16,21 @@ import {
 } from "@chakra-ui/react";
 import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
 import {
+  CassetteTapeIcon,
   Check as CheckIcon,
   ChevronDownIcon,
   EditIcon,
-  HistoryIcon,
   ExternalLink as ExternalLinkIcon,
+  HistoryIcon,
   RotateCcw,
   Settings as SettingsIcon,
   Trash2 as TrashIcon,
 } from "lucide-react";
+import { useId } from "react";
 import { SettingsModal } from "../../components/ui/settings-modal";
 import { Tooltip } from "../../components/ui/tooltip";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { MenuItem } from "./menu-item";
-import { useId } from "react";
 
 export function TopBar() {
   const { open: isOpen, onOpen, onClose } = useDisclosure();
@@ -175,11 +175,11 @@ export function TopBar() {
 
   return (
     <HStack justify="space-between" align="center">
-      <HStack>
+      <HStack gap="2xs">
         <Menu.Root>
           <Menu.Trigger asChild>
             <Box cursor="pointer" aria-label="Kaset menu">
-              <Logo />
+              <CassetteTapeIcon />
             </Box>
           </Menu.Trigger>
           <Menu.Positioner>

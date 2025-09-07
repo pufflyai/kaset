@@ -1,8 +1,9 @@
 import { ConversationContent, ConversationRoot, ConversationScrollButton } from "@/components/ui/ai-conversation";
+import { SettingsModal } from "@/components/ui/settings-modal";
 import { formatUSD, getModelPricing, type ModelPricing } from "@/models";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Message } from "@/types";
-import { Button, Flex, HStack, Input, Stack, Text, type FlexProps } from "@chakra-ui/react";
+import { Alert, Button, Flex, HStack, Input, Stack, Text, useDisclosure, type FlexProps } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useEstimatedTokens } from "../hooks/useEstimatedTokens";
 import { AutoScroll } from "./AutoScroll";
@@ -26,6 +27,8 @@ export const ConversationArea = (props: ConversationAreaProps) => {
 
   const [modelPricing, setModelPricing] = useState<ModelPricing | undefined>(undefined);
   const modelId = useWorkspaceStore((s) => s.modelId);
+  const hasKey = useWorkspaceStore((s) => !!s.apiKey);
+  const settings = useDisclosure();
 
   // Load selected model from localStorage and resolve pricing
   // Only input tokens are known before sending; we price those
@@ -72,6 +75,18 @@ export const ConversationArea = (props: ConversationAreaProps) => {
               )}
             </Text>
           </Flex>
+          {!hasKey && (
+            <Alert.Root status="warning">
+              <Alert.Indicator />
+              <Alert.Content>
+                <Alert.Title fontWeight="bold">API key missing</Alert.Title>
+                <Alert.Description>Add your API key to enable chat.</Alert.Description>
+                <Button size="xs" variant="solid" onClick={settings.onOpen}>
+                  Open Settings
+                </Button>
+              </Alert.Content>
+            </Alert.Root>
+          )}
           <Input
             placeholder="Type a message..."
             value={input}
@@ -90,6 +105,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
           </HStack>
         </Stack>
       </Flex>
+      <SettingsModal isOpen={settings.open} onClose={settings.onClose} />
     </Flex>
   );
 };
