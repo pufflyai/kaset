@@ -15,6 +15,14 @@ For package-specific details, see:
 - [@pstdio/tiny-tasks](/packages/tiny-tasks)
 - [describe-context](/packages/describe-context)
 
+## 2025-09-07
+
+### Added
+
+- [playground] Added Kaset Playground - a collection of agentic web app demos showcasing the @pstdio packages.
+
+---
+
 ## 2025-09-05
 
 ### Added
