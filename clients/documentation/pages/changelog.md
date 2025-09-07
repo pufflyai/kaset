@@ -11,6 +11,7 @@ For package-specific details, see:
 - [@pstdio/opfs-utils](/packages/opfs-utils)
 - [@pstdio/opfs-sync](/packages/opfs-sync)
 - [@pstdio/prompt-utils](/packages/prompt-utils)
+- [@pstdio/tiny-ai-tasks](/packages/tiny-ai-tasks)
 - [@pstdio/tiny-tasks](/packages/tiny-tasks)
 - [describe-context](/packages/describe-context)
 
@@ -18,13 +19,14 @@ For package-specific details, see:
 
 ### Added
 
+- [@pstdio/tiny-ai-tasks] Initial release: AI workflows and tool-using agents for building streaming LLM tasks (v0.1.0).
 - [@pstdio/tiny-tasks] Initial release: composable, interrupt-friendly workflows (v0.1.0).
 - [documentation] Added package page and navigation link for `@pstdio/tiny-tasks`.
 
 ### Changed
 
-- [README] Added `@pstdio/tiny-tasks` to the packages list.
-- [AGENTS] Added `@pstdio/tiny-tasks` section with commands and overview.
+- [README] Added `@pstdio/tiny-ai-tasks` and `@pstdio/tiny-tasks` to the packages list.
+- [AGENTS] Added `@pstdio/tiny-ai-tasks` and `@pstdio/tiny-tasks` sections with commands and overview.
 
 ---
 
