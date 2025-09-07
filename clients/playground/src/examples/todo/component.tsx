@@ -79,7 +79,7 @@ function displayListName(name: string): string {
   const words = base.split(/[-_\s]+/).filter(Boolean);
   if (words.length === 0) return base;
 
-  return words.map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : "")).join(" ");
+  return words.map((w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).join(" ");
 }
 
 export function TodoList() {
