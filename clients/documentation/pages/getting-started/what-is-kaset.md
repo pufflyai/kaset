@@ -35,7 +35,7 @@ Example project structure from the playground:
     └── todo2.md
 ```
 
-Still unclear? Check out [Your app as a filesystem](/concepts/filesystem)
+Still unclear? Check out [Your App as a Filesystem](/concepts/filesystem)
 
 ## Modifying agent behavior
 

@@ -48,7 +48,7 @@ Kaset brings these agents into the browser and into your application, giving you
 
 Check out our [playground](https://kaset.dev) for inspiration.
 
-Do you have a specific questions or use cases in mind? Let us know [here](https://github.com/pufflyai/kaset/discussions/categories/ideas).
+Do you have specific questions or use cases in mind? Let us know [here](https://github.com/pufflyai/kaset/discussions/categories/ideas).
 
 ---
 
