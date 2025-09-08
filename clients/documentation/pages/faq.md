@@ -13,6 +13,12 @@ Yes, provided you treat the agent as a potentially misaligned third party and ta
 
 We’re also working on features to make secure defaults easier out of the box.
 
+## 🔒 How can I manage tokens if the agent is in the browser?
+
+Short answer: never put provider secrets in the browser. Authenticate the user, then have the agent call your backend gateway with the user's token; the gateway holds provider/API keys, enforces policy, and performs the action on the user's behalf.
+
+- **Never** embed `OPENAI_API_KEY` (or similar) in client code.
+
 ## 💥 Can the agent cause irreversible damage?
 
 Kaset integrates with isomorphic-git to track every change made by agents.

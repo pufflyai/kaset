@@ -43,8 +43,28 @@ export default defineConfig({
       { text: "FAQ", link: "/faq" },
       { text: "Changelog", link: "/changelog" },
       {
+        text: "Getting Started",
+        items: [
+          { text: "What is Kaset?", link: "/getting-started/what-is-kaset" },
+          { text: "Quick Start", link: "/getting-started/quick-start" },
+          { text: "Supported Browsers", link: "/getting-started/supported-browsers" },
+        ],
+      },
+      {
+        text: "Concepts",
+        items: [
+          { text: "Meet KAS", link: "/concepts/kas" },
+          { text: "Your App as a Filesystem", link: "/concepts/filesystem" },
+          { text: "Artifacts", link: "/concepts/artifacts" },
+          { text: "App State", link: "/concepts/app-state" },
+          { text: "UI", link: "/concepts/ui" },
+          { text: "Browser Agents", link: "/concepts/browser-agents" },
+        ],
+      },
+      {
         text: "Packages",
         items: [
+          { text: "Overview", link: "/packages/overview" },
           { text: "@pstdio/opfs-utils", link: "/packages/opfs-utils" },
           { text: "@pstdio/opfs-sync", link: "/packages/opfs-sync" },
           { text: "@pstdio/prompt-utils", link: "/packages/prompt-utils" },
