@@ -10,7 +10,7 @@ import {
   watchDirectory,
   writeFile,
 } from "@pstdio/opfs-utils";
-import { PencilIcon, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 export interface TodoListProps {
@@ -98,6 +98,7 @@ export function TodoList() {
 
   const [editingLine, setEditingLine] = useState<number | null>(null);
   const [editingText, setEditingText] = useState<string>("");
+  const [hoveredLine, setHoveredLine] = useState<number | null>(null);
 
   // Delete confirmation modal state for lists
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -463,53 +464,60 @@ export function TodoList() {
                   {items.length > 0 && (
                     <VStack align="stretch" gap="sm">
                       {items.map((t) => (
-                        <HStack key={t.line} justify="space-between" align="center">
-                          <Checkbox.Root
-                            width="100%"
-                            cursor="pointer"
-                            checked={t.done}
-                            onCheckedChange={(e) => setChecked(t.line, !!e.checked)}
-                          >
-                            <HStack>
+                        <HStack 
+                          key={t.line} 
+                          justify="space-between" 
+                          align="center" 
+                          onMouseEnter={() => setHoveredLine(t.line)}
+                          onMouseLeave={() => setHoveredLine(null)}
+                        >
+                          <HStack width="100%" gap="2">
+                            <Checkbox.Root
+                              checked={t.done}
+                              onCheckedChange={(e) => setChecked(t.line, !!e.checked)}
+                            >
                               <Checkbox.HiddenInput />
                               <Checkbox.Control cursor="pointer" />
-                              <Checkbox.Label cursor="pointer">
-                                {editingLine === t.line ? (
-                                  <Input
-                                    size="xs"
-                                    autoFocus
-                                    value={editingText}
-                                    onChange={(e) => setEditingText(e.currentTarget.value)}
-                                    onBlur={saveEditing}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") saveEditing();
-                                      if (e.key === "Escape") cancelEditing();
-                                    }}
-                                  />
-                                ) : (
-                                  <Text
-                                    fontSize="sm"
-                                    textDecoration={t.done ? "line-through" : "none"}
-                                    color={t.done ? "fg.muted" : "fg.primary"}
-                                    onDoubleClick={() => startEditing(t.line, t.text)}
-                                  >
-                                    {t.text || "(empty)"}
-                                  </Text>
-                                )}
-                              </Checkbox.Label>
-                            </HStack>
-                          </Checkbox.Root>
+                            </Checkbox.Root>
+                            {editingLine === t.line ? (
+                              <Input
+                                size="xs"
+                                autoFocus
+                                value={editingText}
+                                onChange={(e) => setEditingText(e.currentTarget.value)}
+                                onBlur={saveEditing}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveEditing();
+                                  if (e.key === "Escape") cancelEditing();
+                                }}
+                                flex="1"
+                              />
+                            ) : (
+                              <Text
+                                fontSize="sm"
+                                textDecoration={t.done ? "line-through" : "none"}
+                                color={t.done ? "fg.muted" : "fg.primary"}
+                                cursor="pointer"
+                                onClick={() => startEditing(t.line, t.text)}
+                                flex="1"
+                              >
+                                {t.text || "(empty)"}
+                              </Text>
+                            )}
+                          </HStack>
                           <HStack>
                             {editingLine === t.line ? (
                               <Button size="xs" onClick={saveEditing}>
                                 Save
                               </Button>
-                            ) : (
-                              <IconButton size="xs" variant="ghost" onClick={() => startEditing(t.line, t.text)}>
-                                <PencilIcon size={14} />
-                              </IconButton>
-                            )}
-                            <IconButton size="xs" variant="ghost" colorPalette="red" onClick={() => removeItem(t.line)}>
+                            ) : null}
+                            <IconButton 
+                              size="xs" 
+                              variant="ghost" 
+                              colorPalette="red" 
+                              onClick={() => removeItem(t.line)}
+                              visibility={hoveredLine === t.line ? "visible" : "hidden"}
+                            >
                               <Trash2 size={14} />
                             </IconButton>
                           </HStack>
