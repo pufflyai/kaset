@@ -40,8 +40,6 @@ export default defineConfig({
     ],
     sidebar: [
       { text: "Introduction", link: "/" },
-      { text: "FAQ", link: "/faq" },
-      { text: "Changelog", link: "/changelog" },
       {
         text: "Getting Started",
         items: [
@@ -53,10 +51,10 @@ export default defineConfig({
       {
         text: "Concepts",
         items: [
-          { text: "Meet KAS", link: "/concepts/kas" },
           { text: "Your App as a Filesystem", link: "/concepts/filesystem" },
+          { text: "Meet KAS", link: "/concepts/kas" },
           { text: "Artifacts", link: "/concepts/artifacts" },
-          { text: "App State", link: "/concepts/app-state" },
+          { text: "Application State", link: "/concepts/app-state" },
           { text: "UI", link: "/concepts/ui" },
           { text: "Browser Agents", link: "/concepts/browser-agents" },
         ],
@@ -73,6 +71,8 @@ export default defineConfig({
           { text: "describe-context", link: "/packages/describe-context" },
         ],
       },
+      { text: "FAQ", link: "/faq" },
+      { text: "Changelog", link: "/changelog" },
     ],
     socialLinks: [{ icon: "github", link: "https://github.com/pufflyai/kaset" }],
   },

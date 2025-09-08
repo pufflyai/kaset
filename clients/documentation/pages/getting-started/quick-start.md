@@ -4,6 +4,10 @@ title: Quick Start
 
 # Quick Start
 
+:::warning
+This section is work in progress, the package `@pstdio/kas` doesn't exist yet.
+:::
+
 This Quick Start integrates the Kaset Agent (KAS) into your app so it can search, read, and edit files in the browser’s OPFS.
 
 You’ll:
@@ -15,10 +19,8 @@ You’ll:
 
 ## KAS Installation
 
-Use npm (Node 22+):
-
 ```bash
-npm i @pstdio/kas @pstdio/opfs-utils
+npm i @pstdio/kas @pstdio/opfs-utils @pstdio/tiny-ai-tasks
 ```
 
 Optional (React helpers):
@@ -27,44 +29,53 @@ Optional (React helpers):
 npm i @pstdio/opfs-hooks
 ```
 
-## Check OPFS support
-
-```ts
-const hasOPFS = typeof navigator !== "undefined" && !!(navigator.storage && (navigator.storage as any).getDirectory);
-if (!hasOPFS) throw new Error("OPFS not available in this browser");
-```
-
-See Supported Browsers for details.
-
-## 1) Initialize the agent
+## 1. Initialize the agent
 
 Point KAS at a workspace folder inside OPFS (a sandboxed directory the agent can see/edit). Writes, deletes, patches, uploads, and moves are approval‑gated.
 
 ```ts
-import { createKasAgent } from "@pstdio/kas"; // concept package
+import { createKasAgent } from "@pstdio/kas";
 
 export const kas = createKasAgent({
-  model: "gpt-4o-mini", // or your provider
+  model: "gpt-5-mini",
   apiKey: "<YOUR_API_KEY>",
+  baseURL: "<YOUR_BASE_URL>",
   // The folder in OPFS the agent can see/edit
   workspaceDir: "app/todo",
   // Ask users before first write/patch/delete/upload/move
   requestApproval: async ({ tool, workspaceDir, detail }) => {
     console.log("Needs approval", tool, workspaceDir, detail);
-    return true; // show a modal in real apps
+    return true;
   },
 });
 ```
 
-## 2) First run
+## 2. First run
 
-Ask the agent to scaffold a Markdown todo list. It uses OPFS tools (`opfs_ls`, `opfs_grep`, `opfs_read_file`, `opfs_write_file`, `opfs_patch`, etc.).
+Ask the agent to scaffold a Markdown todo list. It will use OPFS tools.
 
 ```ts
-await kas.run("Create app/todo/todos/monday.md with 5 actionable items in markdown checkboxes");
+import { mergeStreamingMessages } from "@pstdio/tiny-ai-tasks";
+
+const conversation = [
+  {
+    role: "user" as const,
+    content: "Create a todo list with 5 actionable items",
+  },
+];
+
+let history: MessageHistory = [];
+
+console.log("Thinking...");
+
+for await (const [newMessages] of kas.run(conversation)) {
+  history = mergeStreamingMessages(history, newMessages);
+  console.clear();
+  console.log(JSON.stringify(history, null, 2));
+}
 ```
 
-## 3) Show files in your UI (React)
+## 3. Show files in your UI (React)
 
 `@pstdio/opfs-hooks` keeps components in sync with OPFS changes (both user and agent writes).
 
@@ -83,7 +94,7 @@ export function TodoViewer() {
 }
 ```
 
-## 4) Optional: seed the workspace
+## 4. Optional: seed the workspace
 
 If the folder may not exist yet, write once to create it:
 
@@ -94,6 +105,5 @@ await writeFile("app/todo/todos/hello.md", "- [ ] New item\n");
 
 ### What’s next?
 
-- Explore `@pstdio/opfs-utils` for search, patching, uploads, and more.
+- Explore [`@pstdio/opfs-utils`](/packages/opfs-utils) for search, patching, uploads, and more.
 - See the [Playground’s Todo](https://kaset.dev) example.
-- Add cloud sync with `@pstdio/opfs-sync` when you’re ready.

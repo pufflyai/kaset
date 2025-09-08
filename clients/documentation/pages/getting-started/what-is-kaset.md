@@ -8,10 +8,10 @@ title: What is Kaset
 
 **Kaset** has a few core goals:
 
-1. Provide tools for working with file systems directly in the browser. Think `ls`, `grep`, etc. Check out [@pstdio/opfs-utils](/packages/opfs-utils/) for more details.
+1. Provide tools for working with file systems directly in the browser. Think `ls`, `grep`, etc. Check out [@pstdio/opfs-utils](/packages/opfs-utils) for more details.
 2. Deliver a coding agent that runs natively in the browser. Most existing solutions only work server-side. See [Meet KAS](/concepts/kas).
 3. Offer tools to help you synchronize your application with OPFS — whether it’s [artifacts](/concepts/artifacts), [application state](/concepts/app-state), or even your [UI](/concepts/ui).
-4. Offer tools to help you keep track of edits (authorization gates, version control) Every agent action should be transparent, auditable, and undoable.
+4. Provide tools for tracking and controlling edits, with authorization gates and version control. So that every agent action remains auditable, and reversible.
 
 ## Your app as a Filesystem
 
@@ -111,12 +111,15 @@ Example `agents.md` from the playground:
 
 ## Downsides
 
-1. It will require rethinking your app structure
-2. Since the agent runs in the browser, system prompts are shared with the user
+1. **App restructuring required**
+   To get the most out of Kaset, you’ll likely need to reshape parts of your app into a file-based model (state, config, UI as files). This adds upfront design work.
 
-## Typical flow in your app
+2. **Transparent prompts**
+   Because the agent runs fully in the browser, its system prompt and instructions are visible to the user. This limits use cases where you want hidden or proprietary agent logic.
 
-1. Define a workspace directory in OPFS for the current project/user
-2. Initialize KAS with your LLM configuration and approval handler
-3. Let users ask the agent to search, propose changes, and apply patches
-4. Optionally sync the workspace with a remote using [`@pstdio/opfs-sync`](/packages/opfs-sync/)
+3. **User-side persistence**
+   State lives in the user’s storage (e.g., OPFS). This can make syncing across devices or accounts more complex compared to a centralized backend.
+
+---
+
+Still unclear? Check out [our playground](https://kaset.dev).
