@@ -31,11 +31,7 @@ describe("applyPatchInOPFS", () => {
 
     await writeFile(root, "stay.txt", "unchanged\n");
 
-    const diff = [
-      "--- a/stay.txt",
-      "+++ b/stay.txt",
-      "",
-    ].join("\n");
+    const diff = ["--- a/stay.txt", "+++ b/stay.txt", ""].join("\n");
 
     const result = await applyPatchInOPFS({ root, diffContent: diff });
     expect(result.success).toBe(true);
@@ -97,11 +93,9 @@ describe("applyPatchInOPFS", () => {
 
     // Validate staged paths include workDir
     const paths = calls.map((c) => `${c.op}:${c.filepath}`).sort();
-    expect(paths).toEqual([
-      "add:workspace/pkg/a.txt",
-      "add:workspace/pkg/created.txt",
-      "remove:workspace/pkg/old.txt",
-    ].sort());
+    expect(paths).toEqual(
+      ["add:workspace/pkg/a.txt", "add:workspace/pkg/created.txt", "remove:workspace/pkg/old.txt"].sort(),
+    );
 
     // Validate content changes actually applied under workDir
     const wd = await (root as any).getDirectoryHandle("workspace");
@@ -117,14 +111,7 @@ describe("applyPatchInOPFS", () => {
     setupTestOPFS();
     const root = await getOPFSRoot();
 
-    const diff = [
-      "--- a/missing.txt",
-      "+++ b/missing.txt",
-      "@@ -1,1 +1,1 @@",
-      "-old",
-      "+new",
-      "",
-    ].join("\n");
+    const diff = ["--- a/missing.txt", "+++ b/missing.txt", "@@ -1,1 +1,1 @@", "-old", "+new", ""].join("\n");
 
     const result = await applyPatchInOPFS({ root, diffContent: diff });
     expect(result.success).toBe(false);
@@ -132,6 +119,35 @@ describe("applyPatchInOPFS", () => {
     expect(result.details?.failed?.length).toBe(1);
     expect(result.details?.failed?.[0].path).toBe("missing.txt");
     expect(result.details?.failed?.[0].reason).toContain("Target file not found");
+  });
+
+  it("reverts changes if any patch fails", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+
+    await writeFile(root, "good.txt", "keep\n");
+
+    const diff = [
+      "--- a/good.txt",
+      "+++ b/good.txt",
+      "@@ -1,1 +1,1 @@",
+      "-keep",
+      "+changed",
+      "",
+      "--- a/bad.txt",
+      "+++ b/bad.txt",
+      "@@ -1,1 +1,1 @@",
+      "-missing",
+      "+new",
+      "",
+    ].join("\n");
+
+    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    expect(result.success).toBe(false);
+
+    const fh = await (root as any).getFileHandle("good.txt");
+    const text = await (await fh.getFile()).text();
+    expect(text).toBe("keep\n");
   });
 
   it("handles diffs with 'No newline at end of file' markers", async () => {
