@@ -26,11 +26,14 @@ export function parseUnifiedDiff(diffText?: string): FileChange[] {
   const changes = new Map<string, { additions: number; deletions: number }>();
   let currentPath: string | null = null;
   let lastMinusHeader: string | null = null;
+  let inHunk = false;
 
   const lines = diffText.split(/\r?\n/);
   for (const line of lines) {
+    // File headers
     if (line.startsWith("--- ")) {
       lastMinusHeader = normalizeHeaderPath(line.slice(4));
+      inHunk = false;
       continue;
     }
 
@@ -40,18 +43,28 @@ export function parseUnifiedDiff(diffText?: string): FileChange[] {
       if (currentPath && !changes.has(currentPath)) {
         changes.set(currentPath, { additions: 0, deletions: 0 });
       }
+      inHunk = false;
       continue;
     }
 
     if (!currentPath) continue;
 
-    if (line.startsWith("@@")) continue;
-    if (line.startsWith("+") && !line.startsWith("+++")) {
+    // Hunk header
+    if (line.startsWith("@@")) {
+      inHunk = true;
+      continue;
+    }
+
+    if (!inHunk) continue;
+
+    // Added/removed lines inside a hunk. Exclude file headers strictly ("+++ ", "--- ").
+    if (line.startsWith("+") && !(line.startsWith("+++ ") || line === "+++")) {
       const c = changes.get(currentPath);
       if (c) c.additions += 1;
       continue;
     }
-    if (line.startsWith("-") && !line.startsWith("---")) {
+
+    if (line.startsWith("-") && !(line.startsWith("--- ") || line === "---")) {
       const c = changes.get(currentPath);
       if (c) c.deletions += 1;
       continue;

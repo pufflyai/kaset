@@ -1,6 +1,7 @@
 // Programmatic globbing over the browser's OPFS.
 // Emulates the behavior of the Node `glob` call shown in your code.
-import { basename, joinPath, normalizeSegments, normalizeSlashes, parentOf } from "./path";
+import { basename, joinPath, normalizeSlashes, parentOf } from "./path";
+import { getDirHandle, getFileHandle as getFileHandleShared, resolveSubdir as resolveSubdirShared } from "../shared";
 import { expandBraces, globToRegExp } from "./glob";
 
 /* =========================
@@ -62,7 +63,7 @@ export async function opfsGlob(root: FileSystemDirectoryHandle, opts: OpfsGlobOp
     throw new Error("pattern must be a non-empty string");
   }
 
-  const searchRoot = await resolveSubdir(root, subdir);
+  const searchRoot = await resolveSubdirShared(root, subdir, false);
 
   // --- 1) If the pattern is an exact path in this search root, treat it as a literal (like glob.escape)
   const literalExists = await pathExists(searchRoot, pattern);
@@ -98,7 +99,7 @@ export async function opfsGlob(root: FileSystemDirectoryHandle, opts: OpfsGlobOp
     let mtimeMs: number | undefined;
     if (stat) {
       try {
-        const fh = await getFileHandle(searchRoot, rel);
+        const fh = await getFileHandleShared(searchRoot, rel, false);
         const f = await fh.getFile();
         mtimeMs = f.lastModified;
       } catch {
@@ -185,15 +186,6 @@ export function sortFileEntries(entries: GlobPath[], nowTimestamp: number, recen
  * OPFS helpers
  * ========================= */
 
-async function resolveSubdir(root: FileSystemDirectoryHandle, subdir: string): Promise<FileSystemDirectoryHandle> {
-  const segs = normalizeSegments(subdir);
-  let cur = root;
-  for (const s of segs) {
-    cur = await cur.getDirectoryHandle(s, { create: false });
-  }
-  return cur;
-}
-
 async function* walkFiles(
   dir: FileSystemDirectoryHandle,
   prefix: string,
@@ -232,25 +224,6 @@ async function pathExists(dir: FileSystemDirectoryHandle, relPath: string): Prom
   } catch {
     return null;
   }
-}
-
-async function getFileHandle(root: FileSystemDirectoryHandle, path: string): Promise<FileSystemFileHandle> {
-  const dir = await getDirHandle(root, parentOf(path), false);
-  return dir.getFileHandle(basename(path), { create: false });
-}
-
-async function getDirHandle(
-  root: FileSystemDirectoryHandle,
-  path: string,
-  create: boolean,
-): Promise<FileSystemDirectoryHandle> {
-  if (!path) return root;
-  const segs = normalizeSegments(path);
-  let cur = root;
-  for (const s of segs) {
-    cur = await cur.getDirectoryHandle(s, { create });
-  }
-  return cur;
 }
 
 /* =========================

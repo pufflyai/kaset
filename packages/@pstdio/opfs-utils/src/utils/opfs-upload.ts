@@ -1,4 +1,5 @@
 import { basename, joinPath, normalizeSegments, parentOf } from "./path";
+import { getDirHandle } from "../shared";
 
 export interface FileUploadBaseOptions {
   destSubdir?: string;
@@ -144,16 +145,6 @@ async function findAvailableName(root: FileSystemDirectoryHandle, path: string):
   }
 
   return null;
-}
-
-async function getDirHandle(root: FileSystemDirectoryHandle, path: string, create: boolean) {
-  if (!path) return root;
-
-  let cur = root;
-  for (const seg of normalizeSegments(path)) {
-    cur = await cur.getDirectoryHandle(seg, { create });
-  }
-  return cur;
 }
 
 function splitExt(name: string): { name: string; ext: string } {

@@ -17,6 +17,15 @@ export const SAMPLE_SVG = `<?xml version="1.0" encoding="UTF-8"?>
   Sorry, your browser does not support inline SVG.
 </svg>`;
 
+export const SAMPLE_TODOS_SATURDAY = `# saturday
+
+- [ ] Wake up at dawn (Quest Start): Gain 1 XP and collect the Morning Brew from the Kitchen Shrine.
+- [ ] Equip Adventuring Gear: Lay out outfit and pack small backpack with essentials (+1 Stamina).
+- [ ] Complete Daily Training (30 min): Stretch, cardio, or yoga to boost agility.
+- [ ] Gather Supplies (Errand): Visit market to restock rations and potions (groceries).
+- [ ] Main Quest — Creative Mission (2 hrs): Work on a passion project or hobby to earn Inspiration.
+`;
+
 export const PATCH_MODIFY_INDEX = `--- a/src/index.ts
 +++ b/src/index.ts
 @@ -2,5 +2,5 @@
@@ -76,3 +85,18 @@ export const PATCH_MODIFY_INDEX_NO_LINES = `--- a/src/index.ts
  
 -export const meaning = 42;
 +export const meaning = 41;`;
+
+// Multi-line patch with non-consecutive changes in a single hunk (no line numbers)
+export const PATCH_TODOS_SATURDAY_NON_CONSECUTIVE = `--- a/todos/saturday.md
++++ b/todos/saturday.md
+@@
+ # saturday
+ 
+ - [ ] Wake up at dawn (Quest Start): Gain 1 XP and collect the Morning Brew from the Kitchen Shrine.
+-- [ ] Equip Adventuring Gear: Lay out outfit and pack small backpack with essentials (+1 Stamina).
++- [x] Equip Adventuring Gear: Lay out outfit and pack small backpack with essentials (+1 Stamina).
+ - [ ] Complete Daily Training (30 min): Stretch, cardio, or yoga to boost agility.
+-- [ ] Gather Supplies (Errand): Visit market to restock rations and potions (groceries).
++- [x] Gather Supplies (Errand): Visit market to restock rations and potions (groceries).
+ - [ ] Main Quest — Creative Mission (2 hrs): Work on a passion project or hobby to earn Inspiration.
+`;

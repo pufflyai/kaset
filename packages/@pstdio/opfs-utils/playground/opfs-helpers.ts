@@ -1,56 +1,24 @@
 import PACKAGE_README from "../README.md?raw";
-import { SAMPLE_INDEX_TS, SAMPLE_SVG, SAMPLE_UTIL_TS } from "./samples";
+import { SAMPLE_INDEX_TS, SAMPLE_SVG, SAMPLE_TODOS_SATURDAY, SAMPLE_UTIL_TS } from "./samples";
+import { basename, parentOf } from "../src/utils/path";
+import { getDirHandle as sharedGetDirHandle, writeTextFile as sharedWriteTextFile, readTextFileOptional } from "../src/shared";
 
-export async function getDirHandle(root: FileSystemDirectoryHandle, path: string, create: boolean) {
-  const segs = path
-    .split("/")
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  let cur = root;
-  for (const s of segs) {
-    cur = await cur.getDirectoryHandle(s, { create });
-  }
-  return cur;
-}
-
-export async function writeTextFile(root: FileSystemDirectoryHandle, path: string, content: string) {
-  const dir = await getDirHandle(root, parentOf(path), true);
-  const fh = await dir.getFileHandle(basename(path), { create: true });
-  const w = await fh.createWritable();
-  await w.write(new Blob([content], { type: "text/plain" }));
-  await w.close();
-}
+// Re-export shared helpers for playground consumers
+export const getDirHandle = sharedGetDirHandle;
+export const writeTextFile = sharedWriteTextFile;
 
 export async function readTextFile(root: FileSystemDirectoryHandle, path: string) {
-  try {
-    const dir = await getDirHandle(root, parentOf(path), false);
-    const fh = await dir.getFileHandle(basename(path), { create: false });
-    const f = await fh.getFile();
-    return await f.text();
-  } catch {
-    return null;
-  }
+  return await readTextFileOptional(root, path);
 }
 
 export async function deleteEntry(root: FileSystemDirectoryHandle, path: string) {
-  const dir = await getDirHandle(root, parentOf(path), false).catch(() => null);
+  const dir = await sharedGetDirHandle(root, parentOf(path), false).catch(() => null as unknown as FileSystemDirectoryHandle);
   if (!dir) return;
   try {
     await dir.removeEntry(basename(path), { recursive: true } as any);
   } catch {
     // ignore
   }
-}
-
-export function parentOf(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? "" : p.slice(0, i);
-}
-
-export function basename(p: string): string {
-  const i = p.lastIndexOf("/");
-  return i === -1 ? p : p.slice(i + 1);
 }
 
 // Build a long README-like markdown content for testing large file handling
@@ -101,6 +69,10 @@ export async function setupDemoProject(
   await writeTextFile(dir, ".hidden/secret.txt", "Hidden secrets live here.\n");
   await writeTextFile(dir, ".baseline/assets/logo.svg", SAMPLE_SVG);
   await writeTextFile(dir, ".baseline/.hidden/secret.txt", "Hidden secrets live here.\n");
+
+  // Todos sample used by the multi-line non-consecutive patch demo
+  await writeTextFile(dir, "todos/saturday.md", SAMPLE_TODOS_SATURDAY);
+  await writeTextFile(dir, ".baseline/todos/saturday.md", SAMPLE_TODOS_SATURDAY);
 
   // Deeply nested example for glob/list tests
   await writeTextFile(dir, "nested/a/b/c/deep.txt", "This is a deeply nested file.\n");
