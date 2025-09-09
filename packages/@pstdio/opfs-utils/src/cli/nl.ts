@@ -78,4 +78,3 @@ export async function cmdNl(args: string[], ctx: Ctx, stdin: string): Promise<st
 
   return out.join("\n");
 }
-

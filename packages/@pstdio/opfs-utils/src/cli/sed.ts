@@ -33,4 +33,3 @@ export async function cmdSed(args: string[], ctx: Ctx, stdin: string): Promise<s
     return slice.join("\n");
   }
 }
-

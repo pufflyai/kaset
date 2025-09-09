@@ -65,4 +65,3 @@ function countText(text: string): { lines: number; words: number; bytes: number 
   const bytes = typeof TextEncoder !== "undefined" ? new TextEncoder().encode(text).length : Buffer.from(text).length;
   return { lines, words, bytes };
 }
-

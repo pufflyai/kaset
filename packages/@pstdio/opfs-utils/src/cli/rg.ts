@@ -35,4 +35,3 @@ export async function cmdRg(args: string[], ctx: Ctx): Promise<string> {
     )
     .join("\n");
 }
-

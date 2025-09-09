@@ -3,7 +3,7 @@ import { basename, joinPath, normalizeSlashes, parentOf } from "../utils/path";
 export type Ctx = { root: FileSystemDirectoryHandle; cwd: string; onChunk?: (s: string) => void };
 
 export function unquote(s: string): string {
-  if ((s.startsWith("\"") && s.endsWith("\"")) || (s.startsWith("'") && s.endsWith("'"))) {
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
     return s.slice(1, -1);
   }
   return s;
@@ -54,4 +54,3 @@ export async function getDir(root: FileSystemDirectoryHandle, path: string): Pro
   for (const s of segs) cur = await cur.getDirectoryHandle(s, { create: false });
   return cur;
 }
-

@@ -45,4 +45,3 @@ export async function cmdLs(args: string[], ctx: Ctx): Promise<string> {
     }
   }
 }
-

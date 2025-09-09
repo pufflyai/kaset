@@ -30,7 +30,10 @@ export function ShellPanel({
     { label: 'echo "alpha beta" | sed -n "1p"', cmd: 'echo "alpha beta" | sed -n "1p"' },
     // nl (number lines)
     { label: "nl -ba docs/PROJECT_README.md", cmd: "nl -ba docs/PROJECT_README.md" },
-    { label: "sed -n '1,20p' docs/PROJECT_README.md | nl -ba -w 3 -s ': '", cmd: "sed -n '1,20p' docs/PROJECT_README.md | nl -ba -w 3 -s ': '" },
+    {
+      label: "sed -n '1,20p' docs/PROJECT_README.md | nl -ba -w 3 -s ': '",
+      cmd: "sed -n '1,20p' docs/PROJECT_README.md | nl -ba -w 3 -s ': '",
+    },
     // find
     { label: "find . -name '*.md'", cmd: "find . -name '*.md'" },
     { label: "find docs -type f -maxdepth 1", cmd: "find docs -type f -maxdepth 1" },
