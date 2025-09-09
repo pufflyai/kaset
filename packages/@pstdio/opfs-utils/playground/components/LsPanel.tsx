@@ -19,8 +19,6 @@ export function LsPanel({
   const [lsStat, setLsStat] = useState<boolean>(true);
   const [lsEntries, setLsEntries] = useState<LsEntry[]>([]);
 
-  console.log({ lsEntries, tree: formatTree(lsEntries) });
-
   async function handleList() {
     if (!root) return;
     const dir = await getDirHandle(root, baseDir, true);

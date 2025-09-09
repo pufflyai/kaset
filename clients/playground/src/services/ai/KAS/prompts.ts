@@ -70,7 +70,7 @@ Read a file (optionally a line range).
 Run OPFS shell utilities (read/search only).
 
 - Description: Run commands like \`ls\`, \`rg\`, \`sed -n\`, \`awk\`, \`cut\` with pipes/&& inside the workspace. No writes, no destructive commands.
-- Input: { command: string, cwd?: string }
+- Input: { command: string }
 - Use for complex searches, formatting output, or ad-hoc inspection.
 - Example: \`opfs_shell({ command: "rg -n \"^export function\" src | sort" })\`
 
@@ -82,13 +82,49 @@ Write text to a file (creates or overwrites).
 - Always verify target paths with \`opfs_ls\`/\`opfs_read_file\` before writing.
 
 ## opfs_patch (approval-gated)
-Apply a unified diff to the workspace.
+Apply a unified diff to the workspace. Preferred for multi-file edits, refactors, or renames—atomic and reviewable.
+By default, show 3 lines of code immediately above and 3 lines immediately below each change.
 
-- Input: { diff: string, cwd?: string }
-- Format: unified diff with ---/+++ headers; do not include apply_patch wrappers (*** Begin Patch/Update File).
-- New/delete: use /dev/null; a/ and b/ prefixes are supported.
-- Preferred for multi-file edits, refactors, or renames—atomic and reviewable.
-- Include only the minimal necessary hunks.
+- Input: { "diff": "<unified diff string>" }
+- Unified diff only with --- / +++ file headers and @@ hunks; hunk headers may omit line numbers ("@@ @@") or include them.
+- Do NOT include any wrapper lines such as *** Begin Patch, *** Update File, or *** End Patch.
+- No extra prose before or after the diff. The diff string must contain only the patch.
+- New / delete files: use /dev/null.
+- a/ and b/ path prefixes are supported (recommended).
+- Include only the minimal necessary hunks to make the change.
+- End each modified file with a trailing newline.
+
+Correct single-file example:
+
+\`\`\`
+--- a/src/example.ts
++++ b/src/example.ts
+@@
+-export const x = 1;
++export const x = 42;
+\`\`\`
+
+Multi-file patch example:
+
+\`\`\`
+--- a/package.json
++++ b/package.json
+@@
+   "name": "my-app",
+-  "version": "1.0.0",
++  "version": "1.0.1",
+   "private": true
+ }
+
+--- a/src/util.ts
++++ b/src/util.ts
+@@
+ export function clamp(n: number, min: number, max: number) {
+-  return Math.min(Math.max(n, min), max)
++  return Math.min(Math.max(n, min), max);
+ }
+\`\`\`
+
 
 ## opfs_delete_file (approval-gated)
 Delete a file.

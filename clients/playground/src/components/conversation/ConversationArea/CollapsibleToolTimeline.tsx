@@ -2,7 +2,7 @@ import { TimelineFromJSON, type TimelineDoc } from "@/components/ui/timeline";
 import type { ToolInvocation } from "@/types";
 import { Box, HStack, Text } from "@chakra-ui/react";
 import { ChevronUpIcon } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { invocationsToTimeline } from "../utils/timeline";
 
 export function CollapsibleToolTimeline({
@@ -17,7 +17,11 @@ export function CollapsibleToolTimeline({
   const [open, setOpen] = useState<boolean>(false);
   const toggle = () => setOpen((v) => !v);
 
-  const data: TimelineDoc = invocationsToTimeline(invocations, { labeledBlocks: false });
+  // Compute timeline data only when opened to avoid heavy work while collapsed
+  const data: TimelineDoc | null = useMemo(() => {
+    if (!open) return null;
+    return invocationsToTimeline(invocations, { labeledBlocks: false });
+  }, [open, invocations]);
 
   return (
     <Box width="full" maxW="820px" mx="auto">
@@ -46,7 +50,7 @@ export function CollapsibleToolTimeline({
           </Box>
         </HStack>
       </HStack>
-      {open ? (
+      {open && data ? (
         <Box mt="sm">
           <TimelineFromJSON data={data} onOpenFile={onOpenFile} />
         </Box>

@@ -65,3 +65,14 @@ export const PATCH_MULTI_FILE = `--- a/src/index.ts
 -Notes about the project.
 -TODO: add more examples.
 `;
+
+// Numberless hunk header variant to demonstrate patches without explicit line numbers
+export const PATCH_MODIFY_INDEX_NO_LINES = `--- a/src/index.ts
++++ b/src/index.ts
+@@
+ export function hello(name: string) {
+   return \`Hello, \${name}!\`;
+ }
+ 
+-export const meaning = 42;
++export const meaning = 41;`;
