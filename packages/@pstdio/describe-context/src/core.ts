@@ -1,5 +1,6 @@
 import { readdir, readFile, stat } from "fs/promises";
 import { basename, extname, join, relative } from "path";
+import { loadGitignoreContext, checkGitignoreMatch, type GitignoreContext } from "./gitignore";
 
 export interface FileInfo {
   path: string;
@@ -132,15 +133,54 @@ const SKIP_PATTERNS = [
 const MAX_FILE_SIZE = 1024 * 1024; // 1MB
 const MAX_TOTAL_SIZE = 10 * 1024 * 1024; // 10MB
 
-export function shouldSkipFile(fileName: string, size: number): boolean {
+export function shouldSkipFile(fileName: string, size: number, relativePath?: string, gitignoreContext?: GitignoreContext): boolean {
   if (size > MAX_FILE_SIZE) return true;
-  if (SKIP_FILES.has(fileName)) return true;
-  if (SKIP_PATTERNS.some((pattern) => pattern.test(fileName))) return true;
-  return false;
+
+  // Check if gitignore has explicit rules for this file
+  let gitignoreDecision: boolean | null = null;
+  if (gitignoreContext && relativePath) {
+    gitignoreDecision = checkGitignoreMatch(relativePath, false, gitignoreContext.rules);
+  }
+
+  // Check hardcoded skip patterns
+  const hardcodedSkip = SKIP_FILES.has(fileName) || SKIP_PATTERNS.some((pattern) => pattern.test(fileName));
+
+  // If gitignore explicitly says not to ignore (e.g., negation pattern), respect that
+  if (gitignoreDecision === false) {
+    return false;
+  }
+
+  // If gitignore explicitly says to ignore, respect that
+  if (gitignoreDecision === true) {
+    return true;
+  }
+
+  // If gitignore has no opinion, use hardcoded patterns
+  return hardcodedSkip;
 }
 
-export function shouldSkipDirectory(dirName: string): boolean {
-  return SKIP_DIRECTORIES.has(dirName);
+export function shouldSkipDirectory(dirName: string, relativePath?: string, gitignoreContext?: GitignoreContext): boolean {
+  // Check if gitignore has explicit rules for this directory
+  let gitignoreDecision: boolean | null = null;
+  if (gitignoreContext && relativePath) {
+    gitignoreDecision = checkGitignoreMatch(relativePath, true, gitignoreContext.rules);
+  }
+
+  // Check hardcoded skip directories
+  const hardcodedSkip = SKIP_DIRECTORIES.has(dirName);
+
+  // If gitignore explicitly says not to ignore (e.g., negation pattern), respect that
+  if (gitignoreDecision === false) {
+    return false;
+  }
+
+  // If gitignore explicitly says to ignore, respect that
+  if (gitignoreDecision === true) {
+    return true;
+  }
+
+  // If gitignore has no opinion, use hardcoded patterns
+  return hardcodedSkip;
 }
 
 export function isRelevantFile(filePath: string, extension: string, size: number): boolean {
@@ -167,7 +207,7 @@ export function isRelevantFile(filePath: string, extension: string, size: number
   return false;
 }
 
-export async function analyzeFile(filePath: string, rootPath: string): Promise<FileInfo> {
+export async function analyzeFile(filePath: string, rootPath: string, gitignoreContext?: GitignoreContext): Promise<FileInfo> {
   const stats = await stat(filePath);
   const relativePath = relative(rootPath, filePath);
   const extension = extname(filePath).toLowerCase();
@@ -183,13 +223,14 @@ export async function analyzeFile(filePath: string, rootPath: string): Promise<F
   };
 
   if (info.isDirectory) {
-    info.isRelevant = !shouldSkipDirectory(fileName);
+    info.isRelevant = !shouldSkipDirectory(fileName, relativePath, gitignoreContext);
     if (!info.isRelevant) info.reason = `Skipped directory: ${fileName}`;
     return info;
   }
 
-  if (shouldSkipFile(fileName, stats.size)) {
-    info.reason = `Skipped: ${stats.size > MAX_FILE_SIZE ? "too large" : "ignored file type"}`;
+  if (shouldSkipFile(fileName, stats.size, relativePath, gitignoreContext)) {
+    info.reason = `Skipped: ${stats.size > MAX_FILE_SIZE ? "too large" : "ignored file type or gitignore"}`;
+    info.isRelevant = false;
     return info;
   }
 
@@ -215,16 +256,16 @@ export async function analyzeFile(filePath: string, rootPath: string): Promise<F
   return info;
 }
 
-export async function analyzeDirectory(dirPath: string, rootPath: string): Promise<FileInfo[]> {
+export async function analyzeDirectory(dirPath: string, rootPath: string, gitignoreContext?: GitignoreContext): Promise<FileInfo[]> {
   const files: FileInfo[] = [];
   try {
     const entries = await readdir(dirPath);
     for (const entry of entries) {
       const fullPath = join(dirPath, entry);
-      const info = await analyzeFile(fullPath, rootPath);
+      const info = await analyzeFile(fullPath, rootPath, gitignoreContext);
       files.push(info);
       if (info.isDirectory && info.isRelevant) {
-        const subFiles = await analyzeDirectory(fullPath, rootPath);
+        const subFiles = await analyzeDirectory(fullPath, rootPath, gitignoreContext);
         files.push(...subFiles);
       }
     }
@@ -331,13 +372,17 @@ export function estimateTokenCount(text: string): number {
 }
 
 export async function generateContext(folderPath: string) {
-  const files = await analyzeDirectory(folderPath, folderPath);
+  // Load gitignore context before analyzing directory
+  const gitignoreContext = await loadGitignoreContext(folderPath);
+  
+  const files = await analyzeDirectory(folderPath, folderPath, gitignoreContext);
   const markdown = [generateDirectoryTree(files, folderPath), generateFileContent(files)].join("\n");
   const estimatedTokens = estimateTokenCount(markdown);
 
   return {
     markdown,
     files,
+    gitignoreContext,
     stats: {
       total: files.length,
       relevant: files.filter((f) => f.isRelevant && !f.isDirectory).length,
