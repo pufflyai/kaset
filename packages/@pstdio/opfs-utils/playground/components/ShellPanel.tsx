@@ -28,6 +28,9 @@ export function ShellPanel({
     { label: "sed -n '1,40p' docs/PROJECT_README.md", cmd: "sed -n '1,40p' docs/PROJECT_README.md" },
     { label: "ls -la | sed -n '1,20p'", cmd: "ls -la | sed -n '1,20p'" },
     { label: 'echo "alpha beta" | sed -n "1p"', cmd: 'echo "alpha beta" | sed -n "1p"' },
+    // nl (number lines)
+    { label: "nl -ba docs/PROJECT_README.md", cmd: "nl -ba docs/PROJECT_README.md" },
+    { label: "sed -n '1,20p' docs/PROJECT_README.md | nl -ba -w 3 -s ': '", cmd: "sed -n '1,20p' docs/PROJECT_README.md | nl -ba -w 3 -s ': '" },
     // find
     { label: "find . -name '*.md'", cmd: "find . -name '*.md'" },
     { label: "find docs -type f -maxdepth 1", cmd: "find docs -type f -maxdepth 1" },
@@ -51,7 +54,7 @@ export function ShellPanel({
   }
 
   return (
-    <Section title="Shell (ls | echo | sed | rg | find | wc)">
+    <Section title="Shell (ls | echo | sed | nl | rg | find | wc)">
       <Row>
         <TextInput label="Command(s)" value={cmd} onChange={(e) => setCmd(e.currentTarget.value)} height={120} />
         <Button onClick={run} disabled={!root}>

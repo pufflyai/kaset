@@ -263,7 +263,7 @@ export function createOpfsTools(opts: CreateToolsOptions) {
         properties: {
           diff: {
             type: "string",
-            description: `Unified diff string that describes the changes to apply to the workspace. Must follow the standard unified diff format with --- and +++ file headers and @@ hunk markers. Do not include any extra text, explanations, or wrapper lines—only the raw diff. Supports file additions (/dev/null as source), deletions, and renames (with a/ and b/ prefixes).`,
+            description: `Unified diff string that describes the changes to apply to the workspace. Must follow the standard unified diff format with --- and +++ file headers and @@ hunk markers (can be left empty). Do not include any extra text, explanations, or wrapper lines—only the raw diff. Supports file additions (/dev/null as source), deletions, and renames (with a/ and b/ prefixes).`,
           },
         },
         required: ["diff"],
