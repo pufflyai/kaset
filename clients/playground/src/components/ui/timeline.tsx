@@ -1,5 +1,5 @@
 import { Icon, type IconName } from "@/icons/Icon";
-import { Avatar, Button, Card, Timeline as ChakraTimeline, Input, Span, Stack, Text } from "@chakra-ui/react";
+import { Avatar, Button, Card, Timeline as ChakraTimeline, Input, Span, Stack, Text, Box } from "@chakra-ui/react";
 import { useState } from "react";
 import { CodeEditor } from "./code-editor";
 import { DiffBubble } from "./diff-bubble";
@@ -207,28 +207,26 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
                 </Timeline.Title>
               )}
               {hasBlocks ? (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateRows: isOpen ? "1fr" : "0fr",
-                    transition: "grid-template-rows 220ms ease",
-                  }}
+                <Box
+                  display="grid"
+                  gridTemplateRows={isOpen ? "1fr" : "0fr"}
+                  transition="grid-template-rows 220ms ease"
                 >
-                  <div
-                    style={{
-                      overflow: "hidden",
-                      opacity: isOpen ? 1 : 0,
-                      transform: isOpen ? "translateY(0)" : "translateY(-4px)",
-                      transition: "opacity 200ms ease, transform 200ms ease",
-                    }}
-                  >
-                    {it.blocks!.map((b, i) => (
-                      <div key={i}>
-                        <BlockView b={b} />
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                  {isOpen ? (
+                    <Box
+                      overflow="hidden"
+                      opacity={1}
+                      transform="translateY(0)"
+                      transition="opacity 200ms ease, transform 200ms ease"
+                    >
+                      {it.blocks!.map((b, i) => (
+                        <Box key={i}>
+                          <BlockView b={b} />
+                        </Box>
+                      ))}
+                    </Box>
+                  ) : null}
+                </Box>
               ) : null}
             </Timeline.Content>
           </Timeline.Item>

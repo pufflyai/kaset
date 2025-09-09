@@ -225,8 +225,6 @@ export function TodoList() {
 
   const setChecked = useCallback(
     async (line: number, checked: boolean) => {
-      console.log("toggle", line, checked);
-
       if (!selectedList || content == null) return;
       const next = toggleCheckboxAtLine(content, line, checked);
 

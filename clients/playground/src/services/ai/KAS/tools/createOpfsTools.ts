@@ -26,8 +26,6 @@ export function createOpfsTools(opts: CreateToolsOptions) {
   const { workspaceDir, requestApproval, onShellChunk } = opts;
   const gate = createApprovalGate(requestApproval);
 
-  console.log("OPFS tools using workspaceDir", workspaceDir);
-
   const opfsShell = Tool(
     async ({ command, cwd = "" }: { command: string; cwd?: string }, { toolCall }) => {
       if (hasParentTraversal(cwd)) throw new Error("Path escapes workspace: invalid cwd");
@@ -263,8 +261,10 @@ export function createOpfsTools(opts: CreateToolsOptions) {
       parameters: {
         type: "object",
         properties: {
-          diff: { type: "string" },
-          cwd: { type: "string", default: "" },
+          diff: {
+            type: "string",
+            description: `Unified diff string that describes the changes to apply to the workspace. Must follow the standard unified diff format with --- and +++ file headers and @@ hunk markers (can be left empty). Do not include any extra text, explanations, or wrapper lines—only the raw diff. Supports file additions (/dev/null as source), deletions, and renames (with a/ and b/ prefixes).`,
+          },
         },
         required: ["diff"],
       },

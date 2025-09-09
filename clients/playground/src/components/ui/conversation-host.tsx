@@ -5,6 +5,24 @@ import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import type { Message } from "../../types";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
+import { PROJECTS_ROOT } from "@/constant";
+
+function normalizeProjectPath(input: string | undefined | null): string | undefined {
+  if (!input) return undefined;
+
+  const projectId = useWorkspaceStore.getState().selectedProjectId || "todo";
+  const rootDir = `${PROJECTS_ROOT}/${projectId}`;
+
+  // Normalize slashes and trim
+  const p = String(input).replace(/\\/g, "/").replace(/^\/+/, "").trim();
+  const root = rootDir.replace(/\\/g, "/").replace(/^\/+/, "");
+
+  // If already absolute to project root, keep as-is
+  if (p === root || p.startsWith(root + "/")) return p;
+
+  // Otherwise, treat as path relative to the project root
+  return [root, p].filter(Boolean).join("/");
+}
 
 export function ConversationHost() {
   const messages = useWorkspaceStore((s) =>
@@ -112,10 +130,11 @@ export function ConversationHost() {
         canSend={hasKey && !streaming}
         onSendMessage={handleSendMessage}
         onSelectFile={(path) => {
+          const full = normalizeProjectPath(path);
           useWorkspaceStore.setState(
             (state) => {
-              state.filePath = path ?? undefined;
-              if (path) state.selectedTab = "code";
+              state.filePath = full ?? undefined;
+              if (full) state.selectedTab = "code";
             },
             false,
             "conversation/select-file",

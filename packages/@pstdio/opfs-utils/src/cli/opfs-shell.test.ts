@@ -266,6 +266,47 @@ describe("opfs-shell: sed edge cases", () => {
   });
 });
 
+describe("opfs-shell: nl", () => {
+  it("numbers non-empty lines by default (-bt)", async () => {
+    const root = await seedBasicTree();
+    await writeFile(root, "docs/nl.txt", "alpha\n\nbeta\n");
+
+    const res = await runOpfsCommandLine("nl docs/nl.txt", { root });
+    const lines = res.stdout.replace(/\n$/, "").split("\n");
+
+    expect(lines).toEqual(["     1\talpha", "", "     2\tbeta"]);
+  });
+
+  it("numbers all lines with -ba", async () => {
+    const root = await seedBasicTree();
+    await writeFile(root, "docs/nl2.txt", "alpha\n\nbeta\n");
+
+    const res = await runOpfsCommandLine("nl -ba docs/nl2.txt", { root });
+    const lines = res.stdout.replace(/\n$/, "").split("\n");
+
+    expect(lines).toEqual(["     1\talpha", "     2\t", "     3\tbeta"]);
+  });
+
+  it("supports custom width and separator (-w, -s) and stdin input", async () => {
+    const root = await seedBasicTree();
+    const cmd = 'echo "x\ny" | nl -ba -w 3 -s " "';
+    const res = await runOpfsCommandLine(cmd, { root });
+    const lines = res.stdout.replace(/\n$/, "").split("\n");
+
+    expect(lines).toEqual(["  1 x", "  2 y"]);
+  });
+
+  it("pipes to sed line range: nl -ba todos/todo.md | sed -n '1,200p'", async () => {
+    const root = await seedBasicTree();
+    await writeFile(root, "todos/todo.md", "one\ntwo\nthree\n");
+
+    const piped = await runOpfsCommandLine("nl -ba todos/todo.md | sed -n '1,200p'", { root });
+    const direct = await runOpfsCommandLine("nl -ba todos/todo.md", { root });
+
+    expect(piped.stdout.replace(/\n$/, "")).toBe(direct.stdout.replace(/\n$/, ""));
+  });
+});
+
 describe("opfs-shell: ls edge cases", () => {
   it("returns bare filename when targeting a single file", async () => {
     const root = await seedBasicTree();

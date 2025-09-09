@@ -6,12 +6,12 @@ export function ApprovalModal(props: { request: ApprovalRequest | null; onApprov
   const isOpen = !!request;
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && onDeny()}>
+    <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && onDeny()} closeOnInteractOutside={false}>
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content>
           <Dialog.Header>
-            Approval Required
+            <Text textStyle="heading/L">Approval Required</Text>
             <Dialog.CloseTrigger>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
