@@ -1,7 +1,19 @@
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Alert, Button, Checkbox, CloseButton, Dialog, Field, HStack, Input, Text, VStack } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@/services/ai/KAS/approval";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import {
+  Alert,
+  Button,
+  Checkbox,
+  CloseButton,
+  Dialog,
+  Field,
+  Flex,
+  HStack,
+  Input,
+  Text,
+  VStack,
+} from "@chakra-ui/react";
+import { useEffect, useState } from "react";
 
 const TOOL_LABELS: Record<string, string> = {
   opfs_write_file: "Write file",
@@ -108,16 +120,17 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                   onChange={(e) => setBaseUrl(e.target.value)}
                 />
               </Field.Root>
-              <Field.Root>
-                <Field.Label>Approval-gated tools</Field.Label>
+              <Flex gap="xs" direction="column" width="100%">
+                <Text>Approval-gated tools</Text>
                 <VStack align="stretch">
                   {DEFAULT_APPROVAL_GATED_TOOLS.map((tool) => (
                     <Checkbox.Root
                       key={tool}
                       checked={approvalTools.includes(tool)}
-                      onCheckedChange={(e) =>
-                        setApprovalTools((prev) => (e.checked ? [...prev, tool] : prev.filter((t) => t !== tool)))
-                      }
+                      onCheckedChange={(e) => {
+                        console.log(e.checked, tool, DEFAULT_APPROVAL_GATED_TOOLS);
+                        setApprovalTools((prev) => (e.checked ? [...prev, tool] : prev.filter((t) => t !== tool)));
+                      }}
                     >
                       <Checkbox.HiddenInput />
                       <Checkbox.Control />
@@ -125,7 +138,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                     </Checkbox.Root>
                   ))}
                 </VStack>
-              </Field.Root>
+              </Flex>
             </VStack>
           </Dialog.Body>
           <Dialog.Footer gap="sm">
