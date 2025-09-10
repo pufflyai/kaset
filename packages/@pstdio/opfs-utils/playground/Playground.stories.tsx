@@ -3,6 +3,7 @@ import { useState } from "react";
 import { CrudPanel } from "./components/CrudPanel";
 import { GrepPanel } from "./components/GrepPanel";
 import { LsPanel } from "./components/LsPanel";
+import { GetFsPanel } from "./components/GetFsPanel";
 import { PatchPanel } from "./components/PatchPanel";
 import { ReadPanel } from "./components/ReadPanel";
 import { SetupPanel } from "./components/SetupPanel";
@@ -45,6 +46,7 @@ function Playground() {
       <div style={{ marginTop: 6, color: "#374151" }}>{status}</div>
 
       <SetupPanel root={root} baseDir={baseDir} onStatus={setStatus} />
+      <GetFsPanel baseDir={baseDir} onStatus={setStatus} />
       <LsPanel root={root} baseDir={baseDir} onStatus={setStatus} />
       <ReadPanel root={root} baseDir={baseDir} onStatus={setStatus} />
       <GrepPanel root={root} baseDir={baseDir} onStatus={setStatus} />
