@@ -13,7 +13,7 @@ export const DiffBubble = (props: DiffBubbleProps) => {
     <Span
       display="inline-flex"
       alignItems="center"
-      gap="xs"
+      gap="2xs"
       border="1px solid"
       borderColor="border.secondary"
       color="foreground.secondary"
@@ -23,6 +23,7 @@ export const DiffBubble = (props: DiffBubbleProps) => {
     >
       Edited
       <Span
+        mr="xs"
         onClick={(e) => {
           e.stopPropagation();
           onClickFileLink?.();
@@ -34,8 +35,8 @@ export const DiffBubble = (props: DiffBubbleProps) => {
       >
         {fileName}
       </Span>
-      (<Span color="foreground.feedback.success">{`+${additions}`}</Span>
-      <Span color="foreground.feedback.alert">{`-${deletions}`}</Span>)
+      <Span color="foreground.feedback.success">{`+${additions}`}</Span>
+      <Span color="foreground.feedback.alert">{`-${deletions}`}</Span>
     </Span>
   );
 };

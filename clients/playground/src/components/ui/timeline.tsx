@@ -3,6 +3,7 @@ import { Avatar, Button, Card, Timeline as ChakraTimeline, Input, Span, Stack, T
 import { useState } from "react";
 import { CodeEditor } from "./code-editor";
 import { DiffBubble } from "./diff-bubble";
+import { DiffEditor } from "./diff-editor";
 import { ResourceBadge } from "./resource-badge";
 
 export const Timeline = ChakraTimeline;
@@ -32,6 +33,7 @@ export type TitleSegment =
 export type Block =
   | { type: "comment"; text: string; reactions?: { clap?: number } }
   | { type: "code"; language: string; code: string; editable?: boolean }
+  | { type: "diff"; language?: string; original: string; modified: string; sideBySide?: boolean }
   | { type: "input"; placeholder?: string }
   | { type: "text"; text: string }
   | {
@@ -131,6 +133,20 @@ function BlockView({ b }: { b: Block }) {
           </Card.Body>
         </Card.Root>
       );
+    case "diff":
+      return (
+        <Card.Root height="160px" minH="160px" minWidth="320px" overflow="hidden">
+          <Card.Body padding="0">
+            <DiffEditor
+              original={b.original}
+              modified={b.modified}
+              language={b.language}
+              sideBySide={false}
+              disableScroll={true}
+            />
+          </Card.Body>
+        </Card.Root>
+      );
     case "input":
       return <Input placeholder={b.placeholder ?? ""} />;
     case "text":
@@ -185,11 +201,11 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
                   cursor={hasBlocks ? "pointer" : "default"}
                   onClick={hasBlocks ? () => toggle(key) : undefined}
                 >
-                  <Span display="inline-flex" alignItems="center" gap="sm">
+                  <Span display="inline-flex" alignItems="center" gap="sm" flexWrap={"wrap"}>
                     {it.title.map((seg, i) => (
-                      <span key={i} style={{ display: "inline-flex", alignItems: "center" }}>
+                      <Span key={i} display="inline-flex" alignItems="center">
                         <TitleInline seg={seg} isClickable={hasBlocks} onOpenFile={onOpenFile} />
-                      </span>
+                      </Span>
                     ))}
                     {hasBlocks ? (
                       <Span
