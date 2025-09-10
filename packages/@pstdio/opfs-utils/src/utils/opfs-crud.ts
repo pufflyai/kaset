@@ -1,5 +1,5 @@
 import { getFs } from "../adapter/fs";
-import { getDirHandle, getFileHandle, readTextFileOptional, safeDelete, writeTextFile } from "../shared.migrated";
+import { getDirHandle, getFileHandle, readTextFileOptional, safeDelete, writeTextFile } from "../shared";
 import { basename, joinPath, normalizeRelPath, parentOf } from "./path";
 
 function notFound(path: string) {

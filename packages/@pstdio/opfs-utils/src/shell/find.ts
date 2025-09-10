@@ -1,7 +1,7 @@
 import { globToRegExp as globToRegExpGrep } from "../utils/opfs-grep";
 import { ls } from "../utils/opfs-ls";
 import { basename, joinPath, normalizeSlashes } from "../utils/path";
-import { resolveSubdir, getFileHandle } from "../shared.migrated";
+import { resolveSubdir, getFileHandle } from "../shared";
 import { Ctx } from "./helpers";
 
 export async function cmdFind(args: string[], ctx: Ctx): Promise<string> {

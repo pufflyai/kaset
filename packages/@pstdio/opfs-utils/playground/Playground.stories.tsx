@@ -10,6 +10,7 @@ import { SetupPanel } from "./components/SetupPanel";
 import { ShellPanel } from "./components/ShellPanel";
 import { UploadPanel } from "./components/UploadPanel";
 import { WatchPanel } from "./components/WatchPanel";
+import { GitPanel } from "./components/GitPanel";
 import { Row, TextInput } from "./components/ui";
 import { getFs } from "../src/adapter/fs";
 
@@ -73,6 +74,7 @@ function Playground() {
       <WatchPanel baseDir={baseDir} onStatus={setStatus} />
       <ShellPanel baseDir={baseDir} onStatus={setStatus} />
       <CrudPanel baseDir={baseDir} onStatus={setStatus} />
+      <GitPanel baseDir={baseDir} onStatus={setStatus} />
     </div>
   );
 }

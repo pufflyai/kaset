@@ -1,5 +1,5 @@
 import { getFs } from "../adapter/fs";
-import { getDirHandle } from "../shared.migrated";
+import { getDirHandle } from "../shared";
 import { basename, joinPath, normalizeSegments, parentOf } from "./path";
 
 export interface FileUploadBaseOptions {

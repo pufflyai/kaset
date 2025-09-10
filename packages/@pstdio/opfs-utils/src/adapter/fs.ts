@@ -65,7 +65,7 @@ async function ensureConfiguredFor(root: FileSystemDirectoryHandle): Promise<voi
   await initPromise;
 }
 
-export async function getFs(): Promise<typeof fs> {
+export async function getFs() {
   const getDir = getOPFSRootGetter();
 
   if (!getDir) {

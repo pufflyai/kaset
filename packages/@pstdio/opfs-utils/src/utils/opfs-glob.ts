@@ -1,6 +1,6 @@
 // Programmatic globbing over the browser's OPFS.
 import { getFs } from "../adapter/fs";
-import { resolveSubdir, readTextFileOptional } from "../shared.migrated";
+import { readTextFileOptional, resolveSubdir } from "../shared";
 import { expandBraces, globToRegExp } from "./glob";
 import { joinPath, normalizeSlashes } from "./path";
 
@@ -63,7 +63,7 @@ export async function opfsGlob(_root: FileSystemDirectoryHandle, opts: OpfsGlobO
     throw new Error("pattern must be a non-empty string");
   }
 
-  // Resolve the absolute search root ("/subdir") using shared.migrated.
+  // Resolve the absolute search root ("/subdir") using shared.
   const searchRootAbs = await resolveSubdir(subdir, false);
 
   // --- 1) If the pattern is an exact path in this search root, treat it as a literal (like glob.escape)

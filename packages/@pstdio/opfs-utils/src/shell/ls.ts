@@ -1,7 +1,7 @@
 import { formatLong, ls } from "../utils/opfs-ls";
 import { Ctx, escapeLiteral } from "./helpers";
 import { hasParentTraversal, joinPath, normalizeSlashes, parentOf, basename } from "../utils/path";
-import { resolveSubdir, getFileHandle } from "../shared.migrated";
+import { resolveSubdir, getFileHandle } from "../shared";
 
 export async function cmdLs(args: string[], ctx: Ctx): Promise<string> {
   let long = false;

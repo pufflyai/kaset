@@ -1,4 +1,7 @@
 import "./preview.css";
+import { Buffer } from "buffer";
+
+window.Buffer = Buffer;
 
 // Storybook runs without COOP/COEP headers by default, so SharedArrayBuffer
 // is typically unavailable. @zenfs/dom references SharedArrayBuffer in a type

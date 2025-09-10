@@ -1,9 +1,7 @@
-import type { fs } from "@zenfs/core";
-import type * as IsomorphicGit from "isomorphic-git";
+import * as isogit from "isomorphic-git";
+import { getFs } from "../adapter/fs";
 
 export type GitContext = {
-  git: typeof IsomorphicGit;
-  fs: typeof fs;
   dir: string; // repo root path
 };
 
@@ -65,8 +63,9 @@ export type CommitEntry = {
  * Ensure a repo exists; create it if needed. Sets user.name / user.email if provided.
  */
 export async function ensureRepo(ctx: GitContext, opts: EnsureRepoOptions = {}) {
-  const { git, fs, dir } = ctx;
+  const { dir } = ctx;
   const defaultBranch = opts.defaultBranch ?? "main";
+  const fs = await getFs();
 
   let created = false;
 
@@ -74,18 +73,18 @@ export async function ensureRepo(ctx: GitContext, opts: EnsureRepoOptions = {}) 
   // If resolveRef('HEAD') throws and currentBranch also fails, initialize.
   let current: string | void;
   try {
-    current = await git.currentBranch({ fs, dir, fullname: false });
+    current = await isogit.currentBranch({ fs, dir, fullname: false });
   } catch {
     current = undefined as unknown as void;
   }
 
   if (!current) {
     try {
-      await git.resolveRef({ fs, dir, ref: "HEAD" });
+      await isogit.resolveRef({ fs, dir, ref: "HEAD" });
       // We can resolve HEAD (repo exists) but currentBranch may still be null (e.g., unborn HEAD).
-      current = await git.currentBranch({ fs, dir, fullname: false });
+      current = await isogit.currentBranch({ fs, dir, fullname: false });
     } catch {
-      await git.init({ fs, dir, defaultBranch });
+      await isogit.init({ fs, dir, defaultBranch });
       created = true;
       current = defaultBranch;
     }
@@ -93,7 +92,7 @@ export async function ensureRepo(ctx: GitContext, opts: EnsureRepoOptions = {}) 
 
   if (opts.name) {
     try {
-      await git.setConfig({ fs, dir, path: "user.name", value: opts.name });
+      await isogit.setConfig({ fs, dir, path: "user.name", value: opts.name });
     } catch {
       /* ignore config failures in restricted environments */
     }
@@ -101,7 +100,7 @@ export async function ensureRepo(ctx: GitContext, opts: EnsureRepoOptions = {}) 
 
   if (opts.email) {
     try {
-      await git.setConfig({ fs, dir, path: "user.email", value: opts.email });
+      await isogit.setConfig({ fs, dir, path: "user.email", value: opts.email });
     } catch {
       /* ignore config failures in restricted environments */
     }
@@ -116,8 +115,10 @@ export async function ensureRepo(ctx: GitContext, opts: EnsureRepoOptions = {}) 
  * Groups files into added/modified/deleted/untracked for convenience.
  */
 export async function getRepoStatus(ctx: GitContext) {
-  const { git, fs, dir } = ctx;
-  const matrix = await git.statusMatrix({ fs, dir });
+  const { dir } = ctx;
+
+  const fs = await getFs();
+  const matrix = await isogit.statusMatrix({ fs, dir });
 
   const added: string[] = [];
   const modified: string[] = [];
@@ -161,15 +162,18 @@ export async function getRepoStatus(ctx: GitContext) {
  * Does nothing and returns oid=null when there are no changes.
  */
 export async function commitAll(ctx: GitContext, options: CommitAllOptions): Promise<CommitAllResult> {
-  const { git, fs, dir } = ctx;
+  const { dir } = ctx;
   const { message, author, branch, dryRun } = options;
 
   if (!message?.trim()) {
     throw new Error("commitAll: commit message is required");
   }
+
   if (!author?.name || !author?.email) {
     throw new Error("commitAll: author { name, email } is required");
   }
+
+  const fs = await getFs();
 
   const ensured = await ensureRepo(ctx);
   const targetRef = branch ?? ensured.currentBranch ?? "main";
@@ -180,11 +184,12 @@ export async function commitAll(ctx: GitContext, options: CommitAllOptions): Pro
 
   for (const f of toAdd) {
     if (dryRun) continue;
-    await git.add({ fs, dir, filepath: f });
+    await isogit.add({ fs, dir, filepath: f });
   }
+
   for (const f of toRemove) {
     if (dryRun) continue;
-    await git.remove({ fs, dir, filepath: f });
+    await isogit.remove({ fs, dir, filepath: f });
   }
 
   if (toAdd.length === 0 && toRemove.length === 0) {
@@ -200,7 +205,7 @@ export async function commitAll(ctx: GitContext, options: CommitAllOptions): Pro
 
   let oid: string | null = null;
   if (!dryRun) {
-    oid = await git.commit({
+    oid = await isogit.commit({
       fs,
       dir,
       ref: targetRef, // commit to the single branch
@@ -224,15 +229,16 @@ export async function commitAll(ctx: GitContext, options: CommitAllOptions): Pro
  * Retrieve a compact list of recent commits from the given ref (default: current branch / HEAD).
  */
 export async function listCommits(ctx: GitContext, opts: ListCommitsOptions = {}) {
-  const { git, fs, dir } = ctx;
+  const { dir } = ctx;
   const { limit = 20 } = opts;
+  const fs = await getFs();
 
   let ref = opts.ref;
   if (!ref) {
-    ref = (await git.currentBranch({ fs, dir, fullname: false })) ?? "HEAD";
+    ref = (await isogit.currentBranch({ fs, dir, fullname: false })) ?? "HEAD";
   }
 
-  const entries = await git.log({ fs, dir, ref, depth: limit });
+  const entries = await isogit.log({ fs, dir, ref, depth: limit });
   return entries.map((e: any) => {
     const c = e.commit || {};
     const a = c.author || {};

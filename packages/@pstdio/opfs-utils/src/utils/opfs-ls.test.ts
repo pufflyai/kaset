@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
-import { getOPFSRoot } from "../shared";
+import { getOPFSRoot } from "../__helpers__/test-opfs";
 import { LsEntry, formatLong, formatMtime, formatSize, formatTree, ls } from "./opfs-ls";
 
 describe("formatSize", () => {

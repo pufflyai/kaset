@@ -4,10 +4,9 @@ import {
   getDirHandle as migratedGetDirHandle,
   readTextFileOptional as migratedReadTextFileOptional,
   writeTextFile as migratedWriteTextFile,
-} from "../src/shared.migrated";
+} from "../src/shared";
 import { SAMPLE_INDEX_TS, SAMPLE_SVG, SAMPLE_TODOS_SATURDAY, SAMPLE_UTIL_TS } from "./samples";
 
-// Compat wrappers over shared.migrated (keep playground API stable)
 export async function getDirHandle(path: string, create: boolean): Promise<string> {
   // Returns an absolute POSIX-like path (e.g., "/playground").
   return migratedGetDirHandle(path, create);

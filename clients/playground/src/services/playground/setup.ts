@@ -1,4 +1,4 @@
-import { getDirectoryHandle, getOPFSRoot, writeFile } from "@pstdio/opfs-utils";
+import { getDirectoryHandle, readFile, writeFile } from "@pstdio/opfs-utils";
 import { PROJECTS_ROOT } from "@/constant";
 
 /**
@@ -26,23 +26,20 @@ export type ApplyFilesOptions = {
   overwrite?: boolean;
 };
 
-/** Ensure an OPFS directory path exists; returns the handle. */
-async function ensureOpfsDir(path: string): Promise<FileSystemDirectoryHandle> {
-  // Try fast path via utility; if missing, create via manual walk
+/** Ensure an OPFS directory path exists; returns the absolute path string. */
+async function ensureOpfsDir(path: string): Promise<string> {
   try {
     return await getDirectoryHandle(path);
   } catch (err: any) {
     if (err?.name !== "NotFoundError" && err?.code !== 404) throw err;
-
-    const root = await getOPFSRoot();
-    const parts = path.split("/").filter(Boolean);
-
-    let current = root;
-    for (const part of parts) {
-      current = await current.getDirectoryHandle(part, { create: true });
-    }
-
-    return current;
+    const keep = `${path.replace(/\/+$/, "")}/.keep`;
+    await writeFile(keep, "");
+    try {
+      // best-effort cleanup; ignore if it fails
+      const { deleteFile } = await import("@pstdio/opfs-utils");
+      await deleteFile(keep);
+    } catch {}
+    return await getDirectoryHandle(path);
   }
 }
 
@@ -83,13 +80,10 @@ export async function applyFilesToOpfs(options: ApplyFilesOptions): Promise<{
     const target = normalizeRel(`${rootDir}/${rel}`);
 
     if (!overwrite) {
-      // Cheap existence check: try to get a handle; skip if present
+      // Cheap existence check: try to read; skip if present
       try {
-        const dirPath = target.split("/").slice(0, -1).join("/");
-        const base = target.split("/").pop()!;
-        const dir = await getDirectoryHandle(dirPath);
-        await dir.getFileHandle(base);
-        continue;
+        await readFile(target);
+        continue; // it exists
       } catch {
         // Missing is fine; we'll write it
       }

@@ -1,5 +1,5 @@
 import { getFs } from "../adapter/fs";
-import { resolveSubdir } from "../shared.migrated";
+import { resolveSubdir } from "../shared";
 import { joinPath } from "./path";
 
 export type DirectoryWatcherCleanup = () => void;

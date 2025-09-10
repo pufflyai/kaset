@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { setupTestOPFS } from "../__helpers__/test-opfs";
-import { getOPFSRoot } from "../shared";
+import { getOPFSRoot } from "../__helpers__/test-opfs";
 import { readFile, writeFile, deleteFile } from "./opfs-crud";
 
 describe("opfs-crud (node env)", () => {

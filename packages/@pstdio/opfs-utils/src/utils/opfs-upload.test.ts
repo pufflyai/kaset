@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { setupTestOPFS } from "../__helpers__/test-opfs";
-import { readTextFileOptional } from "../shared.migrated";
+import { readTextFileOptional } from "../shared";
 import { pickAndUploadFilesToDirectory, uploadFilesToDirectory } from "./opfs-upload";
 
 async function readText(path: string) {

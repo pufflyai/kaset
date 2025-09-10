@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
-import { getOPFSRoot } from "../shared";
+import { getOPFSRoot, setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
 import { applyPatchInOPFS, normalizeGitPath, stagePathForGit } from "./patch";
 
 describe("normalizeGitPath", () => {

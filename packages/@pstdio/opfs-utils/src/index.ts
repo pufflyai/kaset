@@ -11,7 +11,7 @@ export {
   type RepoStatus,
 } from "./git/git";
 export { applyPatchInOPFS as patch } from "./git/patch";
-export { getDirectoryHandle, getOPFSRoot, stripAnsi } from "./shared";
+export { getDirectoryHandle, stripAnsi } from "./shared";
 export { runOpfsCommandLine } from "./shell/opfs-shell";
 export { deleteFile, downloadFile, moveFile, readFile, writeFile } from "./utils/opfs-crud";
 export {

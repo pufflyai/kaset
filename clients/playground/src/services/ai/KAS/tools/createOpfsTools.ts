@@ -2,7 +2,6 @@ import {
   patch as applyPatchInOPFS,
   deleteFile as deleteFileAtRoot,
   downloadFile as downloadFromRoot,
-  getOPFSRoot,
   grep,
   hasParentTraversal,
   joinUnderWorkspace,
@@ -31,11 +30,9 @@ export function createOpfsTools(opts: CreateToolsOptions) {
       if (hasParentTraversal(cwd)) throw new Error("Path escapes workspace: invalid cwd");
 
       return (async () => {
-        const root = await getOPFSRoot();
         const effectiveCwd = joinUnderWorkspace(workspaceDir, cwd || "");
 
         const res = await runOpfsCommandLine(command, {
-          root,
           cwd: effectiveCwd,
           onChunk: (s) => onShellChunk?.(s),
         });
@@ -163,9 +160,8 @@ export function createOpfsTools(opts: CreateToolsOptions) {
     async (input: { file: string; offset?: number; limit?: number }, { toolCall }) => {
       if (hasParentTraversal(input?.file)) throw new Error("Path escapes workspace: invalid file");
 
-      const root = await getOPFSRoot();
       const full = joinUnderWorkspace(workspaceDir, input.file);
-      const res = await processSingleFileContent(full, workspaceDir, root, input.offset, input.limit);
+      const res = await processSingleFileContent(full, workspaceDir, undefined, input.offset, input.limit);
       const payload = { ...res, file: full } as const;
       return {
         messages: [{ role: "tool", tool_call_id: toolCall?.id ?? "", content: JSON.stringify(payload) }],

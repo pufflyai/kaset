@@ -1,5 +1,5 @@
 import { joinPath, normalizeSlashes } from "../utils/path";
-import { getFileHandle, resolveSubdir } from "../shared.migrated";
+import { getFileHandle, resolveSubdir } from "../shared";
 
 export type Ctx = { root?: FileSystemDirectoryHandle; cwd: string; onChunk?: (s: string) => void };
 

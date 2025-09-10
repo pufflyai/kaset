@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getOPFSRoot } from "../shared";
+import { getOPFSRoot } from "../__helpers__/test-opfs";
 import { setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
 import { opfsGlob, sortFileEntries, type GlobPath } from "./opfs-glob";
 

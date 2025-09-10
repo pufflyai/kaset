@@ -14,7 +14,7 @@ import {
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
-import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
+import { deleteFile, ls } from "@pstdio/opfs-utils";
 import {
   CassetteTapeIcon,
   Check as CheckIcon,
@@ -136,13 +136,20 @@ export function TopBar() {
     const rootDir = `${PROJECTS_ROOT}/${selectedProject}`;
 
     try {
-      // Remove all entries under the project directory
-      const dir = await getDirectoryHandle(rootDir);
-      const children = await ls(rootDir, { maxDepth: 1 });
+      // Remove all files under the project directory (leave empty dirs)
+      const children = await ls(rootDir, { maxDepth: 1, kinds: ["file", "directory"] });
 
       for (const entry of children) {
         try {
-          await (dir as any).removeEntry(entry.name, { recursive: true } as any);
+          if (entry.kind === "file") {
+            await deleteFile(`${rootDir}/${entry.name}`);
+          } else if (entry.kind === "directory") {
+            // Recursively delete all files under subdirectory
+            const sub = await ls(`${rootDir}/${entry.name}`, { maxDepth: Infinity, kinds: ["file"] });
+            for (const f of sub) {
+              await deleteFile(`${rootDir}/${f.path}`);
+            }
+          }
         } catch (err) {
           console.warn(`Failed to remove ${entry.name} during reset:`, err);
         }

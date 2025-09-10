@@ -1,15 +1,7 @@
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 import { PROJECTS_ROOT } from "@/constant";
 import { Box, Button, Checkbox, HStack, IconButton, Input, Text, VStack } from "@chakra-ui/react";
-import {
-  deleteFile,
-  getDirectoryHandle,
-  getOPFSRoot,
-  ls,
-  readFile,
-  watchDirectory,
-  writeFile,
-} from "@pstdio/opfs-utils";
+import { deleteFile, getDirectoryHandle, ls, readFile, watchDirectory, writeFile } from "@pstdio/opfs-utils";
 import { PencilIcon, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -109,19 +101,20 @@ export function TodoList() {
 
   const ensureDir = useCallback(async (path: string) => {
     try {
+      // Validate existence (returns absolute path string)
       return await getDirectoryHandle(path);
     } catch (err: any) {
       if (err?.name !== "NotFoundError" && err?.code !== 404) throw err;
 
-      const root = await getOPFSRoot();
-      const parts = path.split("/").filter(Boolean);
+      // Create by touching a temp file, which mkdir -p's parents
+      const keep = `${path.replace(/\/+$/, "")}/.keep`;
+      await writeFile(keep, "");
+      // Best-effort cleanup
+      try {
+        await deleteFile(keep);
+      } catch {}
 
-      let cur = root;
-      for (const p of parts) {
-        cur = await cur.getDirectoryHandle(p, { create: true });
-      }
-
-      return cur;
+      return await getDirectoryHandle(path);
     }
   }, []);
 

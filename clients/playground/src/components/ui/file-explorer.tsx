@@ -1,6 +1,6 @@
 import { TreeView as ChakraTreeView, createTreeCollection, Menu, Portal } from "@chakra-ui/react";
 import { useFolder } from "@pstdio/opfs-hooks";
-import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
+import { deleteFile, getDirectoryHandle, ls } from "@pstdio/opfs-utils";
 import type { LucideIcon } from "lucide-react";
 import { ChevronDown, ChevronRight, Download, Folder, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -288,26 +288,17 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
       }}
       onDelete={async (node) => {
         try {
-          const dir = await getDirectoryHandle(rootDir);
+          // Normalize helper
+          const norm = (p?: string) => (p ? p.split("/").filter(Boolean).join("/") : "");
 
-          // Compute the path relative to the provided rootDir,
-          // regardless of how many segments rootDir contains.
-          const idParts = node.id.split("/").filter(Boolean);
-          const rootParts = rootDir.split("/").filter(Boolean);
+          const idParts = norm(node.id).split("/").filter(Boolean);
+          const rootParts = norm(rootDir).split("/").filter(Boolean);
 
-          const hasRootPrefix = idParts.slice(0, rootParts.length).join("/") === rootDir;
+          const hasRootPrefix = idParts.slice(0, rootParts.length).join("/") === norm(rootDir);
           const relParts = hasRootPrefix ? idParts.slice(rootParts.length) : idParts;
 
-          // Navigate to the parent directory of the target file
-          let currentDir: FileSystemDirectoryHandle = dir;
-          for (let i = 0; i < Math.max(0, relParts.length - 1); i++) {
-            currentDir = await currentDir.getDirectoryHandle(relParts[i]);
-          }
-
-          const fileName = relParts[relParts.length - 1];
-          if (fileName) {
-            await currentDir.removeEntry(fileName);
-          }
+          const target = hasRootPrefix ? norm(node.id) : [norm(rootDir), ...idParts].filter(Boolean).join("/");
+          await deleteFile(target);
 
           // If we just deleted the currently selected file, move selection.
           if ((selectedPath ?? null) === node.id) {

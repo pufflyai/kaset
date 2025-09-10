@@ -1,4 +1,4 @@
-import { stripAnsi } from "../shared.migrated";
+import { stripAnsi } from "../shared";
 
 /**
  * Split a POSIX-like path into normalized segments.

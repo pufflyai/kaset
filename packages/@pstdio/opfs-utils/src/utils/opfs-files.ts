@@ -1,6 +1,6 @@
 import { ErrorType } from "../errors";
 import { getFs } from "../adapter/fs";
-import { getFileHandle } from "../shared.migrated";
+import { getFileHandle } from "../shared";
 
 // ------------------------------
 // Constants for text processing

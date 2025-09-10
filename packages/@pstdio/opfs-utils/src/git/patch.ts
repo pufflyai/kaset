@@ -1,6 +1,6 @@
 import { applyPatch, parsePatch } from "diff";
 import type * as IsomorphicGit from "isomorphic-git";
-import { readTextFileOptional, resolveSubdir, safeDelete, stripAnsi, writeTextFile } from "../shared.migrated";
+import { readTextFileOptional, resolveSubdir, safeDelete, stripAnsi, writeTextFile } from "../shared";
 import { joinPath, normalizeSegments } from "../utils/path";
 
 export interface StructuredPatch {
