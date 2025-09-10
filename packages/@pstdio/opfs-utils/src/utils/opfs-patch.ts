@@ -1,10 +1,21 @@
 import { applyPatch, parsePatch } from "diff";
 import type * as IsomorphicGit from "isomorphic-git";
-import { stripAnsi } from "../shared";
-import { basename, normalizeSegments, parentOf } from "./path";
+import { readTextFileOptional, resolveSubdir, safeDelete, stripAnsi, writeTextFile } from "../shared";
+import { joinPath, normalizeSegments } from "./path";
+
 export { normalizeSegments } from "./path";
 
-type StructuredPatch = any;
+export interface StructuredPatch {
+  oldFileName: string;
+  newFileName: string;
+  hunks: Array<{
+    oldStart: number;
+    oldLines: number;
+    newStart: number;
+    newLines: number;
+    lines: string[];
+  }>;
+}
 
 export interface FileOperationResult {
   success: boolean;
@@ -29,10 +40,9 @@ export interface ApplyPatchOptions {
   diffContent: string;
 
   /**
-   * Maximum allowed drift (in lines) from a hunk's declared oldStart when
-   * attempting fuzzy placement. If a numeric header exists and the best match
-   * is beyond this offset, the hunk is rejected. Defaults to 200.
-   * For hunks without line numbers ("@@ @@"), the entire file is searched.
+   * Maximum allowed drift (in lines) from a hunk's declared oldStart when attempting fuzzy placement.
+   * If a numeric header exists and the best match is beyond this offset, the hunk is rejected.
+   * Defaults to 200. For hunks without line numbers ("@@ @@"), the entire file is searched.
    */
   maxOffsetLines?: number;
 
@@ -65,221 +75,216 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
 
   const cleanDiff = sanitizeAnsiDiff ? stripAnsi(diffContent) : diffContent;
 
-  // Fast-path: treat a file-header-only diff (no hunks) as a no-op success.
-  // Many tools (or user copy/paste) can produce diffs with only ---/+++ lines.
-  // A unified diff requires at least one @@ hunk to describe changes.
-  // We return success to indicate "nothing to do" instead of an error.
+  // Treat a file-header-only diff (no hunks) as a no-op success.
   const hasHeaders = /^(---|\+\+\+)\s/m.test(cleanDiff);
-  const hasHunks = /^@@\s/m.test(cleanDiff);
+  const hasHunks = /^@@/m.test(cleanDiff);
   if (hasHeaders && !hasHunks) {
     return { success: true, output: "No changes in patch (no hunks)." };
   }
 
-  // Parse the patch into per-file hunks (relaxed: allow @@ without numbers)
+  const baseDir = await resolveSubdir(root, workDir, true);
+
+  // Parse (strict first, relaxed fallback)
   let patches: StructuredPatch[];
   try {
     patches = await parseUnifiedDiffRelaxed({
       diffText: cleanDiff,
-      root,
-      workDir,
+      baseDir,
       maxOffsetLines,
     });
   } catch (e) {
-    // If we failed to parse but there are clearly no hunks, treat as no-op.
     if (hasHeaders && !hasHunks) {
       return { success: true, output: "No changes in patch (no hunks)." };
     }
-    return { success: false, output: "Failed to parse patch: " + (e instanceof Error ? e.message : String(e)) };
+    return { success: false, output: "Failed to parse patch: " + stringifyErr(e) };
   }
+
+  // Sanitize hunks to drop any non-change marker lines (e.g., "\\ No newline at end of file").
+  patches = sanitizeParsedPatches(patches);
+
   if (!patches.length) {
     return { success: false, output: "No file hunks found in patch." };
   }
 
-  const created: string[] = [];
-  const modified: string[] = [];
-  const deleted: string[] = [];
-  const renamed: Array<{ from: string; to: string }> = [];
-  const failed: Array<{ path: string; reason: string }> = [];
-
-  // Utility to stage changes with isomorphic-git when requested
-  const shouldStage = git && (git.stage ?? true);
-  const stageAdd = async (filepath: string) => {
-    if (!shouldStage || !git) return;
-    try {
-      await git.git.add({ fs: git.fs, dir: git.dir, filepath });
-    } catch (e) {
-      failed.push({ path: filepath, reason: "git add failed: " + stringifyErr(e) });
-    }
-  };
-  const stageRemove = async (filepath: string) => {
-    if (!shouldStage || !git) return;
-    try {
-      await git.git.remove({ fs: git.fs, dir: git.dir, filepath });
-    } catch (e) {
-      failed.push({ path: filepath, reason: "git remove failed: " + stringifyErr(e) });
-    }
-  };
-
-  const base = await resolveSubdir(root, workDir);
+  const tracker = new OperationTracker();
+  const stager = new GitStager(git, workDir, tracker);
+  const rollbacks: Array<() => Promise<void>> = [];
 
   // Apply each file patch
   for (const p of patches) {
     if (signal?.aborted) break;
 
-    // Paths can be "a/foo", "b/foo", or "/dev/null"
     const oldPath = normalizeGitPath(p.oldFileName);
     const newPath = normalizeGitPath(p.newFileName);
 
     const isCreate = oldPath === null && newPath !== null;
     const isDelete = newPath === null && oldPath !== null;
     const isRename = oldPath !== null && newPath !== null && oldPath !== newPath;
-    const targetPath = newPath ?? oldPath; // where to end up (null handled above)
+    const targetPath = newPath ?? oldPath;
 
-    if (targetPath === null) {
-      // Rare: both null; skip
-      continue;
-    }
+    if (targetPath === null) continue; // rare: both null
 
     try {
       if (isCreate) {
-        // Create new file from patch content applied to empty string
-        const out = applyPatch("", p);
+        // Create from empty pre-image
+        const out = applyPatch("", p as any);
         if (out === false) throw new Error("Hunks failed to apply for creation");
-        await writeTextFile(base, targetPath, out);
-        created.push(targetPath);
-        await stageAdd(stagePathForGit(workDir, targetPath, git?.dir));
-      } else if (isDelete) {
-        // Verify and delete
-        const before = await readTextFileOptional(base, oldPath!);
+
+        await writeTextFile(baseDir, targetPath, out);
+        tracker.created.push(targetPath);
+        await stager.add(targetPath);
+
+        rollbacks.push(async () => {
+          await safeDelete(baseDir, targetPath);
+          await stager.remove(targetPath);
+        });
+
+        continue;
+      }
+
+      if (isDelete) {
+        const before = await readTextFileOptional(baseDir, oldPath!);
         if (before === null) {
-          // If file missing, treat as already deleted (like --ignore-whitespace changed contexts)
-          await safeDelete(base, oldPath!);
-          deleted.push(oldPath!);
-          await stageRemove(stagePathForGit(workDir, oldPath!, git?.dir));
+          // Treat as already deleted
+          await safeDelete(baseDir, oldPath!);
+          tracker.deleted.push(oldPath!);
+          await stager.remove(oldPath!);
         } else {
-          const out = applyPatch(before, p);
+          const out = applyPatch(before, p as any);
           if (out === false) throw new Error("Hunks failed to apply for deletion");
-          // If patch results in empty (typical), delete; otherwise trust header and delete
-          await safeDelete(base, oldPath!);
-          deleted.push(oldPath!);
-          await stageRemove(stagePathForGit(workDir, oldPath!, git?.dir));
+
+          await safeDelete(baseDir, oldPath!);
+          tracker.deleted.push(oldPath!);
+          await stager.remove(oldPath!);
+
+          rollbacks.push(async () => {
+            await writeTextFile(baseDir, oldPath!, before);
+            await stager.add(oldPath!);
+          });
         }
+
+        continue;
+      }
+
+      // Modify (possibly with rename)
+      const before = await readTextFileOptional(baseDir, oldPath!);
+      if (before === null) throw new Error("Target file not found: " + oldPath);
+
+      const hasTextualChanges = patchHasTextualChanges(p);
+      const out = isRename && !hasTextualChanges ? before : applyPatch(before, p as any);
+      if (out === false) throw new Error("Hunks failed to apply");
+
+      if (isRename) {
+        await writeTextFile(baseDir, newPath!, out);
+        await safeDelete(baseDir, oldPath!);
+        tracker.renamed.push({ from: oldPath!, to: newPath! });
+        await stager.add(newPath!);
+        await stager.remove(oldPath!);
+
+        rollbacks.push(async () => {
+          await writeTextFile(baseDir, oldPath!, before);
+          await safeDelete(baseDir, newPath!);
+          await stager.add(oldPath!);
+          await stager.remove(newPath!);
+        });
       } else {
-        // Modify (possibly with rename)
-        const before = await readTextFileOptional(base, oldPath!);
-        if (before === null) throw new Error("Target file not found: " + oldPath);
+        await writeTextFile(baseDir, oldPath!, out);
+        tracker.modified.push(oldPath!);
+        await stager.add(oldPath!);
 
-        const out = applyPatch(before, p);
-        if (out === false) throw new Error("Hunks failed to apply");
-
-        if (isRename) {
-          // write new
-          await writeTextFile(base, newPath!, out);
-          // delete old
-          await safeDelete(base, oldPath!);
-          renamed.push({ from: oldPath!, to: newPath! });
-          await stageAdd(stagePathForGit(workDir, newPath!, git?.dir));
-          await stageRemove(stagePathForGit(workDir, oldPath!, git?.dir));
-        } else {
-          await writeTextFile(base, oldPath!, out);
-          modified.push(oldPath!);
-          await stageAdd(stagePathForGit(workDir, oldPath!, git?.dir));
-        }
+        rollbacks.push(async () => {
+          await writeTextFile(baseDir, oldPath!, before);
+          await stager.add(oldPath!);
+        });
       }
     } catch (e) {
-      failed.push({ path: targetPath, reason: stringifyErr(e) });
+      tracker.failed.push({ path: targetPath, reason: stringifyErr(e) });
     }
   }
 
-  const ok = failed.length === 0;
-  const summary = [
-    ok ? "Patch applied successfully." : "Patch completed with errors.",
-    created.length ? `Created: ${created.length}` : "",
-    modified.length ? `Modified: ${modified.length}` : "",
-    deleted.length ? `Deleted: ${deleted.length}` : "",
-    renamed.length ? `Renamed: ${renamed.length}` : "",
-    failed.length ? `Failed: ${failed.length}` : "",
-  ]
-    .filter(Boolean)
-    .join(" ");
+  const ok = tracker.failed.length === 0 && !signal?.aborted;
+
+  if (!ok) {
+    for (const undo of rollbacks.reverse()) {
+      try {
+        await undo();
+      } catch {
+        /* ignore */
+      }
+    }
+
+    tracker.created = [];
+    tracker.modified = [];
+    tracker.deleted = [];
+    tracker.renamed = [];
+  }
+
+  const summary = tracker.summary(ok, signal?.aborted) + (ok ? "" : " Changes reverted.");
 
   return {
     success: ok,
     output: summary,
-    details: { created, modified, deleted, renamed, failed },
+    details: {
+      created: tracker.created,
+      modified: tracker.modified,
+      deleted: tracker.deleted,
+      renamed: tracker.renamed,
+      failed: tracker.failed,
+    },
   };
 }
 
-// ---------------------------------------------------------------------------
-// OPFS helpers
-// ---------------------------------------------------------------------------
+// OPFS helpers moved to ../shared to be reused across utils.
 
-/** Resolve a subdirectory ('' means root) */
-async function resolveSubdir(root: FileSystemDirectoryHandle, subdir: string) {
-  if (!subdir) return root;
-  const segs = normalizeSegments(subdir);
-  let cur = root;
-  for (const s of segs) {
-    cur = await cur.getDirectoryHandle(s, { create: true });
+class GitStager {
+  private ctx?: ApplyPatchOptions["git"];
+  private shouldStage: boolean;
+  private workDir: string;
+  private tracker: OperationTracker;
+
+  constructor(ctx: ApplyPatchOptions["git"], workDir: string, tracker: OperationTracker) {
+    this.ctx = ctx;
+    this.workDir = workDir;
+    this.shouldStage = Boolean(ctx && (ctx.stage ?? true));
+    this.tracker = tracker;
   }
-  return cur;
-}
 
-/** Read a text file or return null if it doesn't exist */
-async function readTextFileOptional(root: FileSystemDirectoryHandle, path: string): Promise<string | null> {
-  try {
-    const fh = await getFileHandle(root, path, false);
-    const file = await fh.getFile();
-    return await file.text();
-  } catch (e: any) {
-    if (e && (e.name === "NotFoundError" || e.code === 1)) return null;
-    throw e;
+  async add(filePath: string) {
+    if (!this.shouldStage || !this.ctx) return;
+    try {
+      await this.ctx.git.add({
+        fs: this.ctx.fs,
+        dir: this.ctx.dir,
+        filepath: stagePathForGit(this.workDir, filePath, this.ctx.dir),
+      });
+    } catch (e) {
+      this.tracker.failed.push({ path: filePath, reason: "git add failed: " + stringifyErr(e) });
+    }
   }
-}
 
-/** Write text file (mkdir -p as needed) */
-async function writeTextFile(root: FileSystemDirectoryHandle, path: string, content: string): Promise<void> {
-  const dir = await getDirHandle(root, parentOf(path), true);
-  const fh = await dir.getFileHandle(basename(path), { create: true });
-  const w = await fh.createWritable();
-  try {
-    await w.write(content);
-  } finally {
-    await w.close();
-  }
-}
-
-/** Delete a file if present */
-async function safeDelete(root: FileSystemDirectoryHandle, path: string) {
-  const dir = await getDirHandle(root, parentOf(path), false).catch(() => null);
-  if (!dir) return;
-  try {
-    await dir.removeEntry(basename(path));
-  } catch (e: any) {
-    if (!(e && (e.name === "NotFoundError" || e.code === 1))) throw e;
+  async remove(filePath: string) {
+    if (!this.shouldStage || !this.ctx) return;
+    try {
+      await this.ctx.git.remove({
+        fs: this.ctx.fs,
+        dir: this.ctx.dir,
+        filepath: stagePathForGit(this.workDir, filePath, this.ctx.dir),
+      });
+    } catch (e) {
+      this.tracker.failed.push({
+        path: filePath,
+        reason: "git remove failed: " + stringifyErr(e),
+      });
+    }
   }
 }
 
-/** Get a FileSystemFileHandle (optionally creating) */
-async function getFileHandle(root: FileSystemDirectoryHandle, path: string, create: boolean) {
-  const dir = await getDirHandle(root, parentOf(path), create);
-  return await dir.getFileHandle(basename(path), { create });
+/** Map OPFS path to isomorphic-git `filepath` when staging */
+export function stagePathForGit(workDir: string, filePath: string, _gitDir?: string) {
+  // isomorphic-git expects a path relative to `dir`
+  const base = workDir ? normalizeSegments(workDir).join("/") : "";
+  return base ? joinPath(base, filePath) : filePath;
 }
-
-/** Get (and optionally create) a directory for a path's parent */
-async function getDirHandle(root: FileSystemDirectoryHandle, path: string, create: boolean) {
-  if (!path) return root;
-  const segs = normalizeSegments(path);
-  let cur = root;
-  for (const s of segs) {
-    cur = await cur.getDirectoryHandle(s, { create });
-  }
-  return cur;
-}
-
-// ---------------------------------------------------------------------------
-// Path utilities
-// ---------------------------------------------------------------------------
 
 /** Normalize a git path field: strip a/ or b/, handle /dev/null, remove leading /, collapse .. */
 export function normalizeGitPath(input?: string): string | null {
@@ -293,30 +298,21 @@ export function normalizeGitPath(input?: string): string | null {
   return segs.join("/");
 }
 
-/** Map OPFS path to isomorphic-git `filepath` when staging */
-export function stagePathForGit(workDir: string, filePath: string, _gitDir?: string) {
-  // isomorphic-git expects a path relative to `dir`
-  // If your `dir` points to the same root as `root/workDir`, then this is just workDir/filePath
-  const rel = (workDir ? normalizeSegments(workDir).join("/") + "/" : "") + filePath;
-  return rel;
-}
-
 function stringifyErr(e: unknown) {
   return e instanceof Error ? e.message : String(e);
 }
 
-// ---------------------------------------------------------------------------
-// Relaxed unified diff parsing and fuzzy placement
-// ---------------------------------------------------------------------------
+function patchHasTextualChanges(p: Pick<StructuredPatch, "hunks">): boolean {
+  return p.hunks?.some((h) => h.lines?.some((l) => l.startsWith("+") || l.startsWith("-"))) ?? true;
+}
 
 interface RelaxedHunk {
   header: string;
-  // If numeric header exists, values are present; otherwise undefined
   oldStart?: number;
   oldLines?: number;
   newStart?: number;
   newLines?: number;
-  lines: string[]; // hunk body lines including leading prefixes (' ', '+', '-')
+  lines: string[]; // body lines including prefixes (' ', '+', '-')
 }
 
 interface RelaxedFilePatch {
@@ -330,54 +326,62 @@ const HUNK_ANY_RE = /^@@/;
 
 async function parseUnifiedDiffRelaxed(args: {
   diffText: string;
-  root: FileSystemDirectoryHandle;
-  workDir: string;
+  baseDir: FileSystemDirectoryHandle;
   maxOffsetLines: number;
 }): Promise<StructuredPatch[]> {
-  const { diffText, root, workDir, maxOffsetLines } = args;
+  const { diffText, baseDir, maxOffsetLines } = args;
 
-  // Try the strict parser first; if it works, return immediately
-  // We still enforce maxOffsetLines for numeric hunks by leaving placement to the library,
-  // but since we cannot observe its chosen offset, we only enforce during relaxed flow.
+  // Try strict parser first; if it succeeds, convert into a relaxed representation
+  // and continue with our placement logic (to support numberless @@ and offset search).
+  let files: RelaxedFilePatch[] | null = null;
   try {
-    return parsePatch(diffText);
+    const strict = parsePatch(diffText) as unknown as StructuredPatch[];
+    files = strict.map((sp) => ({
+      oldFileName: sp.oldFileName,
+      newFileName: sp.newFileName,
+      hunks: (sp.hunks || []).map((h: any) => ({
+        header: "",
+        oldStart: typeof h.oldStart === "number" && Number.isFinite(h.oldStart) ? h.oldStart : undefined,
+        oldLines: typeof h.oldLines === "number" && Number.isFinite(h.oldLines) ? h.oldLines : undefined,
+        newStart: typeof h.newStart === "number" && Number.isFinite(h.newStart) ? h.newStart : undefined,
+        newLines: typeof h.newLines === "number" && Number.isFinite(h.newLines) ? h.newLines : undefined,
+        lines: (h.lines || []) as string[],
+      })),
+    }));
   } catch {
-    // Fall through to relaxed parsing
+    // Fall through to relaxed parsing from raw text
   }
 
-  const files = collectFilePatches(diffText);
+  if (!files) {
+    files = collectFilePatches(diffText);
+  }
   if (!files.length) return [];
 
   const structured: StructuredPatch[] = [];
+
   for (const file of files) {
     const oldPath = normalizeGitPath(file.oldFileName);
     const newPath = normalizeGitPath(file.newFileName);
     const isDelete = oldPath !== null && newPath === null;
 
-    // Build per-file structured patch with fuzzy placement
-    const beforeText = oldPath ? await readTextFileOptional(await resolveSubdir(root, workDir), oldPath) : null;
+    // Pre-image
+    const beforeText = oldPath ? await readTextFileOptional(baseDir, oldPath) : null;
     const beforeLines = (beforeText ?? "").split(/\r?\n/);
 
-    const placedHunks: Array<{
-      oldStart: number;
-      oldLines: number;
-      newStart: number;
-      newLines: number;
-      lines: string[];
-    }> = [];
-
-    let cumulativeDelta = 0; // track line count delta from previous hunks for newStart suggestion
+    const placedHunks: StructuredPatch["hunks"] = [];
+    let cumulativeDelta = 0;
 
     for (const h of file.hunks) {
+      const filtered = (h.lines || []).filter((l) => l?.startsWith(" ") || l?.startsWith("+") || l?.startsWith("-"));
       // Compute counts
-      const oldBody = h.lines.filter((l) => l.startsWith(" ") || l.startsWith("-"));
-      const newBody = h.lines.filter((l) => l.startsWith(" ") || l.startsWith("+"));
+      const oldBody = filtered.filter((l) => l.startsWith(" ") || l.startsWith("-"));
+      const newBody = filtered.filter((l) => l.startsWith(" ") || l.startsWith("+"));
       const oldCount = oldBody.length;
       const newCount = newBody.length;
 
       let chosenOldStart: number | undefined = h.oldStart;
 
-      // If we have a numeric header, try to enforce maxOffset
+      // Enforce maxOffset when numeric header is present
       if (h.oldStart && oldPath && beforeLines.length) {
         const expectedIndex = h.oldStart - 1;
         const windowStart = Math.max(0, expectedIndex - maxOffsetLines);
@@ -387,28 +391,26 @@ async function parseUnifiedDiffRelaxed(args: {
         const within = findSubsequenceIndex(beforeLines, oldSeq, windowStart, windowEnd);
 
         if (within === -1) {
-          throw new Error(
-            `Hunk placement exceeds maxOffsetLines (${maxOffsetLines}) for ${oldPath} at declared line ${h.oldStart}.`,
-          );
+          // Fall back to declared position; let applyPatch surface the failure
+          chosenOldStart = expectedIndex + 1;
+        } else {
+          chosenOldStart = within + 1;
         }
-        chosenOldStart = within + 1;
       }
 
-      // If no numeric header (or no oldStart provided), search entire file
+      // No numeric header: search entire file
       if (!chosenOldStart) {
         if (!oldPath) {
-          // Creation hunk; place at start of file (empty pre-image)
+          // Creation hunk; place at start (empty pre-image)
           chosenOldStart = 1;
         } else if (isDelete && beforeText === null) {
-          // Deletion of a missing file: skip anchoring and let higher-level logic treat as already deleted
+          // Deleting a missing file: allow and continue
           chosenOldStart = 1;
         } else {
           const oldSeq = oldBody.map((l) => l.slice(1));
           const idx = findSubsequenceIndex(beforeLines, oldSeq, 0, beforeLines.length);
-          if (oldSeq.length > 0 && idx === -1) {
-            throw new Error(`Could not locate hunk context in ${oldPath} for numberless @@ header.`);
-          }
-          chosenOldStart = (idx === -1 ? 0 : idx) + 1; // when no anchor lines, default to 1
+          // If we cannot find the context, let applyPatch report failure later.
+          chosenOldStart = (idx === -1 ? 0 : idx) + 1; // when no context, default to 1
         }
       }
 
@@ -419,7 +421,7 @@ async function parseUnifiedDiffRelaxed(args: {
         oldLines: oldCount,
         newStart: suggestedNewStart,
         newLines: newCount,
-        lines: h.lines,
+        lines: filtered,
       });
 
       cumulativeDelta += newCount - oldCount;
@@ -435,6 +437,7 @@ async function parseUnifiedDiffRelaxed(args: {
   return structured;
 }
 
+// Parse relaxed unified diff by scanning headers and hunks.
 function collectFilePatches(diffText: string): RelaxedFilePatch[] {
   const lines = diffText.split(/\r?\n/);
   const files: RelaxedFilePatch[] = [];
@@ -470,8 +473,8 @@ function collectFilePatches(diffText: string): RelaxedFilePatch[] {
         }
 
         i++;
-
         const body: string[] = [];
+
         while (i < lines.length) {
           const l = lines[i];
           if (l?.startsWith("--- ") || HUNK_ANY_RE.test(l || "") || l?.startsWith("diff --git ")) break;
@@ -509,7 +512,6 @@ function toInt(s: string): number {
 }
 
 function findSubsequenceIndex(haystack: string[], needle: string[], from: number, to: number): number {
-  // Empty needle matches at 'from'
   if (needle.length === 0) return from;
 
   const end = Math.min(haystack.length, to);
@@ -524,4 +526,34 @@ function findSubsequenceIndex(haystack: string[], needle: string[], from: number
     if (ok) return i;
   }
   return -1;
+}
+
+class OperationTracker {
+  created: string[] = [];
+  modified: string[] = [];
+  deleted: string[] = [];
+  renamed: Array<{ from: string; to: string }> = [];
+  failed: Array<{ path: string; reason: string }> = [];
+
+  summary(ok: boolean, aborted?: boolean): string {
+    const parts = [
+      aborted ? "Patch aborted." : ok ? "Patch applied successfully." : "Patch completed with errors.",
+      this.created.length ? `Created: ${this.created.length}` : "",
+      this.modified.length ? `Modified: ${this.modified.length}` : "",
+      this.deleted.length ? `Deleted: ${this.deleted.length}` : "",
+      this.renamed.length ? `Renamed: ${this.renamed.length}` : "",
+      this.failed.length ? `Failed: ${this.failed.length}` : "",
+    ].filter(Boolean);
+    return parts.join(" ");
+  }
+}
+
+function sanitizeParsedPatches(patches: StructuredPatch[]): StructuredPatch[] {
+  return patches.map((p) => ({
+    ...p,
+    hunks: (p.hunks || []).map((h) => ({
+      ...h,
+      lines: (h.lines || []).filter((l) => typeof l === "string" && /^[ +-]/.test(l)),
+    })),
+  }));
 }

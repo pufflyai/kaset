@@ -126,6 +126,15 @@ Multi-file patch example:
  }
 \`\`\`
 
+Create file patch example:
+
+\`\`\`
+--- /dev/null
++++ b/notes/added.txt
+@@
++Hello!
+\`\`\`
+
 ## opfs_delete_file (approval-gated)
 Delete a file.
 

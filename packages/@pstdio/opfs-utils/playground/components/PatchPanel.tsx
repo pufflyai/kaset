@@ -2,7 +2,13 @@ import { createTwoFilesPatch } from "diff";
 import { useState } from "react";
 import { applyPatchInOPFS as patch } from "../../src/utils/opfs-patch";
 import { getDirHandle, readTextFile } from "../opfs-helpers";
-import { PATCH_CREATE_FILE, PATCH_MODIFY_INDEX, PATCH_MULTI_FILE, PATCH_MODIFY_INDEX_NO_LINES } from "../samples";
+import {
+  PATCH_CREATE_FILE,
+  PATCH_MODIFY_INDEX,
+  PATCH_MULTI_FILE,
+  PATCH_MODIFY_INDEX_NO_LINES,
+  PATCH_TODOS_SATURDAY_NON_CONSECUTIVE,
+} from "../samples";
 import { Button, MonoBlock, Row, Section, TextArea, TextInput } from "./ui";
 
 export function PatchPanel({
@@ -93,6 +99,9 @@ export function PatchPanel({
         <Button onClick={() => setPatchContent(PATCH_CREATE_FILE)}>Insert sample create diff</Button>
         <Button onClick={() => setPatchContent(PATCH_MULTI_FILE)}>Insert sample multi-file diff</Button>
         <Button onClick={() => setPatchContent(PATCH_MODIFY_INDEX_NO_LINES)}>Insert sample no-line-number diff</Button>
+        <Button onClick={() => setPatchContent(PATCH_TODOS_SATURDAY_NON_CONSECUTIVE)}>
+          Insert sample non-consecutive multi-line diff
+        </Button>
         <Button onClick={handlePatch} disabled={!root}>
           Apply patch
         </Button>
