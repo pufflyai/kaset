@@ -76,10 +76,7 @@ export async function getFileHandle(
 }
 
 /** Read a text file or return null if it doesn't exist. */
-export async function readTextFileOptional(
-  root: FileSystemDirectoryHandle,
-  path: string,
-): Promise<string | null> {
+export async function readTextFileOptional(root: FileSystemDirectoryHandle, path: string): Promise<string | null> {
   try {
     const fh = await getFileHandle(root, path, false);
     const file = await fh.getFile();
@@ -91,11 +88,7 @@ export async function readTextFileOptional(
 }
 
 /** Write text file (mkdir -p as needed). */
-export async function writeTextFile(
-  root: FileSystemDirectoryHandle,
-  path: string,
-  content: string,
-): Promise<void> {
+export async function writeTextFile(root: FileSystemDirectoryHandle, path: string, content: string): Promise<void> {
   const dir = await getDirHandle(root, parentOf(path), true);
   const fh = await dir.getFileHandle(basename(path), { create: true });
   const w = await fh.createWritable();

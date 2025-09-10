@@ -1,7 +1,11 @@
 import PACKAGE_README from "../README.md?raw";
 import { SAMPLE_INDEX_TS, SAMPLE_SVG, SAMPLE_TODOS_SATURDAY, SAMPLE_UTIL_TS } from "./samples";
 import { basename, parentOf } from "../src/utils/path";
-import { getDirHandle as sharedGetDirHandle, writeTextFile as sharedWriteTextFile, readTextFileOptional } from "../src/shared";
+import {
+  getDirHandle as sharedGetDirHandle,
+  writeTextFile as sharedWriteTextFile,
+  readTextFileOptional,
+} from "../src/shared";
 
 // Re-export shared helpers for playground consumers
 export const getDirHandle = sharedGetDirHandle;
@@ -12,7 +16,9 @@ export async function readTextFile(root: FileSystemDirectoryHandle, path: string
 }
 
 export async function deleteEntry(root: FileSystemDirectoryHandle, path: string) {
-  const dir = await sharedGetDirHandle(root, parentOf(path), false).catch(() => null as unknown as FileSystemDirectoryHandle);
+  const dir = await sharedGetDirHandle(root, parentOf(path), false).catch(
+    () => null as unknown as FileSystemDirectoryHandle,
+  );
   if (!dir) return;
   try {
     await dir.removeEntry(basename(path), { recursive: true } as any);

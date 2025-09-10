@@ -108,6 +108,7 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
 
   const tracker = new OperationTracker();
   const stager = new GitStager(git, workDir, tracker);
+  const rollbacks: Array<() => Promise<void>> = [];
 
   // Apply each file patch
   for (const p of patches) {
@@ -128,9 +129,16 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
         // Create from empty pre-image
         const out = applyPatch("", p as any);
         if (out === false) throw new Error("Hunks failed to apply for creation");
+
         await writeTextFile(baseDir, targetPath, out);
         tracker.created.push(targetPath);
         await stager.add(targetPath);
+
+        rollbacks.push(async () => {
+          await safeDelete(baseDir, targetPath);
+          await stager.remove(targetPath);
+        });
+
         continue;
       }
 
@@ -144,10 +152,17 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
         } else {
           const out = applyPatch(before, p as any);
           if (out === false) throw new Error("Hunks failed to apply for deletion");
+
           await safeDelete(baseDir, oldPath!);
           tracker.deleted.push(oldPath!);
           await stager.remove(oldPath!);
+
+          rollbacks.push(async () => {
+            await writeTextFile(baseDir, oldPath!, before);
+            await stager.add(oldPath!);
+          });
         }
+
         continue;
       }
 
@@ -165,10 +180,22 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
         tracker.renamed.push({ from: oldPath!, to: newPath! });
         await stager.add(newPath!);
         await stager.remove(oldPath!);
+
+        rollbacks.push(async () => {
+          await writeTextFile(baseDir, oldPath!, before);
+          await safeDelete(baseDir, newPath!);
+          await stager.add(oldPath!);
+          await stager.remove(newPath!);
+        });
       } else {
         await writeTextFile(baseDir, oldPath!, out);
         tracker.modified.push(oldPath!);
         await stager.add(oldPath!);
+
+        rollbacks.push(async () => {
+          await writeTextFile(baseDir, oldPath!, before);
+          await stager.add(oldPath!);
+        });
       }
     } catch (e) {
       tracker.failed.push({ path: targetPath, reason: stringifyErr(e) });
@@ -176,7 +203,23 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
   }
 
   const ok = tracker.failed.length === 0 && !signal?.aborted;
-  const summary = tracker.summary(ok, signal?.aborted);
+
+  if (!ok) {
+    for (const undo of rollbacks.reverse()) {
+      try {
+        await undo();
+      } catch {
+        /* ignore */
+      }
+    }
+
+    tracker.created = [];
+    tracker.modified = [];
+    tracker.deleted = [];
+    tracker.renamed = [];
+  }
+
+  const summary = tracker.summary(ok, signal?.aborted) + (ok ? "" : " Changes reverted.");
 
   return {
     success: ok,
@@ -510,7 +553,7 @@ function sanitizeParsedPatches(patches: StructuredPatch[]): StructuredPatch[] {
     ...p,
     hunks: (p.hunks || []).map((h) => ({
       ...h,
-      lines: (h.lines || []).filter((l) => typeof l === "string" && (/^[ +\-]/.test(l))),
+      lines: (h.lines || []).filter((l) => typeof l === "string" && /^[ +-]/.test(l)),
     })),
   }));
 }
