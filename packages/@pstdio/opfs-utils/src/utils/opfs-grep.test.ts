@@ -36,7 +36,7 @@ describe("grep over OPFS", () => {
 
     await writeFile(root, "readme.txt", "hello world\nbye");
 
-    const matches = await grep(root, { pattern: "world" });
+    const matches = await grep("", { pattern: "world" });
     expect(matches).toHaveLength(1);
     expect(matches[0].file).toBe("readme.txt");
   });
@@ -48,7 +48,7 @@ describe("grep over OPFS", () => {
     await writeFile(root, "docs/notes.txt", "hello from notes\n");
     await writeFile(root, "readme.md", "hello from readme\n");
 
-    const matches = await grep(root, {
+    const matches = await grep("", {
       pattern: /hello/,
       include: ["**/*.{ts,tsx,md,txt}"],
       exclude: ["**/*.md"],

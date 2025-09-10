@@ -1,25 +1,16 @@
 import { useState } from "react";
 import { processSingleFileContent, type ProcessedFileReadResult } from "../../src/utils/opfs-files";
-import { getDirHandle } from "../opfs-helpers";
+import { getDirHandle } from "../helpers";
 import { Button, MonoBlock, Row, Section, TextInput } from "./ui";
 
-export function ReadPanel({
-  root,
-  baseDir,
-  onStatus,
-}: {
-  root: FileSystemDirectoryHandle | null;
-  baseDir: string;
-  onStatus: (s: string) => void;
-}) {
+export function ReadPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {
   const [readPath, setReadPath] = useState<string>("src/index.ts");
   const [readOffset, setReadOffset] = useState<number>(0);
   const [readLimit, setReadLimit] = useState<number>(200);
   const [readResult, setReadResult] = useState<ProcessedFileReadResult | null>(null);
 
   async function handleRead() {
-    if (!root) return;
-    const dir = await getDirHandle(root, baseDir, true);
+    const dir = await getDirHandle(baseDir, true);
 
     onStatus("Reading file...");
     const res = await processSingleFileContent(readPath, "", dir, readOffset, readLimit);
@@ -54,9 +45,7 @@ export function ReadPanel({
           onChange={(e) => setReadLimit(Number(e.currentTarget.value) || 0)}
           width={120}
         />
-        <Button onClick={handleRead} disabled={!root}>
-          Read file
-        </Button>
+        <Button onClick={handleRead}>Read file</Button>
       </Row>
 
       <div style={{ marginTop: 10 }}>

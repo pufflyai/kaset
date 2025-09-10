@@ -5,18 +5,10 @@ import {
   type FileUploadBaseOptions,
   type FileUploadResult,
 } from "../../src/utils/opfs-upload";
-import { getDirHandle } from "../opfs-helpers";
+import { getDirHandle } from "../helpers";
 import { Button, MonoBlock, Row, Section, TextInput } from "./ui";
 
-export function UploadPanel({
-  root,
-  baseDir,
-  onStatus,
-}: {
-  root: FileSystemDirectoryHandle | null;
-  baseDir: string;
-  onStatus: (s: string) => void;
-}) {
+export function UploadPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {
   const [destSubdir, setDestSubdir] = useState("");
   const [overwrite, setOverwrite] = useState<FileUploadBaseOptions["overwrite"]>("replace");
   const [accept, setAccept] = useState(".csv,.json,.txt,.xlsx,.parquet");
@@ -24,13 +16,11 @@ export function UploadPanel({
   const [result, setResult] = useState<FileUploadResult | null>(null);
 
   async function getDestRoot() {
-    if (!root) return null;
-    return await getDirHandle(root, baseDir, true);
+    return await getDirHandle(baseDir, true);
   }
 
   async function handlePick() {
     const dir = await getDestRoot();
-    if (!dir) return;
     onStatus("Picking...");
     try {
       const res = await pickAndUploadFilesToDirectory(dir, {
@@ -48,7 +38,6 @@ export function UploadPanel({
 
   async function handleProgrammatic() {
     const dir = await getDestRoot();
-    if (!dir) return;
     onStatus("Uploading...");
     const f = new File(["demo"], "demo.txt", { type: "text/plain" });
     const res = await uploadFilesToDirectory(dir, [f], { destSubdir, overwrite });
@@ -86,12 +75,8 @@ export function UploadPanel({
           <input type="checkbox" checked={multiple} onChange={(e) => setMultiple(e.currentTarget.checked)} />
           Multiple
         </label>
-        <Button onClick={handlePick} disabled={!root}>
-          Pick & Upload
-        </Button>
-        <Button onClick={handleProgrammatic} disabled={!root}>
-          Upload (demo)
-        </Button>
+        <Button onClick={handlePick}>Pick & Upload</Button>
+        <Button onClick={handleProgrammatic}>Upload (demo)</Button>
       </Row>
       {result && (
         <div style={{ marginTop: 8 }}>

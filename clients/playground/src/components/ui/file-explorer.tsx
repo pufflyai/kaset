@@ -189,8 +189,8 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
     let cancelled = false;
     (async () => {
       try {
-        const handle = await getDirectoryHandle(rootDir);
-        const entries = await ls(handle, { maxDepth: Infinity, kinds: ["directory"] });
+        await getDirectoryHandle(rootDir);
+        const entries = await ls(rootDir, { maxDepth: Infinity, kinds: ["directory"] });
 
         const prefix = rootDir ? rootDir.replace(/\/+$/, "") + "/" : "";
         const next = new Set<string>();
@@ -312,10 +312,10 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
           // If we just deleted the currently selected file, move selection.
           if ((selectedPath ?? null) === node.id) {
             // Prefer another file in the same directory.
-            const siblings = await ls(currentDir, { maxDepth: 1, kinds: ["file"], sortBy: "name" });
-
             const dirRelParts = relParts.slice(0, -1);
             const dirRelPath = dirRelParts.join("/");
+            const currentDirPath = [rootDir, dirRelPath].filter(Boolean).join("/");
+            const siblings = await ls(currentDirPath, { maxDepth: 1, kinds: ["file"], sortBy: "name" });
 
             const toAbs = (name: string) => [rootDir, dirRelPath, name].filter((s) => !!s && s.length > 0).join("/");
 
@@ -326,7 +326,7 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
               nextPath = toAbs(siblings[0].name);
             } else {
               // Otherwise, pick the first file anywhere under the project root
-              const all = await ls(dir, {
+              const all = await ls(rootDir, {
                 maxDepth: Infinity,
                 kinds: ["file"],
                 sortBy: "path",

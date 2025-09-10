@@ -129,8 +129,8 @@ export function TodoList() {
     try {
       setError(null);
 
-      const dir = await ensureDir(listsDirPath);
-      const entries = await ls(dir, { maxDepth: 1, kinds: ["file"], include: ["*.md"] });
+      await ensureDir(listsDirPath);
+      const entries = await ls(listsDirPath, { maxDepth: 1, kinds: ["file"], include: ["*.md"] });
 
       const names = entries.map((e) => e.name).sort((a, b) => a.localeCompare(b));
       setLists(names);
@@ -328,12 +328,11 @@ export function TodoList() {
         await ensureDir(listsDirPath);
         await refreshLists();
 
-        const dir = await getDirectoryHandle(listsDirPath);
         const ac = new AbortController();
         dirAbortRef.current = ac;
 
         cleanup = await watchDirectory(
-          dir,
+          listsDirPath,
           (changes) => {
             if (cancelled) return;
             const selected = selectedList;

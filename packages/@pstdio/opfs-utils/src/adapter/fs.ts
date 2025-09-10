@@ -2,53 +2,78 @@ import { configureSingle, fs } from "@zenfs/core";
 import { WebAccess } from "@zenfs/dom";
 
 let initPromise: Promise<void> | null = null;
-let isConfigured = false;
-let currentRoot: FileSystemDirectoryHandle | null = null;
+let configuredRoot: FileSystemDirectoryHandle | null = null;
+
+/**
+ * Safely get OPFS root getter or null if unsupported.
+ */
+function getOPFSRootGetter(): (() => Promise<FileSystemDirectoryHandle>) | null {
+  if (typeof navigator === "undefined" || !navigator.storage) return null;
+
+  const getDirectory = (
+    navigator.storage as StorageManager & {
+      getDirectory?: () => Promise<FileSystemDirectoryHandle>;
+    }
+  ).getDirectory;
+
+  return typeof getDirectory === "function" ? getDirectory.bind(navigator.storage) : null;
+}
+
+/**
+ * Compare directory handles robustly. Prefer FileSystemHandle.isSameEntry if present.
+ * Falls back to reference equality when needed.
+ */
+async function sameRoot(a: FileSystemDirectoryHandle | null, b: FileSystemDirectoryHandle): Promise<boolean> {
+  if (!a) return false;
+
+  const anyA = a as unknown as { isSameEntry?: (o: FileSystemDirectoryHandle) => Promise<boolean> };
+  if (typeof anyA.isSameEntry === "function") {
+    try {
+      return await anyA.isSameEntry(b);
+    } catch {
+      // Some environments can throw; fall through to reference equality.
+    }
+  }
+  return a === b;
+}
+
+/**
+ * Ensures ZenFS is configured for the provided root, handling concurrent callers.
+ */
+async function ensureConfiguredFor(root: FileSystemDirectoryHandle): Promise<void> {
+  // Already configured for this root? Ensure any in-flight init has settled.
+  if (await sameRoot(configuredRoot, root)) {
+    if (initPromise) await initPromise;
+    return;
+  }
+
+  // Another init may be in flight; await it and re-check before proceeding.
+  if (initPromise) {
+    await initPromise;
+    if (await sameRoot(configuredRoot, root)) return;
+  }
+
+  initPromise = (async () => {
+    try {
+      await configureSingle({ backend: WebAccess, handle: root });
+      configuredRoot = root;
+    } finally {
+      initPromise = null;
+    }
+  })();
+
+  await initPromise;
+}
 
 export async function getFs(): Promise<typeof fs> {
-  const storage = (typeof navigator !== "undefined" ? navigator.storage : undefined) as StorageManager | undefined;
-  const getDir = storage?.getDirectory as undefined | (() => Promise<FileSystemDirectoryHandle>);
+  const getDir = getOPFSRootGetter();
 
-  if (typeof getDir !== "function") {
+  if (!getDir) {
     throw new Error("OPFS is not supported (navigator.storage.getDirectory unavailable).");
   }
 
   const root = await getDir();
-
-  // Fast path: already configured for this root
-  if (isConfigured && currentRoot === root) {
-    // If an initialization is somehow still in flight, await it
-    if (initPromise) await initPromise;
-    return fs;
-  }
-
-  // If another initialization is in flight (possibly from another caller), await it first
-  if (initPromise) {
-    await initPromise;
-
-    // After awaiting, check again if we're now configured for this root
-    if (isConfigured && currentRoot === root) {
-      return fs;
-    }
-  }
-
-  // Configure (or reconfigure) ZenFS for the current root
-  const p = (initPromise = (async () => {
-    await configureSingle({ backend: WebAccess, handle: root });
-    currentRoot = root;
-    isConfigured = true;
-  })());
-
-  try {
-    await p;
-  } catch (err) {
-    // Reset so future calls can retry initialization
-    initPromise = null;
-    throw err;
-  } finally {
-    // Clear the promise after completion (success or failure handled above)
-    initPromise = null;
-  }
+  await ensureConfiguredFor(root);
 
   return fs;
 }

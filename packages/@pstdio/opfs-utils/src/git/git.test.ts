@@ -4,7 +4,7 @@ import * as git from "isomorphic-git";
 import * as path from "path";
 import { describe, expect, it } from "vitest";
 
-import { commitAll, ensureRepo, getRepoStatus, listCommits, type GitContext } from "./opfs-git";
+import { commitAll, ensureRepo, getRepoStatus, listCommits, type GitContext } from "./git";
 
 async function makeTempRepoDir(prefix = "opfs-git-test-") {
   const base = path.join(process.cwd(), ".tmp-tests");

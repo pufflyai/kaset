@@ -1,8 +1,9 @@
+import type { fs } from "@zenfs/core";
 import type * as IsomorphicGit from "isomorphic-git";
 
 export type GitContext = {
   git: typeof IsomorphicGit;
-  fs: any;
+  fs: typeof fs;
   dir: string; // repo root path
 };
 
@@ -63,13 +64,7 @@ export type CommitEntry = {
 /**
  * Ensure a repo exists; create it if needed. Sets user.name / user.email if provided.
  */
-export async function ensureRepo(
-  ctx: GitContext,
-  opts: EnsureRepoOptions = {},
-): Promise<{
-  created: boolean;
-  currentBranch: string;
-}> {
+export async function ensureRepo(ctx: GitContext, opts: EnsureRepoOptions = {}) {
   const { git, fs, dir } = ctx;
   const defaultBranch = opts.defaultBranch ?? "main";
 
@@ -120,7 +115,7 @@ export async function ensureRepo(
  * Summarize the repo status using isomorphic-git's status matrix / status strings.
  * Groups files into added/modified/deleted/untracked for convenience.
  */
-export async function getRepoStatus(ctx: GitContext): Promise<RepoStatus> {
+export async function getRepoStatus(ctx: GitContext) {
   const { git, fs, dir } = ctx;
   const matrix = await git.statusMatrix({ fs, dir });
 
@@ -228,7 +223,7 @@ export async function commitAll(ctx: GitContext, options: CommitAllOptions): Pro
 /**
  * Retrieve a compact list of recent commits from the given ref (default: current branch / HEAD).
  */
-export async function listCommits(ctx: GitContext, opts: ListCommitsOptions = {}): Promise<CommitEntry[]> {
+export async function listCommits(ctx: GitContext, opts: ListCommitsOptions = {}) {
   const { git, fs, dir } = ctx;
   const { limit = 20 } = opts;
 

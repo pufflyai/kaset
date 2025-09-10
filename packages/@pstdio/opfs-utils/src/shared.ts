@@ -1,4 +1,4 @@
-import { basename, parentOf, normalizeSegments } from "./utils/path";
+import * as migrated from "./shared.migrated";
 
 export async function getOPFSRoot(): Promise<FileSystemDirectoryHandle> {
   const storage = (typeof navigator !== "undefined" ? navigator.storage : undefined) as StorageManager | undefined;
@@ -28,86 +28,33 @@ export async function getDirectoryHandle(path = ""): Promise<FileSystemDirectory
 }
 
 /** Resolve a subdirectory under a provided root. Creates directories when `create` is true. */
-export async function resolveSubdir(
-  root: FileSystemDirectoryHandle,
-  subdir: string,
-  create = false,
-): Promise<FileSystemDirectoryHandle> {
-  if (!subdir) return root;
-
-  const segs = normalizeSegments(subdir);
-
-  let cur = root;
-
-  for (const s of segs) {
-    cur = await cur.getDirectoryHandle(s, { create });
-  }
-
-  return cur;
+export async function resolveSubdir(_: FileSystemDirectoryHandle, subdir: string, create = false) {
+  return migrated.resolveSubdir(subdir, create);
 }
 
 /** Get (and optionally create) a directory for a path string relative to `root`. */
-export async function getDirHandle(
-  root: FileSystemDirectoryHandle,
-  path: string,
-  create: boolean,
-): Promise<FileSystemDirectoryHandle> {
-  if (!path) return root;
-
-  const segs = normalizeSegments(path);
-
-  let cur = root;
-
-  for (const s of segs) {
-    cur = await cur.getDirectoryHandle(s, { create });
-  }
-
-  return cur;
+export async function getDirHandle(_: FileSystemDirectoryHandle, path: string, create: boolean) {
+  return migrated.getDirHandle(path, create);
 }
 
 /** Get a FileSystemFileHandle (optionally creating) relative to `root`. */
-export async function getFileHandle(
-  root: FileSystemDirectoryHandle,
-  path: string,
-  create: boolean,
-): Promise<FileSystemFileHandle> {
-  const dir = await getDirHandle(root, parentOf(path), create);
-  return await dir.getFileHandle(basename(path), { create });
+export async function getFileHandle(_: FileSystemDirectoryHandle, path: string, create: boolean) {
+  await migrated.getFileHandle(path, create);
 }
 
 /** Read a text file or return null if it doesn't exist. */
-export async function readTextFileOptional(root: FileSystemDirectoryHandle, path: string): Promise<string | null> {
-  try {
-    const fh = await getFileHandle(root, path, false);
-    const file = await fh.getFile();
-    return await file.text();
-  } catch (e: any) {
-    if (e && (e.name === "NotFoundError" || e.code === 1)) return null;
-    throw e;
-  }
+export async function readTextFileOptional(_: FileSystemDirectoryHandle, path: string): Promise<string | null> {
+  return migrated.readTextFileOptional(path);
 }
 
 /** Write text file (mkdir -p as needed). */
-export async function writeTextFile(root: FileSystemDirectoryHandle, path: string, content: string): Promise<void> {
-  const dir = await getDirHandle(root, parentOf(path), true);
-  const fh = await dir.getFileHandle(basename(path), { create: true });
-  const w = await fh.createWritable();
-  try {
-    await w.write(content);
-  } finally {
-    await w.close();
-  }
+export async function writeTextFile(_: FileSystemDirectoryHandle, path: string, content: string) {
+  await migrated.writeTextFile(path, content);
 }
 
 /** Delete a file if present (no-op when missing). */
-export async function safeDelete(root: FileSystemDirectoryHandle, path: string): Promise<void> {
-  const dir = await getDirHandle(root, parentOf(path), false).catch(() => null as unknown as FileSystemDirectoryHandle);
-  if (!dir) return;
-  try {
-    await dir.removeEntry(basename(path));
-  } catch (e: any) {
-    if (!(e && (e.name === "NotFoundError" || e.code === 1))) throw e;
-  }
+export async function safeDelete(_: FileSystemDirectoryHandle, path: string) {
+  await migrated.safeDelete(path);
 }
 
 /**

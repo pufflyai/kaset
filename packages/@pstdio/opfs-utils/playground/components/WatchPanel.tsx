@@ -5,18 +5,9 @@ import {
   type DirectoryWatcherCleanup,
   type WatchOptions,
 } from "../../src/utils/opfs-watch";
-import { getDirHandle } from "../opfs-helpers";
 import { Button, MonoBlock, Row, Section, TextInput } from "./ui";
 
-export function WatchPanel({
-  root,
-  baseDir,
-  onStatus,
-}: {
-  root: FileSystemDirectoryHandle | null;
-  baseDir: string;
-  onStatus: (s: string) => void;
-}) {
+export function WatchPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {
   const [intervalMs, setIntervalMs] = useState(1500);
   const [pauseWhenHidden, setPauseWhenHidden] = useState(true);
   const [emitInitial, setEmitInitial] = useState(false);
@@ -26,9 +17,6 @@ export function WatchPanel({
   const [stopper, setStopper] = useState<DirectoryWatcherCleanup | null>(null);
 
   async function handleStart() {
-    if (!root) return;
-    const dir = await getDirHandle(root, baseDir, true);
-
     const opts: WatchOptions = {
       intervalMs,
       pauseWhenHidden,
@@ -47,7 +35,7 @@ export function WatchPanel({
 
     onStatus("Watching...");
     const stop = await watchDirectory(
-      dir,
+      baseDir,
       (cs) => {
         setChanges((prev) => [...prev, ...cs]);
       },
@@ -94,13 +82,7 @@ export function WatchPanel({
           onChange={(e) => setIgnore(e.currentTarget.value)}
           width={200}
         />
-        {stopper ? (
-          <Button onClick={handleStop}>Stop</Button>
-        ) : (
-          <Button onClick={handleStart} disabled={!root}>
-            Start
-          </Button>
-        )}
+        {stopper ? <Button onClick={handleStop}>Stop</Button> : <Button onClick={handleStart}>Start</Button>}
       </Row>
       {changes.length > 0 && (
         <div style={{ marginTop: 8 }}>

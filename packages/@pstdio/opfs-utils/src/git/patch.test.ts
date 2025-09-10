@@ -1,19 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
 import { getOPFSRoot } from "../shared";
-import { applyPatchInOPFS, normalizeGitPath, normalizeSegments, stagePathForGit } from "./opfs-patch";
+import { applyPatchInOPFS, normalizeGitPath, stagePathForGit } from "./patch";
 
 describe("normalizeGitPath", () => {
   it("cleans diff paths", () => {
     expect(normalizeGitPath("a/foo/bar.txt")).toBe("foo/bar.txt");
     expect(normalizeGitPath("b/../baz.txt")).toBe("baz.txt");
     expect(normalizeGitPath("/dev/null")).toBeNull();
-  });
-});
-
-describe("normalizeSegments", () => {
-  it("splits and normalizes segments", () => {
-    expect(normalizeSegments(" /a//b/../c ")).toEqual(["a", "c"]);
   });
 });
 
@@ -33,7 +27,7 @@ describe("applyPatchInOPFS", () => {
 
     const diff = ["--- a/stay.txt", "+++ b/stay.txt", ""].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
     expect(result.output).toBe("No changes in patch (no hunks).");
 
@@ -83,7 +77,6 @@ describe("applyPatchInOPFS", () => {
     } as any;
 
     const result = await applyPatchInOPFS({
-      root,
       workDir: "workspace/pkg",
       diffContent: diff,
       git: { git: fakeGit, fs: {}, dir: "/repo" },
@@ -109,11 +102,9 @@ describe("applyPatchInOPFS", () => {
 
   it("reports failure details when modifying a missing target file", async () => {
     setupTestOPFS();
-    const root = await getOPFSRoot();
-
     const diff = ["--- a/missing.txt", "+++ b/missing.txt", "@@ -1,1 +1,1 @@", "-old", "+new", ""].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(false);
     expect(result.output).toContain("Patch completed with errors");
     expect(result.details?.failed?.length).toBe(1);
@@ -142,7 +133,7 @@ describe("applyPatchInOPFS", () => {
       "",
     ].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(false);
 
     const fh = await (root as any).getFileHandle("good.txt");
@@ -167,7 +158,7 @@ describe("applyPatchInOPFS", () => {
       "",
     ].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
 
     const fh = await (root as any).getFileHandle("nonewline.txt");
@@ -183,7 +174,7 @@ describe("applyPatchInOPFS", () => {
 
     const diff = ["--- a/file.txt", "+++ b/file.txt", "@@ -1,1 +1,1 @@", "-old", "+patched", ""].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
 
     const fh = await (root as any).getFileHandle("file.txt");
@@ -199,7 +190,7 @@ describe("applyPatchInOPFS", () => {
 
     const diff = ["--- a/file.txt", "+++ b/file.txt", "@@", "-old", "+patched", " line2", ""].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff, maxOffsetLines: 50 });
+    const result = await applyPatchInOPFS({ diffContent: diff, maxOffsetLines: 50 });
     expect(result.success).toBe(true);
 
     const fh = await (root as any).getFileHandle("file.txt");
@@ -215,7 +206,7 @@ describe("applyPatchInOPFS", () => {
 
     const diff = ["--- a/file2.txt", "+++ b/file2.txt", "@@ @@", "-old", "+patched", " line2", ""].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff, maxOffsetLines: 50 });
+    const result = await applyPatchInOPFS({ diffContent: diff, maxOffsetLines: 50 });
     expect(result.success).toBe(true);
 
     const fh = await (root as any).getFileHandle("file2.txt");
@@ -229,7 +220,7 @@ describe("applyPatchInOPFS", () => {
 
     const diff = ["--- /dev/null", "+++ b/new.txt", "@@", "+hello", "+world", ""].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
 
     const fh = await (root as any).getFileHandle("new.txt");
@@ -245,18 +236,16 @@ describe("applyPatchInOPFS", () => {
 
     const diff = ["--- a/gone.txt", "+++ /dev/null", "@@", "-remove me", ""].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
     await expect(async () => (root as any).getFileHandle("gone.txt")).rejects.toBeTruthy();
   });
 
   it("treats deletion of a missing file as success (numberless @@)", async () => {
     setupTestOPFS();
-    const root = await getOPFSRoot();
-
     const diff = ["--- a/missing.txt", "+++ /dev/null", "@@", "-whatever", ""].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
   });
 
@@ -270,7 +259,7 @@ describe("applyPatchInOPFS", () => {
       "\n",
     );
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
     const fh = await (root as any).getFileHandle("multi.txt");
     const text = await (await fh.getFile()).text();
@@ -285,7 +274,7 @@ describe("applyPatchInOPFS", () => {
 
     const diff = ["--- a/old/name.txt", "+++ b/new/name.txt", "@@", " content", ""].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
 
     // Old should be gone, new should exist
@@ -311,7 +300,7 @@ describe("applyPatchInOPFS", () => {
       "",
     ].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(false);
     expect(result.output).toContain("Patch completed with errors");
   });
@@ -344,7 +333,7 @@ describe("applyPatchInOPFS", () => {
       "",
     ].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
 
     // a.txt should be modified
@@ -390,7 +379,7 @@ describe("applyPatchInOPFS", () => {
       "",
     ].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
 
     // a2.txt should be modified
@@ -425,7 +414,7 @@ describe("applyPatchInOPFS", () => {
       "",
     ].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
 
     const fh = await (root as any).getFileHandle("todos.md");
@@ -466,7 +455,7 @@ describe("applyPatchInOPFS", () => {
       "",
     ].join("\n");
 
-    const result = await applyPatchInOPFS({ root, diffContent: diff });
+    const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
 
     const todosDir = await (root as any).getDirectoryHandle("todos");

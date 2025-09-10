@@ -12,9 +12,9 @@ import { cmdWc } from "./wc";
  * Configuration options for running OPFS shell commands
  */
 export type RunOptions = {
-  /** OPFS root (usually from navigator.storage.getDirectory()) */
-  root: FileSystemDirectoryHandle;
-  /** Logical working subdirectory under root; default "" = OPFS root */
+  /** OPFS root handle is no longer required; adapter-backed FS is used */
+  root?: FileSystemDirectoryHandle;
+  /** Logical working subdirectory; default "" = OPFS root */
   cwd?: string;
   /** Optional streaming callback for stdout; still returns the final concatenated stdout */
   onChunk?: (s: string) => void;

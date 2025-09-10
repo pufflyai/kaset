@@ -138,7 +138,7 @@ export function TopBar() {
     try {
       // Remove all entries under the project directory
       const dir = await getDirectoryHandle(rootDir);
-      const children = await ls(dir, { maxDepth: 1 });
+      const children = await ls(rootDir, { maxDepth: 1 });
 
       for (const entry of children) {
         try {

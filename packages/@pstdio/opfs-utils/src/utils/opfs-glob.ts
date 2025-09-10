@@ -1,8 +1,8 @@
 // Programmatic globbing over the browser's OPFS.
-// Emulates the behavior of the Node `glob` call shown in your code.
-import { basename, joinPath, normalizeSlashes, parentOf } from "./path";
-import { getDirHandle, getFileHandle as getFileHandleShared, resolveSubdir as resolveSubdirShared } from "../shared";
+import { getFs } from "../adapter/fs";
+import { resolveSubdir, readTextFileOptional } from "../shared.migrated";
 import { expandBraces, globToRegExp } from "./glob";
+import { joinPath, normalizeSlashes } from "./path";
 
 /* =========================
  * Types & public API
@@ -47,7 +47,7 @@ export interface GlobResult {
  * Main entry
  * ========================= */
 
-export async function opfsGlob(root: FileSystemDirectoryHandle, opts: OpfsGlobOptions): Promise<GlobResult> {
+export async function opfsGlob(_root: FileSystemDirectoryHandle, opts: OpfsGlobOptions): Promise<GlobResult> {
   const {
     pattern,
     path: subdir = "",
@@ -63,10 +63,11 @@ export async function opfsGlob(root: FileSystemDirectoryHandle, opts: OpfsGlobOp
     throw new Error("pattern must be a non-empty string");
   }
 
-  const searchRoot = await resolveSubdirShared(root, subdir, false);
+  // Resolve the absolute search root ("/subdir") using shared.migrated.
+  const searchRootAbs = await resolveSubdir(subdir, false);
 
   // --- 1) If the pattern is an exact path in this search root, treat it as a literal (like glob.escape)
-  const literalExists = await pathExists(searchRoot, pattern);
+  const literalExists = await fsPathExists(searchRootAbs, pattern);
   let patterns: string[] = [];
   if (literalExists) {
     // Treat as a literal path match (not a wildcard).
@@ -86,7 +87,7 @@ export async function opfsGlob(root: FileSystemDirectoryHandle, opts: OpfsGlobOp
   const found: { rel: string; abs: string; mtimeMs?: number }[] = [];
   const now = Date.now();
 
-  for await (const rel of walkFiles(searchRoot, "", { signal })) {
+  for await (const rel of walkFilesFs(searchRootAbs, "", { signal })) {
     if (signal?.aborted) break;
 
     // Hard ignore first
@@ -99,11 +100,11 @@ export async function opfsGlob(root: FileSystemDirectoryHandle, opts: OpfsGlobOp
     let mtimeMs: number | undefined;
     if (stat) {
       try {
-        const fh = await getFileHandleShared(searchRoot, rel, false);
-        const f = await fh.getFile();
-        mtimeMs = f.lastModified;
+        const fs = await getFs();
+        const abs = "/" + joinPath(searchRootAbs, rel);
+        const st = await fs.promises.stat(abs);
+        mtimeMs = st.mtimeMs ?? 0;
       } catch {
-        // Ignore stat errors; treat as 0
         mtimeMs = 0;
       }
     }
@@ -120,7 +121,7 @@ export async function opfsGlob(root: FileSystemDirectoryHandle, opts: OpfsGlobOp
   let kept = found;
 
   if (respectGitIgnore) {
-    const gi = await loadGitIgnore(searchRoot);
+    const gi = await loadGitIgnore(searchRootAbs);
     if (gi) {
       const before = kept.length;
       kept = kept.filter((e) => gi.include(e.rel));
@@ -183,44 +184,61 @@ export function sortFileEntries(entries: GlobPath[], nowTimestamp: number, recen
 }
 
 /* =========================
- * OPFS helpers
+ * FS-backed helpers (via ZenFS over OPFS)
  * ========================= */
 
-async function* walkFiles(
-  dir: FileSystemDirectoryHandle,
+async function* walkFilesFs(
+  rootAbs: string,
   prefix: string,
   { signal }: { signal?: AbortSignal },
 ): AsyncGenerator<string, void, unknown> {
-  const iter = (dir as any).entries() as AsyncIterable<[string, FileSystemHandle]>;
-  for await (const [name, handle] of iter) {
+  if (signal?.aborted) return;
+
+  const fs = await getFs();
+  const hereAbs = "/" + (prefix ? joinPath(rootAbs, prefix) : normalizeSlashes(rootAbs));
+
+  let names: string[] = [];
+  try {
+    // ZenFS supports Node-like readdir returning string[]
+    names = await fs.promises.readdir(hereAbs);
+  } catch {
+    return; // unreadable directory
+  }
+
+  for (const name of names) {
     if (signal?.aborted) return;
     const rel = prefix ? `${prefix}/${name}` : name;
-    if (handle.kind === "file") {
+    const abs = "/" + joinPath(rootAbs, rel);
+
+    let st: any;
+    try {
+      st = await fs.promises.stat(abs);
+    } catch {
+      continue;
+    }
+
+    if (st.isFile?.()) {
       yield rel;
-    } else if (handle.kind === "directory") {
+      continue;
+    }
+
+    if (st.isDirectory?.()) {
       // Hard prune .git and node_modules here too (fast path)
       if (name === ".git" || name === "node_modules") continue;
-      yield* walkFiles(handle as FileSystemDirectoryHandle, rel, { signal });
+      yield* walkFilesFs(rootAbs, rel, { signal });
     }
   }
 }
 
-async function pathExists(dir: FileSystemDirectoryHandle, relPath: string): Promise<"file" | "directory" | null> {
-  const parent = parentOf(relPath);
-  const base = basename(relPath);
+async function fsPathExists(rootAbs: string, relPath: string): Promise<"file" | "directory" | null> {
+  const fs = await getFs();
+  const normRel = normalizeSlashes(relPath);
+  const abs = "/" + joinPath(rootAbs, normRel);
   try {
-    const d = parent ? await getDirHandle(dir, parent, false) : dir;
-    try {
-      await d.getFileHandle(base, { create: false });
-      return "file";
-    } catch {
-      try {
-        await d.getDirectoryHandle(base, { create: false });
-        return "directory";
-      } catch {
-        return null;
-      }
-    }
+    const st = await fs.promises.stat(abs);
+    if (st.isFile?.()) return "file";
+    if (st.isDirectory?.()) return "directory";
+    return null;
   } catch {
     return null;
   }
@@ -232,20 +250,13 @@ async function pathExists(dir: FileSystemDirectoryHandle, relPath: string): Prom
 
 type GitIgnoreRule = { re: RegExp; negate: boolean; dirOnly: boolean };
 
-async function loadGitIgnore(root: FileSystemDirectoryHandle): Promise<{ include(p: string): boolean } | null> {
+async function loadGitIgnore(rootAbs: string): Promise<{ include(p: string): boolean } | null> {
   // Root-level .gitignore only (simplified)
-  let text: string | null = null;
-  try {
-    const fh = await root.getFileHandle(".gitignore", { create: false });
-    const f = await fh.getFile();
-    text = await f.text();
-  } catch {
-    return null;
-  }
-  if (!text) return null;
+  const fileText = await readTextFileOptional(joinPath(rootAbs, ".gitignore"));
+  if (!fileText) return null;
 
   const rules: GitIgnoreRule[] = [];
-  for (const raw of text.split(/\r?\n/)) {
+  for (const raw of fileText.split(/\r?\n/)) {
     const line = raw.trim();
     if (!line || line.startsWith("#")) continue;
 

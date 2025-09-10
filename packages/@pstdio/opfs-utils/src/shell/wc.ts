@@ -1,5 +1,6 @@
 import { normalizeSlashes } from "../utils/path";
 import { Ctx, resolveAsFile } from "./helpers";
+import { getFs } from "../adapter/fs";
 
 export async function cmdWc(args: string[], ctx: Ctx, stdin: string): Promise<string> {
   let wantLines = false;
@@ -37,11 +38,10 @@ export async function cmdWc(args: string[], ctx: Ctx, stdin: string): Promise<st
     return formatCounts(c);
   }
 
+  const fs = await getFs();
   for (const fileArg of files) {
-    const { dir, rel } = await resolveAsFile(ctx, fileArg);
-    const fh = await dir.getFileHandle(rel.path, { create: false });
-    const f = await fh.getFile();
-    const text = await f.text();
+    const { full } = await resolveAsFile(ctx, fileArg);
+    const text = await fs.promises.readFile("/" + normalizeSlashes(full), "utf8");
 
     const c = countText(text);
     totals.lines += c.lines;

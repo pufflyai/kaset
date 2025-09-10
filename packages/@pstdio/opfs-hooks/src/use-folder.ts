@@ -1,4 +1,4 @@
-import { getDirectoryHandle, ls, watchDirectory, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import { ls, watchDirectory, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
 import { useEffect, useState } from "react";
 
 export type FileNode = {
@@ -43,8 +43,7 @@ export const useFolder = (path = "") => {
 
     async function load() {
       try {
-        const dir = await getDirectoryHandle(path);
-        const entries = await ls(dir, { maxDepth: Infinity });
+        const entries = await ls(path, { maxDepth: Infinity });
         const tree = buildTree(entries, path);
 
         if (!cancelled) setRootNode(tree);
@@ -55,8 +54,7 @@ export const useFolder = (path = "") => {
 
     async function watch() {
       try {
-        const dir = await getDirectoryHandle(path);
-        stopWatch = await watchDirectory(dir, () => {
+        stopWatch = await watchDirectory(path, () => {
           load();
         });
       } catch {

@@ -72,8 +72,8 @@ export function useDragAndDropUpload({ targetDir, onUploaded }: UseDragAndDropUp
     if (!files.length) return;
 
     try {
-      const dir = await ensureDir(targetDir);
-      await uploadFilesToDirectory(dir, files);
+      await ensureDir(targetDir);
+      await uploadFilesToDirectory(targetDir, files);
       onUploaded?.(files);
     } catch (err) {
       console.error("Failed to upload dropped files:", err);

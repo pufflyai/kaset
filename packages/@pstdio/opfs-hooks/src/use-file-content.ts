@@ -1,4 +1,4 @@
-import { getDirectoryHandle, readFile, watchDirectory, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import { readFile, watchDirectory, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
 import { useEffect, useState } from "react";
 
 export const useFileContent = (path?: string) => {
@@ -32,9 +32,8 @@ export const useFileContent = (path?: string) => {
         const relTarget = parts.slice(dirParts.length).join("/");
 
         const dirPath = dirParts.join("/");
-        const dir = await getDirectoryHandle(dirPath);
 
-        stopWatch = await watchDirectory(dir, (changes) => {
+        stopWatch = await watchDirectory(dirPath, (changes) => {
           for (const ch of changes) {
             const rel = ch.path.join("/");
             if (rel === relTarget) {

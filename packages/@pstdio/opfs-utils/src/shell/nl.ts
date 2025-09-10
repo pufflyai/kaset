@@ -1,4 +1,5 @@
 import { Ctx, resolveAsFile } from "./helpers";
+import { getFs } from "../adapter/fs";
 
 export async function cmdNl(args: string[], ctx: Ctx, stdin: string): Promise<string> {
   let bodyMode: "a" | "t" = "t";
@@ -52,10 +53,9 @@ export async function cmdNl(args: string[], ctx: Ctx, stdin: string): Promise<st
   let text: string;
   if (files.length > 0) {
     const fileArg = files[0];
-    const { dir, rel } = await resolveAsFile(ctx, fileArg);
-    const fh = await dir.getFileHandle(rel.path, { create: false });
-    const f = await fh.getFile();
-    text = await f.text();
+    const { full } = await resolveAsFile(ctx, fileArg);
+    const fs = await getFs();
+    text = await fs.promises.readFile("/" + full, "utf8");
   } else {
     text = stdin ?? "";
   }

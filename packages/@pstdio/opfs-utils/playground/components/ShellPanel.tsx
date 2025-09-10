@@ -1,17 +1,8 @@
 import { useState } from "react";
-import { runOpfsCommandLine } from "../../src/cli/opfs-shell";
-import { getDirHandle } from "../opfs-helpers";
+import { runOpfsCommandLine } from "../../src/shell/opfs-shell";
 import { Button, Label, MonoBlock, Row, Section, TextInput } from "./ui";
 
-export function ShellPanel({
-  root,
-  baseDir,
-  onStatus,
-}: {
-  root: FileSystemDirectoryHandle | null;
-  baseDir: string;
-  onStatus: (s: string) => void;
-}) {
+export function ShellPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {
   const [cmd, setCmd] = useState(`ls -la`);
   const [out, setOut] = useState("");
 
@@ -44,12 +35,9 @@ export function ShellPanel({
   ];
 
   async function run() {
-    if (!root) return;
-    const work = await getDirHandle(root, baseDir, true);
     onStatus("Running...");
     const res = await runOpfsCommandLine(cmd, {
-      root: work,
-      cwd: "",
+      cwd: baseDir || "",
       onChunk: (s) => setOut((prev) => prev + s + (s.endsWith("\n") ? "" : "\n")),
     });
     setOut(res.stdout || res.stderr);
@@ -60,9 +48,7 @@ export function ShellPanel({
     <Section title="Shell (ls | echo | sed | nl | rg | find | wc)">
       <Row>
         <TextInput label="Command(s)" value={cmd} onChange={(e) => setCmd(e.currentTarget.value)} height={120} />
-        <Button onClick={run} disabled={!root}>
-          Run
-        </Button>
+        <Button onClick={run}>Run</Button>
       </Row>
       <div style={{ marginTop: 8 }}>
         <Label>Examples</Label>

@@ -1,30 +1,85 @@
 import PACKAGE_README from "../README.md?raw";
-import { SAMPLE_INDEX_TS, SAMPLE_SVG, SAMPLE_TODOS_SATURDAY, SAMPLE_UTIL_TS } from "./samples";
-import { basename, parentOf } from "../src/utils/path";
+import { getFs } from "../src/adapter/fs";
 import {
-  getDirHandle as sharedGetDirHandle,
-  writeTextFile as sharedWriteTextFile,
-  readTextFileOptional,
-} from "../src/shared";
+  getDirHandle as migratedGetDirHandle,
+  readTextFileOptional as migratedReadTextFileOptional,
+  writeTextFile as migratedWriteTextFile,
+} from "../src/shared.migrated";
+import { SAMPLE_INDEX_TS, SAMPLE_SVG, SAMPLE_TODOS_SATURDAY, SAMPLE_UTIL_TS } from "./samples";
 
-// Re-export shared helpers for playground consumers
-export const getDirHandle = sharedGetDirHandle;
-export const writeTextFile = sharedWriteTextFile;
-
-export async function readTextFile(root: FileSystemDirectoryHandle, path: string) {
-  return await readTextFileOptional(root, path);
+// Compat wrappers over shared.migrated (keep playground API stable)
+export async function getDirHandle(path: string, create: boolean): Promise<string> {
+  // Returns an absolute POSIX-like path (e.g., "/playground").
+  return migratedGetDirHandle(path, create);
 }
 
-export async function deleteEntry(root: FileSystemDirectoryHandle, path: string) {
-  const dir = await sharedGetDirHandle(root, parentOf(path), false).catch(
-    () => null as unknown as FileSystemDirectoryHandle,
-  );
-  if (!dir) return;
-  try {
-    await dir.removeEntry(basename(path), { recursive: true } as any);
-  } catch {
-    // ignore
+function joinUnderDir(dir: string, rel: string): string {
+  const clean = (s: string) => s.replace(/\\/g, "/").replace(/^\/+/, "");
+  const base = clean(dir);
+  const child = clean(rel);
+  return base ? `${base}/${child}` : child;
+}
+
+export async function writeTextFile(dir: string, path: string, content: string) {
+  const fullPath = joinUnderDir(dir, path);
+  await migratedWriteTextFile(fullPath, content);
+}
+
+export async function readTextFile(dir: string, path: string) {
+  const fullPath = joinUnderDir(dir, path);
+  return await migratedReadTextFileOptional(fullPath);
+}
+
+export async function deleteEntry(path: string) {
+  const fs = await getFs();
+
+  const normalize = (p: string) => "/" + p.replace(/\\/g, "/").replace(/^\/+/, "").trim();
+
+  const abs = normalize(path);
+
+  async function removeRec(target: string): Promise<void> {
+    let st: any;
+    try {
+      st = await fs.promises.stat(target);
+    } catch {
+      // Missing; nothing to do.
+      return;
+    }
+
+    // Files (and non-directories) -> unlink
+    if (st.isFile?.() || st.isSymbolicLink?.()) {
+      try {
+        await fs.promises.unlink(target);
+      } catch {
+        // ignore
+      }
+      return;
+    }
+
+    // Directory: recurse then remove directory
+    if (st.isDirectory?.()) {
+      let names: string[] = [];
+      try {
+        names = await fs.promises.readdir(target);
+      } catch {
+        names = [];
+      }
+
+      for (const name of names) {
+        await removeRec(`${target}/${name}`);
+      }
+
+      try {
+        // rmdir might not exist in some adapters; guard access
+        const rmdir = (fs.promises as any).rmdir as undefined | ((p: string) => Promise<void>);
+        if (typeof rmdir === "function") await rmdir(target);
+      } catch {
+        // ignore
+      }
+    }
   }
+
+  await removeRec(abs);
 }
 
 // Build a long README-like markdown content for testing large file handling
@@ -46,12 +101,8 @@ function buildLongReadme(): string {
 
 // Demo project scaffolding for the OPFS playground
 
-export async function setupDemoProject(
-  root: FileSystemDirectoryHandle,
-  baseDir: string,
-  options?: { longReadmeContent?: string },
-) {
-  const dir = await getDirHandle(root, baseDir, true);
+export async function setupDemoProject(baseDir: string, options?: { longReadmeContent?: string }) {
+  const dir = await getDirHandle(baseDir, true);
 
   await writeTextFile(dir, "README.md", "# Playground\n\nThis is a test area for opfs-utils.\n");
   await writeTextFile(dir, ".baseline/README.md", "# Playground\n\nThis is a test area for opfs-utils.\n");
@@ -85,6 +136,6 @@ export async function setupDemoProject(
   await writeTextFile(dir, ".baseline/nested/a/b/c/deep.txt", "This is a deeply nested file.\n");
 }
 
-export async function resetDemoProject(root: FileSystemDirectoryHandle, baseDir: string) {
-  await deleteEntry(root, baseDir);
+export async function resetDemoProject(baseDir: string) {
+  await deleteEntry(baseDir);
 }

@@ -21,9 +21,9 @@ export async function cmdRg(args: string[], ctx: Ctx): Promise<string> {
   if (smartCase && !/[A-Z]/.test(rawPattern)) flags += "i";
 
   const re = new RegExp(rawPattern, flags.includes("g") ? flags : flags + "g");
-  const { dir } = await resolveAsDir(searchPath, ctx);
+  const { full } = await resolveAsDir(searchPath, ctx);
 
-  const matches = await grep(dir, {
+  const matches = await grep(full, {
     pattern: re,
     exclude: ["**/node_modules/**", "**/.git/**"],
     onMatch: undefined,

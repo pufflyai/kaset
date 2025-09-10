@@ -1,3 +1,5 @@
+import { stripAnsi } from "../shared.migrated";
+
 /**
  * Split a POSIX-like path into normalized segments.
  * - trims whitespace
@@ -23,6 +25,14 @@ export function normalizeSegments(p: string): string[] {
 /** Join segments with single slashes, removing empties. */
 export function normalizeSlashes(p: string): string {
   return p.split("/").filter(Boolean).join("/");
+}
+
+/** Normalize to POSIX-ish, strip leading slashes. */
+export function normalizeRelPath(p: string) {
+  // Sanitize terminal escape sequences that may have leaked into paths
+  // from colored CLI output or copy/paste.
+  const cleaned = stripAnsi(p);
+  return cleaned.replace(/\\/g, "/").replace(/^\/+/, "").trim();
 }
 
 /** Join two path segments with normalization. */

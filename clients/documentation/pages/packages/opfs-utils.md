@@ -158,10 +158,7 @@ console.log(result.uploadedFiles, result.errors);
 ```ts
 import { watchDirectory } from "@pstdio/opfs-utils";
 
-const root = await navigator.storage.getDirectory();
-const dir = await root.getDirectoryHandle("data", { create: true });
-
-const stop = await watchDirectory(dir, (changes) => {
+const stop = await watchDirectory("data", (changes) => {
   for (const c of changes) {
     console.log(`[${c.type}]`, c.path.join("/"));
   }

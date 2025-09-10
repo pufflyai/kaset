@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CrudPanel } from "./components/CrudPanel";
 import { GrepPanel } from "./components/GrepPanel";
 import { LsPanel } from "./components/LsPanel";
@@ -11,7 +11,7 @@ import { ShellPanel } from "./components/ShellPanel";
 import { UploadPanel } from "./components/UploadPanel";
 import { WatchPanel } from "./components/WatchPanel";
 import { Row, TextInput } from "./components/ui";
-import { useOPFS } from "./hooks/useOPFS";
+import { getFs } from "../src/adapter/fs";
 
 const meta: Meta = {
   title: "opfs-utils/Playground",
@@ -22,9 +22,27 @@ export default meta;
 type Story = StoryObj;
 
 function Playground() {
-  const { root, error } = useOPFS();
+  const [ready, setReady] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [baseDir, setBaseDir] = useState("playground");
   const [status, setStatus] = useState<string>("");
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        await getFs();
+        if (!mounted) return;
+        setReady(true);
+      } catch (e: any) {
+        if (!mounted) return;
+        setError(e?.message || String(e));
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <div style={{ fontFamily: "var(--font-body, system-ui, sans-serif)" }}>
@@ -40,20 +58,20 @@ function Playground() {
       </Row>
 
       <div style={{ marginTop: 8, color: error ? "#991b1b" : "#065f46" }}>
-        {error ? `OPFS unavailable: ${error}` : root ? `Using OPFS` : "Preparing OPFS..."}
+        {error ? `OPFS unavailable: ${error}` : ready ? `Using OPFS via ZenFS adapter` : "Preparing adapter..."}
       </div>
 
       <div style={{ marginTop: 6, color: "#374151" }}>{status}</div>
 
-      <SetupPanel root={root} baseDir={baseDir} onStatus={setStatus} />
+      <SetupPanel baseDir={baseDir} onStatus={setStatus} />
       <GetFsPanel baseDir={baseDir} onStatus={setStatus} />
-      <LsPanel root={root} baseDir={baseDir} onStatus={setStatus} />
-      <ReadPanel root={root} baseDir={baseDir} onStatus={setStatus} />
-      <GrepPanel root={root} baseDir={baseDir} onStatus={setStatus} />
-      <PatchPanel root={root} baseDir={baseDir} onStatus={setStatus} />
-      <UploadPanel root={root} baseDir={baseDir} onStatus={setStatus} />
-      <WatchPanel root={root} baseDir={baseDir} onStatus={setStatus} />
-      <ShellPanel root={root} baseDir={baseDir} onStatus={setStatus} />
+      <LsPanel baseDir={baseDir} onStatus={setStatus} />
+      <ReadPanel baseDir={baseDir} onStatus={setStatus} />
+      <GrepPanel baseDir={baseDir} onStatus={setStatus} />
+      <PatchPanel baseDir={baseDir} onStatus={setStatus} />
+      <UploadPanel baseDir={baseDir} onStatus={setStatus} />
+      <WatchPanel baseDir={baseDir} onStatus={setStatus} />
+      <ShellPanel baseDir={baseDir} onStatus={setStatus} />
       <CrudPanel baseDir={baseDir} onStatus={setStatus} />
     </div>
   );

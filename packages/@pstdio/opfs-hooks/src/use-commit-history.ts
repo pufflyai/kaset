@@ -1,5 +1,4 @@
 import {
-  getDirectoryHandle,
   listCommits,
   watchDirectory,
   type DirectoryWatcherCleanup,
@@ -55,10 +54,9 @@ export function useCommitHistory(ctx: GitContext | null | undefined, options: Us
     const startWatch = async () => {
       if (!watchRepoPath) return;
       try {
-        const repoDir = await getDirectoryHandle(watchRepoPath);
         // Only observe the .git subtree to reduce noise.
         stopWatch = await watchDirectory(
-          repoDir,
+          watchRepoPath,
           () => {
             if (!cancelled) load();
           },
