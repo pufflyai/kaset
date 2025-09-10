@@ -1,6 +1,15 @@
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Alert, Button, CloseButton, Dialog, Field, HStack, Input, Text, VStack } from "@chakra-ui/react";
+import { Alert, Button, Checkbox, CloseButton, Dialog, Field, HStack, Input, Text, VStack } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
+import { DEFAULT_APPROVAL_GATED_TOOLS } from "@/services/ai/KAS/approval";
+
+const TOOL_LABELS: Record<string, string> = {
+  opfs_write_file: "Write file",
+  opfs_delete_file: "Delete file",
+  opfs_patch: "Apply patch",
+  opfs_upload_files: "Upload files",
+  opfs_move_file: "Move file",
+};
 
 export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const { isOpen, onClose } = props;
@@ -9,6 +18,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [baseUrl, setBaseUrl] = useState<string>("");
   const [model, setModel] = useState<string>("gpt-4.1-mini");
   const [showKey, setShowKey] = useState<boolean>(false);
+  const [approvalTools, setApprovalTools] = useState<string[]>([...DEFAULT_APPROVAL_GATED_TOOLS]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -16,6 +26,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setApiKey(s.apiKey || "");
     setBaseUrl(s.baseUrl || "");
     setModel(s.modelId || "gpt-5-mini");
+    setApprovalTools(s.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
   }, [isOpen]);
 
   const save = () => {
@@ -24,6 +35,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         state.apiKey = apiKey || undefined;
         state.baseUrl = baseUrl || undefined;
         state.modelId = model || "gpt-4.1-mini";
+        state.approvalGatedTools = [...approvalTools];
       },
       false,
       "settings/save-llm-config",
@@ -38,6 +50,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         state.apiKey = undefined;
         state.baseUrl = undefined;
         state.modelId = "gpt-5-mini";
+        state.approvalGatedTools = [...DEFAULT_APPROVAL_GATED_TOOLS];
       },
       false,
       "settings/clear-llm-config",
@@ -45,6 +58,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setApiKey("");
     setBaseUrl("");
     setModel("gpt-5-mini");
+    setApprovalTools([...DEFAULT_APPROVAL_GATED_TOOLS]);
   };
 
   return (
@@ -93,6 +107,24 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                   value={baseUrl}
                   onChange={(e) => setBaseUrl(e.target.value)}
                 />
+              </Field.Root>
+              <Field.Root>
+                <Field.Label>Approval-gated tools</Field.Label>
+                <VStack align="stretch">
+                  {DEFAULT_APPROVAL_GATED_TOOLS.map((tool) => (
+                    <Checkbox.Root
+                      key={tool}
+                      checked={approvalTools.includes(tool)}
+                      onCheckedChange={(e) =>
+                        setApprovalTools((prev) => (e.checked ? [...prev, tool] : prev.filter((t) => t !== tool)))
+                      }
+                    >
+                      <Checkbox.HiddenInput />
+                      <Checkbox.Control />
+                      <Checkbox.Label>{TOOL_LABELS[tool]}</Checkbox.Label>
+                    </Checkbox.Root>
+                  ))}
+                </VStack>
               </Field.Root>
             </VStack>
           </Dialog.Body>

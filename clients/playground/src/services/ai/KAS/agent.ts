@@ -30,6 +30,7 @@ export function getAgent() {
     workspaceDir: `${PROJECTS_ROOT}/${state.selectedProjectId || "todo"}`,
     onShellChunk: (s) => console.debug("opfs_shell:", s),
     requestApproval,
+    approvalGatedTools: state.approvalGatedTools,
   });
 
   return createAgent({

@@ -22,22 +22,27 @@ export type Workspace = { workspaceDir: string };
 
 export type RequestApproval = (info: { tool: string; workspaceDir: string; detail?: any }) => Promise<boolean>;
 
-export function createApprovalGate(requestApproval?: RequestApproval) {
+export const DEFAULT_APPROVAL_GATED_TOOLS = [
+  "opfs_write_file",
+  "opfs_delete_file",
+  "opfs_patch",
+  "opfs_upload_files",
+  "opfs_move_file",
+] as const;
+
+export function createApprovalGate(
+  requestApproval?: RequestApproval,
+  needsApproval: readonly string[] = DEFAULT_APPROVAL_GATED_TOOLS,
+) {
   const cache = new Set<string>();
-  const needsApproval = new Set([
-    "opfs_write_file",
-    "opfs_delete_file",
-    "opfs_patch",
-    "opfs_upload_files",
-    "opfs_move_file",
-  ]);
+  const needsApprovalSet = new Set(needsApproval);
 
   function key(tool: string, workspaceDir: string) {
     return `${tool}:${workspaceDir}`;
   }
 
   async function check(tool: string, workspaceDir: string, detail?: any) {
-    if (!needsApproval.has(tool)) return;
+    if (!needsApprovalSet.has(tool)) return;
 
     const k = key(tool, workspaceDir);
     if (cache.has(k)) return;

@@ -20,6 +20,7 @@ export interface WorkspaceState {
   modelId: string;
   apiKey?: string;
   baseUrl?: string;
+  approvalGatedTools?: string[];
 }
 
 export type WorkspaceStore = WorkspaceState;
