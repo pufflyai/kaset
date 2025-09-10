@@ -20,11 +20,12 @@ import { createApprovalGate, type Workspace } from "../approval";
 type CreateToolsOptions = Workspace & {
   onShellChunk?: (chunk: string) => void;
   requestApproval?: (x: { tool: string; workspaceDir: string; detail?: any }) => Promise<boolean>;
+  approvalGatedTools?: string[];
 };
 
 export function createOpfsTools(opts: CreateToolsOptions) {
-  const { workspaceDir, requestApproval, onShellChunk } = opts;
-  const gate = createApprovalGate(requestApproval);
+  const { workspaceDir, requestApproval, onShellChunk, approvalGatedTools } = opts;
+  const gate = createApprovalGate(requestApproval, approvalGatedTools);
 
   const opfsShell = Tool(
     async ({ command, cwd = "" }: { command: string; cwd?: string }, { toolCall }) => {
