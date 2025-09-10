@@ -5,13 +5,13 @@ import { CodeEditor } from "./components/ui/code-editor";
 import { ConversationHost } from "./components/ui/conversation-host";
 import { DragOverlay } from "./components/ui/drag-overlay";
 import { FileExplorer } from "./components/ui/file-explorer";
+import { GithubCorner } from "./components/ui/github-corner";
 import { TopBar } from "./components/ui/top-bar";
-import { setupExample } from "./services/playground/setup";
+import { PROJECTS_ROOT } from "./constant";
 import { TodoList } from "./examples/todo/component";
 import { useDragAndDropUpload } from "./services/drag-n-drop";
+import { setupExample } from "./services/playground/setup";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
-import { PROJECTS_ROOT } from "./constant";
-import { GithubCorner } from "./components/ui/github-corner";
 
 export function App() {
   const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");

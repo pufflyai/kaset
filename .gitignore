@@ -152,3 +152,6 @@ deployment/docker/volumes/db/data
 
 # Vitepress
 **/.vitepress/cache/
+
+# Tests
+.tmp-tests

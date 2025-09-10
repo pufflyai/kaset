@@ -9,6 +9,18 @@ export {
   type ProcessedFileReadResult,
   type ProcessSingleFileOptions,
 } from "./utils/opfs-files";
+export {
+  commitAll,
+  ensureRepo,
+  getRepoStatus,
+  listCommits,
+  type CommitAllOptions,
+  type CommitAllResult,
+  type CommitAuthor,
+  type CommitEntry,
+  type GitContext,
+  type RepoStatus,
+} from "./utils/opfs-git";
 export { grep } from "./utils/opfs-grep";
 export { formatTree, ls } from "./utils/opfs-ls";
 export { applyPatchInOPFS as patch } from "./utils/opfs-patch";
