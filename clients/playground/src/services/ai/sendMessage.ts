@@ -1,5 +1,6 @@
+import { PROJECTS_ROOT } from "@/constant";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { readFile } from "@pstdio/opfs-utils";
+import { commitAll, ensureRepo, readFile } from "@pstdio/opfs-utils";
 import {
   type AssistantMessage,
   type BaseMessage,
@@ -9,7 +10,6 @@ import {
 } from "@pstdio/tiny-ai-tasks";
 import type { Message, ToolInvocation, UIConversation } from "../../types";
 import { getAgent } from "./KAS/agent";
-import { PROJECTS_ROOT } from "@/constant";
 import { getLastUserText, toMessageHistory, uid } from "./utils";
 
 /**
@@ -299,5 +299,22 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
     }
 
     yield uiMessages;
+  }
+
+  // After the AI finishes, attempt to auto-commit any project changes
+  try {
+    const proj = useWorkspaceStore.getState().selectedProjectId;
+    const dir = `/${PROJECTS_ROOT}/${proj}`;
+
+    await ensureRepo({ dir });
+    await commitAll(
+      { dir },
+      {
+        message: "chore: AI updates",
+        author: { name: "KAS", email: "kas@kaset.dev" },
+      },
+    );
+  } catch {
+    // Non-fatal: skip commit if OPFS/git is not available
   }
 }

@@ -1,5 +1,13 @@
 import { PROJECTS_ROOT } from "@/constant";
-import { deleteFile, getDirectoryHandle, readFile, writeFile } from "@pstdio/opfs-utils";
+import {
+  commitAll,
+  deleteFile,
+  ensureRepo,
+  getDirectoryHandle,
+  listCommits,
+  readFile,
+  writeFile,
+} from "@pstdio/opfs-utils";
 /**
  * Options when applying a bundle of example files into OPFS.
  */
@@ -123,14 +131,16 @@ export async function setupExample(kind: ExampleKind, options: SetupOptions = {}
     eager: true,
   }) as Record<string, string>;
 
-  const examplePrefix = `/src/examples/${kind}/files`;
+  // Prefer copying from a dedicated "files" subfolder when present; otherwise copy the example root.
+  const exampleRoot = `/src/examples/${kind}`;
+  const hasFilesSubdir = Object.keys(allFiles).some((p) => p.startsWith(`${exampleRoot}/files/`));
+  const copyPrefix = (hasFilesSubdir ? `${exampleRoot}/files` : exampleRoot).replace(/\/$/, "");
+
   const rawFiles = Object.fromEntries(
-    Object.entries(allFiles).filter(([path]) => path.startsWith(examplePrefix)),
+    Object.entries(allFiles).filter(([path]) => path.startsWith(copyPrefix)),
   ) as Record<string, string>;
 
-  const filesSubdirPrefix = `${examplePrefix}/`;
-  const hasFilesSubdir = Object.keys(rawFiles).some((p) => p.startsWith(filesSubdirPrefix));
-  const baseDir = (hasFilesSubdir ? `${examplePrefix}` : examplePrefix).replace(/\/$/, "");
+  const baseDir = copyPrefix;
 
   const files: Record<string, string> = {};
   for (const [absKey, content] of Object.entries(rawFiles)) {
@@ -138,5 +148,40 @@ export async function setupExample(kind: ExampleKind, options: SetupOptions = {}
     files[key] = content;
   }
 
-  return applyFilesToOpfs({ rootDir: folderName, files, baseDir, overwrite });
+  const result = await applyFilesToOpfs({ rootDir: folderName, files, baseDir, overwrite });
+
+  // Initialize a git repository in the project folder if none exists
+  try {
+    const dir = await getDirectoryHandle(folderName);
+    await ensureRepo({ dir });
+
+    // If the repo has no commits yet, create an initial commit so history exists
+    let hasCommit = false;
+    try {
+      const commits = await listCommits({ dir }, { limit: 1 });
+      hasCommit = Array.isArray(commits) && commits.length > 0;
+    } catch {
+      // If listing commits fails (e.g., unborn HEAD), treat as no commits
+      hasCommit = false;
+    }
+
+    if (!hasCommit) {
+      try {
+        await commitAll(
+          { dir },
+          {
+            message: "chore: initial commit",
+            author: { name: "KAS", email: "kas@kaset.dev" },
+          },
+        );
+      } catch (e) {
+        console.error("Failed to create initial commit in new repo", e);
+        // Non-fatal: if committing fails, continue without blocking setup
+      }
+    }
+  } catch {
+    // Non-fatal: if OPFS/git is unavailable, skip repo init silently
+  }
+
+  return result;
 }

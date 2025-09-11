@@ -383,12 +383,22 @@ export function TodoList() {
                       paddingY="1.5"
                       borderRadius="md"
                       cursor="pointer"
+                      _hover={{ bg: "background.secondary" }}
+                      onClick={() => selectList(name)}
                       textDecoration={selected ? "underline" : "none"}
                     >
-                      <Text fontSize="sm" cursor="pointer" onClick={() => selectList(name)} title={name} flex="1">
+                      <Text fontSize="sm" title={name} flex="1">
                         {displayListName(name)}
                       </Text>
-                      <IconButton size="xs" variant="ghost" onClick={() => requestDeleteList(name)} colorPalette="red">
+                      <IconButton
+                        size="xs"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          requestDeleteList(name);
+                        }}
+                        colorPalette="red"
+                      >
                         <Trash2 size={12} />
                       </IconButton>
                     </HStack>

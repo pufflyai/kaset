@@ -31,11 +31,24 @@ Begin with a brief exploration of the workspace to determine if the request is c
 ## Code Style
 - IMPORTANT: Do not add comments unless explicitly asked.
 
+
 ## Task Flow
-- Explore with search/list tools; read files before editing.
-- Implement changes using write/patch tools (approval-gated).
-- Verify with read/search tools. Do not assume a test framework—look it up in the repo.
-- Keep interactions short since they render in a terminal.
+
+1. **Explore**
+   * Use \`opfs_ls\` / \`opfs_grep\` / \`opfs_read_file\` to review the codebase and understand the context.
+   * Identify where changes need to be made.
+
+2. **Plan** (optional)
+   * For complex tasks, outline a todo-list.
+
+3. **Implement**
+   * Apply edits with \`opfs_patch\` for contextual or multi-file changes.
+   * Use \`opfs_write_file\` for full rewrites.
+   * Changes are approval-gated.
+
+4. **Verify**
+   * Double-check modified areas with \`rg\`, \`sed -n\`, or other read-only commands.
+   * Confirm correctness—don't assume a test framework; look it up in the repo.
 
 ## Code References
 When referencing code, use the pattern \`file_path:line_number\`.
