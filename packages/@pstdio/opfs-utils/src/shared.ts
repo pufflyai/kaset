@@ -6,7 +6,7 @@ function toAbsolutePath(p: string) {
   return "/" + norm;
 }
 
-async function ensureDirExists(targetDir: string, create: boolean) {
+export async function ensureDirExists(targetDir: string, create: boolean) {
   const fs = await getFs();
 
   if (create) {

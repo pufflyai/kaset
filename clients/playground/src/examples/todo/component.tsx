@@ -1,7 +1,7 @@
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 import { PROJECTS_ROOT } from "@/constant";
 import { Box, Button, Checkbox, HStack, IconButton, Input, Text, VStack } from "@chakra-ui/react";
-import { deleteFile, getDirectoryHandle, ls, readFile, watchDirectory, writeFile } from "@pstdio/opfs-utils";
+import { deleteFile, ensureDirExists, ls, readFile, watchDirectory, writeFile } from "@pstdio/opfs-utils";
 import { PencilIcon, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -99,30 +99,11 @@ export function TodoList() {
 
   const parse = useCallback((md: string) => parseMarkdownTodos(md), []);
 
-  const ensureDir = useCallback(async (path: string) => {
-    try {
-      // Validate existence (returns absolute path string)
-      return await getDirectoryHandle(path);
-    } catch (err: any) {
-      if (err?.name !== "NotFoundError" && err?.code !== 404) throw err;
-
-      // Create by touching a temp file, which mkdir -p's parents
-      const keep = `${path.replace(/\/+$/, "")}/.keep`;
-      await writeFile(keep, "");
-      // Best-effort cleanup
-      try {
-        await deleteFile(keep);
-      } catch {}
-
-      return await getDirectoryHandle(path);
-    }
-  }, []);
-
   const refreshLists = useCallback(async () => {
     try {
       setError(null);
 
-      await ensureDir(listsDirPath);
+      await ensureDirExists(listsDirPath, true);
       const entries = await ls(listsDirPath, { maxDepth: 1, kinds: ["file"], include: ["*.md"] });
 
       const names = entries.map((e) => e.name).sort((a, b) => a.localeCompare(b));
@@ -140,7 +121,7 @@ export function TodoList() {
     } catch (e: any) {
       setError(e?.message ?? String(e));
     }
-  }, [ensureDir, listsDirPath, selectedList]);
+  }, [listsDirPath, selectedList]);
 
   const readAndParse = useCallback(
     async (fileName: string) => {
@@ -318,7 +299,7 @@ export function TodoList() {
 
     (async () => {
       try {
-        await ensureDir(listsDirPath);
+        await ensureDirExists(listsDirPath, true);
         await refreshLists();
 
         const ac = new AbortController();
@@ -356,7 +337,7 @@ export function TodoList() {
       dirAbortRef.current?.abort();
       cleanup?.();
     };
-  }, [ensureDir, listsDirPath, refreshLists, readAndParse, selectedList]);
+  }, [listsDirPath, refreshLists, readAndParse, selectedList]);
 
   return (
     <>

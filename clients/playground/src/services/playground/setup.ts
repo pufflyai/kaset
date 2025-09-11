@@ -1,6 +1,5 @@
-import { getDirectoryHandle, readFile, writeFile } from "@pstdio/opfs-utils";
 import { PROJECTS_ROOT } from "@/constant";
-
+import { deleteFile, getDirectoryHandle, readFile, writeFile } from "@pstdio/opfs-utils";
 /**
  * Options when applying a bundle of example files into OPFS.
  */
@@ -35,10 +34,10 @@ async function ensureOpfsDir(path: string): Promise<string> {
     const keep = `${path.replace(/\/+$/, "")}/.keep`;
     await writeFile(keep, "");
     try {
-      // best-effort cleanup; ignore if it fails
-      const { deleteFile } = await import("@pstdio/opfs-utils");
       await deleteFile(keep);
-    } catch {}
+    } catch {
+      // ignore
+    }
     return await getDirectoryHandle(path);
   }
 }

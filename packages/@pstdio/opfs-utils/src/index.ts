@@ -3,15 +3,25 @@ export {
   ensureRepo,
   getRepoStatus,
   listCommits,
+  revertToCommit,
+  checkoutAtCommit,
+  getHeadState,
+  attachHeadToBranch,
   type CommitAllOptions,
   type CommitAllResult,
   type CommitAuthor,
   type CommitEntry,
   type GitContext,
   type RepoStatus,
+  type RevertToCommitOptions,
+  type RevertToCommitResult,
+  type CheckoutAtCommitOptions,
+  type CheckoutAtCommitResult,
+  type HeadState,
+  type AttachHeadOptions,
 } from "./git/git";
 export { applyPatchInOPFS as patch } from "./git/patch";
-export { getDirectoryHandle, stripAnsi } from "./shared";
+export { ensureDirExists, getDirectoryHandle, stripAnsi } from "./shared";
 export { runOpfsCommandLine } from "./shell/opfs-shell";
 export { deleteFile, downloadFile, moveFile, readFile, writeFile } from "./utils/opfs-crud";
 export {

@@ -1,7 +1,7 @@
 import { joinPath, normalizeSlashes } from "../utils/path";
 import { getFileHandle, resolveSubdir } from "../shared";
 
-export type Ctx = { root?: FileSystemDirectoryHandle; cwd: string; onChunk?: (s: string) => void };
+export type Ctx = { cwd: string; onChunk?: (s: string) => void };
 
 export function unquote(s: string): string {
   if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
@@ -25,5 +25,3 @@ export async function resolveAsFile(ctx: Ctx, filePath: string): Promise<{ full:
   await getFileHandle(relPath, /*create*/ false);
   return { full: relPath };
 }
-
-// Deprecated OPFS handle-based utilities removed in favor of adapter-backed path helpers.
