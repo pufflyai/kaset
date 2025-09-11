@@ -9,22 +9,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), svgr()],
     base: env.VITE_BASE_URL,
-    // Enable cross-origin isolation so SharedArrayBuffer is available.
-    // Required by dependencies like @zenfs when performing certain operations.
-    server: {
-      headers: {
-        "Cross-Origin-Opener-Policy": "same-origin",
-        "Cross-Origin-Embedder-Policy": "require-corp",
-        "Cross-Origin-Resource-Policy": "same-origin",
-      },
-    },
-    preview: {
-      headers: {
-        "Cross-Origin-Opener-Policy": "same-origin",
-        "Cross-Origin-Embedder-Policy": "require-corp",
-        "Cross-Origin-Resource-Policy": "same-origin",
-      },
-    },
     resolve: {
       dedupe: ["react", "react-dom"],
       alias: {
