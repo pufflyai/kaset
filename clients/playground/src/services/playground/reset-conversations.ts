@@ -21,14 +21,19 @@ export function resetConversationsForProject(projectId: string) {
 
   useWorkspaceStore.setState(
     (state) => {
-      const next: Record<string, Conversation> = {};
+      const wasSelectedFromProject = state.conversations[state.selectedConversationId]?.projectId === projectId;
 
+      const next: Record<string, Conversation> = {};
       for (const [key, value] of Object.entries(state.conversations)) {
         if ((value.projectId ?? "todo") !== projectId) next[key] = value as Conversation;
       }
 
       next[newId] = newConvo;
       state.conversations = next;
+
+      if (state.selectedProjectId === (projectId as any) || wasSelectedFromProject) {
+        state.selectedConversationId = newId;
+      }
     },
     false,
     "conversations/reset",
