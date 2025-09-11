@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useFileContent } from "@pstdio/opfs-hooks";
 import { getDirectoryHandle } from "@pstdio/opfs-utils";
 
-const customTheme = {
+export const customTheme = {
   base: "vs-dark" as const,
   inherit: true,
   rules: [],
