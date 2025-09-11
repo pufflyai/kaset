@@ -9,11 +9,46 @@ export type ResetOptions = {
 };
 
 /**
+ * Remove all files under the `.git` directory using OPFS utils only.
+ * Intentionally avoids direct OPFS access.
+ */
+async function removeGitDirectory(rootDir: string): Promise<boolean> {
+  const gitDir = `${rootDir.replace(/\/+$/, "")}/.git`;
+
+  try {
+    const files = await ls(gitDir, { maxDepth: Infinity, kinds: ["file"], showHidden: true });
+
+    let removedAny = false;
+    for (const f of files) {
+      try {
+        await deleteFile(`${gitDir}/${f.path}`);
+        removedAny = true;
+      } catch (e) {
+        console.warn(`Failed to remove .git file ${f.path}:`, e);
+      }
+    }
+
+    return removedAny;
+  } catch {
+    // .git missing or unreadable — treat as already removed.
+    return false;
+  }
+}
+
+/**
  * Reset a playground project: remove all files under the project's OPFS folder
  * and re-apply the bundled example files.
  */
 export async function resetProject(kind: ExampleKind, options: ResetOptions = {}) {
   const rootDir = options.folderName?.trim() || `${PROJECTS_ROOT}/${kind}`;
+
+  // Proactively remove any existing Git repository for a clean reset.
+  try {
+    await removeGitDirectory(rootDir);
+  } catch (err) {
+    // Non-fatal; proceed with file cleanup.
+    console.warn(`Failed to remove .git for ${rootDir}:`, err);
+  }
 
   let deleted = 0;
   try {

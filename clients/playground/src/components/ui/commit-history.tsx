@@ -1,9 +1,18 @@
-import { TimelineFromJSON, type TimelineDoc, type TitleSegment } from "@/components/ui/timeline";
 import { PROJECTS_ROOT } from "@/constant";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Box, Stack, Text } from "@chakra-ui/react";
+import { Box, Stack, Text, HStack, Button, Dialog, CloseButton } from "@chakra-ui/react";
+import {
+  ensureDirExists,
+  ensureRepo,
+  listCommits,
+  revertToCommit,
+  getRepoStatus,
+  commitAll,
+  getHeadState,
+  type CommitEntry,
+  type GitContext,
+} from "@pstdio/opfs-utils";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ensureRepo, listCommits, type CommitEntry, type GitContext, ensureDirExists } from "@pstdio/opfs-utils";
 
 function toAbs(path: string) {
   const clean = path.replace(/\\/g, "/").replace(/^\/+/, "");
@@ -18,6 +27,11 @@ export function CommitHistory() {
 
   const [commits, setCommits] = useState<CommitEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [checkingOut, setCheckingOut] = useState<string | null>(null);
+  const [currentOid, setCurrentOid] = useState<string | null>(null);
+  const [savePromptOpen, setSavePromptOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [pendingCheckoutOid, setPendingCheckoutOid] = useState<string | null>(null);
 
   const ctx: GitContext = useMemo(() => ({ dir: repoDir }), [repoDir]);
 
@@ -29,31 +43,31 @@ export function CommitHistory() {
       await ensureDirExists(repoDir, true);
       await ensureRepo(ctx);
 
-      // Prefer commits on 'main'. If missing/unborn, try HEAD; if still missing, treat as empty.
+      // Prefer the current branch if attached; otherwise use HEAD
+      const head = await getHeadState(ctx);
+      const preferredRef = head.currentBranch || "HEAD";
       let list: CommitEntry[] | null = null;
       try {
-        list = await listCommits(ctx, { limit: 50, ref: "main" });
-      } catch (eMain: any) {
-        try {
-          list = await listCommits(ctx, { limit: 50 });
-        } catch (eHead: any) {
-          const msg = (eHead?.message || String(eHead)).toLowerCase();
-          const isNotFound =
-            eHead?.name === "NotFoundError" ||
-            msg.includes("could not find") ||
-            msg.includes("head") ||
-            msg.includes("ref");
-          if (isNotFound) {
-            list = [];
-          } else {
-            throw eHead;
-          }
+        list = await listCommits(ctx, { limit: 50, ref: preferredRef });
+      } catch (eHead: any) {
+        const msg = (eHead?.message || String(eHead)).toLowerCase();
+        const isNotFound = eHead?.name === "NotFoundError" || msg.includes("could not find") || msg.includes("ref");
+        if (isNotFound) {
+          list = [];
+        } else {
+          throw eHead;
         }
       }
 
       setCommits(list || []);
+      // Also refresh current HEAD commit oid
+      try {
+        const headTop = await listCommits(ctx, { limit: 1 });
+        setCurrentOid(headTop?.[0]?.oid ?? null);
+      } catch {
+        setCurrentOid(null);
+      }
     } catch (e: any) {
-      // Log to console but keep UI friendly
       console.log("Failed to load commit history:", e);
       setError(e?.message || String(e));
       setCommits([]);
@@ -64,38 +78,76 @@ export function CommitHistory() {
     void loadCommits();
   }, [loadCommits]);
 
-  const data: TimelineDoc = useMemo(() => {
-    const items = (commits || []).map((c) => {
-      const when = c.isoDate ? new Date(c.isoDate).toLocaleString() : "";
-      const title: TitleSegment[] = [{ kind: "text", text: (c.message || "").split(/\r?\n/)[0] ?? "", bold: true }];
-      const meta: string[] = [];
-      if (c.author) meta.push(c.author);
-      if (when) meta.push(when);
-      title.push({ kind: "text", text: meta.length ? ` — ${meta.join(" • ")}` : "", muted: true });
+  const proceedCheckout = useCallback(
+    async (oid: string) => {
+      try {
+        setCheckingOut(oid);
+        await ensureDirExists(repoDir, true);
+        await ensureRepo(ctx);
+        // Switch without detaching: move current branch to the target commit
+        await revertToCommit(ctx, { to: oid, mode: "hard", force: true });
+        setCurrentOid(oid);
+        await loadCommits();
+      } catch (e: any) {
+        console.log("Checkout failed:", e);
+        setError(e?.message || String(e));
+      } finally {
+        setCheckingOut(null);
+      }
+    },
+    [ctx, repoDir, loadCommits],
+  );
 
-      // No blocks by default; this keeps the list compact. Could add details later.
-      return {
-        id: c.oid,
-        indicator: { type: "icon", icon: "file" } as const,
-        title,
-      };
-    });
-    return { items };
-  }, [commits]);
+  const onCheckoutCommit = useCallback(
+    async (oid: string) => {
+      try {
+        setError(null);
+        await ensureDirExists(repoDir, true);
+        await ensureRepo(ctx);
 
-  const onOpenFile = (filePath: string) => {
-    const rootDir = rootDirRel;
-    const path = filePath?.startsWith(rootDir) ? filePath : `${rootDir}/${filePath}`;
+        const s = await getRepoStatus(ctx);
+        const hasChanges =
+          s.added.length > 0 || s.modified.length > 0 || s.deleted.length > 0 || s.untracked.length > 0;
 
-    useWorkspaceStore.setState(
-      (state) => {
-        state.filePath = path;
-        state.selectedTab = "code";
-      },
-      false,
-      "commit-history/open-file",
-    );
-  };
+        if (hasChanges) {
+          setPendingCheckoutOid(oid);
+          setSavePromptOpen(true);
+          return;
+        }
+
+        await proceedCheckout(oid);
+      } catch (e: any) {
+        console.log("Pre-checkout failed:", e);
+        setError(e?.message || String(e));
+      }
+    },
+    [ctx, repoDir, proceedCheckout],
+  );
+
+  const confirmSaveThenCheckout = useCallback(async () => {
+    if (!pendingCheckoutOid) return;
+    setSaving(true);
+    try {
+      await ensureRepo(ctx, { name: "human", email: "human@kaset.dev" });
+      await commitAll(ctx, {
+        message: "save: local changes before checkout",
+        author: { name: "human", email: "human@kaset.dev" },
+        branch: "main",
+      });
+
+      await loadCommits();
+      await proceedCheckout(pendingCheckoutOid);
+    } catch (e: any) {
+      console.log("Save changes failed:", e);
+      setError(e?.message || String(e));
+    } finally {
+      setSaving(false);
+      setSavePromptOpen(false);
+      setPendingCheckoutOid(null);
+    }
+  }, [ctx, pendingCheckoutOid, loadCommits, proceedCheckout]);
+
+  const items = useMemo(() => commits || [], [commits]);
 
   const isEmpty = (commits && commits.length === 0) || (!commits && !error);
 
@@ -115,9 +167,79 @@ export function CommitHistory() {
             <Text color="fg.secondary">No commits on main yet. Make a commit to see history.</Text>
           </Box>
         ) : (
-          <TimelineFromJSON data={data} onOpenFile={onOpenFile} />
+          <Stack>
+            {items.map((c) => {
+              const when = c.isoDate ? new Date(c.isoDate).toLocaleString() : "";
+              const title = (c.message || "").split(/\r?\n/)[0] ?? "";
+              const meta: string[] = [];
+              if (c.author) meta.push(c.author);
+              if (when) meta.push(when);
+              const isCurrent = currentOid === c.oid;
+
+              return (
+                <Box
+                  key={c.oid}
+                  role="button"
+                  tabIndex={0}
+                  cursor={checkingOut ? "progress" : "pointer"}
+                  borderWidth="1px"
+                  borderColor={isCurrent ? "border.secondary" : "transparent"}
+                  rounded="md"
+                  padding="sm"
+                  _hover={{ background: "background.secondary" }}
+                  onClick={() => (checkingOut ? null : onCheckoutCommit(c.oid))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") onCheckoutCommit(c.oid);
+                  }}
+                >
+                  <Text fontWeight="medium">{title}</Text>
+                  <HStack gap="xs" align="center" mt="1">
+                    <Text color="fg.secondary">{meta.length ? `— ${meta.join(" • ")}` : ""}</Text>
+                    {isCurrent ? <Text color="foreground.primary">• Current</Text> : null}
+                  </HStack>
+                </Box>
+              );
+            })}
+          </Stack>
         )}
       </Box>
+
+      {/* Save changes modal */}
+      <Dialog.Root open={savePromptOpen} onOpenChange={(e) => setSavePromptOpen(e.open)}>
+        <Dialog.Backdrop />
+        <Dialog.Positioner>
+          <Dialog.Content>
+            <Dialog.Header>
+              <Text textStyle="heading/M">Save changes</Text>
+              <Dialog.CloseTrigger>
+                <CloseButton size="sm" />
+              </Dialog.CloseTrigger>
+            </Dialog.Header>
+            <Dialog.Body>
+              <Text color="fg.secondary">You have unsaved changes. Create a new version before switching?</Text>
+            </Dialog.Body>
+            <Dialog.Footer>
+              <HStack gap="xs">
+                <Button
+                  onClick={() => {
+                    if (saving) return;
+                    const oid = pendingCheckoutOid;
+                    setSavePromptOpen(false);
+                    setPendingCheckoutOid(null);
+                    if (oid) void proceedCheckout(oid);
+                  }}
+                  disabled={saving}
+                >
+                  Don't save
+                </Button>
+                <Button onClick={confirmSaveThenCheckout} loading={saving} variant="solid">
+                  Save changes
+                </Button>
+              </HStack>
+            </Dialog.Footer>
+          </Dialog.Content>
+        </Dialog.Positioner>
+      </Dialog.Root>
     </Stack>
   );
 }

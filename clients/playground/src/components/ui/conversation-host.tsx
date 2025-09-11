@@ -1,3 +1,4 @@
+import { PROJECTS_ROOT } from "@/constant";
 import { useEffect, useRef, useState } from "react";
 import { setApprovalHandler, type ApprovalRequest } from "../../services/ai/KAS/approval";
 import { sendMessage } from "../../services/ai/sendMessage";
@@ -5,7 +6,8 @@ import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import type { Message } from "../../types";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
-import { PROJECTS_ROOT } from "@/constant";
+
+const EMPTY_MESSAGES: Message[] = [];
 
 function normalizeProjectPath(input: string | undefined | null): string | undefined {
   if (!input) return undefined;
@@ -26,7 +28,9 @@ function normalizeProjectPath(input: string | undefined | null): string | undefi
 
 export function ConversationHost() {
   const messages = useWorkspaceStore((s) =>
-    s.selectedConversationId ? (s.conversations[s.selectedConversationId!]?.messages ?? []) : [],
+    s.selectedConversationId
+      ? (s.conversations[s.selectedConversationId!]?.messages ?? EMPTY_MESSAGES)
+      : EMPTY_MESSAGES,
   );
 
   const [streaming, setStreaming] = useState(false);
