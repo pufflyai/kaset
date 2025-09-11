@@ -1,6 +1,6 @@
 import { TreeView as ChakraTreeView, createTreeCollection, Menu, Portal } from "@chakra-ui/react";
 import { useFolder } from "@pstdio/opfs-hooks";
-import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
+import { deleteFile, getDirectoryHandle, ls } from "@pstdio/opfs-utils";
 import type { LucideIcon } from "lucide-react";
 import { ChevronDown, ChevronRight, Download, Folder, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
@@ -189,8 +189,8 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
     let cancelled = false;
     (async () => {
       try {
-        const handle = await getDirectoryHandle(rootDir);
-        const entries = await ls(handle, { maxDepth: Infinity, kinds: ["directory"] });
+        await getDirectoryHandle(rootDir);
+        const entries = await ls(rootDir, { maxDepth: Infinity, kinds: ["directory"] });
 
         const prefix = rootDir ? rootDir.replace(/\/+$/, "") + "/" : "";
         const next = new Set<string>();
@@ -288,34 +288,25 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
       }}
       onDelete={async (node) => {
         try {
-          const dir = await getDirectoryHandle(rootDir);
+          // Normalize helper
+          const norm = (p?: string) => (p ? p.split("/").filter(Boolean).join("/") : "");
 
-          // Compute the path relative to the provided rootDir,
-          // regardless of how many segments rootDir contains.
-          const idParts = node.id.split("/").filter(Boolean);
-          const rootParts = rootDir.split("/").filter(Boolean);
+          const idParts = norm(node.id).split("/").filter(Boolean);
+          const rootParts = norm(rootDir).split("/").filter(Boolean);
 
-          const hasRootPrefix = idParts.slice(0, rootParts.length).join("/") === rootDir;
+          const hasRootPrefix = idParts.slice(0, rootParts.length).join("/") === norm(rootDir);
           const relParts = hasRootPrefix ? idParts.slice(rootParts.length) : idParts;
 
-          // Navigate to the parent directory of the target file
-          let currentDir: FileSystemDirectoryHandle = dir;
-          for (let i = 0; i < Math.max(0, relParts.length - 1); i++) {
-            currentDir = await currentDir.getDirectoryHandle(relParts[i]);
-          }
-
-          const fileName = relParts[relParts.length - 1];
-          if (fileName) {
-            await currentDir.removeEntry(fileName);
-          }
+          const target = hasRootPrefix ? norm(node.id) : [norm(rootDir), ...idParts].filter(Boolean).join("/");
+          await deleteFile(target);
 
           // If we just deleted the currently selected file, move selection.
           if ((selectedPath ?? null) === node.id) {
             // Prefer another file in the same directory.
-            const siblings = await ls(currentDir, { maxDepth: 1, kinds: ["file"], sortBy: "name" });
-
             const dirRelParts = relParts.slice(0, -1);
             const dirRelPath = dirRelParts.join("/");
+            const currentDirPath = [rootDir, dirRelPath].filter(Boolean).join("/");
+            const siblings = await ls(currentDirPath, { maxDepth: 1, kinds: ["file"], sortBy: "name" });
 
             const toAbs = (name: string) => [rootDir, dirRelPath, name].filter((s) => !!s && s.length > 0).join("/");
 
@@ -326,7 +317,7 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
               nextPath = toAbs(siblings[0].name);
             } else {
               // Otherwise, pick the first file anywhere under the project root
-              const all = await ls(dir, {
+              const all = await ls(rootDir, {
                 maxDepth: Infinity,
                 kinds: ["file"],
                 sortBy: "path",

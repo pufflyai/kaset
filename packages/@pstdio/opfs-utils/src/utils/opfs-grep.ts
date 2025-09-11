@@ -1,4 +1,7 @@
 import { expandBraces, globToRegExp } from "./glob";
+import { getFs } from "../adapter/fs";
+import { resolveSubdir } from "../shared";
+import { joinPath, normalizeSlashes } from "./path";
 
 /**
  * Shape of a single match.
@@ -44,11 +47,13 @@ export interface GrepOptions {
  * Small internal type for files yielded by the walker.
  */
 interface FileEntry {
+  /** Path relative to the provided dirPath (POSIX-like) */
   path: string;
-  handle: FileSystemFileHandle;
+  /** Absolute path within OPFS (leading slash) */
+  abs: string;
 }
 
-export async function grep(dirHandle: FileSystemDirectoryHandle, options: GrepOptions): Promise<GrepMatch[]> {
+export async function grep(dirPath: string, options: GrepOptions): Promise<GrepMatch[]> {
   const {
     pattern,
     flags,
@@ -66,75 +71,45 @@ export async function grep(dirHandle: FileSystemDirectoryHandle, options: GrepOp
   const excludeREs = (exclude ?? []).flatMap((p) => expandBraces(p)).map((g) => globToRegExp(g));
   const re = toGlobalRegex(pattern, flags);
 
+  // Resolve absolute search root (OPFS path starting with "/")
+  const rootAbs = await resolveSubdir(dirPath || "", false);
+
   // Collect files first (so we can pool-process them)
   const files: FileEntry[] = [];
-  for await (const f of walk(dirHandle, "", { signal })) {
-    if (shouldSkip(f.path, includeREs, excludeREs)) continue;
-    files.push(f);
+  for await (const rel of walkFilesFs(rootAbs, "", { signal })) {
+    if (shouldSkip(rel, includeREs, excludeREs)) continue;
+    const abs = joinPath(rootAbs, rel);
+    files.push({ path: rel, abs });
   }
 
   const results: GrepMatch[] = [];
+  const fs = await getFs();
+
   await runPool<FileEntry>(files, Math.max(1, concurrency), async (fileEntry: FileEntry) => {
     if (signal?.aborted) return;
     try {
-      const file = await fileEntry.handle.getFile();
-      if (file.size > maxFileSize) return;
+      const st = await fs.promises.stat("/" + normalizeSlashes(fileEntry.abs));
+      if ((st.size ?? 0) > maxFileSize) return;
 
-      const reader = file.stream().getReader();
-      const decoder = new TextDecoder(encoding, { fatal: false });
+      // Read entire file and scan lines
+      const buf = await fs.promises.readFile("/" + normalizeSlashes(fileEntry.abs));
+      const text = typeof buf === "string" ? buf : new TextDecoder(encoding, { fatal: false }).decode(buf);
 
-      let carry = "";
-      let lineNo = 0;
+      const lines = text.split("\n");
+      for (let i = 0; i < lines.length; i++) {
+        let line = lines[i];
+        if (line.endsWith("\r")) line = line.slice(0, -1);
 
-      while (true) {
-        if (signal?.aborted) return;
-        const { value, done } = await reader.read();
-        if (done) break;
-        carry += decoder.decode(value, { stream: true });
-
-        // Consume full lines in 'carry'
-        let nlIndex: number;
-        while ((nlIndex = carry.indexOf("\n")) >= 0) {
-          let line = carry.slice(0, nlIndex);
-          // Handle CRLF
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          carry = carry.slice(nlIndex + 1);
-          lineNo++;
-
-          // Scan the line
-          re.lastIndex = 0;
-          let m: RegExpExecArray | null;
-          while ((m = re.exec(line)) !== null) {
-            const col = (m.index ?? 0) + 1;
-            const match: GrepMatch = {
-              file: fileEntry.path,
-              line: lineNo,
-              column: col,
-              match: m[0],
-              lineText: line,
-            };
-            results.push(match);
-            if (onMatch) await onMatch(match);
-            // Prevent infinite loop on zero-length matches
-            if (m[0] === "") re.lastIndex++;
-          }
-        }
-      }
-
-      // Flush remainder as final line (if any)
-      const tail = carry + decoder.decode();
-      if (tail.length > 0) {
-        lineNo++;
         re.lastIndex = 0;
         let m: RegExpExecArray | null;
-        while ((m = re.exec(tail)) !== null) {
+        while ((m = re.exec(line)) !== null) {
           const col = (m.index ?? 0) + 1;
           const match: GrepMatch = {
             file: fileEntry.path,
-            line: lineNo,
+            line: i + 1,
             column: col,
             match: m[0],
-            lineText: tail,
+            lineText: line,
           };
           results.push(match);
           if (onMatch) await onMatch(match);
@@ -153,19 +128,42 @@ export async function grep(dirHandle: FileSystemDirectoryHandle, options: GrepOp
 /**
  * Recursively walk a directory, yielding files with their POSIX-like paths.
  */
-async function* walk(
-  dirHandle: FileSystemDirectoryHandle,
+async function* walkFilesFs(
+  rootAbs: string,
   prefix = "",
   { signal }: { signal?: AbortSignal } = {},
-): AsyncGenerator<FileEntry, void, unknown> {
-  // entries() yields [name, handle]
-  for await (const [name, handle] of (dirHandle as any).entries() as AsyncIterable<[string, FileSystemHandle]>) {
+): AsyncGenerator<string, void, unknown> {
+  if (signal?.aborted) return;
+
+  const fs = await getFs();
+  const hereAbs = "/" + (prefix ? joinPath(rootAbs, prefix) : normalizeSlashes(rootAbs));
+
+  let names: string[] = [];
+  try {
+    names = await fs.promises.readdir(hereAbs);
+  } catch {
+    return; // unreadable directory
+  }
+
+  for (const name of names) {
     if (signal?.aborted) return;
-    const path = prefix ? `${prefix}/${name}` : name;
-    if (handle.kind === "file") {
-      yield { path, handle: handle as FileSystemFileHandle };
-    } else if (handle.kind === "directory") {
-      yield* walk(handle as FileSystemDirectoryHandle, path, { signal });
+    const rel = prefix ? `${prefix}/${name}` : name;
+    const abs = "/" + joinPath(rootAbs, rel);
+
+    let st: any;
+    try {
+      st = await fs.promises.stat(abs);
+    } catch {
+      continue;
+    }
+
+    if (st.isFile?.()) {
+      yield rel;
+      continue;
+    }
+
+    if (st.isDirectory?.()) {
+      yield* walkFilesFs(rootAbs, rel, { signal });
     }
   }
 }

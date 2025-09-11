@@ -1,7 +1,7 @@
 import { Editor } from "@monaco-editor/react";
-import { useEffect, useMemo, useRef, useState } from "react";
 import { useFileContent } from "@pstdio/opfs-hooks";
-import { getDirectoryHandle } from "@pstdio/opfs-utils";
+import { writeFile } from "@pstdio/opfs-utils";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export const customTheme = {
   base: "vs-dark" as const,
@@ -91,24 +91,17 @@ export const CodeEditor = (props: CodeEditorProps) => {
   const saveInProgressRef = useRef(false);
 
   const writeToOpfs = async (fullPath: string, content: string) => {
-    const dir = await getDirectoryHandle(rootDir);
+    // Normalize helper: collapse multiple slashes and remove leading/trailing
+    const normalize = (p?: string) => (p ? p.split("/").filter(Boolean).join("/") : "");
 
-    // Resolve path relative to rootDir if provided and prefixed, else treat as absolute
-    const idParts = fullPath.split("/").filter(Boolean);
-    const rootParts = (rootDir ?? "").split("/").filter(Boolean);
-    const hasRootPrefix = rootDir && idParts.slice(0, rootParts.length).join("/") === rootDir;
-    const relParts = hasRootPrefix ? idParts.slice(rootParts.length) : idParts;
+    const id = normalize(fullPath);
+    const root = normalize(rootDir);
 
-    let currentDir: FileSystemDirectoryHandle = dir;
-    for (let i = 0; i < Math.max(0, relParts.length - 1); i++) {
-      currentDir = await currentDir.getDirectoryHandle(relParts[i]);
-    }
+    // If filePath already includes the root prefix, use as-is; otherwise join under root
+    const hasRootPrefix = root && (id === root || id.startsWith(root + "/"));
+    const target = hasRootPrefix ? id : root ? `${root}/${id}` : id;
 
-    const fileName = relParts[relParts.length - 1];
-    const fileHandle = await currentDir.getFileHandle(fileName, { create: true });
-    const writable = await fileHandle.createWritable();
-    await writable.write(content);
-    await writable.close();
+    await writeFile(`/${target}`, content);
   };
 
   const scheduleSave = (path: string, content: string) => {

@@ -1,5 +1,6 @@
 import { PROJECTS_ROOT } from "@/constant";
-import { setupExample } from "@/services/playground/setup";
+import { resetProject as resetProjectFiles } from "@/services/playground/reset";
+import { resetConversationsForProject } from "@/services/playground/reset-conversations";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Conversation } from "@/state/types";
 import {
@@ -14,7 +15,6 @@ import {
   Text,
   useDisclosure,
 } from "@chakra-ui/react";
-import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
 import {
   CassetteTapeIcon,
   Check as CheckIcon,
@@ -106,58 +106,13 @@ export function TopBar() {
   };
 
   const deleteAllConversations = () => {
-    const id = (
-      typeof crypto !== "undefined" && (crypto as any).randomUUID
-        ? (crypto as any).randomUUID()
-        : Math.random().toString(36).slice(2)
-    ) as string;
-
-    const name = "Conversation 1";
-
-    const convo: Conversation = { id, name, messages: [], projectId: selectedProject };
-
-    useWorkspaceStore.setState(
-      (state) => {
-        // Remove only conversations for the current project
-        const next: Record<string, Conversation> = {};
-        for (const [key, value] of Object.entries(state.conversations)) {
-          if ((value.projectId ?? "todo") !== selectedProject) next[key] = value;
-        }
-        next[id] = convo;
-        state.conversations = next;
-        state.selectedConversationId = id;
-      },
-      false,
-      "conversations/delete-all",
-    );
+    resetConversationsForProject(selectedProject);
   };
 
   const handleResetProject = async () => {
     const rootDir = `${PROJECTS_ROOT}/${selectedProject}`;
 
-    try {
-      // Remove all entries under the project directory
-      const dir = await getDirectoryHandle(rootDir);
-      const children = await ls(dir, { maxDepth: 1 });
-
-      for (const entry of children) {
-        try {
-          await (dir as any).removeEntry(entry.name, { recursive: true } as any);
-        } catch (err) {
-          console.warn(`Failed to remove ${entry.name} during reset:`, err);
-        }
-      }
-    } catch (err) {
-      // If directory doesn't exist yet, that's fine; we'll re-create below
-      console.warn(`Project directory not found for reset (${rootDir}); will recreate.`, err);
-    }
-
-    try {
-      // Re-apply bundled example files for the selected project
-      await setupExample(selectedProject, { folderName: rootDir, overwrite: true });
-    } catch (err) {
-      console.error(`Failed to setup example for ${selectedProject}:`, err);
-    }
+    await resetProjectFiles(selectedProject, { folderName: rootDir });
 
     // If a file from this project was selected, clear the selection
     useWorkspaceStore.setState(

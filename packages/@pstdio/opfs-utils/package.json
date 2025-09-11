@@ -68,6 +68,9 @@
     "wait-on": "^8.0.3"
   },
   "dependencies": {
+    "@zenfs/core": "^2.4.0",
+    "@zenfs/dom": "^1.2.4",
+    "buffer": "^6.0.3",
     "diff": "^8.0.2",
     "isomorphic-git": "^1.33.1"
   },

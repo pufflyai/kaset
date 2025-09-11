@@ -1,25 +1,17 @@
 import { createTwoFilesPatch } from "diff";
 import { useState } from "react";
-import { applyPatchInOPFS as patch } from "../../src/utils/opfs-patch";
-import { getDirHandle, readTextFile } from "../opfs-helpers";
+import { applyPatchInOPFS as patch } from "../../src/git/patch";
+import { getDirHandle, readTextFile } from "../helpers";
 import {
   PATCH_CREATE_FILE,
   PATCH_MODIFY_INDEX,
-  PATCH_MULTI_FILE,
   PATCH_MODIFY_INDEX_NO_LINES,
+  PATCH_MULTI_FILE,
   PATCH_TODOS_SATURDAY_NON_CONSECUTIVE,
 } from "../samples";
 import { Button, MonoBlock, Row, Section, TextArea, TextInput } from "./ui";
 
-export function PatchPanel({
-  root,
-  baseDir,
-  onStatus,
-}: {
-  root: FileSystemDirectoryHandle | null;
-  baseDir: string;
-  onStatus: (s: string) => void;
-}) {
+export function PatchPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {
   const [patchContent, setPatchContent] = useState<string>(PATCH_MODIFY_INDEX);
   const [patchOutput, setPatchOutput] = useState<string>("");
   const [diffPath, setDiffPath] = useState<string>("src/index.ts");
@@ -27,20 +19,18 @@ export function PatchPanel({
   const [editorOriginal, setEditorOriginal] = useState<string | null>(null);
 
   async function handlePatch() {
-    if (!root) return;
-    const dir = await getDirHandle(root, baseDir, true);
+    const dir = await getDirHandle(baseDir, true);
     onStatus("Applying patch...");
-    const result = await patch({ root: dir, workDir: "", diffContent: patchContent });
+    const result = await patch({ workDir: "", diffContent: patchContent });
     setPatchOutput(result.output);
     onStatus(result.success ? "Patch applied successfully." : "Patch finished with errors.");
   }
 
   async function loadEditorContent() {
-    if (!root) return;
     const path = diffPath.trim().replace(/^\/+/, "");
     if (!path) return;
 
-    const dir = await getDirHandle(root, baseDir, true);
+    const dir = await getDirHandle(baseDir, true);
 
     const current = await readTextFile(dir, path);
     if (current !== null) {
@@ -57,11 +47,10 @@ export function PatchPanel({
   }
 
   async function generateDiffFromEditor() {
-    if (!root) return;
     const path = diffPath.trim().replace(/^\/+/, "");
     if (!path) return;
 
-    const dir = await getDirHandle(root, baseDir, true);
+    const dir = await getDirHandle(baseDir, true);
     // Prefer the content that was loaded into the editor as the base.
     // If none was loaded, try the current file, then baseline.
     let base: string | null = editorOriginal;
@@ -102,9 +91,7 @@ export function PatchPanel({
         <Button onClick={() => setPatchContent(PATCH_TODOS_SATURDAY_NON_CONSECUTIVE)}>
           Insert sample non-consecutive multi-line diff
         </Button>
-        <Button onClick={handlePatch} disabled={!root}>
-          Apply patch
-        </Button>
+        <Button onClick={handlePatch}>Apply patch</Button>
       </Row>
 
       <div style={{ marginTop: 10 }}>
@@ -116,12 +103,8 @@ export function PatchPanel({
             placeholder="e.g. src/index.ts"
             width={280}
           />
-          <Button onClick={loadEditorContent} disabled={!root}>
-            Load file
-          </Button>
-          <Button onClick={generateDiffFromEditor} disabled={!root}>
-            Generate
-          </Button>
+          <Button onClick={loadEditorContent}>Load file</Button>
+          <Button onClick={generateDiffFromEditor}>Generate</Button>
         </Row>
       </div>
 

@@ -1,4 +1,6 @@
-import { getOPFSRoot } from "../shared";
+import { getFs } from "../adapter/fs";
+import { resolveSubdir } from "../shared";
+import { joinPath } from "./path";
 
 export type DirectoryWatcherCleanup = () => void;
 export type ChangeType = "appeared" | "modified" | "disappeared" | "moved" | "unknown" | "errored";
@@ -24,12 +26,11 @@ export async function watchOPFS(
   callback: (changes: ChangeRecord[]) => void,
   options?: WatchOptions,
 ): Promise<DirectoryWatcherCleanup> {
-  const root = await getOPFSRoot();
-  return watchDirectory(root, callback, options);
+  return watchDirectory("", callback, options);
 }
 
 export async function watchDirectory(
-  dir: FileSystemDirectoryHandle,
+  dirPath: string,
   callback: (changes: ChangeRecord[]) => void,
   options: WatchOptions = {},
 ): Promise<DirectoryWatcherCleanup> {
@@ -37,37 +38,12 @@ export async function watchDirectory(
 
   const ignoreFn = toIgnoreFn(ignore);
 
-  const ObserverCtor: any = (globalThis as any).FileSystemObserver;
-  if (typeof ObserverCtor === "function") {
-    const observer = new ObserverCtor((records: any[]) => {
-      const changes: ChangeRecord[] = [];
-
-      for (const r of records) {
-        const p: string[] = r.relativePathComponents || [r.name || ""];
-        changes.push({
-          type: r.type || "unknown",
-          path: p,
-          size: r.size,
-          lastModified: r.lastModified,
-          handleKind: r.kind,
-        });
-      }
-
-      if (changes.length) callback(changes);
-    });
-
-    await observer.observe(dir, { recursive });
-
-    const cleanup = () => observer.disconnect();
-    signal?.addEventListener("abort", cleanup);
-    return cleanup;
-  }
-
-  let prev = new Map<string, { size: number; mtime: number; kind: string }>();
+  // Snapshot map: "relative/path" -> metadata
+  let prev = new Map<string, { size: number; mtime: number; kind: "file" | "directory" }>();
 
   async function snap() {
-    const cur = new Map<string, { size: number; mtime: number; kind: string }>();
-    await walk(dir, [], cur);
+    const cur = new Map<string, { size: number; mtime: number; kind: "file" | "directory" }>();
+    await walkFs(dirPath, cur, { recursive, ignoreFn });
     const changes: ChangeRecord[] = [];
 
     for (const [path, meta] of cur) {
@@ -99,29 +75,6 @@ export async function watchDirectory(
 
     if (changes.length) callback(changes);
     prev = cur;
-  }
-
-  async function walk(
-    d: FileSystemDirectoryHandle,
-    prefix: string[],
-    out: Map<string, { size: number; mtime: number; kind: string }>,
-  ) {
-    for await (const [name, handle] of (d as any).entries() as any) {
-      const path = [...prefix, name];
-      if (ignoreFn(path, handle)) continue;
-
-      if (handle.kind === "directory") {
-        out.set(path.join("/"), { size: 0, mtime: 0, kind: handle.kind });
-        await walk(handle, path, out);
-      } else if (handle.kind === "file") {
-        const f = await handle.getFile();
-        out.set(path.join("/"), {
-          size: f.size,
-          mtime: f.lastModified,
-          kind: handle.kind,
-        });
-      }
-    }
   }
 
   if (emitInitial) await snap();
@@ -156,4 +109,53 @@ function toIgnoreFn(ignore: WatchOptions["ignore"]): (path: string[], handle: Fi
   if (typeof ignore === "function") return ignore;
   const regs = Array.isArray(ignore) ? ignore : [ignore];
   return (path) => regs.some((r) => r.test(path.join("/")));
+}
+
+async function walkFs(
+  dirPath: string,
+  out: Map<string, { size: number; mtime: number; kind: "file" | "directory" }>,
+  opts: { recursive: boolean; ignoreFn: (path: string[], handle: FileSystemHandle) => boolean },
+) {
+  const fs = await getFs();
+  const rootAbs = await resolveSubdir(dirPath || "", /*create*/ false);
+
+  async function visit(prefix: string): Promise<void> {
+    const hereAbs = "/" + (prefix ? joinPath(rootAbs, prefix) : rootAbs);
+
+    let names: string[] = [];
+    try {
+      names = await fs.promises.readdir(hereAbs);
+    } catch {
+      return;
+    }
+
+    for (const name of names) {
+      const rel = prefix ? `${prefix}/${name}` : name;
+      const abs = "/" + joinPath(rootAbs, rel);
+
+      let st: any;
+      try {
+        st = await fs.promises.stat(abs);
+      } catch {
+        continue;
+      }
+
+      if (st.isDirectory?.()) {
+        const fake: any = { kind: "directory" };
+        if (opts.ignoreFn(rel.split("/"), fake)) continue;
+        out.set(rel, { size: 0, mtime: 0, kind: "directory" });
+        if (opts.recursive) await visit(rel);
+      } else if (st.isFile?.()) {
+        const fake: any = { kind: "file" };
+        if (opts.ignoreFn(rel.split("/"), fake)) continue;
+        out.set(rel, {
+          size: Number((st as any).size ?? 0),
+          mtime: Number((st as any).mtimeMs ?? 0),
+          kind: "file",
+        });
+      }
+    }
+  }
+
+  await visit("");
 }

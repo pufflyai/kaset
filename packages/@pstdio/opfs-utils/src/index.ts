@@ -1,5 +1,28 @@
-export { runOpfsCommandLine } from "./cli/opfs-shell";
-export { getDirectoryHandle, getOPFSRoot, stripAnsi } from "./shared";
+export {
+  commitAll,
+  ensureRepo,
+  getRepoStatus,
+  listCommits,
+  revertToCommit,
+  checkoutAtCommit,
+  getHeadState,
+  attachHeadToBranch,
+  type CommitAllOptions,
+  type CommitAllResult,
+  type CommitAuthor,
+  type CommitEntry,
+  type GitContext,
+  type RepoStatus,
+  type RevertToCommitOptions,
+  type RevertToCommitResult,
+  type CheckoutAtCommitOptions,
+  type CheckoutAtCommitResult,
+  type HeadState,
+  type AttachHeadOptions,
+} from "./git/git";
+export { applyPatchInOPFS as patch } from "./git/patch";
+export { ensureDirExists, getDirectoryHandle, stripAnsi } from "./shared";
+export { runOpfsCommandLine } from "./shell/opfs-shell";
 export { deleteFile, downloadFile, moveFile, readFile, writeFile } from "./utils/opfs-crud";
 export {
   DEFAULT_MAX_LINES_TEXT_FILE,
@@ -11,7 +34,6 @@ export {
 } from "./utils/opfs-files";
 export { grep } from "./utils/opfs-grep";
 export { formatTree, ls } from "./utils/opfs-ls";
-export { applyPatchInOPFS as patch } from "./utils/opfs-patch";
 export {
   pickAndUploadFilesToDirectory,
   uploadFilesToDirectory,

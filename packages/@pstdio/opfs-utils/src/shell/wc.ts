@@ -1,5 +1,6 @@
 import { normalizeSlashes } from "../utils/path";
 import { Ctx, resolveAsFile } from "./helpers";
+import { getFs } from "../adapter/fs";
 
 export async function cmdWc(args: string[], ctx: Ctx, stdin: string): Promise<string> {
   let wantLines = false;
@@ -37,11 +38,10 @@ export async function cmdWc(args: string[], ctx: Ctx, stdin: string): Promise<st
     return formatCounts(c);
   }
 
+  const fs = await getFs();
   for (const fileArg of files) {
-    const { dir, rel } = await resolveAsFile(ctx, fileArg);
-    const fh = await dir.getFileHandle(rel.path, { create: false });
-    const f = await fh.getFile();
-    const text = await f.text();
+    const { full } = await resolveAsFile(ctx, fileArg);
+    const text = await fs.promises.readFile("/" + normalizeSlashes(full), "utf8");
 
     const c = countText(text);
     totals.lines += c.lines;
@@ -61,7 +61,22 @@ export async function cmdWc(args: string[], ctx: Ctx, stdin: string): Promise<st
 
 function countText(text: string): { lines: number; words: number; bytes: number } {
   const lines = text === "" ? 0 : (text.match(/\n/g) || []).length;
-  const words = text.trim() ? (text.trim().match(/\S+/g) || []).length : 0;
-  const bytes = typeof TextEncoder !== "undefined" ? new TextEncoder().encode(text).length : Buffer.from(text).length;
+
+  const trimmed = text.trim();
+  const words = trimmed ? (trimmed.match(/\S+/g) || []).length : 0;
+
+  let bytes = 0;
+
+  if (typeof TextEncoder !== "undefined") {
+    bytes = new TextEncoder().encode(text).length;
+  } else if (typeof Blob !== "undefined") {
+    // Works in browsers and modern Node; defaults to UTF-8 for strings
+    bytes = new Blob([text]).size;
+  } else {
+    // Final fallback without relying on Buffer in browser contexts
+    // encodeURIComponent produces UTF-8 percent-encoded bytes
+    bytes = unescape(encodeURIComponent(text)).length;
+  }
+
   return { lines, words, bytes };
 }

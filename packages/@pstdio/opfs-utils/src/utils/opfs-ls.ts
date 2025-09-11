@@ -1,7 +1,9 @@
-// A small, dependency-free "ls" for the Origin Private File System (OPFS).
-// Works with OPFS (navigator.storage.getDirectory())
+// A small "ls"
 
+import { getFs } from "../adapter/fs";
+import { resolveSubdir } from "../shared";
 import { expandBraces, globToRegExp } from "./glob";
+import { joinPath } from "./path";
 
 // ---------- Types ----------
 export interface LsEntry {
@@ -48,7 +50,7 @@ export interface LsOptions {
   dirsFirst?: boolean;
 }
 
-export async function ls(dirHandle: FileSystemDirectoryHandle, opts: LsOptions = {}): Promise<LsEntry[]> {
+export async function ls(dirPath: string, opts: LsOptions = {}): Promise<LsEntry[]> {
   const {
     maxDepth = 1,
     include,
@@ -74,48 +76,40 @@ export async function ls(dirHandle: FileSystemDirectoryHandle, opts: LsOptions =
   const results: LsEntry[] = [];
   const statTasks: Array<() => Promise<void>> = [];
 
-  // Traverse
-  await walk(dirHandle, "", 0, {
+  // Resolve directory (absolute, OPFS-style) and traverse using the fs adapter
+  const rootAbs = await resolveSubdir(dirPath || "", /*create*/ false);
+  const fs = await getFs();
+
+  await walkFs(fs, rootAbs, "", 0, {
     maxDepth,
     showHidden,
     excludeREs,
     signal,
-    onDir: async (name, _handle, prefix, depth) => {
+    onDir: async (name, prefix, depth) => {
       const path = prefix ? `${prefix}/${name}` : name;
       const listThis = kinds.includes("directory") && !shouldFilterOut(path, includeREs, excludeREs, showHidden, name);
 
       if (listThis) {
-        const entry: LsEntry = {
-          path,
-          name,
-          kind: "directory",
-          depth,
-        };
+        const entry: LsEntry = { path, name, kind: "directory", depth };
         results.push(entry);
         if (onEntry) await onEntry(entry);
       }
     },
-    onFile: async (name, handle, prefix, depth) => {
+    onFile: async (name, prefix, depth) => {
       const path = prefix ? `${prefix}/${name}` : name;
       const listThis = kinds.includes("file") && !shouldFilterOut(path, includeREs, excludeREs, showHidden, name);
-
       if (!listThis) return;
 
-      const entry: LsEntry = {
-        path,
-        name,
-        kind: "file",
-        depth,
-      };
+      const entry: LsEntry = { path, name, kind: "file", depth };
       results.push(entry);
 
       if (stat) {
+        const abs = "/" + joinPath(rootAbs, path);
         statTasks.push(async () => {
           try {
-            const f = await (handle as FileSystemFileHandle).getFile();
-            entry.size = f.size;
-            entry.lastModified = f.lastModified;
-            if (f.type) entry.type = f.type;
+            const st = await fs.promises.stat(abs);
+            entry.size = Number((st as any).size ?? 0);
+            entry.lastModified = Number((st as any).mtimeMs ?? 0);
           } catch {
             // Ignore stat errors; keep basic entry.
           }
@@ -328,8 +322,9 @@ async function runPool<T>(items: T[], limit: number, worker: (item: T) => Promis
   await Promise.all(runners);
 }
 
-async function walk(
-  dir: FileSystemDirectoryHandle,
+async function walkFs(
+  fs: typeof import("@zenfs/core").fs,
+  rootAbs: string,
   prefix: string,
   depth: number,
   opts: {
@@ -337,35 +332,47 @@ async function walk(
     showHidden: boolean;
     excludeREs: RegExp[];
     signal?: AbortSignal;
-    onDir: (name: string, handle: FileSystemDirectoryHandle, prefix: string, depth: number) => Promise<void>;
-    onFile: (name: string, handle: FileSystemFileHandle, prefix: string, depth: number) => Promise<void>;
+    onDir: (name: string, prefix: string, depth: number) => Promise<void>;
+    onFile: (name: string, prefix: string, depth: number) => Promise<void>;
   },
 ): Promise<void> {
   if (opts.signal?.aborted) return;
   if (depth >= opts.maxDepth) return;
 
-  const iter = (dir as any).entries() as AsyncIterable<[string, FileSystemHandle]>;
-  for await (const [name, handle] of iter) {
+  const hereAbs = "/" + (prefix ? joinPath(rootAbs, prefix) : rootAbs);
+
+  let names: string[] = [];
+  try {
+    names = await fs.promises.readdir(hereAbs);
+  } catch {
+    return; // unreadable directory
+  }
+
+  for (const name of names) {
     if (opts.signal?.aborted) return;
 
-    // Prune hidden directories when showHidden=false
+    // Prune hidden directories early when showHidden=false
     const hidden = name.startsWith(".");
-    if (handle.kind === "directory" && hidden && !opts.showHidden) {
-      continue;
-    }
 
-    // Prune excluded directories entirely
-    const path = prefix ? `${prefix}/${name}` : name;
-    if (handle.kind === "directory" && opts.excludeREs.some((r) => r.test(path))) {
+    const rel = prefix ? `${prefix}/${name}` : name;
+    const abs = "/" + joinPath(rootAbs, rel);
+
+    let st: any;
+    try {
+      st = await fs.promises.stat(abs);
+    } catch {
       continue;
     }
 
     const nextDepth = depth + 1;
-    if (handle.kind === "directory") {
-      await opts.onDir(name, handle as FileSystemDirectoryHandle, prefix, nextDepth);
-      await walk(handle as FileSystemDirectoryHandle, path, nextDepth, opts);
-    } else {
-      await opts.onFile(name, handle as FileSystemFileHandle, prefix, nextDepth);
+    if (st.isDirectory?.()) {
+      if (hidden && !opts.showHidden) continue;
+      if (opts.excludeREs.some((r) => r.test(rel))) continue; // prune excluded dirs entirely
+
+      await opts.onDir(name, prefix, nextDepth);
+      await walkFs(fs, rootAbs, rel, nextDepth, opts);
+    } else if (st.isFile?.()) {
+      await opts.onFile(name, prefix, nextDepth);
     }
   }
 }

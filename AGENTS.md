@@ -287,3 +287,21 @@ export function MessagePartsRenderer({
   ...
 }
 ```
+
+## 7. Avoid specifying output types:
+
+✅ Example (good):
+
+```ts
+function getUserName(user: { firstName: string; lastName: string }) {
+  return `${user.firstName} ${user.lastName}`;
+}
+```
+
+❌ Example (bad):
+
+```ts
+function getUserName(user: { firstName: string; lastName: string }): string {
+  return `${user.firstName} ${user.lastName}`;
+}
+```

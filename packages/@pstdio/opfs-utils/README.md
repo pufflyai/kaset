@@ -21,8 +21,8 @@ npm i @pstdio/opfs-utils
 ```ts
 import { ls } from "@pstdio/opfs-utils";
 
-const root = await navigator.storage.getDirectory();
-await ls(root);
+// List from the OPFS root (current working dir is ".")
+await ls(".");
 ```
 
 ## Notes & limitations

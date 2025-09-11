@@ -1,17 +1,8 @@
 import { useState } from "react";
 import { grep } from "../../src/utils/opfs-grep";
-import { getDirHandle } from "../opfs-helpers";
 import { Button, MonoBlock, Row, Section, TextInput } from "./ui";
 
-export function GrepPanel({
-  root,
-  baseDir,
-  onStatus,
-}: {
-  root: FileSystemDirectoryHandle | null;
-  baseDir: string;
-  onStatus: (s: string) => void;
-}) {
+export function GrepPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {
   const [grepPattern, setGrepPattern] = useState<string>("TODO");
   const [grepFlags, setGrepFlags] = useState<string>("i");
   const [grepInclude, setGrepInclude] = useState<string>("**/*.{ts,tsx,md,txt}");
@@ -27,15 +18,12 @@ export function GrepPanel({
   >([]);
 
   async function handleGrep() {
-    if (!root) return;
-    const dir = await getDirHandle(root, baseDir, true);
-
     onStatus("Searching...");
 
     const include = splitGlobList(grepInclude);
     const exclude = splitGlobList(grepExclude);
 
-    const matches = await grep(dir, {
+    const matches = await grep(baseDir, {
       pattern: grepPattern,
       flags: grepFlags,
       include: include.length ? include : undefined,
@@ -68,9 +56,7 @@ export function GrepPanel({
           onChange={(e) => setGrepExclude(e.currentTarget.value)}
           width={320}
         />
-        <Button onClick={handleGrep} disabled={!root}>
-          Search
-        </Button>
+        <Button onClick={handleGrep}>Search</Button>
       </Row>
 
       <div style={{ marginTop: 10 }}>

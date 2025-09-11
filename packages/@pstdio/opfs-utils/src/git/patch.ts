@@ -1,9 +1,7 @@
 import { applyPatch, parsePatch } from "diff";
 import type * as IsomorphicGit from "isomorphic-git";
 import { readTextFileOptional, resolveSubdir, safeDelete, stripAnsi, writeTextFile } from "../shared";
-import { joinPath, normalizeSegments } from "./path";
-
-export { normalizeSegments } from "./path";
+import { joinPath, normalizeSegments } from "../utils/path";
 
 export interface StructuredPatch {
   oldFileName: string;
@@ -30,9 +28,6 @@ export interface FileOperationResult {
 }
 
 export interface ApplyPatchOptions {
-  /** OPFS directory under which the patch should be applied (usually your repo root) */
-  root: FileSystemDirectoryHandle;
-
   /** Optional working subdirectory inside `root` (e.g., "packages/app") */
   workDir?: string;
 
@@ -71,7 +66,7 @@ export interface ApplyPatchOptions {
  * Apply a unified diff to OPFS files, optionally staging with isomorphic-git.
  */
 export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOperationResult> {
-  const { root, workDir = "", diffContent, signal, git, sanitizeAnsiDiff = true, maxOffsetLines = 200 } = opts;
+  const { workDir = "", diffContent, signal, git, sanitizeAnsiDiff = true, maxOffsetLines = 200 } = opts;
 
   const cleanDiff = sanitizeAnsiDiff ? stripAnsi(diffContent) : diffContent;
 
@@ -82,7 +77,8 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
     return { success: true, output: "No changes in patch (no hunks)." };
   }
 
-  const baseDir = await resolveSubdir(root, workDir, true);
+  // Resolve absolute-like base path ("/workspace/..."), using migrated FS adapter
+  const baseDir = await resolveSubdir(workDir, true);
 
   // Parse (strict first, relaxed fallback)
   let patches: StructuredPatch[];
@@ -130,12 +126,12 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
         const out = applyPatch("", p as any);
         if (out === false) throw new Error("Hunks failed to apply for creation");
 
-        await writeTextFile(baseDir, targetPath, out);
+        await writeTextFile(joinPath(baseDir, targetPath), out);
         tracker.created.push(targetPath);
         await stager.add(targetPath);
 
         rollbacks.push(async () => {
-          await safeDelete(baseDir, targetPath);
+          await safeDelete(joinPath(baseDir, targetPath));
           await stager.remove(targetPath);
         });
 
@@ -143,22 +139,22 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
       }
 
       if (isDelete) {
-        const before = await readTextFileOptional(baseDir, oldPath!);
+        const before = await readTextFileOptional(joinPath(baseDir, oldPath!));
         if (before === null) {
           // Treat as already deleted
-          await safeDelete(baseDir, oldPath!);
+          await safeDelete(joinPath(baseDir, oldPath!));
           tracker.deleted.push(oldPath!);
           await stager.remove(oldPath!);
         } else {
           const out = applyPatch(before, p as any);
           if (out === false) throw new Error("Hunks failed to apply for deletion");
 
-          await safeDelete(baseDir, oldPath!);
+          await safeDelete(joinPath(baseDir, oldPath!));
           tracker.deleted.push(oldPath!);
           await stager.remove(oldPath!);
 
           rollbacks.push(async () => {
-            await writeTextFile(baseDir, oldPath!, before);
+            await writeTextFile(joinPath(baseDir, oldPath!), before);
             await stager.add(oldPath!);
           });
         }
@@ -167,7 +163,7 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
       }
 
       // Modify (possibly with rename)
-      const before = await readTextFileOptional(baseDir, oldPath!);
+      const before = await readTextFileOptional(joinPath(baseDir, oldPath!));
       if (before === null) throw new Error("Target file not found: " + oldPath);
 
       const hasTextualChanges = patchHasTextualChanges(p);
@@ -175,25 +171,25 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
       if (out === false) throw new Error("Hunks failed to apply");
 
       if (isRename) {
-        await writeTextFile(baseDir, newPath!, out);
-        await safeDelete(baseDir, oldPath!);
+        await writeTextFile(joinPath(baseDir, newPath!), out);
+        await safeDelete(joinPath(baseDir, oldPath!));
         tracker.renamed.push({ from: oldPath!, to: newPath! });
         await stager.add(newPath!);
         await stager.remove(oldPath!);
 
         rollbacks.push(async () => {
-          await writeTextFile(baseDir, oldPath!, before);
-          await safeDelete(baseDir, newPath!);
+          await writeTextFile(joinPath(baseDir, oldPath!), before);
+          await safeDelete(joinPath(baseDir, newPath!));
           await stager.add(oldPath!);
           await stager.remove(newPath!);
         });
       } else {
-        await writeTextFile(baseDir, oldPath!, out);
+        await writeTextFile(joinPath(baseDir, oldPath!), out);
         tracker.modified.push(oldPath!);
         await stager.add(oldPath!);
 
         rollbacks.push(async () => {
-          await writeTextFile(baseDir, oldPath!, before);
+          await writeTextFile(joinPath(baseDir, oldPath!), before);
           await stager.add(oldPath!);
         });
       }
@@ -233,8 +229,6 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
     },
   };
 }
-
-// OPFS helpers moved to ../shared to be reused across utils.
 
 class GitStager {
   private ctx?: ApplyPatchOptions["git"];
@@ -326,7 +320,7 @@ const HUNK_ANY_RE = /^@@/;
 
 async function parseUnifiedDiffRelaxed(args: {
   diffText: string;
-  baseDir: FileSystemDirectoryHandle;
+  baseDir: string; // absolute-like base path ("/subdir")
   maxOffsetLines: number;
 }): Promise<StructuredPatch[]> {
   const { diffText, baseDir, maxOffsetLines } = args;
@@ -365,7 +359,7 @@ async function parseUnifiedDiffRelaxed(args: {
     const isDelete = oldPath !== null && newPath === null;
 
     // Pre-image
-    const beforeText = oldPath ? await readTextFileOptional(baseDir, oldPath) : null;
+    const beforeText = oldPath ? await readTextFileOptional(joinPath(baseDir, oldPath)) : null;
     const beforeLines = (beforeText ?? "").split(/\r?\n/);
 
     const placedHunks: StructuredPatch["hunks"] = [];

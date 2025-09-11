@@ -2,8 +2,6 @@ import {
   patch as applyPatchInOPFS,
   deleteFile as deleteFileAtRoot,
   downloadFile as downloadFromRoot,
-  getDirectoryHandle,
-  getOPFSRoot,
   grep,
   hasParentTraversal,
   joinUnderWorkspace,
@@ -32,11 +30,9 @@ export function createOpfsTools(opts: CreateToolsOptions) {
       if (hasParentTraversal(cwd)) throw new Error("Path escapes workspace: invalid cwd");
 
       return (async () => {
-        const root = await getOPFSRoot();
         const effectiveCwd = joinUnderWorkspace(workspaceDir, cwd || "");
 
         const res = await runOpfsCommandLine(command, {
-          root,
           cwd: effectiveCwd,
           onChunk: (s) => onShellChunk?.(s),
         });
@@ -77,8 +73,8 @@ export function createOpfsTools(opts: CreateToolsOptions) {
     ) => {
       if (hasParentTraversal(input?.path)) throw new Error("Path escapes workspace: invalid path");
 
-      const dir = await getDirectoryHandle(joinUnderWorkspace(workspaceDir, input?.path || ""));
-      const entries = await ls(dir, {
+      const effectivePath = joinUnderWorkspace(workspaceDir, input?.path || "");
+      const entries = await ls(effectivePath, {
         maxDepth: input?.maxDepth ?? 1,
         include: input?.include,
         exclude: input?.exclude,
@@ -126,8 +122,8 @@ export function createOpfsTools(opts: CreateToolsOptions) {
     ) => {
       if (hasParentTraversal(input?.path)) throw new Error("Path escapes workspace: invalid path");
 
-      const dir = await getDirectoryHandle(joinUnderWorkspace(workspaceDir, input?.path || ""));
-      const matches = await grep(dir, {
+      const effectivePath = joinUnderWorkspace(workspaceDir, input?.path || "");
+      const matches = await grep(effectivePath, {
         pattern: input.pattern,
         flags: input.flags,
         include: input.include,
@@ -164,9 +160,8 @@ export function createOpfsTools(opts: CreateToolsOptions) {
     async (input: { file: string; offset?: number; limit?: number }, { toolCall }) => {
       if (hasParentTraversal(input?.file)) throw new Error("Path escapes workspace: invalid file");
 
-      const root = await getOPFSRoot();
       const full = joinUnderWorkspace(workspaceDir, input.file);
-      const res = await processSingleFileContent(full, workspaceDir, root, input.offset, input.limit);
+      const res = await processSingleFileContent(full, workspaceDir, undefined, input.offset, input.limit);
       const payload = { ...res, file: full } as const;
       return {
         messages: [{ role: "tool", tool_call_id: toolCall?.id ?? "", content: JSON.stringify(payload) }],
@@ -247,9 +242,8 @@ export function createOpfsTools(opts: CreateToolsOptions) {
 
       await gate.check("opfs_patch", workspaceDir, { summary: input.diff.slice(0, 200) });
 
-      const root = await getOPFSRoot();
       const workDir = joinUnderWorkspace(workspaceDir, input?.cwd || "");
-      const result = await applyPatchInOPFS({ root, workDir, diffContent: input.diff });
+      const result = await applyPatchInOPFS({ workDir, diffContent: input.diff });
       const payload = { ...result, cwd: workDir };
       return {
         messages: [{ role: "tool", tool_call_id: toolCall?.id ?? "", content: JSON.stringify(payload) }],
@@ -288,8 +282,8 @@ export function createOpfsTools(opts: CreateToolsOptions) {
         count: input?.files?.length ?? 0,
       });
 
-      const destRoot = await getDirectoryHandle(joinUnderWorkspace(workspaceDir, input?.destSubdir || ""));
-      const res = await uploadFilesToDirectory(destRoot, input.files, {
+      const destPath = joinUnderWorkspace(workspaceDir, input?.destSubdir || "");
+      const res = await uploadFilesToDirectory(destPath, input.files, {
         overwrite: input?.overwrite,
       });
       const payload = res;

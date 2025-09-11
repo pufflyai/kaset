@@ -1,7 +1,7 @@
+import { PROJECTS_ROOT } from "@/constant";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { createAgent, createLLMTask } from "@pstdio/tiny-ai-tasks";
 import { requestApproval } from "./approval";
-import { PROJECTS_ROOT } from "@/constant";
 import { systemPrompt } from "./prompts";
 import { createOpfsTools } from "./tools/createOpfsTools";
 
@@ -26,8 +26,7 @@ export function getAgent() {
   });
 
   const tools = createOpfsTools({
-    // Align workspace with UI FileExplorer root (e.g., `${PROJECTS_ROOT}/todo`)
-    workspaceDir: `${PROJECTS_ROOT}/${state.selectedProjectId || "todo"}`,
+    workspaceDir: `${PROJECTS_ROOT}/${state.selectedProjectId}`,
     onShellChunk: (s) => console.debug("opfs_shell:", s),
     requestApproval,
     approvalGatedTools: state.approvalGatedTools,

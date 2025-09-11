@@ -1,5 +1,6 @@
 import { processSingleFileContent } from "../utils/opfs-files";
-import { Ctx, resolveAsFile, unquote } from "./helpers";
+import { joinPath, normalizeSlashes } from "../utils/path";
+import { Ctx, unquote } from "./helpers";
 
 export async function cmdSed(args: string[], ctx: Ctx, stdin: string): Promise<string> {
   let quiet = false;
@@ -23,8 +24,9 @@ export async function cmdSed(args: string[], ctx: Ctx, stdin: string): Promise<s
   const limit = Math.max(0, end1 - offset);
 
   if (fileArg) {
-    const { dir, rel } = await resolveAsFile(ctx, fileArg);
-    const res = await processSingleFileContent(rel.path, "", dir, offset, limit);
+    // Compute full path relative to cwd for adapter-backed reading
+    const fullPath = normalizeSlashes(joinPath(ctx.cwd, fileArg));
+    const res = await processSingleFileContent(fullPath, ctx.cwd || "", undefined, offset, limit);
     const text = typeof res.llmContent === "string" ? res.llmContent : String(res.llmContent ?? "");
     return quiet ? text : text;
   } else {

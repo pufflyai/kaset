@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
-import { getOPFSRoot } from "../shared";
+import { getOPFSRoot } from "../__helpers__/test-opfs";
 import { LsEntry, formatLong, formatMtime, formatSize, formatTree, ls } from "./opfs-ls";
 
 describe("formatSize", () => {
@@ -188,14 +188,14 @@ describe("formatTree - complex inputs", () => {
 });
 
 describe("ls over OPFS", () => {
-  it("lists files via directory handles", async () => {
+  it("lists files via adapter path", async () => {
     setupTestOPFS();
     const root = await getOPFSRoot();
 
     await writeFile(root, "dir/file.txt", "hi");
     await (root as any).getDirectoryHandle("empty", { create: true });
 
-    const entries = await ls(root, { maxDepth: Infinity, stat: true });
+    const entries = await ls(".", { maxDepth: Infinity, stat: true });
     expect(entries.map((e) => e.path).sort()).toEqual(["dir", "dir/file.txt", "empty"]);
   });
 });
@@ -217,9 +217,9 @@ describe("ls over OPFS + formatTree interplay", () => {
   }
 
   it("formatTree renders tree even when ls returns files only (parents synthesized)", async () => {
-    const root = await seedComplexTree();
+    await seedComplexTree();
 
-    const filesOnly = await ls(root, { maxDepth: Infinity, kinds: ["file"], stat: true, showHidden: true });
+    const filesOnly = await ls(".", { maxDepth: Infinity, kinds: ["file"], stat: true, showHidden: true });
 
     const expected = [
       "├── .hidden/",
@@ -243,9 +243,9 @@ describe("ls over OPFS + formatTree interplay", () => {
   });
 
   it("formatTree renders a full tree when directories are included", async () => {
-    const root = await seedComplexTree();
+    await seedComplexTree();
 
-    const all = await ls(root, { maxDepth: Infinity, stat: true, showHidden: true });
+    const all = await ls(".", { maxDepth: Infinity, stat: true, showHidden: true });
 
     const expected = [
       "├── .hidden/",
@@ -269,9 +269,9 @@ describe("ls over OPFS + formatTree interplay", () => {
   });
 
   it("formatTree works when include is ['**/*'] (parents synthesized)", async () => {
-    const root = await seedComplexTree();
+    await seedComplexTree();
 
-    const filtered = await ls(root, {
+    const filtered = await ls(".", {
       maxDepth: Infinity,
       include: ["**/*"],
       showHidden: true,
@@ -303,9 +303,9 @@ describe("ls over OPFS + formatTree interplay", () => {
   });
 
   it("formatTree works when include is ['**'] (includes parents)", async () => {
-    const root = await seedComplexTree();
+    await seedComplexTree();
 
-    const allWithParents = await ls(root, {
+    const allWithParents = await ls(".", {
       maxDepth: Infinity,
       include: ["**"],
       showHidden: true,

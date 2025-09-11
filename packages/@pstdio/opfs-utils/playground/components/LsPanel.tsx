@@ -1,17 +1,8 @@
 import { useState } from "react";
 import { formatLong, formatTree, ls, type LsEntry } from "../../src/utils/opfs-ls";
-import { getDirHandle } from "../opfs-helpers";
 import { Button, MonoBlock, Row, Section, TextInput } from "./ui";
 
-export function LsPanel({
-  root,
-  baseDir,
-  onStatus,
-}: {
-  root: FileSystemDirectoryHandle | null;
-  baseDir: string;
-  onStatus: (s: string) => void;
-}) {
+export function LsPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {
   const [lsDepth, setLsDepth] = useState<number>(Infinity as unknown as number);
   const [lsInclude, setLsInclude] = useState<string>("**/*");
   const [lsExclude, setLsExclude] = useState<string>("**/node_modules/**");
@@ -20,8 +11,6 @@ export function LsPanel({
   const [lsEntries, setLsEntries] = useState<LsEntry[]>([]);
 
   async function handleList() {
-    if (!root) return;
-    const dir = await getDirHandle(root, baseDir, true);
     onStatus("Listing...");
 
     const include = lsInclude
@@ -34,7 +23,7 @@ export function LsPanel({
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const entries = await ls(dir, {
+    const entries = await ls(baseDir, {
       maxDepth: Number.isFinite(lsDepth) ? Number(lsDepth) : Infinity,
       include: include.length ? include : undefined,
       exclude: exclude.length ? exclude : undefined,
@@ -89,9 +78,7 @@ export function LsPanel({
           </label>
         </div>
 
-        <Button onClick={handleList} disabled={!root}>
-          List
-        </Button>
+        <Button onClick={handleList}>List</Button>
       </Row>
 
       <div style={{ marginTop: 10 }}>

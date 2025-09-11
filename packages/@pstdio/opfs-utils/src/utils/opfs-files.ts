@@ -1,12 +1,12 @@
 import { ErrorType } from "../errors";
+import { getFs } from "../adapter/fs";
+import { getFileHandle } from "../shared";
 
 // ------------------------------
 // Constants for text processing
 // ------------------------------
 export const DEFAULT_MAX_LINES_TEXT_FILE = 2000;
 export const MAX_LINE_LENGTH_TEXT_FILE = 2000;
-
-// Default encoding (string literal; no Node BufferEncoding in browser)
 export const DEFAULT_ENCODING = "utf-8" as const;
 
 // ------------------------------
@@ -143,73 +143,21 @@ export function registerMimeTypes(map: Record<string, string>): void {
 export { isWithinRoot } from "./path";
 
 // ------------------------------
-// OPFS helpers
+// Adapter helpers (no OPFS handle usage)
 // ------------------------------
-
-/**
- * Traverse from `root` to a directory handle by POSIX path.
- * @throws if any intermediate directory is missing.
- */
-async function getDirectoryHandleByPath(
-  root: FileSystemDirectoryHandle,
-  dirPath: string,
-): Promise<FileSystemDirectoryHandle> {
-  const segments = splitSegments(dirPath);
-  let dir = root;
-  for (const seg of segments) {
-    dir = await dir.getDirectoryHandle(seg, { create: false });
-  }
-  return dir;
-}
-
-/**
- * Try to get a file handle at `filePath` (relative to `root`).
- * Returns null if not found. Throws on other errors.
- */
-async function tryGetFileHandle(
-  root: FileSystemDirectoryHandle,
-  filePath: string,
-): Promise<FileSystemFileHandle | null> {
-  const segments = splitSegments(filePath);
-  if (segments.length === 0) return null; // root is a directory
-  const fileName = segments.pop()!;
-  let parent = root;
-  try {
-    if (segments.length > 0) {
-      parent = await getDirectoryHandleByPath(root, segments.join("/"));
-    }
-    return await parent.getFileHandle(fileName, { create: false });
-  } catch (e: any) {
-    if (e && (e.name === "NotFoundError" || e.code === 404)) return null;
-    if (e && e.name === "TypeMismatchError") return null;
-    throw e;
-  }
-}
-
-/**
- * Check if a directory exists at `dirPath`.
- */
-async function directoryExists(root: FileSystemDirectoryHandle, dirPath: string): Promise<boolean> {
-  try {
-    await getDirectoryHandleByPath(root, dirPath);
-    return true;
-  } catch (e: any) {
-    if (e && (e.name === "NotFoundError" || e.code === 404)) return false;
-    return false;
-  }
-}
 
 /**
  * Base64-encode an ArrayBuffer (chunked to avoid call stack issues).
  */
-function arrayBufferToBase64(ab: ArrayBuffer): string {
-  const bytes = new Uint8Array(ab);
+function toBase64(data: ArrayBuffer | Uint8Array): string {
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+
   let binary = "";
   const chunk = 0x8000;
   for (let i = 0; i < bytes.length; i += chunk) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
-  // btoa requires binary string
+
   return btoa(binary);
 }
 
@@ -335,9 +283,9 @@ export interface ProcessSingleFileOptions {
 
 /**
  * Reads and processes a single file in OPFS, handling text, images, and PDFs.
- * @param filePath POSIX-like path *within* OPFS (e.g., 'project/src/index.ts').
- * @param rootDirectory POSIX-like path that serves as the logical project root for relative display (e.g., 'project').
- * @param opfsRoot A FileSystemDirectoryHandle (typically from navigator.storage.getDirectory()).
+ * @param filePath POSIX-like path within OPFS (e.g., 'project/src/index.ts').
+ * @param rootDirectory POSIX-like path used as the logical project root for display (e.g., 'project').
+ * @param _unused (ignored) legacy third parameter kept for backward compatibility.
  * @param offset Optional offset for text files (0-based line number).
  * @param limit Optional limit for text files (number of lines to read).
  * @param options Optional thresholds to override defaults (file size, lines, line length).
@@ -345,7 +293,7 @@ export interface ProcessSingleFileOptions {
 export async function processSingleFileContent(
   filePath: string,
   rootDirectory: string,
-  opfsRoot: FileSystemDirectoryHandle,
+  _unused?: unknown,
   offset?: number,
   limit?: number,
   options?: ProcessSingleFileOptions,
@@ -354,12 +302,12 @@ export async function processSingleFileContent(
   const normalizedRootPath = normalizePosix(rootDirectory);
 
   try {
-    // Resolve handle
-    const fileHandle = await tryGetFileHandle(opfsRoot, normalizedFilePath);
-    if (!fileHandle) {
-      // Distinguish: directory vs not found
-      const looksLikeDir = await directoryExists(opfsRoot, normalizedFilePath);
-      if (looksLikeDir) {
+    // Resolve absolute path within OPFS and confirm it's a file
+    let absPath: string;
+    try {
+      absPath = await getFileHandle(normalizedFilePath, /*create*/ false);
+    } catch (e: any) {
+      if (e?.name === "TypeMismatchError") {
         return {
           llmContent: "Could not read file because the provided path is a directory, not a file.",
           returnDisplay: "Path is a directory.",
@@ -367,17 +315,22 @@ export async function processSingleFileContent(
           errorType: ErrorType.TARGET_IS_DIRECTORY,
         };
       }
-      return {
-        llmContent: "Could not read file because no file was found at the specified path.",
-        returnDisplay: "File not found.",
-        error: `File not found: ${normalizedFilePath}`,
-        errorType: ErrorType.FILE_NOT_FOUND,
-      };
+      if (e?.name === "NotFoundError" || e?.code === "ENOENT" || e?.code === 404) {
+        return {
+          llmContent: "Could not read file because no file was found at the specified path.",
+          returnDisplay: "File not found.",
+          error: `File not found: ${normalizedFilePath}`,
+          errorType: ErrorType.FILE_NOT_FOUND,
+        };
+      }
+      throw e;
     }
 
-    const file = await fileHandle.getFile();
+    const fs = await getFs();
+    const stat = await fs.promises.stat(absPath);
+
     const maxMB = options?.maxFileSizeMB ?? 20;
-    const fileSizeInMB = file.size / (1024 * 1024);
+    const fileSizeInMB = stat.size / (1024 * 1024);
     if (fileSizeInMB > maxMB) {
       return {
         llmContent: `File size exceeds the ${maxMB}MB limit.`,
@@ -388,7 +341,7 @@ export async function processSingleFileContent(
     }
 
     // Determine type
-    const fileType = await detectFileType(file.name || normalizedFilePath, file);
+    const fileType = await detectFileType(normalizedFilePath);
     const relativePathForDisplay = toPosix(relativePosix(normalizedRootPath, normalizedFilePath));
 
     switch (fileType) {
@@ -401,13 +354,13 @@ export async function processSingleFileContent(
 
       case "svg": {
         const SVG_MAX_SIZE_BYTES = 1 * 1024 * 1024;
-        if (file.size > SVG_MAX_SIZE_BYTES) {
+        if (stat.size > SVG_MAX_SIZE_BYTES) {
           return {
             llmContent: `Cannot display content of SVG file larger than 1MB: ${relativePathForDisplay}`,
             returnDisplay: `Skipped large SVG file (>1MB): ${relativePathForDisplay}`,
           };
         }
-        const content = await file.text();
+        const content = await fs.promises.readFile(absPath, "utf8");
         return {
           llmContent: content,
           returnDisplay: `Read SVG as text: ${relativePathForDisplay}`,
@@ -415,7 +368,7 @@ export async function processSingleFileContent(
       }
 
       case "text": {
-        const content = await file.text();
+        const content = await fs.promises.readFile(absPath, "utf8");
         const lines = content.split("\n");
         const originalLineCount = lines.length;
 
@@ -463,13 +416,13 @@ export async function processSingleFileContent(
       case "pdf":
       case "audio":
       case "video": {
-        const ab = await file.arrayBuffer();
-        const base64Data = arrayBufferToBase64(ab);
+        const bytes: Uint8Array = await fs.promises.readFile(absPath);
+        const base64Data = toBase64(bytes);
         return {
           llmContent: {
             inlineData: {
               data: base64Data,
-              mimeType: getSpecificMimeType(file.name) || file.type || "application/octet-stream",
+              mimeType: getSpecificMimeType(normalizedFilePath) || "application/octet-stream",
             },
           },
           returnDisplay: `Read ${fileType} file: ${relativePathForDisplay}`,

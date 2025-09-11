@@ -1,15 +1,7 @@
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
 import { PROJECTS_ROOT } from "@/constant";
 import { Box, Button, Checkbox, HStack, IconButton, Input, Text, VStack } from "@chakra-ui/react";
-import {
-  deleteFile,
-  getDirectoryHandle,
-  getOPFSRoot,
-  ls,
-  readFile,
-  watchDirectory,
-  writeFile,
-} from "@pstdio/opfs-utils";
+import { deleteFile, ensureDirExists, ls, readFile, watchDirectory, writeFile } from "@pstdio/opfs-utils";
 import { PencilIcon, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -107,30 +99,12 @@ export function TodoList() {
 
   const parse = useCallback((md: string) => parseMarkdownTodos(md), []);
 
-  const ensureDir = useCallback(async (path: string) => {
-    try {
-      return await getDirectoryHandle(path);
-    } catch (err: any) {
-      if (err?.name !== "NotFoundError" && err?.code !== 404) throw err;
-
-      const root = await getOPFSRoot();
-      const parts = path.split("/").filter(Boolean);
-
-      let cur = root;
-      for (const p of parts) {
-        cur = await cur.getDirectoryHandle(p, { create: true });
-      }
-
-      return cur;
-    }
-  }, []);
-
   const refreshLists = useCallback(async () => {
     try {
       setError(null);
 
-      const dir = await ensureDir(listsDirPath);
-      const entries = await ls(dir, { maxDepth: 1, kinds: ["file"], include: ["*.md"] });
+      await ensureDirExists(listsDirPath, true);
+      const entries = await ls(listsDirPath, { maxDepth: 1, kinds: ["file"], include: ["*.md"] });
 
       const names = entries.map((e) => e.name).sort((a, b) => a.localeCompare(b));
       setLists(names);
@@ -147,7 +121,7 @@ export function TodoList() {
     } catch (e: any) {
       setError(e?.message ?? String(e));
     }
-  }, [ensureDir, listsDirPath, selectedList]);
+  }, [listsDirPath, selectedList]);
 
   const readAndParse = useCallback(
     async (fileName: string) => {
@@ -325,15 +299,14 @@ export function TodoList() {
 
     (async () => {
       try {
-        await ensureDir(listsDirPath);
+        await ensureDirExists(listsDirPath, true);
         await refreshLists();
 
-        const dir = await getDirectoryHandle(listsDirPath);
         const ac = new AbortController();
         dirAbortRef.current = ac;
 
         cleanup = await watchDirectory(
-          dir,
+          listsDirPath,
           (changes) => {
             if (cancelled) return;
             const selected = selectedList;
@@ -364,7 +337,7 @@ export function TodoList() {
       dirAbortRef.current?.abort();
       cleanup?.();
     };
-  }, [ensureDir, listsDirPath, refreshLists, readAndParse, selectedList]);
+  }, [listsDirPath, refreshLists, readAndParse, selectedList]);
 
   return (
     <>
@@ -410,12 +383,22 @@ export function TodoList() {
                       paddingY="1.5"
                       borderRadius="md"
                       cursor="pointer"
+                      _hover={{ bg: "background.secondary" }}
+                      onClick={() => selectList(name)}
                       textDecoration={selected ? "underline" : "none"}
                     >
-                      <Text fontSize="sm" cursor="pointer" onClick={() => selectList(name)} title={name} flex="1">
+                      <Text fontSize="sm" title={name} flex="1">
                         {displayListName(name)}
                       </Text>
-                      <IconButton size="xs" variant="ghost" onClick={() => requestDeleteList(name)} colorPalette="red">
+                      <IconButton
+                        size="xs"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          requestDeleteList(name);
+                        }}
+                        colorPalette="red"
+                      >
                         <Trash2 size={12} />
                       </IconButton>
                     </HStack>

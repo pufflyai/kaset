@@ -18,6 +18,7 @@ export function DiffEditor(props: DiffEditorProps) {
       renderSideBySide: sideBySide,
       readOnly: true,
       fontSize: 11,
+      minimap: { enabled: false },
       wordWrap: "on" as const,
       scrollBeyondLastLine: false,
       ...(disableScroll
@@ -28,6 +29,7 @@ export function DiffEditor(props: DiffEditorProps) {
               useShadows: false,
               alwaysConsumeMouseWheel: false,
             },
+            overviewRulerLanes: 0,
           }
         : {}),
     } as const;
@@ -45,7 +47,7 @@ export function DiffEditor(props: DiffEditorProps) {
       beforeMount={(monaco: any) => {
         monaco.editor.defineTheme("ps-theme", customTheme);
       }}
-      onMount={(_: any, monaco: any) => {
+      onMount={(_editor: any, monaco: any) => {
         monaco.editor.setTheme("ps-theme");
       }}
     />

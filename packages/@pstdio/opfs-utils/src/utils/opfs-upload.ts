@@ -1,5 +1,6 @@
-import { basename, joinPath, normalizeSegments, parentOf } from "./path";
+import { getFs } from "../adapter/fs";
 import { getDirHandle } from "../shared";
+import { basename, joinPath, normalizeSegments, parentOf } from "./path";
 
 export interface FileUploadBaseOptions {
   destSubdir?: string;
@@ -22,9 +23,9 @@ export interface FileUploadResult {
 }
 
 export async function pickAndUploadFilesToDirectory(
-  destRoot: FileSystemDirectoryHandle,
+  destPath: string,
   options: FileUploadBaseOptions & PickerOptions = {},
-): Promise<FileUploadResult> {
+) {
   if (typeof document === "undefined") {
     throw new Error("DOM not available; use uploadFilesToDirectory instead.");
   }
@@ -44,18 +45,14 @@ export async function pickAndUploadFilesToDirectory(
         return;
       }
 
-      resolve(await uploadFilesToDirectory(destRoot, files, options));
+      resolve(await uploadFilesToDirectory(destPath, files, options));
     });
 
     input.click();
   });
 }
 
-export async function uploadFilesToDirectory(
-  destRoot: FileSystemDirectoryHandle,
-  files: File[],
-  options: FileUploadBaseOptions = {},
-): Promise<FileUploadResult> {
+export async function uploadFilesToDirectory(destPath: string, files: File[], options: FileUploadBaseOptions = {}) {
   const uploadedFiles: string[] = [];
   const errors: string[] = [];
 
@@ -71,30 +68,31 @@ export async function uploadFilesToDirectory(
       continue;
     }
 
-    let finalPath = destRel;
+    const basePath = normalizeSegments(destPath || "").join("/");
+    let finalPath = basePath ? joinPath(basePath, destRel) : destRel;
 
     try {
-      if (overwrite === "skip" && (await fileExists(destRoot, destRel))) {
-        errors.push(`File exists, skipped: ${destRel}`);
+      // Node/ZenFS path (migrated helpers)
+      if (overwrite === "skip" && (await fileExists(finalPath))) {
+        errors.push(`File exists, skipped: ${finalPath}`);
         continue;
       }
 
-      if (overwrite === "rename" && (await fileExists(destRoot, destRel))) {
-        const renamed = await findAvailableName(destRoot, destRel);
+      if (overwrite === "rename" && (await fileExists(finalPath))) {
+        const renamed = await findAvailableNameMigrated(finalPath);
         if (!renamed) {
-          errors.push(`File exists, cannot rename: ${destRel}`);
+          errors.push(`File exists, cannot rename: ${finalPath}`);
           continue;
         }
         finalPath = renamed;
       }
 
-      const dir = await getDirHandle(destRoot, parentOf(finalPath), true);
-      const fh = await dir.getFileHandle(basename(finalPath), { create: true });
-      const w = await fh.createWritable();
+      const dirAbs = await getDirHandle(parentOf(finalPath), true);
+      const absPath = "/" + joinPath(dirAbs, basename(finalPath));
 
+      const fs = await getFs();
       const data = await file.arrayBuffer();
-      await w.write(data);
-      await w.close();
+      await fs.promises.writeFile(absPath, new Uint8Array(data));
 
       uploadedFiles.push(finalPath);
     } catch (e) {
@@ -124,24 +122,27 @@ function resolvePath(file: File, options: FileUploadBaseOptions): string | null 
   return segs.join("/");
 }
 
-async function fileExists(root: FileSystemDirectoryHandle, path: string): Promise<boolean> {
+async function fileExists(path: string): Promise<boolean> {
+  const fs = await getFs();
+  const dirAbs = await getDirHandle(parentOf(path), false);
+  const absPath = "/" + joinPath(dirAbs, basename(path));
   try {
-    const dir = await getDirHandle(root, parentOf(path), false);
-    await dir.getFileHandle(basename(path), { create: false });
-    return true;
-  } catch {
+    const st = await fs.promises.stat(absPath);
+    return st.isFile();
+  } catch (e: any) {
+    if (e && (e.code === "ENOENT" || e.name === "NotFoundError")) return false;
     return false;
   }
 }
 
-async function findAvailableName(root: FileSystemDirectoryHandle, path: string): Promise<string | null> {
+async function findAvailableNameMigrated(path: string): Promise<string | null> {
   const dirPath = parentOf(path);
   const base = basename(path);
   const { name, ext } = splitExt(base);
 
   for (let i = 1; i < 1000; i++) {
     const candidate = joinPath(dirPath, `${name} (${i})${ext}`);
-    if (!(await fileExists(root, candidate))) return candidate;
+    if (!(await fileExists(candidate))) return candidate;
   }
 
   return null;

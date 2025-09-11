@@ -1,7 +1,8 @@
 import { globToRegExp as globToRegExpGrep } from "../utils/opfs-grep";
 import { ls } from "../utils/opfs-ls";
-import { basename, normalizeSlashes } from "../utils/path";
-import { Ctx, resolveAsDirOrFile } from "./helpers";
+import { basename, joinPath, normalizeSlashes } from "../utils/path";
+import { resolveSubdir, getFileHandle } from "../shared";
+import { Ctx } from "./helpers";
 
 export async function cmdFind(args: string[], ctx: Ctx): Promise<string> {
   let startPathArg: string | undefined;
@@ -31,7 +32,16 @@ export async function cmdFind(args: string[], ctx: Ctx): Promise<string> {
 
   const target = startPathArg ?? ".";
   const normTarget = normalizeSlashes(target);
-  const { dir, rel } = await resolveAsDirOrFile(ctx, target);
+  const full = normalizeSlashes(joinPath(ctx.cwd, normTarget));
+
+  let relKind: "file" | "directory";
+  try {
+    await resolveSubdir(full, /*create*/ false);
+    relKind = "directory";
+  } catch {
+    await getFileHandle(full, /*create*/ false);
+    relKind = "file";
+  }
 
   const nameRE = namePattern ? globToRegExpGrep(namePattern) : undefined;
   const out: string[] = [];
@@ -44,7 +54,7 @@ export async function cmdFind(args: string[], ctx: Ctx): Promise<string> {
     return true;
   };
 
-  if (rel.kind === "directory") {
+  if (relKind === "directory") {
     if (mindepth <= 0) {
       const includeStart = matchesFilters({
         name: normTarget === "." ? "." : basename(normTarget),
@@ -54,7 +64,7 @@ export async function cmdFind(args: string[], ctx: Ctx): Promise<string> {
       if (includeStart) out.push(normTarget);
     }
 
-    const entries = await ls(dir, {
+    const entries = await ls(full, {
       maxDepth: maxdepth == null ? Infinity : Math.max(0, maxdepth),
       showHidden: true,
       kinds: ["file", "directory"],
@@ -71,7 +81,7 @@ export async function cmdFind(args: string[], ctx: Ctx): Promise<string> {
     }
   } else {
     if (mindepth <= 0) {
-      const include = matchesFilters({ name: rel.path, kind: "file", depth: 0 });
+      const include = matchesFilters({ name: basename(full), kind: "file", depth: 0 });
       if (include) out.push(normTarget);
     }
   }

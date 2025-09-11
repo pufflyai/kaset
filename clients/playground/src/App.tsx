@@ -1,17 +1,19 @@
-import { Box, Flex, HStack, Tabs, Text } from "@chakra-ui/react";
+import { Box, Button, Drawer, Flex, HStack, Portal, Tabs, Text } from "@chakra-ui/react";
 import { Allotment } from "allotment";
+import { GitCommitVerticalIcon } from "lucide-react";
 import { useEffect } from "react";
 import { CodeEditor } from "./components/ui/code-editor";
+import { CommitHistory } from "./components/ui/commit-history";
 import { ConversationHost } from "./components/ui/conversation-host";
 import { DragOverlay } from "./components/ui/drag-overlay";
 import { FileExplorer } from "./components/ui/file-explorer";
+import { GithubCorner } from "./components/ui/github-corner";
 import { TopBar } from "./components/ui/top-bar";
-import { setupExample } from "./services/playground/setup";
+import { PROJECTS_ROOT } from "./constant";
 import { TodoList } from "./examples/todo/component";
 import { useDragAndDropUpload } from "./services/drag-n-drop";
+import { setupExample } from "./services/playground/setup";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
-import { PROJECTS_ROOT } from "./constant";
-import { GithubCorner } from "./components/ui/github-corner";
 
 export function App() {
   const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
@@ -30,7 +32,6 @@ export function App() {
   const selectedTab = useWorkspaceStore((s) => s.selectedTab ?? "preview");
 
   const { isDragging, handleDragEnter, handleDragOver, handleDragLeave, handleDrop } = useDragAndDropUpload({
-    // Upload dropped files into a dedicated project sources folder
     targetDir: `${rootDir}/sources`,
   });
 
@@ -79,25 +80,54 @@ export function App() {
                   );
                 }}
               >
-                <Tabs.List
+                <Flex
                   background="transparent"
                   borderBottom="1px solid"
                   borderColor="border.secondary"
                   borderRadius={0}
                   paddingX="sm"
+                  alignItems="center"
                   paddingY="1.5"
+                  gap="md"
                 >
-                  <Tabs.Trigger maxHeight="32px" value="preview">
-                    <HStack gap="sm" align="center">
-                      <Text>Preview</Text>
-                    </HStack>
-                  </Tabs.Trigger>
-                  <Tabs.Trigger maxHeight="32px" value="code">
-                    <HStack gap="sm" align="center">
-                      <Text>Files</Text>
-                    </HStack>
-                  </Tabs.Trigger>
-                </Tabs.List>
+                  <Tabs.List>
+                    <Tabs.Trigger maxHeight="32px" value="preview">
+                      <HStack gap="sm" align="center">
+                        <Text>Preview</Text>
+                      </HStack>
+                    </Tabs.Trigger>
+                    <Tabs.Trigger maxHeight="32px" value="code">
+                      <HStack gap="sm" align="center">
+                        <Text>Files</Text>
+                      </HStack>
+                    </Tabs.Trigger>
+                  </Tabs.List>
+
+                  {/* Commit History Drawer */}
+                  <Drawer.Root>
+                    <Drawer.Trigger asChild>
+                      <Button aria-label="Version History" gap="2xs" variant="ghost">
+                        <GitCommitVerticalIcon size={16} />
+                        <Text textStyle="label/S/regular">Versions</Text>
+                      </Button>
+                    </Drawer.Trigger>
+                    <Portal>
+                      <Drawer.Backdrop />
+                      <Drawer.Positioner>
+                        <Drawer.Content>
+                          <Drawer.CloseTrigger />
+                          <Drawer.Header>
+                            <Drawer.Title>Versions</Drawer.Title>
+                          </Drawer.Header>
+                          <Drawer.Body>
+                            <CommitHistory />
+                          </Drawer.Body>
+                          <Drawer.Footer />
+                        </Drawer.Content>
+                      </Drawer.Positioner>
+                    </Portal>
+                  </Drawer.Root>
+                </Flex>
 
                 {/* Preview panel: render the example component */}
                 <Tabs.Content value="preview" flex="1" display="flex" overflow="hidden" padding="0">

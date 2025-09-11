@@ -1,36 +1,24 @@
-import { resetDemoProject, setupDemoProject } from "../opfs-helpers";
+import { resetDemoProject, setupDemoProject } from "../helpers";
 import { Button, Row, Section } from "./ui";
 
-export function SetupPanel({
-  root,
-  baseDir,
-  onStatus,
-}: {
-  root: FileSystemDirectoryHandle | null;
-  baseDir: string;
-  onStatus: (s: string) => void;
-}) {
+export function SetupPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {
   async function initSampleFiles() {
-    if (!root) return;
     onStatus("Creating sample content...");
-    await setupDemoProject(root, baseDir);
+    await setupDemoProject(baseDir);
     onStatus("Sample files created.");
   }
 
   async function resetPlayground() {
-    if (!root) return;
     onStatus("Resetting...");
-    await resetDemoProject(root, baseDir);
+    await resetDemoProject(baseDir);
     onStatus("Playground cleared.");
   }
 
   return (
     <Section title="Setup demo">
       <Row>
-        <Button onClick={initSampleFiles} disabled={!root}>
-          Init sample files
-        </Button>
-        <Button tone="danger" onClick={resetPlayground} disabled={!root}>
+        <Button onClick={initSampleFiles}>Init sample files</Button>
+        <Button tone="danger" onClick={resetPlayground}>
           Reset playground
         </Button>
       </Row>
