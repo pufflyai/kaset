@@ -2,7 +2,7 @@ import { PROJECTS_ROOT } from "@/constant";
 import { resetProject as resetProjectFiles } from "@/services/playground/reset";
 import { resetConversationsForProject } from "@/services/playground/reset-conversations";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import type { Conversation } from "@/state/types";
+import { createConversation, selectConversation, selectProject } from "@/services/conversations";
 import {
   Box,
   Button,
@@ -51,59 +51,7 @@ export function TopBar() {
 
   const ids = Object.keys(conversations).filter((id) => (conversations[id]?.projectId ?? "todo") === selectedProject);
 
-  const selectConversation = (id: string | undefined) => {
-    if (!id) return;
-    useWorkspaceStore.setState(
-      (state) => {
-        state.selectedConversationId = id;
-      },
-      false,
-      "conversations/select",
-    );
-  };
-
-  const createConversation = () => {
-    // Prefer selecting an existing empty conversation over creating a new one
-    const allIds = Object.keys(conversations).filter(
-      (id) => (conversations[id]?.projectId ?? "todo") === selectedProject,
-    );
-
-    const findIsEmpty = (id: string) => !conversations[id]?.messages || conversations[id]!.messages.length === 0;
-
-    // Try an empty conversation different from the current selection first
-    const otherEmpty = allIds.find((id) => id !== selectedId && findIsEmpty(id));
-    if (otherEmpty) {
-      selectConversation(otherEmpty);
-      return;
-    }
-
-    // If the current one is empty, keep it selected (no new convo)
-    if (selectedId && findIsEmpty(selectedId)) {
-      selectConversation(selectedId);
-      return;
-    }
-
-    const id = (
-      typeof crypto !== "undefined" && (crypto as any).randomUUID
-        ? (crypto as any).randomUUID()
-        : Math.random().toString(36).slice(2)
-    ) as string;
-
-    const nameBase = "Conversation";
-    const number = allIds.length + 1;
-    const name = `${nameBase} ${number}`;
-
-    const convo: Conversation = { id, name, messages: [], projectId: selectedProject };
-
-    useWorkspaceStore.setState(
-      (state) => {
-        state.conversations[id] = convo;
-        state.selectedConversationId = id;
-      },
-      false,
-      "conversations/create",
-    );
-  };
+  // Conversation logic is now handled via services/conversations
 
   const deleteAllConversations = () => {
     resetConversationsForProject(selectedProject);
@@ -146,6 +94,13 @@ export function TopBar() {
                   leftIcon={<ExternalLinkIcon size={16} />}
                   onClick={() => window.open("https://pufflyai.github.io/kaset/", "_blank", "noopener,noreferrer")}
                 />
+                <MenuItem
+                  primaryLabel="Contact & Support"
+                  leftIcon={<ExternalLinkIcon size={16} />}
+                  onClick={() =>
+                    window.open("https://github.com/pufflyai/kaset/discussions", "_blank", "noopener,noreferrer")
+                  }
+                />
               </Menu.ItemGroup>
             </Menu.Content>
           </Menu.Positioner>
@@ -171,43 +126,7 @@ export function TopBar() {
                       primaryLabel={p.label}
                       isSelected={selectedProject === p.id}
                       rightIcon={selectedProject === p.id ? <CheckIcon size={16} /> : undefined}
-                      onClick={() => {
-                        useWorkspaceStore.setState(
-                          (state) => {
-                            state.selectedProjectId = p.id as "todo" | "slides";
-
-                            // Ensure a selected conversation for this project
-                            const projectIds = Object.keys(state.conversations).filter(
-                              (id) => (state.conversations[id]?.projectId ?? "todo") === p.id,
-                            );
-
-                            const findIsEmpty = (id: string) =>
-                              !state.conversations[id]?.messages || state.conversations[id]!.messages.length === 0;
-
-                            let nextSelected = projectIds.find((id) => findIsEmpty(id)) || projectIds[0];
-
-                            if (!nextSelected) {
-                              const newId = (
-                                typeof crypto !== "undefined" && (crypto as any).randomUUID
-                                  ? (crypto as any).randomUUID()
-                                  : Math.random().toString(36).slice(2)
-                              ) as string;
-                              const number = 1;
-                              state.conversations[newId] = {
-                                id: newId,
-                                name: `Conversation ${number}`,
-                                messages: [],
-                                projectId: p.id,
-                              };
-                              nextSelected = newId;
-                            }
-
-                            state.selectedConversationId = nextSelected;
-                          },
-                          false,
-                          "project/select",
-                        );
-                      }}
+                      onClick={() => selectProject(p.id as "todo" | "slides")}
                     />
                   ))}
                 </Menu.ItemGroup>

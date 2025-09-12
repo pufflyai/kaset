@@ -22,7 +22,7 @@
     "@pstdio/opfs-hooks": "*",
     "@pstdio/opfs-utils": "*",
     "@pstdio/prompt-utils": "*",
-    "@pstdio/tiny-ai-tasks": "*",
+    "@pstdio/kas": "*",
     "allotment": "^1.20.4",
     "buffer": "^6.0.3",
     "immer": "^10.1.3",

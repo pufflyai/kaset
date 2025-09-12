@@ -1,20 +1,17 @@
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Conversation } from "@/state/types";
+import { shortUID } from "@pstdio/prompt-utils";
 
 /**
  * Remove all conversations for a given project and create a fresh empty one.
  * Returns the new conversation id.
  */
 export function resetConversationsForProject(projectId: string) {
-  const newId = (
-    typeof crypto !== "undefined" && (crypto as any).randomUUID
-      ? (crypto as any).randomUUID()
-      : Math.random().toString(36).slice(2)
-  ) as string;
+  const newId = shortUID();
 
   const newConvo: Conversation = {
     id: newId,
-    name: "Conversation 1",
+    name: "Conversation",
     messages: [],
     projectId,
   };

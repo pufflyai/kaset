@@ -1,7 +1,7 @@
 import type { BaseMessage, ToolCall } from "@pstdio/tiny-ai-tasks";
-import type { Message, UIConversation } from "../../types";
+import type { Message, UIConversation } from "./types";
 
-export function getLastUserText(conversation: UIConversation): string | undefined {
+export function getLastUserText(conversation: UIConversation) {
   for (let i = conversation.length - 1; i >= 0; i--) {
     const m = conversation[i];
     if (m.role !== "user") continue;
@@ -18,11 +18,11 @@ export function getLastUserText(conversation: UIConversation): string | undefine
   return undefined;
 }
 
-export function isToolOnlyAssistantMessage(m: Message): boolean {
+export function isToolOnlyAssistantMessage(m: Message) {
   return m.role === "assistant" && m.parts.length > 0 && m.parts.every((p) => (p as any).type === "tool-invocation");
 }
 
-export function coerceJSONString(value: any): string {
+export function coerceJSONString(value: any) {
   try {
     if (typeof value === "string") {
       try {

@@ -1,19 +1,16 @@
 import { TreeView as ChakraTreeView, createTreeCollection, Menu, Portal } from "@chakra-ui/react";
 import { useFolder } from "@pstdio/opfs-hooks";
-import { deleteFile, getDirectoryHandle, ls } from "@pstdio/opfs-utils";
 import type { LucideIcon } from "lucide-react";
 import { ChevronDown, ChevronRight, Download, Folder, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { deleteFileNode } from "../../services/fs/actions";
+import { useDirIds, useExpandedStateForSelection, useFsTree, useSelectedValueState } from "../../services/fs/hooks";
+import type { FsNode } from "../../services/fs/types";
 import { getFileTypeIcon } from "../../utils/getFileTypeIcon";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { MenuItem } from "./menu-item";
 
-export interface Node {
-  id: string;
-  name: string;
-  children?: Node[];
-  icon?: LucideIcon;
-}
+type Node = FsNode & { icon?: LucideIcon };
 
 export interface TreeViewProps {
   rootNode: Node;
@@ -62,13 +59,11 @@ export function TreeView({
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [nodeToDelete, setNodeToDelete] = useState<Node | null>(null);
 
-  // Keep internal selection in sync with provided prop
   useEffect(() => {
     if (selectedValueProp) setSelectedValue(selectedValueProp);
     else setSelectedValue([]);
   }, [selectedValueProp]);
 
-  // Keep internal expanded in sync with provided prop
   useEffect(() => {
     if (expandedValueProp) setExpandedValue(expandedValueProp);
     else setExpandedValue(defaultExpanded);
@@ -181,99 +176,27 @@ export interface FileExplorerProps {
 export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath }: FileExplorerProps) {
   const { rootNode } = useFolder(rootDir);
 
-  // Track known directory IDs (including empty ones) so they render as folders
-  const [dirIds, setDirIds] = useState<Set<string>>(new Set());
-
-  // Build a set of directory IDs using OPFS ls so empty folders are included
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        await getDirectoryHandle(rootDir);
-        const entries = await ls(rootDir, { maxDepth: Infinity, kinds: ["directory"] });
-
-        const prefix = rootDir ? rootDir.replace(/\/+$/, "") + "/" : "";
-        const next = new Set<string>();
-
-        // Include the root directory itself
-        next.add(rootDir);
-
-        for (const e of entries) {
-          next.add(prefix + e.path);
-        }
-
-        if (!cancelled) setDirIds(next);
-      } catch (err) {
-        // If we fail to list, keep existing set (fallback behavior)
-        console.warn("Failed to list directories for FileExplorer:", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [rootDir]);
+  const dirIds = useDirIds(rootDir);
+  const fsTree = useFsTree(rootNode, rootDir, dirIds);
 
   const fileTree = useMemo<Node>(() => {
-    type OpfsNode = {
-      id: string;
-      name: string;
-      children?: OpfsNode[];
-    };
+    const addIcons = (n: FsNode): Node => ({
+      id: n.id,
+      name: n.name,
+      icon: n.children ? Folder : undefined,
+      children: n.children ? n.children.map(addIcons) : undefined,
+    });
 
-    const mapNode = (node: OpfsNode): Node => {
-      const hasChildrenArray = Array.isArray(node.children);
-      const isDir = hasChildrenArray || dirIds.has(node.id);
+    return addIcons(fsTree);
+  }, [fsTree]);
 
-      return {
-        id: node.id,
-        name: node.name,
-        icon: isDir ? Folder : undefined,
-        // For empty directories, ensure children is an empty array so they render as branches
-        children: isDir ? (node.children ? node.children.map(mapNode) : []) : undefined,
-      } satisfies Node;
-    };
-
-    if (rootNode && typeof rootNode === "object") {
-      return mapNode(rootNode as OpfsNode);
-    }
-
-    return {
-      id: rootDir,
-      name: rootDir,
-      icon: Folder,
-      children: [],
-    } satisfies Node;
-  }, [rootNode, rootDir, dirIds]);
-
-  const [selectedValue, setSelectedValue] = useState<string[]>(selectedPath ? [selectedPath] : []);
-  const [expanded, setExpanded] = useState<string[]>(defaultExpanded ?? []);
-
-  useEffect(() => {
-    if (!selectedPath) {
-      setSelectedValue([]);
-      return;
-    }
-
-    setSelectedValue([selectedPath]);
-  }, [selectedPath]);
-
-  useEffect(() => {
-    if (!selectedPath) return;
-
-    const rootParts = rootDir.split("/").filter(Boolean);
-    const parts = selectedPath.split("/").filter(Boolean);
-
-    const hasRootPrefix = parts.slice(0, rootParts.length).join("/") === rootDir;
-    const ensureRootPrefixed = hasRootPrefix ? parts : [...rootParts, ...parts];
-
-    const parentDirs: string[] = [];
-    for (let i = 0; i < ensureRootPrefixed.length - 1; i++) {
-      const dirPath = ensureRootPrefixed.slice(0, i + 1).join("/");
-      if (dirIds.has(dirPath)) parentDirs.push(dirPath);
-    }
-
-    setExpanded((prev) => Array.from(new Set([...prev, ...parentDirs])));
-  }, [selectedPath, rootDir, dirIds]);
+  const [selectedValue, setSelectedValue] = useSelectedValueState(selectedPath);
+  const [expanded, setExpanded] = useExpandedStateForSelection({
+    defaultExpanded,
+    selectedPath,
+    rootDir,
+    dirIds,
+  });
 
   return (
     <TreeView
@@ -288,51 +211,16 @@ export function FileExplorer({ rootDir, defaultExpanded, onSelect, selectedPath 
       }}
       onDelete={async (node) => {
         try {
-          // Normalize helper
-          const norm = (p?: string) => (p ? p.split("/").filter(Boolean).join("/") : "");
+          const suggested = await deleteFileNode({
+            rootDir,
+            nodeId: node.id,
+            selectedPath,
+          });
 
-          const idParts = norm(node.id).split("/").filter(Boolean);
-          const rootParts = norm(rootDir).split("/").filter(Boolean);
-
-          const hasRootPrefix = idParts.slice(0, rootParts.length).join("/") === norm(rootDir);
-          const relParts = hasRootPrefix ? idParts.slice(rootParts.length) : idParts;
-
-          const target = hasRootPrefix ? norm(node.id) : [norm(rootDir), ...idParts].filter(Boolean).join("/");
-          await deleteFile(target);
-
-          // If we just deleted the currently selected file, move selection.
-          if ((selectedPath ?? null) === node.id) {
-            // Prefer another file in the same directory.
-            const dirRelParts = relParts.slice(0, -1);
-            const dirRelPath = dirRelParts.join("/");
-            const currentDirPath = [rootDir, dirRelPath].filter(Boolean).join("/");
-            const siblings = await ls(currentDirPath, { maxDepth: 1, kinds: ["file"], sortBy: "name" });
-
-            const toAbs = (name: string) => [rootDir, dirRelPath, name].filter((s) => !!s && s.length > 0).join("/");
-
-            let nextPath: string | null = null;
-
-            if (siblings.length > 0) {
-              // Pick the first sibling by name (already sorted)
-              nextPath = toAbs(siblings[0].name);
-            } else {
-              // Otherwise, pick the first file anywhere under the project root
-              const all = await ls(rootDir, {
-                maxDepth: Infinity,
-                kinds: ["file"],
-                sortBy: "path",
-                dirsFirst: false,
-              });
-
-              if (all.length > 0) {
-                // all[i].path is relative to dir (rootDir)
-                nextPath = [rootDir, all[0].path].filter(Boolean).join("/");
-              }
-            }
-
-            if (nextPath) {
-              setSelectedValue([nextPath]);
-              onSelect?.(nextPath);
+          if (suggested !== undefined) {
+            if (suggested) {
+              setSelectedValue([suggested]);
+              onSelect?.(suggested);
             } else {
               setSelectedValue([]);
               onSelect?.(null);

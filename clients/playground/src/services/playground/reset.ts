@@ -1,10 +1,9 @@
 import { PROJECTS_ROOT } from "@/constant";
 import { deleteFile, ls } from "@pstdio/opfs-utils";
 import { resetConversationsForProject } from "./reset-conversations";
-import { setupExample, type ExampleKind } from "./setup";
+import { setupExample } from "./setup";
 
 export type ResetOptions = {
-  /** OPFS root folder name. Defaults to `${PROJECTS_ROOT}/${kind}`. */
   folderName?: string;
 };
 
@@ -39,7 +38,7 @@ async function removeGitDirectory(rootDir: string): Promise<boolean> {
  * Reset a playground project: remove all files under the project's OPFS folder
  * and re-apply the bundled example files.
  */
-export async function resetProject(kind: ExampleKind, options: ResetOptions = {}) {
+export async function resetProject(kind: string, options: ResetOptions = {}) {
   const rootDir = options.folderName?.trim() || `${PROJECTS_ROOT}/${kind}`;
 
   // Proactively remove any existing Git repository for a clean reset.

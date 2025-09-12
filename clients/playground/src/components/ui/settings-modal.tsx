@@ -1,4 +1,3 @@
-import { DEFAULT_APPROVAL_GATED_TOOLS } from "@/services/ai/KAS/approval";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import {
   Alert,
@@ -13,6 +12,7 @@ import {
   Text,
   VStack,
 } from "@chakra-ui/react";
+import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import { useEffect, useState } from "react";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -80,7 +80,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         <Dialog.Content>
           <Dialog.Header>
             <Text textStyle="heading/M">Settings</Text>
-            <Dialog.CloseTrigger>
+            <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
           </Dialog.Header>

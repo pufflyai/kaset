@@ -31,7 +31,7 @@ export function MessagePartsRenderer(props: MessagePartsProps) {
 
     if (part.type === "reasoning") {
       nodes.push(
-        <Text textStyle="label/S/regular" color="foreground.secondary" pt="sm" pb="0">
+        <Text key={key} textStyle="label/S/regular" color="foreground.secondary" pt="sm" pb="0">
           {part.text}
         </Text>,
       );

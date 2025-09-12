@@ -1,5 +1,5 @@
 import { Box, Button, CloseButton, Dialog, Field, Input, Text } from "@chakra-ui/react";
-import { type ApprovalRequest } from "../../services/ai/KAS/approval";
+import type { ApprovalRequest } from "@pstdio/kas";
 
 export function ApprovalModal(props: { request: ApprovalRequest | null; onApprove: () => void; onDeny: () => void }) {
   const { request, onApprove, onDeny } = props;
@@ -12,7 +12,7 @@ export function ApprovalModal(props: { request: ApprovalRequest | null; onApprov
         <Dialog.Content>
           <Dialog.Header>
             <Text textStyle="heading/L">Approval Required</Text>
-            <Dialog.CloseTrigger>
+            <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
           </Dialog.Header>

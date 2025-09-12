@@ -4,7 +4,10 @@ import type { ToolInvocation } from "@/types";
 import { Box, HStack, Separator, Stack, Text } from "@chakra-ui/react";
 import { Response } from "./ai-response";
 
-const formatForDisplay = (value: any): string => {
+type ToolState = "input-streaming" | "input-available" | "output-available" | "output-error";
+type StatusText = "Error" | "Done" | "Running" | "Queued" | "Waiting";
+
+const formatForDisplay = (value: unknown): string => {
   try {
     if (value == null) return "";
     if (typeof value === "string") return value;
@@ -14,35 +17,38 @@ const formatForDisplay = (value: any): string => {
   }
 };
 
+function getStatusText(invocation: ToolInvocation, streaming: boolean): StatusText {
+  const state: ToolState | undefined = "state" in invocation ? invocation.state : undefined;
+  const providerExecuted = "providerExecuted" in invocation && invocation.providerExecuted === true;
+
+  const baseByState: Partial<Record<ToolState, Exclude<StatusText, "Queued" | "Waiting">>> = {
+    "output-error": "Error",
+    "output-available": "Done",
+    "input-streaming": "Running",
+  };
+
+  if (state === "input-available") return providerExecuted ? "Running" : "Queued";
+
+  const base = state ? baseByState[state] : undefined;
+  if (base) return base;
+
+  return streaming ? "Running" : "Waiting";
+}
+
 export const ToolInvocationView = (props: { invocation: ToolInvocation; streaming: boolean }) => {
   const { invocation, streaming } = props;
 
   const toolLabel = invocation.type?.replace(/^tool-/, "");
 
-  const isError = (invocation as any).state === "output-error";
-  const isDone = (invocation as any).state === "output-available";
-  const isInputStreaming = (invocation as any).state === "input-streaming";
-  const isInputAvailable = (invocation as any).state === "input-available";
+  const state = "state" in invocation ? invocation.state : undefined;
+  const isError = state === "output-error";
+  const isDone = state === "output-available";
 
-  const providerExecuted = (invocation as any).providerExecuted === true;
-
-  const input = (invocation as any).input;
-  const output = (invocation as any).output;
-  const errorText = (invocation as any).errorText as string | undefined;
-
-  const statusText = isError
-    ? "Error"
-    : isDone
-      ? "Done"
-      : isInputStreaming
-        ? "Running"
-        : isInputAvailable
-          ? providerExecuted
-            ? "Running"
-            : "Queued"
-          : streaming
-            ? "Running"
-            : "Waiting";
+  const providerExecuted = "providerExecuted" in invocation && invocation.providerExecuted === true;
+  const input = "input" in invocation ? invocation.input : undefined;
+  const output = state === "output-available" && "output" in invocation ? invocation.output : undefined;
+  const errorText = state === "output-error" && "errorText" in invocation ? invocation.errorText : undefined;
+  const statusText = getStatusText(invocation, streaming);
 
   return (
     <Box width="full" bg="background.secondary" borderWidth="1px" borderColor="border.secondary" rounded="md" p="sm">
@@ -92,7 +98,7 @@ export const ToolInvocationView = (props: { invocation: ToolInvocation; streamin
             <Text textStyle="label/XS/regular" color="foreground.secondary" mb="xs">
               Input
             </Text>
-            <Response parseIncompleteMarkdown={false}>{formatForDisplay(input)}</Response>
+            <Response>{formatForDisplay(input)}</Response>
           </Box>
         )}
 
@@ -102,7 +108,7 @@ export const ToolInvocationView = (props: { invocation: ToolInvocation; streamin
             <Text textStyle="label/XS/regular" color="foreground.feedback.alert" mb="xs">
               Error
             </Text>
-            <Response parseIncompleteMarkdown={false}>{errorText}</Response>
+            <Response>{errorText}</Response>
           </Box>
         )}
 
@@ -112,7 +118,7 @@ export const ToolInvocationView = (props: { invocation: ToolInvocation; streamin
             <Text textStyle="label/XS/regular" color="foreground.secondary" mb="xs">
               Output
             </Text>
-            <Response parseIncompleteMarkdown={false}>{formatForDisplay(output)}</Response>
+            <Response>{formatForDisplay(output)}</Response>
           </Box>
         )}
       </Stack>

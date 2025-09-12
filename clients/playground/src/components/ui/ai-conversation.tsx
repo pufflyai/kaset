@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-empty-object-type */
 
+import { Icon } from "@/icons/Icon";
 import type { HTMLChakraProps, IconButtonProps } from "@chakra-ui/react";
 import { AbsoluteCenter, chakra, IconButton } from "@chakra-ui/react";
-import { Icon } from "@/icons/Icon";
 import { useCallback } from "react";
 import { StickToBottom as StickToBottomEl, useStickToBottomContext } from "use-stick-to-bottom";
 
