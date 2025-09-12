@@ -14,11 +14,8 @@ export interface TodoListProps {
 }
 
 type TodoItem = {
-  /** 0-based line index within the file */
   line: number;
-  /** Raw text after the checkbox */
   text: string;
-  /** Whether the item is checked */
   done: boolean;
 };
 
@@ -91,7 +88,6 @@ export function TodoList() {
   const [editingLine, setEditingLine] = useState<number | null>(null);
   const [editingText, setEditingText] = useState<string>("");
 
-  // Delete confirmation modal state for lists
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [pendingDeleteList, setPendingDeleteList] = useState<string | null>(null);
 

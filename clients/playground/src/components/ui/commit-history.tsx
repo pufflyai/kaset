@@ -1,14 +1,16 @@
 import { PROJECTS_ROOT } from "@/constant";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Box, Stack, Text, HStack, Button, Dialog, CloseButton } from "@chakra-ui/react";
+import { Box, Button, CloseButton, Dialog, HStack, Stack, Text } from "@chakra-ui/react";
 import {
   ensureDirExists,
   ensureRepo,
-  listCommits,
-  revertToCommit,
   getRepoStatus,
-  commitAll,
   getHeadState,
+  listAllCommits,
+  previewCommit,
+  resolveOid,
+  commitAll,
+  continueFromCommit,
   type CommitEntry,
   type GitContext,
 } from "@pstdio/opfs-utils";
@@ -43,30 +45,13 @@ export function CommitHistory() {
       await ensureDirExists(repoDir, true);
       await ensureRepo(ctx);
 
-      // Prefer the current branch if attached; otherwise use HEAD
-      const head = await getHeadState(ctx);
-      const preferredRef = head.currentBranch || "HEAD";
-      let list: CommitEntry[] | null = null;
-      try {
-        list = await listCommits(ctx, { limit: 50, ref: preferredRef });
-      } catch (eHead: any) {
-        const msg = (eHead?.message || String(eHead)).toLowerCase();
-        const isNotFound = eHead?.name === "NotFoundError" || msg.includes("could not find") || msg.includes("ref");
-        if (isNotFound) {
-          list = [];
-        } else {
-          throw eHead;
-        }
-      }
+      const [list, headOid] = await Promise.all([
+        listAllCommits(ctx, { perRefDepth: 200, includeTags: true, limit: 200 }),
+        resolveOid(ctx, "HEAD").catch(() => null),
+      ]);
 
-      setCommits(list || []);
-      // Also refresh current HEAD commit oid
-      try {
-        const headTop = await listCommits(ctx, { limit: 1 });
-        setCurrentOid(headTop?.[0]?.oid ?? null);
-      } catch {
-        setCurrentOid(null);
-      }
+      setCommits(list as unknown as CommitEntry[]);
+      setCurrentOid(headOid);
     } catch (e: any) {
       console.log("Failed to load commit history:", e);
       setError(e?.message || String(e));
@@ -84,9 +69,7 @@ export function CommitHistory() {
         setCheckingOut(oid);
         await ensureDirExists(repoDir, true);
         await ensureRepo(ctx);
-        // Switch without detaching: move current branch to the target commit
-        await revertToCommit(ctx, { to: oid, mode: "hard", force: true });
-        setCurrentOid(oid);
+        await previewCommit(ctx, oid);
         await loadCommits();
       } catch (e: any) {
         console.log("Checkout failed:", e);
@@ -128,14 +111,30 @@ export function CommitHistory() {
     if (!pendingCheckoutOid) return;
     setSaving(true);
     try {
-      await ensureRepo(ctx, { name: "human", email: "human@kaset.dev" });
-      await commitAll(ctx, {
-        message: "save: local changes before checkout",
-        author: { name: "human", email: "human@kaset.dev" },
-        branch: "main",
+      // Ensure repo exists
+      await ensureDirExists(repoDir, true);
+      await ensureRepo(ctx);
+
+      // Capture head state once; if detached, commit first to avoid discarding changes
+      const head = await getHeadState(ctx);
+
+      let targetBranch: string | undefined = undefined;
+      if (!head.detached && head.currentBranch) targetBranch = head.currentBranch;
+
+      // Commit current changes
+      const res = await commitAll(ctx, {
+        message: "chore: User updates",
+        author: { name: "user", email: "user@kaset.dev" },
+        ...(targetBranch ? { branch: targetBranch } : {}),
       });
 
-      await loadCommits();
+      // If we were detached, attach to a continuation branch at the new commit without losing changes
+      if (head.detached && res.oid) {
+        const base = head.headOid || (await resolveOid(ctx, "HEAD"));
+        const contBranch = `continue/${String(base).slice(0, 7)}`;
+        await continueFromCommit(ctx, { to: res.oid, branch: contBranch, force: true, refuseUpdateExisting: false });
+      }
+
       await proceedCheckout(pendingCheckoutOid);
     } catch (e: any) {
       console.log("Save changes failed:", e);
@@ -145,7 +144,7 @@ export function CommitHistory() {
       setSavePromptOpen(false);
       setPendingCheckoutOid(null);
     }
-  }, [ctx, pendingCheckoutOid, loadCommits, proceedCheckout]);
+  }, [ctx, repoDir, pendingCheckoutOid, proceedCheckout]);
 
   const items = useMemo(() => commits || [], [commits]);
 
@@ -172,8 +171,10 @@ export function CommitHistory() {
               const when = c.isoDate ? new Date(c.isoDate).toLocaleString() : "";
               const title = (c.message || "").split(/\r?\n/)[0] ?? "";
               const meta: string[] = [];
+
               if (c.author) meta.push(c.author);
               if (when) meta.push(when);
+
               const isCurrent = currentOid === c.oid;
 
               return (

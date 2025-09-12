@@ -88,14 +88,14 @@ Run OPFS shell utilities (read/search only).
 - Use for complex searches, formatting output, or ad-hoc inspection.
 - Example: \`opfs_shell({ command: "rg -n \"^export function\" src | sort" })\`
 
-## opfs_write_file (approval-gated)
+## opfs_write_file 
 Write text to a file (creates or overwrites).
 
 - Input: { file: string, content: string }
 - Use for single-file updates or new files when a diff is unnecessary.
 - Always verify target paths with \`opfs_ls\`/\`opfs_read_file\` before writing.
 
-## opfs_patch (approval-gated)
+## opfs_patch 
 Apply a unified diff to the workspace. Preferred for multi-file edits, refactors, or renames—atomic and reviewable.
 By default, show 3 lines of code immediately above and 3 lines immediately below each change.
 
@@ -148,19 +148,19 @@ Create file patch example:
 +Hello!
 \`\`\`
 
-## opfs_delete_file (approval-gated)
+## opfs_delete_file 
 Delete a file.
 
 - Input: { file: string }
 - Verify with \`opfs_ls\`/\`opfs_read_file\` first.
 
-## opfs_upload_files (approval-gated)
+## opfs_upload_files 
 Upload user-provided files into the workspace.
 
 - Input: { destSubdir?: string, overwrite?: "replace"|"skip"|"rename", files: File[] }
 - Use to import assets, schemas, fixtures, etc.
 
-## opfs_move_file (approval-gated)
+## opfs_move_file 
 Move or rename a file within the workspace.
 
 - Input: { from: string, to: string }

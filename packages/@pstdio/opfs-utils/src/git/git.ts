@@ -115,6 +115,24 @@ export type AttachHeadOptions = {
   force?: boolean;
 };
 
+/** Resolve any ref/abbrev SHA to a full OID. */
+export async function resolveOid(ctx: GitContext, refOrSha: string): Promise<string> {
+  const { dir } = ctx;
+  const fs = await getFs();
+
+  const s = String(refOrSha || "").trim();
+  if (!s) throw new Error("resolveOid: ref/sha is required");
+
+  try {
+    return await isogit.resolveRef({ fs, dir, ref: s });
+  } catch {
+    const shaLike = /^[0-9a-fA-F]{4,40}$/.test(s);
+    if (!shaLike) throw new Error(`resolveOid: cannot resolve ref '${refOrSha}'`);
+
+    return s.length === 40 ? s : await isogit.expandOid({ fs, dir, oid: s });
+  }
+}
+
 /**
  * Ensure a repo exists; create it if needed. Sets user.name / user.email if provided.
  */
@@ -364,6 +382,80 @@ export async function listCommits(ctx: GitContext, opts: ListCommitsOptions = {}
   });
 }
 
+export type ListAllCommitsOptions = {
+  /** Max unique commits to return after de-dup. Omit for all collected. */
+  limit?: number;
+  /** Per-ref traversal depth. Default: 200. */
+  perRefDepth?: number;
+  /** Include tags in the traversal. Default: true. */
+  includeTags?: boolean;
+  /** Optional explicit refs to traverse (if provided, overrides branches/tags discovery). */
+  refs?: string[];
+};
+
+export type CommitEntryWithRefs = CommitEntry & { refs: string[] };
+
+/** List commits across all branches (and optionally tags), de-duplicated by OID. */
+export async function listAllCommits(
+  ctx: GitContext,
+  opts: ListAllCommitsOptions = {},
+): Promise<CommitEntryWithRefs[]> {
+  const { dir } = ctx;
+  const fs = await getFs();
+
+  await ensureRepo(ctx);
+
+  const perRefDepth = opts.perRefDepth ?? 200;
+
+  let refs: string[] | undefined = opts.refs;
+  if (!refs) {
+    const branches = await isogit.listBranches({ fs, dir });
+    const tags = (opts.includeTags ?? true) ? await isogit.listTags({ fs, dir }) : [];
+    refs = [...branches, ...tags];
+  }
+
+  const map = new Map<string, CommitEntryWithRefs>();
+
+  for (const ref of refs) {
+    let entries: any[] = [];
+    try {
+      entries = await isogit.log({ fs, dir, ref, depth: perRefDepth });
+    } catch {
+      // Skip invalid or unreachable ref
+      continue;
+    }
+
+    for (const e of entries) {
+      const oid: string = e.oid;
+      const c = e.commit || {};
+      const a = c.author || {};
+      const co = c.committer || {};
+      const ts = typeof co.timestamp === "number" ? new Date(co.timestamp * 1000).toISOString() : undefined;
+      const parents = Array.isArray(e.parents) ? e.parents : [];
+      const msg = String(c.message || "").trim();
+
+      const existing = map.get(oid);
+      if (existing) {
+        if (!existing.refs.includes(ref)) existing.refs.push(ref);
+      } else {
+        map.set(oid, {
+          oid,
+          message: msg,
+          author: a.name,
+          email: a.email,
+          isoDate: ts,
+          parents,
+          refs: [ref],
+        });
+      }
+    }
+  }
+
+  const all = Array.from(map.values());
+  all.sort((a, b) => (b.isoDate || "").localeCompare(a.isoDate || ""));
+  return typeof opts.limit === "number" ? all.slice(0, opts.limit) : all;
+}
+
 /**
  * Revert workdir to a previous commit.
  * - 'hard' (default): move the current branch ref to the target commit and checkout the branch.
@@ -449,6 +541,11 @@ export async function revertToCommit(ctx: GitContext, opts: RevertToCommitOption
     detached: true,
     summary: `Detached HEAD at ${short}`,
   };
+}
+
+/** Safe preview that always detaches at the target commit. */
+export async function previewCommit(ctx: GitContext, to: string, force = true): Promise<RevertToCommitResult> {
+  return revertToCommit(ctx, { to, mode: "detached", force });
 }
 
 /**
@@ -571,5 +668,105 @@ export async function attachHeadToBranch(
     branch,
     created,
     summary: created ? `Created and attached HEAD to '${branch}'` : `Attached HEAD to '${branch}'`,
+  };
+}
+
+export type ContinueFromCommitOptions = {
+  /** Commit/ref to continue from. */
+  to: string;
+  /** Optional explicit new branch name (used only when not at a branch tip). Default: continue/<shortsha> */
+  branch?: string;
+  /** Overwrite local changes when switching. Default: true. */
+  force?: boolean;
+  /** If the branch already exists pointing elsewhere, throw instead of moving it. Default: true. */
+  refuseUpdateExisting?: boolean;
+};
+
+/**
+ * Smart "continue" behavior from a specific commit:
+ * - If the target commit is the tip of an existing branch, (re)attach HEAD to that branch.
+ * - Otherwise, create a new branch at the commit (default: continue/<shortsha>) and attach HEAD to it.
+ * This avoids overriding existing commits while letting users seamlessly continue when at the latest commit.
+ */
+export async function continueFromCommit(
+  ctx: GitContext,
+  opts: ContinueFromCommitOptions,
+): Promise<{ branch: string; oid: string; created: boolean; summary: string }> {
+  const { dir } = ctx;
+  const fs = await getFs();
+
+  const force = opts.force ?? true;
+  const refuseUpdateExisting = opts.refuseUpdateExisting ?? true;
+
+  await ensureRepo(ctx);
+
+  // Resolve the target commit OID
+  const oid = await resolveOid(ctx, opts.to);
+  const short = oid.slice(0, 7);
+
+  // Discover branches and see if any points to this OID (tip match)
+  const branches = await isogit.listBranches({ fs, dir });
+  const tipMatches: string[] = [];
+  for (const b of branches) {
+    try {
+      const tip = await isogit.resolveRef({ fs, dir, ref: `refs/heads/${b}` });
+      if (tip === oid) tipMatches.push(b);
+    } catch {
+      // ignore invalid refs
+    }
+  }
+
+  // If the commit is at the tip of any existing branch, attach HEAD to that branch
+  if (tipMatches.length > 0) {
+    // Prefer 'main' if present, else first match
+    const chosen = tipMatches.includes("main") ? "main" : tipMatches[0];
+
+    // Make HEAD symbolic to the branch and checkout to sync working tree
+    await isogit.writeRef({ fs, dir, ref: "HEAD", value: `refs/heads/${chosen}`, force: true, symbolic: true });
+    await isogit.checkout({ fs, dir, ref: chosen, force });
+
+    return {
+      branch: chosen,
+      oid,
+      created: false,
+      summary: `Attached to '${chosen}' at ${short}`,
+    };
+  }
+
+  // Otherwise, create a new continuation branch at the target commit
+  const branch = opts.branch && opts.branch.trim().length ? opts.branch : `continue/${short}`;
+
+  // Check if branch exists and where it points
+  let exists = true;
+  let existingTarget = "";
+  try {
+    existingTarget = await isogit.resolveRef({ fs, dir, ref: `refs/heads/${branch}` });
+  } catch {
+    exists = false;
+  }
+
+  let created = false;
+  if (!exists) {
+    await isogit.writeRef({ fs, dir, ref: `refs/heads/${branch}`, value: oid, force: true });
+    created = true;
+  } else if (existingTarget !== oid) {
+    if (refuseUpdateExisting) {
+      throw new Error(
+        `continueFromCommit: branch '${branch}' exists at ${existingTarget.slice(0, 7)}; choose a different name`,
+      );
+    } else {
+      await isogit.writeRef({ fs, dir, ref: `refs/heads/${branch}`, value: oid, force: true });
+    }
+  }
+
+  // Attach HEAD to the branch and checkout to update workdir
+  await isogit.writeRef({ fs, dir, ref: "HEAD", value: `refs/heads/${branch}`, force: true, symbolic: true });
+  await isogit.checkout({ fs, dir, ref: branch, force });
+
+  return {
+    branch,
+    oid,
+    created,
+    summary: `${created ? "Created" : "Attached to"} '${branch}' at ${short}`,
   };
 }

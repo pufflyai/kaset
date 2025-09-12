@@ -14,7 +14,6 @@ export function setApprovalHandler(h: ApprovalHandler | null) {
 
 export async function requestApproval(req: ApprovalRequest): Promise<boolean> {
   if (handler) return handler(req);
-  // Default safe fallback: deny when no handler is registered
   return false;
 }
 
