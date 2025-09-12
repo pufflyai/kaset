@@ -43,7 +43,7 @@ export function createScratchpadTool(s: Scratchpad) {
         "This is private working memory: do NOT tell the user you used it or that you added notes. " +
         "Persisted across turns and visible to the host (not visible to the end user). " +
         "Prefer op='set' with a concise object to merge, e.g. { plan: ['…'], todos: ['…'], facts: ['…'] }. " +
-        "Use op='clear' only when starting fresh. Keep entries brief (<= 5 bullets).",
+        "Use op='clear' only when starting fresh. Keep entries brief.",
       parameters: {
         type: "object",
         properties: {

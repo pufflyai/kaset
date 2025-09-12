@@ -1,6 +1,6 @@
 import { PROJECTS_ROOT } from "@/constant";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { commitAll, ensureRepo, readFile } from "@pstdio/opfs-utils";
+import { commitAll, continueFromCommit, ensureRepo, getHeadState, readFile } from "@pstdio/opfs-utils";
 import {
   type AssistantMessage,
   type BaseMessage,
@@ -307,14 +307,31 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
     const dir = `/${PROJECTS_ROOT}/${proj}`;
 
     await ensureRepo({ dir });
+
+    // If HEAD is detached (e.g., after previewing a commit), smart-attach:
+    // - If at a branch tip, reattach to that branch.
+    // - Otherwise, create a new continue/<sha> branch to avoid overriding history.
+
+    const head = await getHeadState({ dir });
+    if (head.detached) {
+      await continueFromCommit({ dir }, { to: head.headOid || "HEAD", force: true, refuseUpdateExisting: true });
+    }
+
+    // Commit to the current branch (post-reattach if needed)
+    let targetBranch: string | undefined = undefined;
+
+    const h2 = await getHeadState({ dir });
+    if (!h2.detached && h2.currentBranch) targetBranch = h2.currentBranch;
+
     await commitAll(
       { dir },
       {
         message: "chore: AI updates",
         author: { name: "KAS", email: "kas@kaset.dev" },
+        ...(targetBranch ? { branch: targetBranch } : {}),
       },
     );
-  } catch {
-    // Non-fatal: skip commit if OPFS/git is not available
+  } catch (e) {
+    console.error("Auto-commit after AI changes failed:", e);
   }
 }

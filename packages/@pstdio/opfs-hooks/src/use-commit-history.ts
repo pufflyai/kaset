@@ -1,8 +1,9 @@
 import {
+  listAllCommits,
   listCommits,
   watchDirectory,
-  type DirectoryWatcherCleanup,
   type CommitEntry,
+  type DirectoryWatcherCleanup,
   type GitContext,
 } from "@pstdio/opfs-utils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -10,6 +11,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 export interface UseCommitHistoryOptions {
   limit?: number;
   ref?: string;
+  /** When true, list commits across all branches (and tags). Default: false */
+  acrossAll?: boolean;
+  /** Per-ref traversal depth when using `acrossAll`. Default: 200 */
+  perRefDepth?: number;
+  /** Include tags when using `acrossAll`. Default: true */
+  includeTags?: boolean;
   /**
    * Optional OPFS path to the repository root.
    * When provided, we watch `.git` under this directory for changes and refresh the log.
@@ -21,7 +28,7 @@ export interface UseCommitHistoryOptions {
 }
 
 export function useCommitHistory(ctx: GitContext | null | undefined, options: UseCommitHistoryOptions = {}) {
-  const { limit = 20, ref, pollMs = 2000, watchRepoPath } = options;
+  const { limit = 20, ref, acrossAll = false, perRefDepth, includeTags, pollMs = 2000, watchRepoPath } = options;
 
   const [commits, setCommits] = useState<CommitEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -35,8 +42,11 @@ export function useCommitHistory(ctx: GitContext | null | undefined, options: Us
     busyRef.current = true;
     setLoading(true);
     try {
-      const list = await listCommits(ctxMemo, { limit, ref });
-      setCommits(list);
+      const rows = acrossAll
+        ? await listAllCommits(ctxMemo, { limit, perRefDepth, includeTags })
+        : await listCommits(ctxMemo, { limit, ref });
+
+      setCommits(rows as CommitEntry[]);
       setError(undefined);
     } catch (e: any) {
       setError(e?.message || String(e));
@@ -44,7 +54,7 @@ export function useCommitHistory(ctx: GitContext | null | undefined, options: Us
       setLoading(false);
       busyRef.current = false;
     }
-  }, [ctxMemo, limit, ref]);
+  }, [ctxMemo, limit, ref, acrossAll, perRefDepth, includeTags]);
 
   useEffect(() => {
     let stopWatch: DirectoryWatcherCleanup | null = null;
@@ -66,7 +76,6 @@ export function useCommitHistory(ctx: GitContext | null | undefined, options: Us
           },
         );
       } catch {
-        // Ignore watcher failures (not available or path missing); polling covers us.
         stopWatch = null;
       }
     };
