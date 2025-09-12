@@ -105,10 +105,6 @@ export async function applyFilesToOpfs(options: ApplyFilesOptions): Promise<{
 
 export default applyFilesToOpfs;
 
-/** Example kinds supported by the playground. */
-export type ExampleKind = string;
-
-/** Options shared by example setup helpers. */
 export type SetupOptions = {
   /** OPFS root folder name. Defaults to `${PROJECTS_ROOT}/<kind>`. */
   folderName?: string;
@@ -120,7 +116,7 @@ export type SetupOptions = {
  * Reusable example setup that bundles files with Vite and writes them to OPFS.
  * Handles special filename rewrites (e.g. `__agents.md` -> `agents.md`).
  */
-export async function setupExample(kind: ExampleKind, options: SetupOptions = {}) {
+export async function setupExample(kind: string, options: SetupOptions = {}) {
   const overwrite = options.overwrite ?? false;
   const folderName = options.folderName?.trim() || `${PROJECTS_ROOT}/${kind}`;
 

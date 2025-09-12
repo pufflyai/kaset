@@ -1,4 +1,5 @@
 import { PROJECTS_ROOT } from "@/constant";
+import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useRef, useState } from "react";
 import { setApprovalHandler, type ApprovalRequest } from "../../services/ai/KAS/approval";
 import { sendMessage } from "../../services/ai/sendMessage";
@@ -59,10 +60,7 @@ export function ConversationHost() {
     if (!conversationId) return;
 
     const userMessage: Message = {
-      id:
-        typeof crypto !== "undefined" && (crypto as any).randomUUID
-          ? (crypto as any).randomUUID()
-          : Math.random().toString(36).slice(2),
+      id: shortUID(),
       role: "user",
       parts: [{ type: "text", text }],
     };

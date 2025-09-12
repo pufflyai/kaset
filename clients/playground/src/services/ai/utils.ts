@@ -1,10 +1,6 @@
 import type { BaseMessage, ToolCall } from "@pstdio/tiny-ai-tasks";
 import type { Message, UIConversation } from "../../types";
 
-export function uid(): string {
-  return crypto.randomUUID();
-}
-
 export function getLastUserText(conversation: UIConversation): string | undefined {
   for (let i = conversation.length - 1; i >= 0; i--) {
     const m = conversation[i];

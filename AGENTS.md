@@ -305,3 +305,36 @@ function getUserName(user: { firstName: string; lastName: string }): string {
   return `${user.firstName} ${user.lastName}`;
 }
 ```
+
+## 8. Use maps instead of complex if / else or ternaries
+
+✅ Example (good):
+
+```ts
+const statusText = getStatusText({
+  isError,
+  isDone,
+  isInputStreaming,
+  isInputAvailable,
+  providerExecuted,
+  streaming,
+});
+```
+
+❌ Example (bad):
+
+```ts
+const statusText = isError
+  ? "Error"
+  : isDone
+    ? "Done"
+    : isInputStreaming
+      ? "Running"
+      : isInputAvailable
+        ? providerExecuted
+          ? "Running"
+          : "Queued"
+        : streaming
+          ? "Running"
+          : "Waiting";
+```

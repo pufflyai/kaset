@@ -1,6 +1,7 @@
 import { PROJECTS_ROOT } from "@/constant";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { commitAll, continueFromCommit, ensureRepo, getHeadState, readFile } from "@pstdio/opfs-utils";
+import { shortUID } from "@pstdio/prompt-utils";
 import {
   type AssistantMessage,
   type BaseMessage,
@@ -10,7 +11,7 @@ import {
 } from "@pstdio/tiny-ai-tasks";
 import type { Message, ToolInvocation, UIConversation } from "../../types";
 import { getAgent } from "./KAS/agent";
-import { getLastUserText, toMessageHistory, uid } from "./utils";
+import { getLastUserText, toMessageHistory } from "./utils";
 
 /**
  * Connect the Tiny AI Tasks agent to the chat UI.
@@ -24,7 +25,7 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
   const isFirstTurn = uiMessages.length <= 1;
 
   // Insert a hidden developer note that is visible in the UI but filtered from the LLM prompt
-  const thoughtId = uid();
+  const thoughtId = shortUID();
   const thoughtStart = Date.now();
   let thoughtMarked = false;
   const developerThinking: Message = {
@@ -62,7 +63,7 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
   // Helper: upsert a streaming assistant text message
   const upsertAssistantText = (text: string, done = false) => {
     if (!currentAssistantId) {
-      const id = uid();
+      const id = shortUID();
       currentAssistantId = id;
       const msg: Message = {
         id,
@@ -89,7 +90,7 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
     const existingMsgId = toolUiMessageId.get(toolCallId);
 
     if (!existingMsgId) {
-      const msgId = uid();
+      const msgId = shortUID();
       toolUiMessageId.set(toolCallId, msgId);
 
       const msg: Message = {
@@ -188,7 +189,7 @@ export async function* sendMessage(conversation: UIConversation, _cwd?: string) 
           // Finalize it so future assistant text starts a fresh message instead of overwriting.
           finalizeAssistantTextIfAny();
           for (const call of calls) {
-            const callId = call.id || uid();
+            const callId = call.id || shortUID();
             const toolName = call.function?.name || "tool";
             let parsed: any = undefined;
             try {
