@@ -1,5 +1,5 @@
+import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import type { WorkspaceState } from "./types";
-import { DEFAULT_APPROVAL_GATED_TOOLS } from "@/services/ai/KAS/approval";
 
 export const DEFAULT_STATE: WorkspaceState = {
   version: "1.0",

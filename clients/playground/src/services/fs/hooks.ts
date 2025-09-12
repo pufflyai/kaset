@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
 import type { FsNode } from "./types";
 
-// Track known directory IDs (including empty ones) so they render as folders
+// Track known directory IDs so they render as folders
 export function useDirIds(rootDir: string) {
   const [dirIds, setDirIds] = useState<Set<string>>(new Set());
 
@@ -117,4 +117,3 @@ export function useExpandedStateForSelection(args: {
 
   return [expanded, setExpanded] as const;
 }
-

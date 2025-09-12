@@ -1,0 +1,48 @@
+{
+  "name": "@pstdio/kas",
+  "description": "A simple coding agent for the browser.",
+  "version": "0.1.0",
+  "author": "Pufflig AB",
+  "email": "support@prompt.studio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pufflyai/kaset.git"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "vite build",
+    "dev": "vite build --watch",
+    "test": "npm run typecheck && vitest run",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "visualize-bundle": "npx vite-bundle-visualizer"
+  },
+  "devDependencies": {
+    "@au-re/vite-plugin-externalize-deps": "^0.9.1",
+    "@types/node": "^22.15.18",
+    "eslint": "^9.32.0",
+    "typescript": "^5.7.3",
+    "vite": "^7.1.0",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@pstdio/prompt-utils": "*",
+    "@pstdio/tiny-ai-tasks": "*",
+    "@pstdio/tiny-tasks": "*",
+    "openai": "^5.15.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "volta": {
+    "node": "22.18.0"
+  }
+}

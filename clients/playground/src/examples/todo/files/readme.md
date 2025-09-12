@@ -2,17 +2,18 @@
 
 Welcome to a really weird todo app!
 
-It lives in plain Markdown files, but it also has a secret: an agent that can mess with your todos right alongside you.
+It lives in plain Markdown files, but it also has a secret: an agent that can edit your todos right alongside you.
 
 ## ✨ What's going on here?
 
-> Kaset [kaˈset] is an open source toolkit for building browser-first, agent-powered apps.
->
-> Drop coding agents straight into your app and let them play alongside your users.
+> Kaset [kaˈset] is an open source toolkit that helps you add coding agents directly to your webapp. It uses the browser's file system api to read and edit files.
+
+In this version of the playground, users can only interact with their todo files, but I am working on application state adapters, user created plugins, mods and more.
+
+If you have ideas or questions, reach out here: https://github.com/pufflyai/kaset/discussions
 
 ## 📂 How it's set up
 
-```
 todos/ → your lists live here as .md files.
 
 - [ ] means not done
@@ -21,8 +22,3 @@ todos/ → your lists live here as .md files.
 agents.md → rules the agent follows.
 
 Humans can ignore it. Agents obey. Mostly.
-```
-
-## 🚀 Try it, break it, bend it
-
-This isn't about a perfect todo app. It's about poking at the edges of what's possible when you let users and agents share the same playground.

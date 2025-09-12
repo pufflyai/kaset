@@ -1,7 +1,8 @@
 import { PROJECTS_ROOT } from "@/constant";
+import { setApprovalHandler } from "@/services/ai/approval";
+import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useRef, useState } from "react";
-import { setApprovalHandler, type ApprovalRequest } from "../../services/ai/KAS/approval";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import type { Message } from "../../types";
