@@ -30,6 +30,10 @@ Curious? Checkout our [documentation](https://pufflyai.github.io/kaset/).
 
 ## Packages
 
+> ### [@pstdio/kas](https://pufflyai.github.io/kaset/packages/kas)
+>
+> A simple coding agent for the browser. Complete AI-powered assistant with OPFS sandbox, approval gates, and conversation adapters.
+
 > ### [@pstdio/opfs-utils](https://pufflyai.github.io/kaset/packages/opfs-utils)
 >
 > OPFS helpers: ls/tree, grep, safe file reads (text/binary/SVG/PDF), patch utilities.

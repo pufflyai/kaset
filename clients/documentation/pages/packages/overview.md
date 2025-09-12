@@ -36,6 +36,14 @@ Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSum
 
 ---
 
+### [@pstdio/kas](/packages/kas)
+
+**Browser coding agent** — Complete AI-powered coding assistant that runs entirely in the browser with OPFS sandbox.
+
+Features: File operations with approval gates, shell commands, conversation adapters, streaming responses
+
+---
+
 ### [@pstdio/tiny-tasks](/packages/tiny-tasks)
 
 **Composable workflows** — Interrupt-friendly async generators you can pause, persist, and resume.
