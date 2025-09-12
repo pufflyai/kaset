@@ -11,6 +11,7 @@ export {
   previewCommit,
   resolveOid,
   revertToCommit,
+  safeAutoCommit,
   type AttachHeadOptions,
   type CheckoutAtCommitOptions,
   type CheckoutAtCommitResult,

@@ -770,3 +770,31 @@ export async function continueFromCommit(
     summary: `${created ? "Created" : "Attached to"} '${branch}' at ${short}`,
   };
 }
+
+export interface SafeAutoCommitOptions {
+  dir: string;
+  message: string;
+  author: CommitAuthor;
+}
+
+export async function safeAutoCommit({ dir, message, author }: SafeAutoCommitOptions) {
+  await ensureRepo({ dir });
+
+  // Reattach detached HEAD if needed
+  const head = await getHeadState({ dir });
+  if (head.detached) {
+    await continueFromCommit({ dir }, { to: head.headOid || "HEAD", force: true, refuseUpdateExisting: true });
+  }
+
+  const head2 = await getHeadState({ dir });
+  const targetBranch = !head2.detached && head2.currentBranch ? head2.currentBranch : undefined;
+
+  await commitAll(
+    { dir },
+    {
+      message,
+      author,
+      ...(targetBranch ? { branch: targetBranch } : {}),
+    },
+  );
+}

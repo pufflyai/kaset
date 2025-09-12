@@ -58,7 +58,9 @@ export function ConversationHost() {
 
   const handleSendMessage = async (text: string) => {
     const conversationId = useWorkspaceStore.getState().selectedConversationId;
-    if (!conversationId) return;
+    const convo = useWorkspaceStore.getState().conversations[conversationId];
+
+    if (!conversationId || !convo) return;
 
     const userMessage: Message = {
       id: shortUID(),
@@ -68,12 +70,10 @@ export function ConversationHost() {
 
     const current = useWorkspaceStore.getState().conversations[conversationId]?.messages ?? [];
     const base = [...current, userMessage];
+
     useWorkspaceStore.setState(
       (state) => {
-        const convo = state.conversations[conversationId];
-        if (convo) {
-          convo.messages = base;
-        }
+        state.conversations[conversationId].messages = base;
       },
       false,
       "conversations/send/user",
@@ -81,15 +81,11 @@ export function ConversationHost() {
 
     try {
       setStreaming(true);
-      for await (const updated of sendMessage(base, "")) {
-        const id = useWorkspaceStore.getState().selectedConversationId;
-        if (!id) continue;
+      for await (const updated of sendMessage(base)) {
+        if (!conversationId) continue;
         useWorkspaceStore.setState(
           (state) => {
-            const convo = state.conversations[id];
-            if (convo) {
-              convo.messages = updated;
-            }
+            state.conversations[conversationId].messages = updated;
           },
           false,
           "conversations/send/assistant",
@@ -97,7 +93,7 @@ export function ConversationHost() {
       }
     } catch (err) {
       const assistantError: Message = {
-        id: Math.random().toString(36).slice(2),
+        id: shortUID(),
         role: "assistant",
         parts: [
           {
@@ -111,10 +107,7 @@ export function ConversationHost() {
       if (id) {
         useWorkspaceStore.setState(
           (state) => {
-            const convo = state.conversations[id];
-            if (convo) {
-              convo.messages = [...convo.messages, assistantError];
-            }
+            state.conversations[id].messages = [...convo.messages, assistantError];
           },
           false,
           "conversations/send/error",

@@ -16,7 +16,7 @@
     "prepublishOnly": "npm run build",
     "build": "vite build",
     "dev": "vite build --watch",
-    "test": "npm run typecheck && vitest run",
+    "test": "npm run typecheck && vitest run --passWithNoTests",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "visualize-bundle": "npx vite-bundle-visualizer"

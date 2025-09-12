@@ -128,17 +128,14 @@ function useRenderPlan(messages: Message[]): RenderItem[] {
   }, [messages]);
 }
 
-export function MessageList({
-  messages,
-  streaming,
-  onOpenFile,
-  onUseExample,
-}: {
+interface MessageListProps {
   messages: Message[];
   streaming: boolean;
   onOpenFile?: (filePath: string) => void;
   onUseExample?: (text: string) => void;
-}) {
+}
+
+export function MessageList({ messages, streaming, onOpenFile, onUseExample }: MessageListProps) {
   const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
   const hasKey = useWorkspaceStore((s) => !!s.apiKey);
 
