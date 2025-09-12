@@ -111,26 +111,29 @@ export function CommitHistory() {
     if (!pendingCheckoutOid) return;
     setSaving(true);
     try {
-      // Mirror auto-commit logic from sendMessage before switching commits
+      // Ensure repo exists
       await ensureDirExists(repoDir, true);
       await ensureRepo(ctx);
 
-      // If HEAD is detached (e.g., after previewing a commit), smart-attach first
+      // Capture head state once; if detached, commit first to avoid discarding changes
       const head = await getHeadState(ctx);
-      if (head.detached) {
-        await continueFromCommit(ctx, { to: head.headOid || "HEAD", force: true, refuseUpdateExisting: true });
-      }
 
-      // Commit to current branch (post-reattach if needed)
       let targetBranch: string | undefined = undefined;
-      const h2 = await getHeadState(ctx);
-      if (!h2.detached && h2.currentBranch) targetBranch = h2.currentBranch;
+      if (!head.detached && head.currentBranch) targetBranch = head.currentBranch;
 
-      await commitAll(ctx, {
+      // Commit current changes
+      const res = await commitAll(ctx, {
         message: "chore: User updates",
         author: { name: "user", email: "user@kaset.dev" },
         ...(targetBranch ? { branch: targetBranch } : {}),
       });
+
+      // If we were detached, attach to a continuation branch at the new commit without losing changes
+      if (head.detached && res.oid) {
+        const base = head.headOid || (await resolveOid(ctx, "HEAD"));
+        const contBranch = `continue/${String(base).slice(0, 7)}`;
+        await continueFromCommit(ctx, { to: res.oid, branch: contBranch, force: true, refuseUpdateExisting: false });
+      }
 
       await proceedCheckout(pendingCheckoutOid);
     } catch (e: any) {
