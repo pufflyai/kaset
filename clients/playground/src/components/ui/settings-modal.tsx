@@ -80,7 +80,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         <Dialog.Content>
           <Dialog.Header>
             <Text textStyle="heading/M">Settings</Text>
-            <Dialog.CloseTrigger>
+            <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
           </Dialog.Header>

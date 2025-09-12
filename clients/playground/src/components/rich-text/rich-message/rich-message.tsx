@@ -15,8 +15,6 @@ import { HeadingNode, QuoteNode } from "@lexical/rich-text";
 import { ContentEditable } from "../shared/components/content-editable";
 import { ImportCodeBlocksPlugin } from "../shared/plugins/CodePlugin/CodeBlockPlugin";
 import { CodeBlockNode } from "../shared/plugins/CodePlugin/CodeNode";
-import { EquationNode } from "../shared/plugins/EquationPlugin/EquationNode";
-import { EQUATION_INLINE, EQUATION_MULTILINE, EquationPlugin } from "../shared/plugins/EquationPlugin/EquationPlugin";
 import { HRNode } from "../shared/plugins/HorizontalRulePlugin/HorizontalRuleNode";
 import StateUpdatePlugin from "../shared/plugins/StateUpdatePlugin";
 import { TreeViewPlugin } from "../shared/plugins/TreeViewPlugin/TreeViewPlugin";
@@ -28,14 +26,14 @@ interface EditorProps {
   defaultState: string;
 }
 
-const transformers = [...TRANSFORMERS, ...TRANSFORMERS_EXTENDED, EQUATION_INLINE, EQUATION_MULTILINE];
+const transformers = [...TRANSFORMERS, ...TRANSFORMERS_EXTENDED];
 
 export function RichMessage(props: EditorProps) {
   const { debug = false, defaultState = "" } = props;
 
   const initialConfig = {
     namespace: "RICH_MESSAGE",
-    nodes: [QuoteNode, LinkNode, HeadingNode, ListNode, ListItemNode, CodeNode, CodeBlockNode, EquationNode, HRNode],
+    nodes: [QuoteNode, LinkNode, HeadingNode, ListNode, ListItemNode, CodeNode, CodeBlockNode, HRNode],
     editorState: () => {
       return $convertFromMarkdownString(defaultState, transformers, undefined, false);
     },
@@ -66,7 +64,6 @@ export function RichMessage(props: EditorProps) {
         <ListPlugin />
         <HorizontalRulePlugin />
         <ImportCodeBlocksPlugin />
-        <EquationPlugin />
         <RichTextPlugin contentEditable={<ContentEditable fullWidth={false} />} ErrorBoundary={LexicalErrorBoundary} />
         {debug && <TreeViewPlugin />}
       </LexicalComposer>

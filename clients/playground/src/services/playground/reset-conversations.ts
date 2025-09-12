@@ -11,7 +11,7 @@ export function resetConversationsForProject(projectId: string) {
 
   const newConvo: Conversation = {
     id: newId,
-    name: "Conversation 1",
+    name: "Conversation",
     messages: [],
     projectId,
   };

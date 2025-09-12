@@ -139,4 +139,3 @@ export function useCommitHistory(repoDir: string): UseCommitHistoryResult {
     skipSaveAndCheckout,
   };
 }
-

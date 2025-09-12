@@ -3,4 +3,3 @@ export interface FsNode {
   name: string;
   children?: FsNode[];
 }
-

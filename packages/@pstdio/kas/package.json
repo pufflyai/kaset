@@ -31,6 +31,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@pstdio/opfs-utils": "*",
     "@pstdio/prompt-utils": "*",
     "@pstdio/tiny-ai-tasks": "*",
     "@pstdio/tiny-tasks": "*",

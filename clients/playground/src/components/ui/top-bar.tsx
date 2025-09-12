@@ -94,6 +94,13 @@ export function TopBar() {
                   leftIcon={<ExternalLinkIcon size={16} />}
                   onClick={() => window.open("https://pufflyai.github.io/kaset/", "_blank", "noopener,noreferrer")}
                 />
+                <MenuItem
+                  primaryLabel="Contact & Support"
+                  leftIcon={<ExternalLinkIcon size={16} />}
+                  onClick={() =>
+                    window.open("https://github.com/pufflyai/kaset/discussions", "_blank", "noopener,noreferrer")
+                  }
+                />
               </Menu.ItemGroup>
             </Menu.Content>
           </Menu.Positioner>

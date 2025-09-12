@@ -10,6 +10,7 @@ export function getAgent() {
     apiKey: state.apiKey!,
     baseURL: state.baseUrl,
     workspaceDir: `${PROJECTS_ROOT}/${state.selectedProjectId}`,
+    approvalGatedTools: state.approvalGatedTools,
     requestApproval,
   });
 }

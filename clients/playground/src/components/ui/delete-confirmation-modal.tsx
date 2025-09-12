@@ -23,7 +23,7 @@ export const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => 
         <Dialog.Content>
           <Dialog.Header>
             <Text textStyle="heading/M">{headline}</Text>
-            <Dialog.CloseTrigger>
+            <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
           </Dialog.Header>

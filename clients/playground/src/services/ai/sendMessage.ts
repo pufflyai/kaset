@@ -10,8 +10,8 @@ import {
   toBaseMessages,
 } from "@pstdio/tiny-ai-tasks";
 import type { Message, ToolInvocation, UIConversation } from "../../types";
-import { getLastUserText, toMessageHistory } from "./utils";
 import { getAgent } from "./getAgent";
+import { getLastUserText, toMessageHistory } from "./utils";
 
 /**
  * Connect the Tiny AI Tasks agent to the chat UI.

@@ -94,7 +94,7 @@ export function CommitHistory() {
           <Dialog.Content>
             <Dialog.Header>
               <Text textStyle="heading/M">Save changes</Text>
-              <Dialog.CloseTrigger>
+              <Dialog.CloseTrigger asChild>
                 <CloseButton size="sm" />
               </Dialog.CloseTrigger>
             </Dialog.Header>

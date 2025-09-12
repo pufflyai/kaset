@@ -12,7 +12,7 @@ export function ApprovalModal(props: { request: ApprovalRequest | null; onApprov
         <Dialog.Content>
           <Dialog.Header>
             <Text textStyle="heading/L">Approval Required</Text>
-            <Dialog.CloseTrigger>
+            <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
           </Dialog.Header>
