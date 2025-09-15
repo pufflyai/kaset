@@ -156,7 +156,7 @@ export function MessageList({ messages, streaming, onOpenFile, onUseExample }: M
           description="Kaset [ka'set] is an experimental open source toolkit to add coding agents directly into your webapp."
         >
           <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
-            Why? Checkout our{" "}
+            Why? Check out our{" "}
             <Link color="blue" href="https://pufflyai.github.io/kaset/">
               documentation
             </Link>

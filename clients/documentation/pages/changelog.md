@@ -16,23 +16,20 @@ For package-specific details, see:
 - [@pstdio/tiny-tasks](/packages/tiny-tasks)
 - [describe-context](/packages/describe-context)
 
-## 2025-01-25
+## 2025-09-12
 
 ### Added
 
 - [@pstdio/kas] **NEW PACKAGE**: Browser-first coding agent (v0.1.0).
-  - Complete AI-powered coding assistant running entirely in the browser
+  - Simple AI-powered coding assistant running entirely in the browser
   - OPFS sandbox with approval gates for safe file operations
   - Built-in tools for search, read, write, patch, and shell operations
   - Conversation adapters for easy UI integration with streaming responses
-  - Used in the [Kaset Playground](https://kaset.dev) for live demonstrations
+  - Check out [Kaset Playground](https://kaset.dev) for live demonstrations
 
 ### Changed
 
-- [documentation] Added comprehensive documentation for @pstdio/kas package
-- [documentation] Updated KAS concept page with implementation details and examples
-- [README] Added @pstdio/kas to main packages list
-- Navigation updated to include kas package in all relevant sections
+- [documentation] Added documentation for @pstdio/kas package
 
 ---
 

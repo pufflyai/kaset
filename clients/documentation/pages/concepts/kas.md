@@ -4,9 +4,9 @@ title: Meet KAS
 
 # Meet KAS
 
-KAS is Kaset's in‑browser coding agent. It runs entirely client‑side, using OPFS for a safe, local file sandbox. KAS can search, read, patch, and generate files with user approval.
+KAS is a small coding agent that runs entirely client‑side. It uses OPFS for a safe, local file sandbox. KAS can search, read, patch, and generate files with user approval.
 
-**✅ KAS is now available** as the [@pstdio/kas](/packages/kas) package.
+**KAS is available** as the [@pstdio/kas](/packages/kas) package.
 
 ## What KAS Can Do
 
@@ -24,7 +24,6 @@ KAS provides a complete coding agent that can:
 - **Browser-first**: Runs entirely in the browser using OPFS
 - **Safe sandbox**: All operations contained within OPFS workspace
 - **Approval gates**: User consent required for file modifications
-- **Tool integration**: Built on [@pstdio/tiny-ai-tasks](/packages/tiny-ai-tasks) and [@pstdio/opfs-utils](/packages/opfs-utils)
 - **Streaming responses**: Real-time conversation updates
 - **Conversation adapters**: Easy integration with UI frameworks
 
@@ -34,7 +33,7 @@ KAS provides a complete coding agent that can:
 import { createKasAgent } from "@pstdio/kas";
 
 const agent = createKasAgent({
-  model: "gpt-4",
+  model: "gpt-5-mini",
   apiKey: "your-openai-key",
   workspaceDir: "/projects/my-app",
   requestApproval: async ({ tool, workspaceDir, detail }) => {
