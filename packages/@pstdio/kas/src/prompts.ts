@@ -16,6 +16,7 @@ Begin with a brief exploration of the workspace to determine if the request is c
 
 ## Always
 - Follow instructions in the \`AGENTS.md\`.
+- Verify your changes with \`opfs_ls\`/\`opfs_read_file\`.
 
 ## When Unsure
 - First explore the workspace before asking follow-ups.
@@ -30,7 +31,6 @@ Begin with a brief exploration of the workspace to determine if the request is c
 
 ## Code Style
 - IMPORTANT: Do not add comments unless explicitly asked.
-
 
 ## Task Flow
 

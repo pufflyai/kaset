@@ -421,6 +421,240 @@ describe("applyPatchInOPFS", () => {
     expect(text).toBe(["# items", "- [x] asd", "- [ ] zxc", ""].join("\n"));
   });
 
+  it("accepts Codex apply_patch envelope (Update File)", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+
+    // Prepare a markdown with a control character (U+0014) separator
+    const dc4 = "\u0014"; // Device Control Four
+    await writeFile(root, "todos/Groceries.md", [`- [ ] Eggs ${dc4} 1 pc`, ""].join("\n"));
+
+    const diff = [
+      "*** Begin Patch",
+      "*** Update File: todos/Groceries.md",
+      "@@",
+      `-- [ ] Eggs ${dc4} 1 pc`,
+      `+- [ ] Eggs ${dc4} 2 pc`,
+      "*** End Patch",
+      "",
+    ].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+
+    const todos = await (root as any).getDirectoryHandle("todos");
+    const fh = await todos.getFileHandle("Groceries.md");
+    const text = await (await fh.getFile()).text();
+    expect(text).toBe([`- [ ] Eggs ${dc4} 2 pc`, ""].join("\n"));
+  });
+
+  it("accepts Codex apply_patch envelope (Add File)", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+
+    const diff = [
+      "*** Begin Patch",
+      "*** Add File: notes/today.md",
+      "@@",
+      "+Hello",
+      "+World",
+      "*** End Patch",
+      "",
+    ].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+
+    const notes = await (root as any).getDirectoryHandle("notes");
+    const fh = await notes.getFileHandle("today.md");
+    const text = await (await fh.getFile()).text();
+    expect(text).toBe(["Hello", "World", ""].join("\n"));
+  });
+
+  it("accepts Codex apply_patch envelope (Delete File)", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+    await writeFile(root, "remove.txt", "remove me\n");
+
+    const diff = ["*** Begin Patch", "*** Delete File: remove.txt", "@@", "-remove me", "*** End Patch", ""].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+    await expect(async () => (root as any).getFileHandle("remove.txt")).rejects.toBeTruthy();
+  });
+
+  it("accepts Codex apply_patch envelope (Rename via Move to) without content changes", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+    await writeFile(root, "old/name.txt", "content\n");
+
+    const diff = [
+      "*** Begin Patch",
+      "*** Update File: old/name.txt",
+      "*** Move to: new/name.txt",
+      "@@",
+      " content",
+      "*** End Patch",
+      "",
+    ].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+
+    await expect(async () => (root as any).getFileHandle("old/name.txt")).rejects.toBeTruthy();
+    const newDir = await (root as any).getDirectoryHandle("new");
+    const fh = await newDir.getFileHandle("name.txt");
+    const text = await (await fh.getFile()).text();
+    expect(text).toBe("content\n");
+  });
+
+  it("accepts Codex apply_patch envelope (Rename + edit)", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+    await writeFile(root, "old/r.md", "one\nline\n");
+
+    const diff = [
+      "*** Begin Patch",
+      "*** Update File: old/r.md",
+      "*** Move to: new/r.md",
+      "@@",
+      "-one",
+      "+ONE",
+      " line",
+      "*** End Patch",
+      "",
+    ].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+
+    await expect(async () => (root as any).getFileHandle("old/r.md")).rejects.toBeTruthy();
+    const newDir = await (root as any).getDirectoryHandle("new");
+    const fh = await newDir.getFileHandle("r.md");
+    const text = await (await fh.getFile()).text();
+    expect(text).toBe("ONE\nline\n");
+  });
+
+  it("accepts Codex apply_patch envelope with multiple files (update, add, delete)", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+
+    await writeFile(root, "a.txt", "foo\nbar\n");
+    await writeFile(root, "docs/old.md", "deprecated\n");
+
+    const diff = [
+      "*** Begin Patch",
+      "*** Update File: a.txt",
+      "@@",
+      "-foo",
+      "+FOO",
+      " bar",
+      "",
+      "*** Delete File: docs/old.md",
+      "@@",
+      "-deprecated",
+      "",
+      "*** Add File: src/new.ts",
+      "@@",
+      "+export const x = 1;",
+      "+export const y = 2;",
+      "*** End Patch",
+      "",
+    ].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+
+    const a = await (root as any).getFileHandle("a.txt");
+    expect(await (await a.getFile()).text()).toBe("FOO\nbar\n");
+    await expect(async () => (root as any).getFileHandle("docs/old.md")).rejects.toBeTruthy();
+    const src = await (root as any).getDirectoryHandle("src");
+    const newTs = await src.getFileHandle("new.ts");
+    expect(await (await newTs.getFile()).text()).toBe("export const x = 1;\nexport const y = 2;\n");
+  });
+
+  it("ignores 'No newline at end of file' markers within Codex envelope", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+    await writeFile(root, "nn.txt", "hello");
+
+    const diff = [
+      "*** Begin Patch",
+      "*** Update File: nn.txt",
+      "@@",
+      "-hello",
+      "+HELLO",
+      "\\ No newline at end of file",
+      "*** End Patch",
+      "",
+    ].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+
+    const fh = await (root as any).getFileHandle("nn.txt");
+    const text = await (await fh.getFile()).text();
+    expect(text).toBe("HELLO");
+  });
+
+  it("normalizes backslash and leading slash paths in Codex envelope", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+    await writeFile(root, "notes/Win.md", "foo\n");
+
+    const diff = [
+      "*** Begin Patch",
+      "*** Update File: \\notes\\Win.md",
+      "@@",
+      "-foo",
+      "+bar",
+      "*** End Patch",
+      "",
+    ].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+
+    const notes = await (root as any).getDirectoryHandle("notes");
+    const fh = await notes.getFileHandle("Win.md");
+    const text = await (await fh.getFile()).text();
+    expect(text).toBe("bar\n");
+  });
+
+  it("treats header-only Codex envelope section as a no-op", async () => {
+    setupTestOPFS();
+
+    const diff = ["*** Begin Patch", "*** Update File: empty.md", "*** End Patch", ""].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+    expect(result.output).toBe("No changes in patch (no hunks).");
+  });
+
+  it("accepts Codex envelope with numeric hunk headers", async () => {
+    setupTestOPFS();
+    const root = await getOPFSRoot();
+    await writeFile(root, "num.txt", "old\nrest\n");
+
+    const diff = [
+      "*** Begin Patch",
+      "*** Update File: num.txt",
+      "@@ -1,1 +1,1 @@",
+      "-old",
+      "+NEW",
+      " rest",
+      "*** End Patch",
+      "",
+    ].join("\n");
+
+    const result = await applyPatchInOPFS({ diffContent: diff });
+    expect(result.success).toBe(true);
+
+    const fh = await (root as any).getFileHandle("num.txt");
+    const text = await (await fh.getFile()).text();
+    expect(text).toBe("NEW\nrest\n");
+  });
+
   it("applies a single hunk with multiple non-consecutive edits", async () => {
     setupTestOPFS();
     const root = await getOPFSRoot();
