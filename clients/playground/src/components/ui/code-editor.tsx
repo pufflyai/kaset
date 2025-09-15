@@ -73,16 +73,52 @@ export const CodeEditor = (props: CodeEditorProps) => {
   // File-based content handling
   const { content: opfsContent } = useFileContent(usingFilePath ? filePath! : "");
   const [editorContent, setEditorContent] = useState<string>("");
+  const editorContentRef = useRef(editorContent);
+  const lastFilePathRef = useRef<string | undefined>(undefined);
+  const lastSyncedContentRef = useRef<string>("");
+  const isDirtyRef = useRef(false);
+  const pendingSaveRef = useRef<{ path: string; content: string } | null>(null);
+
+  useEffect(() => {
+    editorContentRef.current = editorContent;
+  }, [editorContent]);
 
   // Keep editor content in sync with OPFS for the current file.
   // This ensures that when switching files, we update once the new content arrives.
   useEffect(() => {
-    if (!usingFilePath) return;
+    if (!usingFilePath) {
+      lastFilePathRef.current = undefined;
+      lastSyncedContentRef.current = "";
+      isDirtyRef.current = false;
+      return;
+    }
 
-    if (filePath) {
-      setEditorContent(opfsContent ?? "");
-    } else {
+    const nextContent = opfsContent ?? "";
+
+    if (!filePath) {
+      lastFilePathRef.current = undefined;
+      lastSyncedContentRef.current = "";
+      isDirtyRef.current = false;
       setEditorContent("");
+      editorContentRef.current = "";
+      return;
+    }
+
+    const fileChanged = lastFilePathRef.current !== filePath;
+
+    if (fileChanged) {
+      lastFilePathRef.current = filePath;
+      lastSyncedContentRef.current = nextContent;
+      isDirtyRef.current = false;
+      setEditorContent(nextContent);
+      editorContentRef.current = nextContent;
+      return;
+    }
+
+    if (!isDirtyRef.current && nextContent !== lastSyncedContentRef.current) {
+      lastSyncedContentRef.current = nextContent;
+      setEditorContent(nextContent);
+      editorContentRef.current = nextContent;
     }
   }, [usingFilePath, filePath, opfsContent]);
 
@@ -108,14 +144,31 @@ export const CodeEditor = (props: CodeEditorProps) => {
     if (!usingFilePath || !autoSave) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
 
-    saveTimerRef.current = setTimeout(async () => {
-      if (saveInProgressRef.current) return;
+    const runSave = async (targetPath: string, value: string) => {
+      saveInProgressRef.current = true;
       try {
-        saveInProgressRef.current = true;
-        await writeToOpfs(path, content);
+        await writeToOpfs(targetPath, value);
+        if (filePath === targetPath && editorContentRef.current === value) {
+          isDirtyRef.current = false;
+          lastSyncedContentRef.current = value;
+        }
       } finally {
         saveInProgressRef.current = false;
+        if (pendingSaveRef.current) {
+          const next = pendingSaveRef.current;
+          pendingSaveRef.current = null;
+          void runSave(next.path, next.content);
+        }
       }
+    };
+
+    saveTimerRef.current = setTimeout(() => {
+      if (saveInProgressRef.current) {
+        pendingSaveRef.current = { path, content };
+        return;
+      }
+
+      void runSave(path, content);
     }, 500);
   };
 
@@ -161,6 +214,8 @@ export const CodeEditor = (props: CodeEditorProps) => {
         const next = value || "";
         if (usingFilePath) {
           setEditorContent(next);
+          editorContentRef.current = next;
+          isDirtyRef.current = true;
           if (filePath && isEditable) scheduleSave(filePath, next);
         }
         onChange?.(next);
