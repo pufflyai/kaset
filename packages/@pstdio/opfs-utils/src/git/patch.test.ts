@@ -476,14 +476,7 @@ describe("applyPatchInOPFS", () => {
     const root = await getOPFSRoot();
     await writeFile(root, "remove.txt", "remove me\n");
 
-    const diff = [
-      "*** Begin Patch",
-      "*** Delete File: remove.txt",
-      "@@",
-      "-remove me",
-      "*** End Patch",
-      "",
-    ].join("\n");
+    const diff = ["*** Begin Patch", "*** Delete File: remove.txt", "@@", "-remove me", "*** End Patch", ""].join("\n");
 
     const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
@@ -631,12 +624,7 @@ describe("applyPatchInOPFS", () => {
   it("treats header-only Codex envelope section as a no-op", async () => {
     setupTestOPFS();
 
-    const diff = [
-      "*** Begin Patch",
-      "*** Update File: empty.md",
-      "*** End Patch",
-      "",
-    ].join("\n");
+    const diff = ["*** Begin Patch", "*** Update File: empty.md", "*** End Patch", ""].join("\n");
 
     const result = await applyPatchInOPFS({ diffContent: diff });
     expect(result.success).toBe(true);
