@@ -17,6 +17,12 @@ type ToolMeta = { name: string; input: any };
  */
 export async function* toConversation(agentStream: AgentStream, { boot, devNote }: ToConversationOpts) {
   let uiMessages: UIConversation = [...boot];
+
+  // Yield the boot state immediately so the UI can render
+  // the initial developer "Thinking..." note before the
+  // first model/tool chunks arrive.
+  yield uiMessages;
+
   let thoughtMarked = false;
   let currentAssistantId: string | null = null;
   const toolMeta = new Map<string, ToolMeta>();

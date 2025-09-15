@@ -33,21 +33,18 @@ export async function buildInitialConversation(conversation: UIConversation, pat
   const baseFromUI = toMessageHistory(uiMessages);
   const extendedFromUI: ExtendedMessage[] = baseFromUI.map((m) => ({ ...m }));
 
-  // First turn: inject agents.md if present
-  const isFirstTurn = uiMessages.length <= 2; // user + dev note
-  if (isFirstTurn) {
-    const pathsToTry = [`${path}/agents.md`, `${path}/AGENTS.md`];
+  // Inject agents.md if present on every turn
+  const pathsToTry = [`${path}/agents.md`, `${path}/AGENTS.md`];
 
-    for (const p of pathsToTry) {
-      try {
-        const content = await readFile(p);
-        if (content && content.trim().length > 0) {
-          extendedFromUI.unshift({ role: "system", content } as ExtendedMessage);
-          break;
-        }
-      } catch {
-        // ignore
+  for (const p of pathsToTry) {
+    try {
+      const content = await readFile(p);
+      if (content && content.trim().length > 0) {
+        extendedFromUI.unshift({ role: "system", content } as ExtendedMessage);
+        break;
       }
+    } catch {
+      // ignore
     }
   }
 

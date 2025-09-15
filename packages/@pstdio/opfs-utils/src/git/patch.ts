@@ -70,9 +70,13 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
 
   const cleanDiff = sanitizeAnsiDiff ? stripAnsi(diffContent) : diffContent;
 
+  // Accept Codex-style apply_patch envelopes by converting to a unified diff if detected.
+  const converted = convertApplyPatchEnvelopeToUnifiedDiff(cleanDiff);
+  const unified = converted ?? cleanDiff;
+
   // Treat a file-header-only diff (no hunks) as a no-op success.
-  const hasHeaders = /^(---|\+\+\+)\s/m.test(cleanDiff);
-  const hasHunks = /^@@/m.test(cleanDiff);
+  const hasHeaders = /^(---|\+\+\+)\s/m.test(unified);
+  const hasHunks = /^@@/m.test(unified);
   if (hasHeaders && !hasHunks) {
     return { success: true, output: "No changes in patch (no hunks)." };
   }
@@ -84,7 +88,7 @@ export async function applyPatchInOPFS(opts: ApplyPatchOptions): Promise<FileOpe
   let patches: StructuredPatch[];
   try {
     patches = await parseUnifiedDiffRelaxed({
-      diffText: cleanDiff,
+      diffText: unified,
       baseDir,
       maxOffsetLines,
     });
@@ -550,4 +554,114 @@ function sanitizeParsedPatches(patches: StructuredPatch[]): StructuredPatch[] {
       lines: (h.lines || []).filter((l) => typeof l === "string" && /^[ +-]/.test(l)),
     })),
   }));
+}
+
+/**
+ * Convert Codex-style apply_patch envelopes to a unified diff, if detected.
+ * Supported ops per file section:
+ *   *** Update File: <path>
+ *   *** Add File: <path>
+ *   *** Delete File: <path>
+ * Optional rename:
+ *   *** Move to: <new-path>
+ * Hunks follow as usual starting with "@@" and change lines starting with ' ', '+', '-'.
+ */
+function convertApplyPatchEnvelopeToUnifiedDiff(input: string): string | null {
+  // Quick detection
+  const hasEnvelope = /\*\*\*\s+(Begin Patch|Update File:|Add File:|Delete File:)/.test(input);
+  if (!hasEnvelope) return null;
+
+  const lines = input.split(/\r?\n/);
+  const out: string[] = [];
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i] || "";
+
+    // Skip envelope boundaries
+    if (/^\*\*\*\s+Begin Patch/.test(line) || /^\*\*\*\s+End Patch/.test(line)) {
+      i++;
+      continue;
+    }
+
+    // Match file operation
+    const m = line.match(/^\*\*\*\s+(Update|Add|Delete) File:\s+(.*)$/);
+    if (m) {
+      const op = m[1];
+      let rawPath = (m[2] || "").trim();
+
+      // Optional rename target
+      let moveTo: string | null = null;
+      if (lines[i + 1] && /^\*\*\*\s+Move to:\s+/.test(lines[i + 1])) {
+        moveTo = (lines[i + 1].replace(/^\*\*\*\s+Move to:\s+/, "") || "").trim();
+        i++;
+      }
+
+      // Normalize headers
+      const norm = (p: string) => p.replace(/^\/+/, "").replace(/\\/g, "/");
+      rawPath = norm(rawPath);
+      const movedPath = moveTo ? norm(moveTo) : null;
+
+      let oldHeader: string;
+      let newHeader: string;
+
+      if (op === "Add") {
+        oldHeader = "/dev/null";
+        newHeader = `b/${rawPath}`;
+      } else if (op === "Delete") {
+        oldHeader = `a/${rawPath}`;
+        newHeader = "/dev/null";
+      } else {
+        // Update (possible rename)
+        oldHeader = `a/${rawPath}`;
+        newHeader = movedPath ? `b/${movedPath}` : `b/${rawPath}`;
+      }
+
+      out.push(`--- ${oldHeader}`);
+      out.push(`+++ ${newHeader}`);
+
+      // Collect hunks/body until next file section or end
+      i++;
+      while (i < lines.length) {
+        const l = lines[i] || "";
+        if (/^\*\*\*\s+(Update|Add|Delete) File:/.test(l)) break; // next file
+        if (/^\*\*\*\s+End Patch/.test(l)) break; // end envelope
+        if (/^\*\*\*\s+Move to:/.test(l)) {
+          i++;
+          continue;
+        }
+        if (l.startsWith("@@")) {
+          out.push(l);
+          i++;
+          continue;
+        }
+        if (l.startsWith(" ") || l.startsWith("+") || l.startsWith("-")) {
+          out.push(l);
+          i++;
+          continue;
+        }
+        if (l.startsWith("\\ No newline at end of file")) {
+          i++;
+          continue;
+        }
+        // blank or unrelated line ends current hunk/file section, but preserve separation
+        if (l.trim() === "") {
+          out.push("");
+          i++;
+          continue;
+        }
+        // Otherwise stop this file section
+        break;
+      }
+
+      // Ensure a separating blank line between file sections
+      if (out.length && out[out.length - 1] !== "") out.push("");
+
+      continue;
+    }
+
+    i++;
+  }
+
+  return out.length ? out.join("\n") : null;
 }

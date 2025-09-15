@@ -120,6 +120,24 @@ export async function setupExample(kind: string, options: SetupOptions = {}) {
   const overwrite = options.overwrite ?? false;
   const folderName = options.folderName?.trim() || `${PROJECTS_ROOT}/${kind}`;
 
+  // Determine whether this project has already been initialized before.
+  // If so, we avoid re-adding certain default example files the user may delete.
+  let hasPriorCommit = false;
+  try {
+    const dir = await getDirectoryHandle(folderName);
+    try {
+      // If a repo exists and has a commit, treat this as an existing project.
+      const commits = await listCommits({ dir }, { limit: 1 });
+      hasPriorCommit = Array.isArray(commits) && commits.length > 0;
+    } catch {
+      // No commits or repo not present yet — treat as fresh setup.
+      hasPriorCommit = false;
+    }
+  } catch {
+    // Project directory not found — treat as fresh setup.
+    hasPriorCommit = false;
+  }
+
   // Bundle all files under /src/examples/** once, then filter by example kind
   const allFiles = import.meta.glob("/src/examples/**", {
     query: "?raw",
@@ -141,6 +159,19 @@ export async function setupExample(kind: string, options: SetupOptions = {}) {
   const files: Record<string, string> = {};
   for (const [absKey, content] of Object.entries(rawFiles)) {
     const key = absKey.endsWith("/__agents.md") ? absKey.replace(/\/__agents\.md$/, "/agents.md") : absKey;
+
+    // Compute the relative path (under the example's files root) for filtering rules.
+    let rel = key;
+    if (baseDir && key.startsWith(baseDir)) {
+      rel = key.slice(baseDir.length);
+    }
+    rel = rel.replace(/^\/+/, "");
+
+    // If this is an already-initialized project, avoid re-adding the default files
+    if (hasPriorCommit) {
+      continue;
+    }
+
     files[key] = content;
   }
 

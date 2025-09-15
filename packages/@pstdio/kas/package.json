@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/kas",
   "description": "A simple coding agent for the browser.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
