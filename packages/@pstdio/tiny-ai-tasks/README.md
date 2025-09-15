@@ -39,7 +39,7 @@ You can provide your OpenAI API key via environment (`OPENAI_API_KEY`) or pass i
 import { createLLMTask } from "@pstdio/tiny-ai-tasks";
 import { MemorySaver } from "@pstdio/tiny-tasks";
 
-const run = createLLMTask({ model: "gpt-4o-mini" });
+const run = createLLMTask({ model: "gpt-5-mini" });
 
 const opts = { runId: "demo", checkpointer: new MemorySaver() };
 const messages = [{ role: "user" as const, content: "Write a haiku about databases." }];
@@ -64,7 +64,7 @@ const weather = Tool(async (location: string) => ({ location, temperature: 72, c
   },
 });
 
-const run = createLLMTask({ model: "gpt-4o-mini" });
+const run = createLLMTask({ model: "gpt-5-mini" });
 
 const input = {
   messages: [{ role: "user" as const, content: "What’s the weather in Miami?" }],
@@ -90,7 +90,7 @@ const news = Tool(async (topic: string = "general") => ({ topic, articles: [{ ti
 
 const agent = createAgent({
   template: [{ role: "system", content: "You are a concise analyst." }],
-  llm: createLLMTask({ model: "gpt-4o-mini" }),
+  llm: createLLMTask({ model: "gpt-5-mini" }),
   tools: [news],
 });
 
@@ -106,7 +106,7 @@ for await (const [msgs] of agent([{ role: "user", content: "Summarize today’s 
 ```ts
 import { createLLMTask, createSummarizer, truncateToBudget } from "@pstdio/tiny-ai-tasks";
 
-const callLLM = createLLMTask({ model: "gpt-4o-mini" });
+const callLLM = createLLMTask({ model: "gpt-5-mini" });
 const summarize = createSummarizer(callLLM);
 
 const history = [
@@ -132,7 +132,7 @@ import { createScratchpad, createScratchpadTool, createLLMTask } from "@pstdio/t
 const scratch = createScratchpad();
 const scratchTool = createScratchpadTool(scratch);
 
-const llm = createLLMTask({ model: "gpt-4o-mini" });
+const llm = createLLMTask({ model: "gpt-5-mini" });
 const input = { messages: [{ role: "user" as const, content: "Plan a trip" }], tools: [scratchTool] };
 
 for await (const _ of llm(input)) {

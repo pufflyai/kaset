@@ -25,6 +25,8 @@ OPFS is perfect for applications that need to handle large files, perform comple
 - **`patch`** - Apply unified diffs with optional git integration
 - **`formatTree`** - Pretty-print directory structures
 - **`getSpecificMimeType`** - Lightweight MIME type detection
+- **OPFS shell** - Run mini shell commands with `runOpfsCommandLine`
+- **Git helpers** - Repo setup, status, commits, checkout/restore operations
 
 ## Browser Compatibility
 
@@ -45,11 +47,8 @@ npm i @pstdio/opfs-utils
 ```ts
 import { ls, formatTree } from "@pstdio/opfs-utils";
 
-// Get OPFS root directory
-const root = await navigator.storage.getDirectory();
-
-// List files and directories
-const entries = await ls(root, {
+// List files and directories under OPFS (use '' for OPFS root)
+const entries = await ls("", {
   maxDepth: 2,
   showHidden: false,
   stat: true, // Include file sizes and modification times
@@ -64,10 +63,8 @@ console.log(formatTree(entries));
 ```ts
 import { grep } from "@pstdio/opfs-utils";
 
-const root = await navigator.storage.getDirectory();
-
 // Search for "TODO" in TypeScript and Markdown files
-const matches = await grep(root, {
+const matches = await grep("", {
   pattern: "todo",
   flags: "i", // Case insensitive
   include: ["**/*.ts", "**/*.md"],
@@ -82,13 +79,11 @@ const matches = await grep(root, {
 ```ts
 import { processSingleFileContent } from "@pstdio/opfs-utils";
 
-const root = await navigator.storage.getDirectory();
-
 // Safely read a file with automatic type detection
 const result = await processSingleFileContent(
   "src/index.ts", // File path
-  "", // Root directory (empty for OPFS root)
-  root, // Directory handle
+  "", // Root directory used for display (empty = OPFS root)
+  undefined, // legacy param (unused)
   0, // Start offset
   1000, // Max lines to read
 );
@@ -105,8 +100,6 @@ console.log(result.llmContent); // Safe, processed content
 ```ts
 import { patch } from "@pstdio/opfs-utils";
 
-const root = await navigator.storage.getDirectory();
-
 // Apply a unified diff
 const diff = `--- a/hello.txt
 +++ b/hello.txt
@@ -115,7 +108,6 @@ const diff = `--- a/hello.txt
 +Hello world`;
 
 const result = await patch({
-  root,
   diffContent: diff,
 });
 
@@ -127,13 +119,16 @@ if (result.success) {
 ### CRUD helpers
 
 ```ts
-import { readFile, writeFile, deleteFile, downloadFile } from "@pstdio/opfs-utils";
+import { readFile, writeFile, deleteFile, downloadFile, moveFile } from "@pstdio/opfs-utils";
 
 await writeFile("data/inbox/hello.txt", "Hi!");
 const text = await readFile("data/inbox/hello.txt"); // "Hi!"
 await deleteFile("data/inbox/hello.txt");
 
-// In a browser page:
+// Rename or move a file (creates parent dirs as needed)
+await moveFile("data/inbox/hello.txt", "data/archive/hello.txt");
+
+// In a browser page (text files):
 await downloadFile("data/report.csv"); // triggers a download
 ```
 
@@ -142,10 +137,7 @@ await downloadFile("data/report.csv"); // triggers a download
 ```ts
 import { pickAndUploadFilesToDirectory } from "@pstdio/opfs-utils";
 
-const root = await navigator.storage.getDirectory();
-const destRoot = await root.getDirectoryHandle("data", { create: true });
-
-const result = await pickAndUploadFilesToDirectory(destRoot, {
+const result = await pickAndUploadFilesToDirectory("data", {
   destSubdir: "incoming",
   overwrite: "rename",
 });
@@ -167,6 +159,30 @@ const stop = await watchDirectory("data", (changes) => {
 // Later: stop();
 ```
 
+#### Watch API
+
+- `watchDirectory(dirPath, callback, options?)`
+- `watchOPFS(callback, options?)` // shorthand for `watchDirectory('', ...)`
+
+```ts
+interface WatchOptions {
+  intervalMs?: number; // Polling interval (default 1500ms)
+  pauseWhenHidden?: boolean; // Pause when tab hidden (default true)
+  emitInitial?: boolean; // Emit snapshot on start (default false)
+  recursive?: boolean; // Recurse into subdirectories (default true)
+  signal?: AbortSignal; // Cancellation support
+  ignore?: RegExp | RegExp[] | ((pathParts: string[], handle: FileSystemHandle) => boolean);
+}
+
+interface ChangeRecord {
+  type: "appeared" | "modified" | "disappeared" | "moved" | "unknown" | "errored";
+  path: string[]; // path split into segments
+  size?: number;
+  lastModified?: number;
+  handleKind?: FileSystemHandle["kind"];
+}
+```
+
 ## Interactive Playground
 
 Want to experiment with `@pstdio/opfs-utils`? The package includes a comprehensive **Storybook playground** where you can:
@@ -185,9 +201,9 @@ Then navigate to the "Playground" story for an interactive OPFS environment.
 
 ## API Reference
 
-### `ls(dirHandle, options?)` → `Promise<LsEntry[]>`
+### `ls(dirPath, options?)` → `Promise<LsEntry[]>`
 
-List files and directories under an OPFS directory handle with powerful filtering and sorting capabilities.
+List files and directories under a POSIX-like path within OPFS (use "" for the OPFS root) with powerful filtering and sorting capabilities.
 
 ```ts
 interface LsOptions {
@@ -206,7 +222,7 @@ interface LsOptions {
 }
 
 interface LsEntry {
-  path: string; // POSIX-style path relative to dirHandle
+  path: string; // POSIX-style path relative to dirPath
   name: string; // File/directory name
   kind: "file" | "directory";
   depth: number; // Depth level (1 = direct children)
@@ -220,7 +236,7 @@ interface LsEntry {
 
 ```ts
 // List only JavaScript files, sorted by size
-const jsFiles = await ls(root, {
+const jsFiles = await ls("", {
   include: ["**/*.js", "**/*.ts"],
   stat: true,
   sortBy: "size",
@@ -228,7 +244,7 @@ const jsFiles = await ls(root, {
 });
 
 // Stream large directory listings
-await ls(root, {
+await ls("", {
   maxDepth: Infinity,
   onEntry: (entry) => {
     if (entry.kind === "file" && entry.size > 1000000) {
@@ -238,7 +254,7 @@ await ls(root, {
 });
 
 // Find all hidden directories
-const hiddenDirs = await ls(root, {
+const hiddenDirs = await ls("", {
   maxDepth: 3,
   showHidden: true,
   kinds: ["directory"],
@@ -246,7 +262,7 @@ const hiddenDirs = await ls(root, {
 });
 ```
 
-### `grep(dirHandle, options)` → `Promise<GrepMatch[]>`
+### `grep(dirPath, options)` → `Promise<GrepMatch[]>`
 
 Perform recursive text search with advanced filtering and streaming support.
 
@@ -276,14 +292,14 @@ interface GrepMatch {
 
 ```ts
 // Find all TODO comments in source code
-const todos = await grep(root, {
+const todos = await grep("", {
   pattern: /TODO|FIXME|XXX/i,
   include: ["**/*.ts", "**/*.js", "**/*.tsx"],
   exclude: ["**/node_modules/**", "**/dist/**"],
 });
 
 // Search with streaming for large codebases
-await grep(root, {
+await grep("", {
   pattern: "function.*async",
   flags: "g",
   include: ["**/*.js"],
@@ -293,26 +309,26 @@ await grep(root, {
 });
 
 // Case-sensitive search in documentation
-const apiRefs = await grep(root, {
+const apiRefs = await grep("", {
   pattern: "API",
   include: ["**/*.md", "**/*.txt"],
   maxFileSize: 1024 * 1024, // 1MB limit
 });
 ```
 
-### `processSingleFileContent(filePath, rootDirectory, dirHandle, offset?, limit?)`
+### `processSingleFileContent(filePath, rootDirectory, _unused?, offset?, limit?, options?)`
 
 Safely read and process a single file with intelligent type detection and safety limits.
 
 ```ts
 interface ProcessedFileReadResult {
-  llmContent: string; // Processed content safe for LLM consumption
-  returnDisplay: string; // Human-readable display format
-  isTruncated: boolean; // Whether content was truncated
-  mimeType?: string; // Detected MIME type
-  size?: number; // File size in bytes
-  encoding?: string; // Text encoding used
-  error?: string; // Error message if processing failed
+  llmContent: any; // string for text, { inlineData: { data, mimeType } } for images/PDF/audio/video
+  returnDisplay: string; // Human-readable display summary
+  error?: string; // Optional error message
+  errorType?: string; // Optional error type identifier
+  isTruncated?: boolean; // For text files, whether content range/length was truncated
+  originalLineCount?: number; // For text files
+  linesShown?: [number, number]; // For text files (1-based inclusive range)
 }
 
 // Constants available for customization
@@ -327,57 +343,60 @@ const MAX_LINE_LENGTH_TEXT_FILE = 2000;
 const config = await processSingleFileContent(
   "config/app.json",
   "",
-  root,
+  undefined,
   0, // Start from beginning
   100, // Max 100 lines
 );
 
-if (config.mimeType === "application/json") {
-  const data = JSON.parse(config.llmContent);
+// Parse if JSON by path
+if (config.llmContent && "config/app.json".endsWith(".json")) {
+  const data = JSON.parse(String(config.llmContent));
 }
 
 // Read a large log file with offset
 const logs = await processSingleFileContent(
   "logs/app.log",
   "",
-  root,
+  undefined,
   1000, // Start from line 1000
   500, // Read 500 lines
 );
 
 // Handle different file types
-const media = await processSingleFileContent("images/logo.png", "", root);
-// For binary files, returns base64 inline data URL
-console.log(media.llmContent); // "data:image/png;base64,..."
+const media = await processSingleFileContent("images/logo.png", "");
+// For non-text files, returns inline data for embedding
+console.log(media.llmContent.inlineData.mimeType); // e.g., "image/png"
+console.log(media.llmContent.inlineData.data.slice(0, 24)); // base64 prefix
 ```
 
-### `patch({ root, workDir?, diffContent, signal?, git? })`
+### `patch({ workDir?, diffContent, maxOffsetLines?, sanitizeAnsiDiff?, signal?, git? })`
 
 Apply unified diff patches to OPFS files with optional git staging support.
 
 ```ts
 interface PatchOptions {
-  root: FileSystemDirectoryHandle; // OPFS root directory
-  workDir?: string; // Subdirectory to work in
+  workDir?: string; // Subdirectory to work in (relative to OPFS root)
   diffContent: string; // Unified diff content
+  maxOffsetLines?: number; // Fuzzy placement window for hunks (default 200)
+  sanitizeAnsiDiff?: boolean; // Strip ANSI sequences from diff (default true)
   signal?: AbortSignal; // Cancellation support
   git?: {
-    // Optional git integration
-    fs: any; // isomorphic-git fs interface
+    git: typeof import("isomorphic-git");
+    fs: any; // isomorphic-git fs interface (same tree as OPFS adapter)
     dir: string; // Git repository directory
-    stage?: boolean; // Stage changes after applying
+    stage?: boolean; // Stage changes after applying (default true)
   };
 }
 
 interface PatchResult {
   success: boolean; // Overall operation success
-  output: string[]; // Operation log messages
+  output: string; // Operation summary
   details: {
-    created: string[]; // Files created
-    modified: string[]; // Files modified
-    deleted: string[]; // Files deleted
-    renamed: string[]; // Files renamed
-    failed: string[]; // Operations that failed
+    created: string[];
+    modified: string[];
+    deleted: string[];
+    renamed: Array<{ from: string; to: string }>;
+    failed: Array<{ path: string; reason: string }>;
   };
 }
 ```
@@ -395,10 +414,7 @@ const diff = `--- a/package.json
 +  "version": "1.1.0",
    "main": "index.js"`;
 
-const result = await patch({
-  root,
-  diffContent: diff,
-});
+const result = await patch({ diffContent: diff });
 
 if (result.success) {
   console.log(`Updated ${result.details.modified.length} files`);
@@ -414,7 +430,7 @@ const createDiff = `--- /dev/null
 +Line 2  
 +Line 3`;
 
-await patch({ root, diffContent: createDiff });
+await patch({ diffContent: createDiff });
 
 // Delete a file via patch
 const deleteDiff = `--- a/old-file.txt
@@ -423,7 +439,7 @@ const deleteDiff = `--- a/old-file.txt
 -Old content
 -To be removed`;
 
-await patch({ root, diffContent: deleteDiff });
+await patch({ diffContent: deleteDiff });
 ```
 
 ### `formatTree(entries)` → `string`
@@ -432,7 +448,7 @@ Convert an array of `LsEntry` objects into a pretty-printed directory tree.
 
 ```ts
 // Simple tree formatting
-const entries = await ls(root, { maxDepth: 2 });
+const entries = await ls("", { maxDepth: 2 });
 console.log(formatTree(entries));
 // Output:
 // ├── src/
@@ -460,19 +476,83 @@ console.log(getSpecificMimeType("unknown.xyz")); // undefined
 console.log(getSpecificMimeType("/path/to/file.ts")); // "text/plain"
 ```
 
+## Shell Utilities
+
+### `runOpfsCommandLine(cmdline, options?)` → `{ stdout, stderr, code }`
+
+Execute simple Unix-like commands against OPFS paths with pipes and logical AND.
+
+```ts
+import { runOpfsCommandLine } from "@pstdio/opfs-utils";
+
+// List TypeScript files and find TODOs
+const { stdout, stderr, code } = await runOpfsCommandLine(`ls src && rg "TODO" --include "**/*.ts"`, { cwd: "" });
+
+console.log(stdout);
+```
+
+Supported commands: `ls`, `nl`, `find`, `echo`, `sed`, `wc`, `rg` (ripgrep-like). Use `cwd` to set a working subdirectory. `onChunk` streams output as it’s produced.
+
+## Git Helpers
+
+High-level helpers for working with a git repository stored in OPFS via isomorphic-git.
+
+- `ensureRepo({ dir, defaultBranch?, name?, email? })`
+- `getRepoStatus({ dir })`
+- `commitAll({ dir }, { message, author, branch?, dryRun? })`
+- `listCommits({ dir }, { limit?, ref? })`, `listAllCommits({ dir }, { limit?, includeTags?, perRefDepth?, refs? })`
+- `revertToCommit({ dir }, { to, mode?, force? })`, `previewCommit({ dir }, to)`
+- `checkoutAtCommit({ dir }, { at, paths?, force? })`
+- `resolveOid({ dir }, refOrSha)`, `getHeadState({ dir })`, `attachHeadToBranch({ dir }, branch, opts?)`
+- `continueFromCommit({ dir }, { to, branch?, force?, refuseUpdateExisting? })`
+- `safeAutoCommit({ dir, message, author })`
+
+Example:
+
+```ts
+import { ensureRepo, getRepoStatus, commitAll, listCommits } from "@pstdio/opfs-utils";
+
+const ctx = { dir: "project" };
+
+await ensureRepo(ctx, { defaultBranch: "main", name: "You", email: "you@example.com" });
+
+const status = await getRepoStatus(ctx);
+console.log(status.added, status.modified, status.deleted);
+
+const { oid, summary } = await commitAll(ctx, {
+  message: "chore: initial commit",
+  author: { name: "You", email: "you@example.com" },
+});
+
+console.log(oid, summary);
+
+const commits = await listCommits(ctx, { limit: 5 });
+console.log(commits.map((c) => `${c.oid.slice(0, 7)} ${c.message}`));
+```
+
+## Path & Utilities
+
+Common helper functions exported for working with OPFS paths and content:
+
+- `basename(p)`, `parentOf(p)`, `joinPath(a, b)`
+- `normalizeSegments(p)`, `normalizeSlashes(p)`, `normalizeRelPath(p)`
+- `isWithinRoot(path, rootDirectory)`, `hasParentTraversal(p)`, `joinUnderWorkspace(workspaceDir, rel)`
+- `ensureDirExists(path, create)`, `getDirectoryHandle(path)`
+- `stripAnsi(s)`
+
 ## Real-World Usage Patterns
 
 ### Building a Code Editor
 
 ```ts
-import { ls, grep, processSingleFileContent, patch } from "@pstdio/opfs-utils";
+import { ls, grep, processSingleFileContent, patch, formatTree } from "@pstdio/opfs-utils";
 
 class OPFSCodeEditor {
-  constructor(private root: FileSystemDirectoryHandle) {}
+  constructor(private workDir: string = "") {}
 
   // File explorer functionality
-  async getProjectStructure(projectPath: string = "") {
-    const entries = await ls(this.root, {
+  async getProjectStructure() {
+    const entries = await ls(this.workDir, {
       maxDepth: 5,
       exclude: ["**/node_modules/**", "**/.git/**", "**/dist/**"],
       stat: true,
@@ -484,7 +564,7 @@ class OPFSCodeEditor {
 
   // Search across project
   async searchInProject(query: string) {
-    return grep(this.root, {
+    return grep(this.workDir, {
       pattern: query,
       flags: "i",
       include: ["**/*.ts", "**/*.js", "**/*.tsx", "**/*.jsx"],
@@ -494,12 +574,12 @@ class OPFSCodeEditor {
 
   // Load file for editing
   async loadFile(filePath: string) {
-    return processSingleFileContent(filePath, "", this.root);
+    return processSingleFileContent(filePath, this.workDir);
   }
 
   // Apply code changes via diff
   async applyChanges(diffContent: string) {
-    return patch({ root: this.root, diffContent });
+    return patch({ workDir: this.workDir, diffContent });
   }
 }
 ```
@@ -509,9 +589,9 @@ class OPFSCodeEditor {
 ```ts
 import { ls, processSingleFileContent, formatTree } from "@pstdio/opfs-utils";
 
-async function generateDocsSiteMap(root: FileSystemDirectoryHandle) {
+async function generateDocsSiteMap() {
   // Find all markdown files
-  const entries = await ls(root, {
+  const entries = await ls("", {
     maxDepth: Infinity,
     include: ["**/*.md"],
     exclude: ["**/node_modules/**"],
@@ -521,13 +601,7 @@ async function generateDocsSiteMap(root: FileSystemDirectoryHandle) {
   const siteMap = [];
 
   for (const entry of entries) {
-    const content = await processSingleFileContent(
-      entry.path,
-      "",
-      root,
-      0,
-      50, // Just first 50 lines for metadata
-    );
+    const content = await processSingleFileContent(entry.path, "", undefined, 0, 50);
 
     // Extract frontmatter title
     const titleMatch = content.llmContent.match(/^title:\s*"?([^"\n]+)"?/m);
@@ -550,9 +624,9 @@ async function generateDocsSiteMap(root: FileSystemDirectoryHandle) {
 ```ts
 import { grep, ls } from "@pstdio/opfs-utils";
 
-async function analyzeLogs(root: FileSystemDirectoryHandle) {
+async function analyzeLogs() {
   // Find error patterns in log files
-  const errors = await grep(root, {
+  const errors = await grep("", {
     pattern: /ERROR|FATAL|CRITICAL/i,
     include: ["**/*.log", "**/logs/**/*.txt"],
     onMatch: (match) => {
@@ -561,7 +635,7 @@ async function analyzeLogs(root: FileSystemDirectoryHandle) {
   });
 
   // Get log file statistics
-  const logFiles = await ls(root, {
+  const logFiles = await ls("", {
     include: ["**/*.log"],
     stat: true,
     sortBy: "size",
@@ -615,8 +689,8 @@ async function checkOPFSSupport() {
 ```ts
 async function handlePermissionErrors() {
   try {
-    const root = await navigator.storage.getDirectory();
-    const entries = await ls(root);
+    await navigator.storage.getDirectory();
+    const entries = await ls("");
     return entries;
   } catch (error) {
     if (error.name === "NotAllowedError") {
@@ -634,9 +708,9 @@ async function handlePermissionErrors() {
 **File Size Limits**
 
 ```ts
-async function safeFileRead(filePath: string, root: FileSystemDirectoryHandle) {
+async function safeFileRead(filePath: string) {
   try {
-    const result = await processSingleFileContent(filePath, "", root);
+    const result = await processSingleFileContent(filePath, "");
 
     if (result.isTruncated) {
       console.warn(`File ${filePath} was truncated due to size limits`);
@@ -664,7 +738,7 @@ async function cancellableOperation() {
   setTimeout(() => controller.abort(), 10000);
 
   try {
-    const results = await grep(root, {
+    const results = await grep("", {
       pattern: "search term",
       include: ["**/*"],
       signal: controller.signal, // Pass abort signal
@@ -685,13 +759,13 @@ async function cancellableOperation() {
 
 ```ts
 // ✅ Good: Use specific include patterns
-const jsFiles = await ls(root, {
+const jsFiles = await ls("", {
   include: ["**/*.js", "**/*.ts"],
   maxDepth: 3, // Limit depth if possible
 });
 
 // ❌ Bad: Scan entire file system
-const allFiles = await ls(root, { maxDepth: Infinity });
+const allFiles = await ls("", { maxDepth: Infinity });
 ```
 
 ### Efficient Text Search
@@ -699,7 +773,7 @@ const allFiles = await ls(root, { maxDepth: Infinity });
 ```ts
 // ✅ Good: Use streaming for large searches
 const matches = [];
-await grep(root, {
+await grep("", {
   pattern: "TODO",
   include: ["src/**/*.ts"],
   onMatch: (match) => {
@@ -712,7 +786,7 @@ await grep(root, {
 });
 
 // ✅ Good: Limit file size for text search
-await grep(root, {
+await grep("", {
   pattern: "config",
   maxFileSize: 1024 * 1024, // 1MB limit
   concurrency: 2, // Reduce concurrency for large files
@@ -723,11 +797,11 @@ await grep(root, {
 
 ```ts
 // ✅ Good: Process files in batches
-async function processLargeDirectory(root: FileSystemDirectoryHandle) {
+async function processLargeDirectory() {
   const BATCH_SIZE = 100;
   let processed = 0;
 
-  await ls(root, {
+  await ls("", {
     maxDepth: Infinity,
     onEntry: async (entry) => {
       if (entry.kind === "file") {
@@ -748,7 +822,7 @@ async function processLargeDirectory(root: FileSystemDirectoryHandle) {
 
 ```ts
 // ✅ Good: Limit concurrency for intensive operations
-await grep(root, {
+await grep("", {
   pattern: "search term",
   concurrency: 4, // Reasonable concurrency
   maxFileSize: 10 * 1024 * 1024, // 10MB limit per file
@@ -759,7 +833,7 @@ const controller = new AbortController();
 const timeoutId = setTimeout(() => controller.abort(), 30000);
 
 try {
-  const result = await ls(root, {
+  const result = await ls("", {
     maxDepth: Infinity,
     stat: true,
     signal: controller.signal,
@@ -783,7 +857,6 @@ import { useEffect, useState } from 'react';
 import { ls, formatTree } from '@pstdio/opfs-utils';
 
 function useOPFSDirectory(path: string = '') {
-  const [root, setRoot] = useState<FileSystemDirectoryHandle | null>(null);
   const [entries, setEntries] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
@@ -794,10 +867,8 @@ function useOPFSDirectory(path: string = '') {
           throw new Error('OPFS not supported');
         }
 
-        const rootHandle = await navigator.storage.getDirectory();
-        setRoot(rootHandle);
-
-        const fileList = await ls(rootHandle, { maxDepth: 2, stat: true });
+        await navigator.storage.getDirectory(); // Ensure OPFS is available
+        const fileList = await ls('', { maxDepth: 2, stat: true });
         setEntries(formatTree(fileList));
       } catch (err) {
         setError(err.message);
@@ -807,7 +878,7 @@ function useOPFSDirectory(path: string = '') {
     initOPFS();
   }, [path]);
 
-  return { root, entries, error };
+  return { entries, error };
 }
 
 // Usage in component
@@ -829,16 +900,13 @@ import { ref, onMounted } from "vue";
 import { ls, grep } from "@pstdio/opfs-utils";
 
 export function useOPFS() {
-  const root = ref<FileSystemDirectoryHandle | null>(null);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
   const searchFiles = async (pattern: string, includes: string[] = ["**/*"]) => {
-    if (!root.value) return [];
-
     isLoading.value = true;
     try {
-      const matches = await grep(root.value, {
+      const matches = await grep("", {
         pattern,
         flags: "i",
         include: includes,
@@ -854,16 +922,15 @@ export function useOPFS() {
 
   onMounted(async () => {
     try {
-      root.value = await navigator.storage.getDirectory();
+      await navigator.storage.getDirectory();
     } catch (err) {
       error.value = err.message;
     }
   });
 
   return {
-    root: readonly(root),
-    isLoading: readonly(isLoading),
-    error: readonly(error),
+    isLoading,
+    error,
     searchFiles,
   };
 }
@@ -889,27 +956,27 @@ function validateFilePath(path: string): boolean {
   return true;
 }
 
-async function safeFileOperation(filePath: string, root: FileSystemDirectoryHandle) {
+async function safeFileOperation(filePath: string) {
   if (!validateFilePath(filePath)) {
     throw new Error("Invalid file path");
   }
 
-  return processSingleFileContent(filePath, "", root);
+  return processSingleFileContent(filePath, "");
 }
 ```
 
 ### Content Sanitization
 
 ```ts
-import { processSingleFileContent } from "@pstdio/opfs-utils";
+import { processSingleFileContent, getSpecificMimeType } from "@pstdio/opfs-utils";
 
-async function sanitizeFileContent(filePath: string, root: FileSystemDirectoryHandle) {
-  const result = await processSingleFileContent(filePath, "", root);
+async function sanitizeFileContent(filePath: string) {
+  const result = await processSingleFileContent(filePath, "");
 
   // For user-generated content, sanitize before display
-  if (result.mimeType === "text/html") {
+  if ((getSpecificMimeType(filePath) || "").startsWith("text/html")) {
     // Use a sanitization library for HTML content
-    result.llmContent = sanitizeHtml(result.llmContent);
+    result.llmContent = sanitizeHtml(String(result.llmContent));
   }
 
   return result;
@@ -967,8 +1034,8 @@ import { ls } from "@pstdio/opfs-utils";
 async function getFileList(useOPFS: boolean = true) {
   if (useOPFS) {
     try {
-      const root = await navigator.storage.getDirectory();
-      return await ls(root);
+      await navigator.storage.getDirectory();
+      return await ls("");
     } catch (error) {
       console.warn("OPFS unavailable, falling back to alternative storage");
     }

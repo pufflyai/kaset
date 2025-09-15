@@ -27,6 +27,7 @@ export default defineConfig({
       {
         text: "Packages",
         items: [
+          { text: "@pstdio/kas", link: "/packages/kas" },
           { text: "@pstdio/opfs-utils", link: "/packages/opfs-utils" },
           { text: "@pstdio/opfs-sync", link: "/packages/opfs-sync" },
           { text: "@pstdio/prompt-utils", link: "/packages/prompt-utils" },
@@ -63,6 +64,7 @@ export default defineConfig({
         text: "Packages",
         items: [
           { text: "Overview", link: "/packages/overview" },
+          { text: "@pstdio/kas", link: "/packages/kas" },
           { text: "@pstdio/opfs-utils", link: "/packages/opfs-utils" },
           { text: "@pstdio/opfs-sync", link: "/packages/opfs-sync" },
           { text: "@pstdio/prompt-utils", link: "/packages/prompt-utils" },

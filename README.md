@@ -20,7 +20,7 @@ No coding experience required.
 
 Directly _inside_ your app.
 
-Curious? Checkout our [documentation](https://pufflyai.github.io/kaset/).
+Curious? Check out our [documentation](https://pufflyai.github.io/kaset/).
 
 ## Contents
 
@@ -29,6 +29,10 @@ Curious? Checkout our [documentation](https://pufflyai.github.io/kaset/).
 - Docs site
 
 ## Packages
+
+> ### [@pstdio/kas](https://pufflyai.github.io/kaset/packages/kas)
+>
+> A simple coding agent for the browser.
 
 > ### [@pstdio/opfs-utils](https://pufflyai.github.io/kaset/packages/opfs-utils)
 >

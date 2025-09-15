@@ -8,12 +8,30 @@ All notable changes to Kaset are documented here. This monorepo contains multipl
 
 For package-specific details, see:
 
+- [@pstdio/kas](/packages/kas)
 - [@pstdio/opfs-utils](/packages/opfs-utils)
 - [@pstdio/opfs-sync](/packages/opfs-sync)
 - [@pstdio/prompt-utils](/packages/prompt-utils)
 - [@pstdio/tiny-ai-tasks](/packages/tiny-ai-tasks)
 - [@pstdio/tiny-tasks](/packages/tiny-tasks)
 - [describe-context](/packages/describe-context)
+
+## 2025-09-12
+
+### Added
+
+- [@pstdio/kas] **NEW PACKAGE**: Browser-first coding agent (v0.1.0).
+  - Simple AI-powered coding assistant running entirely in the browser
+  - OPFS sandbox with approval gates for safe file operations
+  - Built-in tools for search, read, write, patch, and shell operations
+  - Conversation adapters for easy UI integration with streaming responses
+  - Check out [Kaset Playground](https://kaset.dev) for live demonstrations
+
+### Changed
+
+- [documentation] Added documentation for @pstdio/kas package
+
+---
 
 ## 2025-09-07
 

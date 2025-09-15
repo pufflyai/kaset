@@ -119,7 +119,7 @@ describe("createLLMTask", () => {
     }));
 
     const task = createLLMTask({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       apiKey: "test-key",
     });
 
@@ -134,7 +134,7 @@ describe("createLLMTask", () => {
 
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: "gpt-4o-mini",
+        model: "gpt-5-mini",
         stream: true,
       }),
     );
@@ -151,7 +151,7 @@ describe("createLLMTask", () => {
       chat: { completions: { create: create.mockResolvedValue(stream()) } },
     }));
 
-    const router = createLLMTask({ model: "gpt-4o-mini", apiKey: "k" });
+    const router = createLLMTask({ model: "gpt-5-mini", apiKey: "k" });
 
     const tool = Tool(async () => ({}), {
       name: "demo",

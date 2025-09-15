@@ -28,7 +28,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
 
   const [apiKey, setApiKey] = useState<string>("");
   const [baseUrl, setBaseUrl] = useState<string>("");
-  const [model, setModel] = useState<string>("gpt-4.1-mini");
+  const [model, setModel] = useState<string>("gpt-5-mini");
   const [showKey, setShowKey] = useState<boolean>(false);
   const [approvalTools, setApprovalTools] = useState<string[]>([...DEFAULT_APPROVAL_GATED_TOOLS]);
 
@@ -46,7 +46,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
       (state) => {
         state.apiKey = apiKey || undefined;
         state.baseUrl = baseUrl || undefined;
-        state.modelId = model || "gpt-4.1-mini";
+        state.modelId = model || "gpt-5-mini";
         state.approvalGatedTools = [...approvalTools];
       },
       false,

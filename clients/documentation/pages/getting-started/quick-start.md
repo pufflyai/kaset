@@ -4,23 +4,20 @@ title: Quick Start
 
 # Quick Start
 
-:::warning
-This section is work in progress, the package `@pstdio/kas` doesn't exist yet.
-:::
-
 This Quick Start integrates the Kaset Agent (KAS) into your app so it can search, read, and edit files in the browser’s OPFS.
 
 You’ll:
 
-1. Install KAS and OPFS utils
+1. Install dependencies
 2. Initialize the agent with an OPFS workspace
-3. Run your first task
-4. Wire a simple UI that updates live
+3. Build initial conversation and stream UI updates
+4. Auto‑commit changes to your workspace (optional)
+5. Browse files live in React (optional)
 
 ## KAS Installation
 
 ```bash
-npm i @pstdio/kas @pstdio/opfs-utils @pstdio/tiny-ai-tasks
+npm i @pstdio/kas @pstdio/opfs-utils
 ```
 
 Optional (React helpers):
@@ -31,51 +28,69 @@ npm i @pstdio/opfs-hooks
 
 ## 1. Initialize the agent
 
-Point KAS at a workspace folder inside OPFS (a sandboxed directory the agent can see/edit). Writes, deletes, patches, uploads, and moves are approval‑gated.
+Point KAS at a workspace folder inside OPFS (a sandboxed directory the agent can see/edit). Writes, deletes, patches, uploads, and moves are approval‑gated by default.
 
 ```ts
 import { createKasAgent } from "@pstdio/kas";
 
-export const kas = createKasAgent({
+const workspaceDir = "/projects/demo";
+
+const agent = createKasAgent({
   model: "gpt-5-mini",
   apiKey: "<YOUR_API_KEY>",
-  baseURL: "<YOUR_BASE_URL>",
-  // The folder in OPFS the agent can see/edit
-  workspaceDir: "app/todo",
-  // Ask users before first write/patch/delete/upload/move
+  workspaceDir,
+  // Optional: customize which tools require approval
+  approvalGatedTools: ["opfs_write"],
+  // Require permission before the approval gated tool in this workspace
   requestApproval: async ({ tool, workspaceDir, detail }) => {
     console.log("Needs approval", tool, workspaceDir, detail);
-    return true;
+    return confirm(`Allow ${tool} in ${workspaceDir}?`);
   },
 });
-```
 
-## 2. First run
-
-Ask the agent to scaffold a Markdown todo list. It will use OPFS tools.
-
-```ts
-import { mergeStreamingMessages } from "@pstdio/tiny-ai-tasks";
-
-const conversation = [
-  {
-    role: "user" as const,
-    content: "Create a todo list with 5 actionable items",
-  },
-];
-
-let history: MessageHistory = [];
-
-console.log("Thinking...");
-
-for await (const [newMessages] of kas.run(conversation)) {
-  history = mergeStreamingMessages(history, newMessages);
-  console.clear();
-  console.log(JSON.stringify(history, null, 2));
+// Run agent with messages
+const messages = [{ role: "user", content: "Create a simple React component" }];
+for await (const response of agent(messages)) {
+  console.log(response);
 }
 ```
 
-## 3. Show files in your UI (React)
+## 2. Optional: Build conversation and stream UI updates
+
+Transform your UI messages into an agent‑ready conversation and stream UI‑friendly updates back.
+
+```ts
+import { buildInitialConversation, toConversation } from "@pstdio/kas";
+
+// Your UI conversation (IDs optional but recommended for merges)
+const uiConversation = [
+  { id: "1", role: "user" as const, parts: [{ type: "text", text: "Create a todo list with 5 items" }] },
+];
+
+// Prepare boot messages for the agent and UI
+const { initialForAgent, uiBoot, devNote } = await buildInitialConversation(uiConversation, workspaceDir);
+
+// Stream UI‑friendly updates
+for await (const ui of toConversation(agent(initialForAgent), { boot: uiBoot, devNote })) {
+  console.log(ui);
+}
+```
+
+## 3. Optional: Auto‑commit changes
+
+Persist edits made by the agent into a Git history inside OPFS.
+
+```ts
+import { safeAutoCommit } from "@pstdio/opfs-utils";
+
+await safeAutoCommit({
+  dir: workspaceDir,
+  message: "AI updates",
+  author: { name: "KAS", email: "kas@kaset.dev" },
+});
+```
+
+## 4. Optional: Show files in React
 
 `@pstdio/opfs-hooks` keeps components in sync with OPFS changes (both user and agent writes).
 
@@ -83,12 +98,12 @@ for await (const [newMessages] of kas.run(conversation)) {
 import { useFolder, useFileContent } from "@pstdio/opfs-hooks";
 
 export function FileExplorer() {
-  const { rootNode } = useFolder("app/todo");
+  const { rootNode } = useFolder("projects/demo");
   return <pre>{JSON.stringify(rootNode, null, 2)}</pre>;
 }
 
 export function TodoViewer() {
-  const path = "app/todo/todos/monday.md";
+  const path = "projects/demo/todos/monday.md";
   const { content } = useFileContent(path); // auto‑refreshes when file changes
   return <pre>{content}</pre>;
 }
@@ -100,10 +115,9 @@ If the folder may not exist yet, write once to create it:
 
 ```ts
 import { writeFile } from "@pstdio/opfs-utils";
-await writeFile("app/todo/todos/hello.md", "- [ ] New item\n");
+await writeFile("projects/demo/todos/hello.md", "- [ ] New item\n");
 ```
 
 ### What’s next?
 
-- Explore [`@pstdio/opfs-utils`](/packages/opfs-utils) for search, patching, uploads, and more.
 - See the [Playground’s Todo](https://kaset.dev) example.

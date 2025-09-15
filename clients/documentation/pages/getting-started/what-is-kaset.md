@@ -4,7 +4,7 @@ title: What is Kaset
 
 # What is Kaset?
 
-**Kaset** is an open-source toolkit for adding coding agents to your web apps, client-side.
+**Kaset** is an open-source toolkit to turn your webapp into a filesystem that coding agents can interact with, client-side.
 
 **Kaset** has a few core goals:
 

@@ -6,7 +6,9 @@ title: Kaset
 
 # Introduction
 
-**Kaset** [kaˈset] is an open source toolkit to add coding agents to your web apps, client side.
+**Kaset** [kaˈset] is an open-source toolkit to turn your webapp into a filesystem that coding agents can interact with, client-side.
+
+Why? to make it easy for users to modify and extend your app.
 
 ::: tip
 Kaset is in early development, [join our discussions](https://github.com/pufflyai/kaset/discussions) and help shape it.
@@ -40,11 +42,27 @@ Kaset brings these agents into the browser and into your application, giving you
 
 ![architecture](/images/architecture.png)
 
-### This allows you to:
+## Advantages
 
-- Treat your application like a moddable game, where agents help users create and share new features.
-- Let users extend dashboards, tweak workflows, or build integrations without writing code.
-- Ship minimal features and let agents (guided by users) fill in the long tail of custom needs.
+### Swappable agents
+
+Because the contract is the filesystem + agents.md, you can also try different coding agents without redesigning your app. The environment stays stable; the agent is the interchangeable part.
+
+### Lower infra, lower latency
+
+Many edits never leave the device; you don’t need dedicated server workers for per‑user changes.
+
+### Privacy‑friendly options
+
+For some tasks, a local model (WebGPU/WASM) can handle the transformation without sending content to a service.
+
+## Where it fits
+
+Any product where user agency matters: dashboards and internal tools, creative and knowledge apps (docs, design, data-viz, notebooks), and vertical SaaS that demands per-account customization.
+
+If your roadmap is clogged with one-off tweaks and endless long-tail requests, a client-side agent can turn those into file-level edits.
+
+---
 
 Check out our [playground](https://kaset.dev) for inspiration.
 
