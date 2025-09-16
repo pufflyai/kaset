@@ -11,6 +11,7 @@ import { GithubCorner } from "./components/ui/github-corner";
 import { TopBar } from "./components/ui/top-bar";
 import { PROJECTS_ROOT } from "./constant";
 import { TodoList } from "./examples/todo/component";
+import { TodoProvider } from "./examples/todo/state/TodoProvider";
 import { useDragAndDropUpload } from "./services/drag-n-drop";
 import { setupExample } from "./services/playground/setup";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
@@ -133,7 +134,9 @@ export function App() {
                 <Tabs.Content value="preview" flex="1" display="flex" overflow="hidden" padding="0">
                   <Box flex="1" overflow="hidden">
                     {selectedProject === "todo" ? (
-                      <TodoList />
+                      <TodoProvider>
+                        <TodoList />
+                      </TodoProvider>
                     ) : (
                       <Flex align="center" justify="center" height="100%">
                         <Text color="fg.secondary">Slides — coming soon</Text>
