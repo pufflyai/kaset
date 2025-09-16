@@ -73,7 +73,7 @@ export const CodeEditor = (props: CodeEditorProps) => {
   // File-based content handling
   const { content: opfsContent } = useFileContent(usingFilePath ? filePath! : "");
   const [editorContent, setEditorContent] = useState<string>("");
-  const editorContentRef = useRef(editorContent);
+  const editorContentRef = useRef('');
   const lastFilePathRef = useRef<string | undefined>(undefined);
   const lastSyncedContentRef = useRef<string>("");
   const isDirtyRef = useRef(false);
