@@ -1,6 +1,20 @@
 import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
-import { Box, Button, Checkbox, HStack, IconButton, Input, Text, VStack } from "@chakra-ui/react";
-import { PencilIcon, Trash2 } from "lucide-react";
+import {
+  Box,
+  Button,
+  Checkbox,
+  CloseButton,
+  Drawer,
+  HStack,
+  IconButton,
+  Input,
+  Portal,
+  Text,
+  VStack,
+  useBreakpointValue,
+} from "@chakra-ui/react";
+import { CrossIcon, Menu as MenuIcon, PencilIcon, Trash2 } from "lucide-react";
+import { Fragment } from "react";
 import { useTodoStore } from "./state/TodoProvider";
 
 function displayListName(name: string): string {
@@ -43,75 +57,121 @@ export function TodoList() {
   const pendingDeleteList = useTodoStore((state) => state.pendingDeleteList);
 
   const error = useTodoStore((state) => state.error);
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
+
+  const listNavigationContent = (
+    <>
+      <HStack
+        gap="sm"
+        marginBottom="3"
+        borderBottom="1px solid"
+        borderColor="border.secondary"
+        paddingBottom="sm"
+        flexWrap="wrap"
+      >
+        <Input
+          value={newListName}
+          onChange={(event) => setNewListName(event.currentTarget.value)}
+          placeholder="New list name"
+          size="sm"
+          flex="1"
+          minW="0"
+        />
+        <Button size="sm" onClick={() => void addList()} flexShrink={0}>
+          Add List
+        </Button>
+      </HStack>
+
+      {lists.length === 0 && (
+        <Text fontSize="sm" color="fg.secondary">
+          No todo lists. Create one above.
+        </Text>
+      )}
+
+      {lists.length > 0 && (
+        <VStack align="stretch" gap="xs">
+          {lists.map((name) => {
+            const isSelected = name === selectedList;
+            const listItem = (
+              <HStack
+                justify="space-between"
+                align="center"
+                paddingX="sm"
+                paddingY="1.5"
+                borderRadius="md"
+                cursor="pointer"
+                _hover={{ bg: "background.secondary" }}
+                onClick={() => void selectList(name)}
+                textDecoration={isSelected ? "underline" : "none"}
+              >
+                <Text fontSize="sm" title={name} flex="1">
+                  {displayListName(name)}
+                </Text>
+                <IconButton
+                  size="xs"
+                  variant="ghost"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    requestDeleteList(name);
+                  }}
+                  colorPalette="red"
+                  aria-label={`Delete ${displayListName(name)}`}
+                >
+                  <Trash2 size={12} />
+                </IconButton>
+              </HStack>
+            );
+
+            if (isMobile) {
+              return listItem;
+            }
+
+            return <Fragment key={name}>{listItem}</Fragment>;
+          })}
+        </VStack>
+      )}
+    </>
+  );
+
+  const renderMobileListDrawer = () => (
+    <Drawer.Root>
+      <Drawer.Trigger asChild>
+        <Button size="sm" variant="outline">
+          <MenuIcon size={"sm"} /> Lists
+        </Button>
+      </Drawer.Trigger>
+      <Portal>
+        <Drawer.Backdrop />
+        <Drawer.Positioner>
+          <Drawer.Content>
+            <Drawer.CloseTrigger />
+            <Drawer.Header>
+              <Text textStyle="heading/S/regular">Todo Lists</Text>
+              <Drawer.CloseTrigger>
+                <CloseButton />
+              </Drawer.CloseTrigger>
+            </Drawer.Header>
+            <Drawer.Body>
+              <Box maxHeight="75vh" overflowY="auto" paddingRight="sm">
+                {listNavigationContent}
+              </Box>
+            </Drawer.Body>
+          </Drawer.Content>
+        </Drawer.Positioner>
+      </Portal>
+    </Drawer.Root>
+  );
 
   return (
     <>
       <Box height="100%" display="flex" flexDirection="column">
-        <Box flex="1" overflow="hidden" display="flex">
+        <Box flex="1" overflow="hidden" display="flex" flexDirection={isMobile ? "column" : "row"}>
           {/* Left: lists */}
-          <Box width="240px" borderRightWidth="1px" overflowY="auto" padding="sm">
-            <HStack
-              gap="sm"
-              marginBottom="3"
-              borderBottom="1px solid"
-              borderColor="border.secondary"
-              paddingBottom="sm"
-            >
-              <Input
-                value={newListName}
-                onChange={(event) => setNewListName(event.currentTarget.value)}
-                placeholder="New list name"
-                size="sm"
-                width="180px"
-              />
-              <Button size="sm" onClick={() => void addList()}>
-                Add List
-              </Button>
-            </HStack>
-
-            {lists.length === 0 && (
-              <Text fontSize="sm" color="fg.secondary">
-                No todo lists. Create one above.
-              </Text>
-            )}
-
-            {lists.length > 0 && (
-              <VStack align="stretch" gap="xs">
-                {lists.map((name) => {
-                  const isSelected = name === selectedList;
-                  return (
-                    <HStack
-                      key={name}
-                      justify="space-between"
-                      align="center"
-                      paddingX="sm"
-                      paddingY="1.5"
-                      borderRadius="md"
-                      cursor="pointer"
-                      _hover={{ bg: "background.secondary" }}
-                      onClick={() => void selectList(name)}
-                      textDecoration={isSelected ? "underline" : "none"}
-                    >
-                      <Text fontSize="sm" title={name} flex="1">
-                        {displayListName(name)}
-                      </Text>
-                      <IconButton
-                        size="xs"
-                        variant="ghost"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          requestDeleteList(name);
-                        }}
-                        colorPalette="red"
-                      >
-                        <Trash2 size={12} />
-                      </IconButton>
-                    </HStack>
-                  );
-                })}
-              </VStack>
-            )}
-          </Box>
+          {!isMobile && (
+            <Box width="240px" borderRightWidth="1px" overflowY="auto" padding="sm">
+              {listNavigationContent}
+            </Box>
+          )}
 
           {/* Right: items of selected list */}
           <Box flex="1" overflowY="auto" padding="3">
@@ -123,6 +183,13 @@ export function TodoList() {
                       {displayListName(selectedList)}
                     </Text>
                   </HStack>
+                  {isMobile && renderMobileListDrawer()}
+                </HStack>
+              )}
+
+              {!selectedList && isMobile && (
+                <HStack justify="flex-end" marginBottom="3">
+                  {renderMobileListDrawer()}
                 </HStack>
               )}
 

@@ -148,7 +148,7 @@ export function MessageList({ messages, streaming, onOpenFile, onUseExample }: M
 
   if (plan.length === 0) {
     return (
-      <Box w="full">
+      <Box w="100%">
         <EmptyState
           icon={<CassetteTapeIcon />}
           title="Welcome to the Kaset playground!"

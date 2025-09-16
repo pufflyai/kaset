@@ -1,11 +1,12 @@
 import { PROJECTS_ROOT } from "@/constant";
+import { createConversation, selectConversation, selectProject } from "@/services/conversations";
 import { resetProject as resetProjectFiles } from "@/services/playground/reset";
 import { resetConversationsForProject } from "@/services/playground/reset-conversations";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { createConversation, selectConversation, selectProject } from "@/services/conversations";
 import {
   Box,
   Button,
+  Flex,
   HStack,
   IconButton,
   Menu,
@@ -26,13 +27,18 @@ import {
   Settings as SettingsIcon,
   Trash2 as TrashIcon,
 } from "lucide-react";
-import { useId } from "react";
+import { useId, type ReactNode } from "react";
 import { SettingsModal } from "../../components/ui/settings-modal";
 import { Tooltip } from "../../components/ui/tooltip";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { MenuItem } from "./menu-item";
 
-export function TopBar() {
+interface TopBarProps {
+  mobileCenterContent?: ReactNode;
+}
+
+export function TopBar(props: TopBarProps) {
+  const { mobileCenterContent } = props;
   const { open: isOpen, onOpen, onClose } = useDisclosure();
   const deleteAll = useDisclosure();
   const resetProject = useDisclosure();
@@ -77,7 +83,7 @@ export function TopBar() {
   const selectedProjectName = PROJECTS.find((p) => p.id === selectedProject)?.label ?? selectedProject;
 
   return (
-    <HStack justify="space-between" align="center">
+    <Flex align="center" width="100%" gap="sm">
       <HStack gap="2xs">
         <Menu.Root>
           <Menu.Trigger asChild>
@@ -135,6 +141,8 @@ export function TopBar() {
           </Portal>
         </Menu.Root>
       </HStack>
+      <Spacer />
+      <Flex display={{ base: mobileCenterContent ? "flex" : "none", md: "none" }}>{mobileCenterContent}</Flex>
       <Spacer />
       <HStack>
         <Menu.Root>
@@ -201,6 +209,6 @@ export function TopBar() {
         notificationText={`Remove all files under "${PROJECTS_ROOT}/${selectedProject}" and restore defaults for ${selectedProjectLabel}?`}
         buttonText="Reset project"
       />
-    </HStack>
+    </Flex>
   );
 }
