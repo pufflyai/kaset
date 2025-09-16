@@ -13,7 +13,7 @@ import {
   VStack,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { CrossIcon, Menu as MenuIcon, PencilIcon, Trash2 } from "lucide-react";
+import { Menu as MenuIcon, PencilIcon, Trash2 } from "lucide-react";
 import { Fragment } from "react";
 import { useTodoStore } from "./state/TodoProvider";
 
