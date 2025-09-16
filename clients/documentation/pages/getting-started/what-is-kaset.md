@@ -10,7 +10,7 @@ title: What is Kaset
 
 1. Provide tools for working with file systems directly in the browser. Think `ls`, `grep`, etc. Check out [@pstdio/opfs-utils](/packages/opfs-utils) for more details.
 2. Deliver a coding agent that runs natively in the browser. Most existing solutions only work server-side. See [Meet KAS](/concepts/kas).
-3. Offer tools to help you synchronize your application with OPFS — whether it’s [artifacts](/concepts/artifacts), [application state](/concepts/app-state), or even your [UI](/concepts/ui).
+3. Offer tools to help you synchronize your application with OPFS — whether it’s [artifacts](/modifications/artifacts), [application state](/modifications/app-state), or even your UI.
 4. Provide tools for tracking and controlling edits, with authorization gates and version control. So that every agent action remains auditable, and reversible.
 
 ## Your app as a Filesystem

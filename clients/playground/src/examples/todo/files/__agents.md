@@ -21,7 +21,7 @@
 - Only `-` is accepted as the bullet.
 - Only add todo items, no titles.
 
-**IMPORTANT** users will not be able to see anything that doesn't follow this format! ALWAY keep a todo item in a single line.
+**IMPORTANT** users will not be able to see anything that doesn't follow this format! ALWAYS keep a todo item in a single line.
 
 ## Allowed Operations
 
