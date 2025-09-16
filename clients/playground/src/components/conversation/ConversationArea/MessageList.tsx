@@ -108,11 +108,10 @@ function useRenderPlan(messages: Message[]): RenderItem[] {
           j += 1;
         }
 
-        const lastId = messages[j - 1].id;
         const completed = j < messages.length; // another message follows the group
         items.push({
           kind: "tool-group",
-          key: `tool-group-${startId}-${lastId}`,
+          key: `tool-group-${startId}`,
           invocations,
           completed,
         });
