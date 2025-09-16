@@ -229,10 +229,9 @@ export function App() {
       {isMobile ? (
         <Tabs.Root
           value={mobileView}
-          onValueChange={(e: any) => {
-            const next = (e?.value ?? e) as "chat" | "preview";
-            if (next !== "chat" && next !== "preview") return;
-            setMobileView(next);
+          onValueChange={(value: string) => {
+            if (value !== "chat" && value !== "preview") return;
+            setMobileView(value as "chat" | "preview");
           }}
           display="flex"
           flexDirection="column"
