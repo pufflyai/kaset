@@ -1,15 +1,15 @@
-import { useMemo } from "react";
+import { DEFAULT_STATE } from "@/state/defaultState";
+import type { WorkspaceStore } from "@/state/types";
+import { useOpfsStoreBinding } from "@pstdio/opfs-hooks";
 import {
   bindStoreToJsonFile,
   createJsonFileStorage,
-  createZustandAdapter,
   type BindStoreOptions,
   type JsonFileStorageOptions,
 } from "@pstdio/opfs-utils";
-import { useOpfsStoreBinding } from "@pstdio/opfs-hooks";
+import { useMemo } from "react";
 import type { StoreApi } from "zustand";
-import { DEFAULT_STATE } from "@/state/defaultState";
-import type { WorkspaceStore } from "@/state/types";
+import { createZustandAdapter } from "./examples";
 
 export const WORKSPACE_STATE_FILE = "playground/workspace-state.json";
 
@@ -21,16 +21,9 @@ const DEFAULT_BIND_OPTIONS: BindStoreOptions<WorkspaceStore> = {
   }),
 };
 
-function cloneDefaultState(): WorkspaceStore {
-  if (typeof globalThis.structuredClone === "function") {
-    return globalThis.structuredClone(DEFAULT_STATE) as WorkspaceStore;
-  }
-  return JSON.parse(JSON.stringify(DEFAULT_STATE)) as WorkspaceStore;
-}
-
 function createStorageOptions(filePath: string): JsonFileStorageOptions<WorkspaceStore> {
   return {
-    defaultValue: cloneDefaultState(),
+    defaultValue: DEFAULT_STATE,
     filePath,
     debounceMs: 250,
     watchIntervalMs: 1000,

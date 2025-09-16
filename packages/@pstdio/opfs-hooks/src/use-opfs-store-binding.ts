@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import {
   bindStoreToJsonFile,
   createJsonFileStorage,
@@ -6,6 +5,7 @@ import {
   type JsonFileStorageOptions,
   type StoreAdapter,
 } from "@pstdio/opfs-utils";
+import { useEffect } from "react";
 
 export interface UseOpfsStoreBindingParams<T> {
   store: StoreAdapter<T>;
