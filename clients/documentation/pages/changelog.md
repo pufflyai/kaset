@@ -4,17 +4,21 @@ title: Changelog
 
 # Changelog
 
-All notable changes to Kaset are documented here. This monorepo contains multiple packages under the `@pstdio` scope; versioning is tracked per package.
+All notable changes to Kaset are documented here. This monorepo contains multiple packages under the `@pstdio` scope.
 
-For package-specific details, see:
+## 2025-09-16
 
-- [@pstdio/kas](/packages/kas)
-- [@pstdio/opfs-utils](/packages/opfs-utils)
-- [@pstdio/opfs-sync](/packages/opfs-sync)
-- [@pstdio/prompt-utils](/packages/prompt-utils)
-- [@pstdio/tiny-ai-tasks](/packages/tiny-ai-tasks)
-- [@pstdio/tiny-tasks](/packages/tiny-tasks)
-- [describe-context](/packages/describe-context)
+### Changed
+
+- [playground] A dedicated Zustand provider for the TODO demo.
+- [playground] Added mobile version of the playground.
+
+## 2025-09-15
+
+### Changed
+
+- [playground] Tuned the TODO demo prompts and patch flow for clearer guidance.
+- [playground] Expanded documentation to cover the @pstdio/kas playground setup.
 
 ## 2025-09-12
 
@@ -31,15 +35,11 @@ For package-specific details, see:
 
 - [documentation] Added documentation for @pstdio/kas package
 
----
-
 ## 2025-09-07
 
 ### Added
 
 - [playground] Added Kaset Playground - a collection of agentic web app demos showcasing the @pstdio packages.
-
----
 
 ## 2025-09-05
 
@@ -53,8 +53,6 @@ For package-specific details, see:
 
 - [README] Added `@pstdio/tiny-ai-tasks` and `@pstdio/tiny-tasks` to the packages list.
 - [AGENTS] Added `@pstdio/tiny-ai-tasks` and `@pstdio/tiny-tasks` sections with commands and overview.
-
----
 
 ## Initial Preview
 

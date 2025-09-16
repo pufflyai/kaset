@@ -2,9 +2,9 @@
 title: Kaset
 ---
 
-![Kaset banner](/images/kaset.png)
-
 # Introduction
+
+![Kaset banner](/images/kaset.png)
 
 **Kaset** [kaˈset] is an open-source toolkit to turn your webapp into a filesystem that coding agents can interact with, client-side.
 

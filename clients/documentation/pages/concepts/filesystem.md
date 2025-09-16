@@ -4,6 +4,8 @@ title: Your App as a Filesystem
 
 # Your App as a Filesystem
 
+Think of OPFS as a workspace your app and its agents share, where state, config, and output are files the agent can list, search, and edit.
+
 ## What is OPFS?
 
 The Origin Private File System (OPFS) is a browser-native file system that provides:
@@ -24,7 +26,7 @@ A file-based model makes your app legible to both users and agents. Instead of b
 - **Diffs and review:** Text diffs are easy to review, approve, and version.
 - **Offline‑first:** OPFS works without a server; sync to cloud when you want.
 
-See also: [Application State](/concepts/app-state) and [Artifacts](/concepts/artifacts).
+See also: [Application State](/modifications/app-state) and [Artifacts](/modifications/artifacts).
 
 ## OPFS basics in practice
 
@@ -176,5 +178,5 @@ Render OPFS content and keep UIs live‑updated with @pstdio/opfs-hooks. Under t
 ## Where to go next
 
 - Package docs: [@pstdio/opfs-utils](/packages/opfs-utils) · [@pstdio/opfs-sync](/packages/opfs-sync)
-- Concepts: [Application State](/concepts/app-state) · [Artifacts](/concepts/artifacts)
+- Concepts: [Application State](/modifications/app-state) · [Artifacts](/modifications/artifacts)
 - Getting started: [Quick Start](/getting-started/quick-start) · [What is Kaset?](/getting-started/what-is-kaset)

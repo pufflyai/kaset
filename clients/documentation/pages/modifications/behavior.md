@@ -1,3 +1,14 @@
+---
+title: Agent Behavior
+---
+
+# Agent Behavior
+
+You can specify how agents behaves in your webapp by dropping an `agents.md` file into your webapp's filesystem. This file acts like a guidebook for the agent: it describes assumptions, constraints, and rules for how it should interact with your app’s files. Because it’s just Markdown, it’s easy to version, review, and share—much like documentation.
+
+Example `agents.md` from the playground:
+
+```md
 # Agents Guide — Todo Lists (Markdown)
 
 1. assume the user is not technical, avoid technical jargon.
@@ -10,7 +21,7 @@
 - Each list is a separate file named `todos/<list_name>.md`.
 - The user refers to lists by `<list_name>` (without the `.md` extension). Map names as:
   - `my_todo` (or similar) ↔ file `todos/my_todo.md`
-- If no list is specified, use the most relevant existing list if possible. Create a new list with an appropriate name only if no other list is relevant.
+- If no list is specified, use the most relevant existing list if possible, or create a new list with an appropriate name only if no other list is relevant.
 - Don't skip items unless specified.
 
 ## Todo Line Format
@@ -53,3 +64,28 @@
 Keep track of user specific rules by editing the list below:
 
 ## User Rules (additional rules provided by the user)
+```
+
+## User Rules
+
+Users can also save custom rules for the agent to follow. This is one way they can extend your app's features.
+
+<div style="position: relative; padding-bottom: 53.541666666666664%; height: 0;"><iframe src="https://www.loom.com/embed/4c66ddf3d17e457f99174eb2f2f66afc?sid=20c357bf-c173-4dfb-ac61-cd53e3710e66" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
+
+User Prompt
+
+```md
+add a rule: grocery lists should never have duplicates
+```
+
+Example Rules after the update:
+
+```md
+...
+
+## User Rules (additional rules provided by the user)
+
+- grocery list items should always have a unit (use metric for quantities)
+- grocery list additions should assume 4 servings unless specified
+- grocery lists should never have duplicates
+```

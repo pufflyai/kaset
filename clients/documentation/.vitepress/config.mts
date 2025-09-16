@@ -1,14 +1,32 @@
 import { defineConfig } from "vitepress";
 
+const base = "/kaset/";
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  base: "/kaset/",
+  base,
   title: "Kaset",
   description: "Make your webapps modable with built-in coding agents.",
   srcDir: "./pages",
   lastUpdated: true,
   head: [
-    ["link", { rel: "icon", href: "/favicon.ico" }],
+    ["link", { rel: "icon", href: `favicon.ico` }],
+    ["link", { rel: "preconnect", href: "https://fonts.googleapis.com" }],
+    [
+      "link",
+      {
+        rel: "preconnect",
+        href: "https://fonts.gstatic.com",
+        crossorigin: "",
+      },
+    ],
+    [
+      "link",
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Onest:wght@400;500;700&family=Playfair+Display:wght@400;600;700&display=swap",
+      },
+    ],
     [
       "meta",
       {
@@ -18,7 +36,10 @@ export default defineConfig({
     ],
   ],
   themeConfig: {
-    logo: "/logo_inverted.svg",
+    logo: {
+      light: "/cassette-tape.svg",
+      dark: "/cassette-tape-dark.svg",
+    },
     search: {
       provider: "local",
     },
@@ -53,11 +74,15 @@ export default defineConfig({
         text: "Concepts",
         items: [
           { text: "Your App as a Filesystem", link: "/concepts/filesystem" },
-          { text: "Meet KAS", link: "/concepts/kas" },
-          { text: "Artifacts", link: "/concepts/artifacts" },
-          { text: "Application State", link: "/concepts/app-state" },
-          { text: "UI", link: "/concepts/ui" },
-          { text: "Browser Agents", link: "/concepts/browser-agents" },
+          { text: "Coding Agents in the Browser", link: "/concepts/kas" },
+        ],
+      },
+      {
+        text: "Modable Webapps",
+        items: [
+          { text: "Artifacts", link: "/modifications/artifacts" },
+          { text: "Application State", link: "/modifications/app-state" },
+          { text: "Agent Behavior", link: "/modifications/behavior" },
         ],
       },
       {

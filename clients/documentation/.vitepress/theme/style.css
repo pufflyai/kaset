@@ -4,6 +4,62 @@
  */
 
 /**
+ * Typography
+ * -------------------------------------------------------------------------- */
+
+:root {
+  --kaset-font-display: "Playfair Display";
+  --kaset-font-brand: "Onest";
+  --kaset-font-heading: "Onest";
+  --kaset-font-label: "Onest";
+  --kaset-font-body: "Inter";
+  --vp-font-family-base:
+    var(--kaset-font-body), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", sans-serif;
+  --vp-font-family-heading:
+    var(--kaset-font-heading), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --vp-font-family-brand:
+    var(--kaset-font-brand), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --vp-font-family-label:
+    var(--kaset-font-label), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-optical-sizing: auto;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--vp-font-family-heading);
+}
+
+.VPHero .name,
+.VPHero .clip {
+  font-family: var(--kaset-font-display), serif;
+}
+
+.VPHero .text {
+  font-family: var(--vp-font-family-heading);
+}
+
+.VPNavBarTitle .title,
+.VPNavBarTitle .title span {
+  font-family: var(--vp-font-family-brand);
+}
+
+.VPNavBarMenuLink,
+.VPSidebarItem .text,
+.VPDocAsideOutline .outline-title,
+.VPDocOutlineItem .outline-link,
+.VPLocalNavOutlineDropdown button,
+.VPLocalNavOutlineDropdown .menu-text,
+.VPLocalNavOutlineDropdown .top-link,
+.VPButton {
+  font-family: var(--vp-font-family-label);
+}
+
+/**
  * Colors
  *
  * Each colors have exact same color scale system with 3 levels of solid
@@ -42,6 +98,19 @@
  * - `danger`: Used to show error, or dangerous message to the users. Used
  *   in custom container, badges, etc.
  * -------------------------------------------------------------------------- */
+
+:root {
+  /* Match docs background with playground background.primary/secondary */
+  --vp-c-bg: #ffffff;
+  --vp-c-bg-alt: #f5f5f5;
+  --vp-sidebar-bg-color: var(--vp-c-bg);
+}
+
+.dark {
+  --vp-c-bg: #0a0d15;
+  --vp-c-bg-alt: #22252c;
+  --vp-sidebar-bg-color: var(--vp-c-bg);
+}
 
 :root {
   --vp-c-default-1: var(--vp-c-gray-1);
@@ -87,30 +156,6 @@
 }
 
 /**
- * Component: Home
- * -------------------------------------------------------------------------- */
-
-:root {
-  --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #bd34fe 30%, #41d1ff);
-
-  --vp-home-hero-image-background-image: linear-gradient(-45deg, #bd34fe 50%, #47caff 50%);
-  --vp-home-hero-image-filter: blur(44px);
-}
-
-@media (min-width: 640px) {
-  :root {
-    --vp-home-hero-image-filter: blur(56px);
-  }
-}
-
-@media (min-width: 960px) {
-  :root {
-    --vp-home-hero-image-filter: blur(68px);
-  }
-}
-
-/**
  * Component: Custom Block
  * -------------------------------------------------------------------------- */
 
@@ -127,4 +172,84 @@
 
 .DocSearch {
   --docsearch-primary-color: var(--vp-c-brand-1) !important;
+}
+
+/**
+ * Layout: Home page
+ * -------------------------------------------------------------------------- */
+body.home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body.home #app,
+body.home #app > .Layout,
+body.home #app > .Layout > .VPContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+body.home #app > .Layout > .VPContent > .VPHome {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(3rem, 5vw, 6rem);
+}
+
+.HomeOnlyNav {
+  display: flex;
+  justify-content: center;
+  padding: clamp(0.5rem, 2vw, 1.25rem) clamp(1rem, 4vw, 3rem);
+}
+
+.HomeOnlyNav__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(0.5rem, 2vw, 1.5rem);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.HomeOnlyNav__item,
+.HomeOnlyNav__groupList {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 2vw, 1rem);
+}
+
+.HomeOnlyNav__group {
+  display: flex;
+  align-items: center;
+  gap: clamp(0.5rem, 3vw, 1.5rem);
+}
+
+.HomeOnlyNav__groupList {
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.HomeOnlyNav__link,
+.HomeOnlyNav__groupLink,
+.HomeOnlyNav__groupLabel {
+  font-family: var(--vp-font-family-label);
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--vp-c-text-1);
+  text-decoration: none;
+}
+
+.HomeOnlyNav__link:hover,
+.HomeOnlyNav__groupLink:hover {
+  color: var(--vp-c-brand-2);
+}
+
+.HomeOnlyNav__groupLabel {
+  color: var(--vp-c-text-2);
 }

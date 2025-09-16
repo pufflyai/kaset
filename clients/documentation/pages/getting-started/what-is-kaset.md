@@ -10,7 +10,7 @@ title: What is Kaset
 
 1. Provide tools for working with file systems directly in the browser. Think `ls`, `grep`, etc. Check out [@pstdio/opfs-utils](/packages/opfs-utils) for more details.
 2. Deliver a coding agent that runs natively in the browser. Most existing solutions only work server-side. See [Meet KAS](/concepts/kas).
-3. Offer tools to help you synchronize your application with OPFS — whether it’s [artifacts](/concepts/artifacts), [application state](/concepts/app-state), or even your [UI](/concepts/ui).
+3. Offer tools to help you synchronize your application with OPFS — whether it’s [artifacts](/modifications/artifacts), [application state](/modifications/app-state), or even your UI.
 4. Provide tools for tracking and controlling edits, with authorization gates and version control. So that every agent action remains auditable, and reversible.
 
 ## Your app as a Filesystem
@@ -36,61 +36,6 @@ Example project structure from the playground:
 ```
 
 Still unclear? Check out [Your App as a Filesystem](/concepts/filesystem)
-
-## Modifying agent behavior
-
-You can tweak how an agent behaves by dropping an agents.md file into your project. This file acts like a guidebook for the agent: it describes assumptions, constraints, and rules for how it should interact with your app’s files. Because it’s just Markdown, it’s easy to version, review, and share—much like documentation.
-
-Example `agents.md` from the playground:
-
-```md
-# Agent Guide — Todo Lists
-
-## Behavior assumptions
-
-1. Assume the user is not technical; avoid jargon.
-2. Assume the user is asking for todo-related tasks.
-3. Operate exclusively on Markdown files that represent todo lists.
-
-## Core model
-
-- All todo lists live under the `todos/` folder.
-- Each list is a separate file named `todos/<list_name>.md`.
-- Users refer to lists by `<list_name>` (without the `.md`).
-- If no list is specified, default to `todo` (`todos/todo.md`).
-
-## Todo line format
-
-- Undone: `- [ ] Task text`
-- Done: `- [x] Task text` (`x` is case-insensitive)
-- Preserve non-matching lines (headings, notes, blanks).
-- Keep todo items on a single line.
-
-## Allowed operations
-
-- **Read list:** open file; treat as empty if missing.
-- **Add item:** append `- [ ] <text>` if not already present.
-- **Toggle item:** flip `[ ]` ↔ `[x]`.
-- **Reorder items:** reorder only checklist lines.
-- **Remove item:** delete the exact line.
-- **Create list:** make a new `todos/<list_name>.md`.
-- **Rename list:** move/rename the file.
-
-## Behavior requirements
-
-- Change only what’s necessary.
-- Be idempotent: no duplicate items.
-- Keep headings/notes untouched unless asked.
-- Refer to lists without `.md` (e.g., say “work,” not “work.md”).
-
-## Examples
-
-- “Add ‘Buy milk’ to personal” → `todos/personal.md` gets `- [ ] Buy milk`.
-- “Mark ‘Create components’ as done in todo” → toggle in `todos/todo.md`.
-- “Remove ‘Connect data’ from todo” → delete that line in `todos/todo.md`.
-- “Create a new list chores” → create `todos/chores.md` with heading.
-- “Rename planning to roadmap” → move `todos/planning.md` → `todos/roadmap.md`.
-```
 
 ## Benefits
 
