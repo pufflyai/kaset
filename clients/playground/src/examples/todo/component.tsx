@@ -4,6 +4,7 @@ import { Box, Button, Checkbox, HStack, IconButton, Input, Text, VStack } from "
 import { deleteFile, ensureDirExists, ls, readFile, watchDirectory, writeFile } from "@pstdio/opfs-utils";
 import { PencilIcon, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 export interface TodoListProps {
   /**
@@ -92,6 +93,13 @@ export function TodoList() {
   const [pendingDeleteList, setPendingDeleteList] = useState<string | null>(null);
 
   const dirAbortRef = useRef<AbortController | null>(null);
+
+  const isMobile = useIsMobile();
+  const [contentVisible, setContentVisible] = useState(!isMobile);
+
+  useEffect(() => {
+    setContentVisible(!isMobile);
+  }, [isMobile]);
 
   const parse = useCallback((md: string) => parseMarkdownTodos(md), []);
 
@@ -337,180 +345,242 @@ export function TodoList() {
 
   return (
     <>
-      <Box height="100%" display="flex" flexDirection="column">
-        <Box flex="1" overflow="hidden" display="flex">
-          {/* Left: lists */}
-          <Box width="240px" borderRightWidth="1px" overflowY="auto" padding="sm">
-            <HStack
-              gap="sm"
-              marginBottom="3"
-              borderBottom="1px solid"
-              borderColor="border.secondary"
-              paddingBottom="sm"
+      <Box height="100%" display="flex" flexDirection="column" gap={isMobile ? "sm" : "0"}>
+        {isMobile && (
+          <Button
+            size="md"
+            variant="outline"
+            minHeight="44px"
+            alignSelf="flex-start"
+            onClick={() => setContentVisible((prev) => !prev)}
+            aria-expanded={contentVisible}
+          >
+            {contentVisible ? "Hide todos" : "Show todos"}
+          </Button>
+        )}
+        {(!isMobile || contentVisible) && (
+          <Box height="100%" display="flex" flexDirection="column">
+            <Box
+              flex="1"
+              overflow="hidden"
+              display="flex"
+              flexDirection={isMobile ? "column" : "row"}
+              gap={isMobile ? "sm" : "0"}
             >
-              <Input
-                value={newListName}
-                onChange={(e) => setNewListName(e.currentTarget.value)}
-                placeholder="New list name"
-                size="sm"
-                width="180px"
-              />
-              <Button size="sm" onClick={addList}>
-                Add List
-              </Button>
-            </HStack>
-
-            {lists.length === 0 && (
-              <Text fontSize="sm" color="fg.secondary">
-                No todo lists. Create one above.
-              </Text>
-            )}
-
-            {lists.length > 0 && (
-              <VStack align="stretch" gap="xs">
-                {lists.map((name) => {
-                  const selected = name === selectedList;
-                  return (
-                    <HStack
-                      key={name}
-                      justify="space-between"
-                      align="center"
-                      paddingX="sm"
-                      paddingY="1.5"
-                      borderRadius="md"
-                      cursor="pointer"
-                      _hover={{ bg: "background.secondary" }}
-                      onClick={() => selectList(name)}
-                      textDecoration={selected ? "underline" : "none"}
-                    >
-                      <Text fontSize="sm" title={name} flex="1">
-                        {displayListName(name)}
-                      </Text>
-                      <IconButton
-                        size="xs"
-                        variant="ghost"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          requestDeleteList(name);
-                        }}
-                        colorPalette="red"
-                      >
-                        <Trash2 size={12} />
-                      </IconButton>
-                    </HStack>
-                  );
-                })}
-              </VStack>
-            )}
-          </Box>
-
-          {/* Right: items of selected list */}
-          <Box flex="1" overflowY="auto" padding="3">
-            <Box maxW="720px" mx="auto">
-              {selectedList && (
-                <HStack justify="space-between" align="center" marginBottom="3">
-                  <HStack>
-                    <Text fontSize="lg" color="fg.secondary">
-                      {displayListName(selectedList)}
-                    </Text>
-                  </HStack>
+              {/* Left: lists */}
+              <Box
+                width={isMobile ? "100%" : "260px"}
+                borderRightWidth={isMobile ? "0" : "1px"}
+                borderBottomWidth={isMobile ? "1px" : "0"}
+                borderColor="border.secondary"
+                overflowY="auto"
+                padding={isMobile ? "md" : "sm"}
+              >
+                <HStack
+                  gap="sm"
+                  marginBottom="3"
+                  borderBottom="1px solid"
+                  borderColor="border.secondary"
+                  paddingBottom="sm"
+                  align="center"
+                  flexWrap={isMobile ? "wrap" : "nowrap"}
+                >
+                  <Input
+                    value={newListName}
+                    onChange={(e) => setNewListName(e.currentTarget.value)}
+                    placeholder="New list name"
+                    size={isMobile ? "md" : "sm"}
+                    width={isMobile ? "100%" : "180px"}
+                  />
+                  <Button size={isMobile ? "md" : "sm"} minHeight={isMobile ? "44px" : undefined} onClick={addList}>
+                    Add List
+                  </Button>
                 </HStack>
-              )}
 
-              {!error && selectedList && (
-                <VStack align="stretch" gap="3">
-                  <HStack>
-                    <Input
-                      value={newItemText}
-                      onChange={(e) => setNewItemText(e.currentTarget.value)}
-                      placeholder="Add a new todo"
-                      size="sm"
-                    />
-                    <Button size="sm" onClick={addItem} disabled={!newItemText.trim()}>
-                      Add
-                    </Button>
-                  </HStack>
+                {lists.length === 0 && (
+                  <Text fontSize={isMobile ? "md" : "sm"} color="fg.secondary">
+                    No todo lists. Create one above.
+                  </Text>
+                )}
 
-                  {items.length === 0 && (
-                    <Text fontSize="sm" color="fg.secondary">
-                      Todo list is empty.
-                    </Text>
+                {lists.length > 0 && (
+                  <VStack align="stretch" gap="xs">
+                    {lists.map((name) => {
+                      const selected = name === selectedList;
+                      return (
+                        <HStack
+                          key={name}
+                          justify="space-between"
+                          align="center"
+                          paddingX="sm"
+                          paddingY={isMobile ? "sm" : "1.5"}
+                          borderRadius="md"
+                          cursor="pointer"
+                          _hover={{ bg: "background.secondary" }}
+                          onClick={() => selectList(name)}
+                          textDecoration={selected ? "underline" : "none"}
+                          gap="sm"
+                        >
+                          <Text fontSize={isMobile ? "md" : "sm"} title={name} flex="1">
+                            {displayListName(name)}
+                          </Text>
+                          <IconButton
+                            size={isMobile ? "md" : "xs"}
+                            variant="ghost"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              requestDeleteList(name);
+                            }}
+                            colorPalette="red"
+                            minHeight={isMobile ? "44px" : undefined}
+                          >
+                            <Trash2 size={isMobile ? 18 : 12} />
+                          </IconButton>
+                        </HStack>
+                      );
+                    })}
+                  </VStack>
+                )}
+              </Box>
+
+              {/* Right: items of selected list */}
+              <Box flex="1" overflowY="auto" padding={isMobile ? "md" : "3"}>
+                <Box maxW="720px" mx="auto">
+                  {selectedList && (
+                    <HStack justify="space-between" align="center" marginBottom="3">
+                      <HStack>
+                        <Text fontSize={isMobile ? "xl" : "lg"} color="fg.secondary">
+                          {displayListName(selectedList)}
+                        </Text>
+                      </HStack>
+                    </HStack>
                   )}
 
-                  {items.length > 0 && (
-                    <VStack align="stretch" gap="sm">
-                      {items.map((t) => (
-                        <HStack key={t.line} justify="space-between" align="center">
-                          <Checkbox.Root
-                            width="100%"
-                            cursor="pointer"
-                            checked={t.done}
-                            onCheckedChange={(e) => setChecked(t.line, !!e.checked)}
-                          >
-                            <HStack>
-                              <Checkbox.HiddenInput />
-                              <Checkbox.Control cursor="pointer" />
-                              <Checkbox.Label cursor="pointer">
-                                {editingLine === t.line ? (
-                                  <Input
-                                    size="xs"
-                                    autoFocus
-                                    value={editingText}
-                                    onChange={(e) => setEditingText(e.currentTarget.value)}
-                                    onBlur={saveEditing}
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") saveEditing();
-                                      if (e.key === "Escape") cancelEditing();
-                                    }}
+                  {!error && selectedList && (
+                    <VStack align="stretch" gap="3">
+                      <HStack align={isMobile ? "stretch" : "center"} gap="sm" flexWrap={isMobile ? "wrap" : "nowrap"}>
+                        <Input
+                          value={newItemText}
+                          onChange={(e) => setNewItemText(e.currentTarget.value)}
+                          placeholder="Add a new todo"
+                          size={isMobile ? "md" : "sm"}
+                        />
+                        <Button
+                          size={isMobile ? "md" : "sm"}
+                          minHeight={isMobile ? "44px" : undefined}
+                          onClick={addItem}
+                          disabled={!newItemText.trim()}
+                        >
+                          Add
+                        </Button>
+                      </HStack>
+
+                      {items.length === 0 && (
+                        <Text fontSize={isMobile ? "md" : "sm"} color="fg.secondary">
+                          Todo list is empty.
+                        </Text>
+                      )}
+
+                      {items.length > 0 && (
+                        <VStack align="stretch" gap="sm">
+                          {items.map((t) => (
+                            <HStack
+                              key={t.line}
+                              justify="space-between"
+                              align="center"
+                              gap="sm"
+                              paddingY={isMobile ? "sm" : "xs"}
+                            >
+                              <Checkbox.Root
+                                width="100%"
+                                cursor="pointer"
+                                checked={t.done}
+                                onCheckedChange={(e) => setChecked(t.line, !!e.checked)}
+                              >
+                                <HStack align="center" gap="sm">
+                                  <Checkbox.HiddenInput />
+                                  <Checkbox.Control
+                                    cursor="pointer"
+                                    boxSize={isMobile ? "1.5rem" : undefined}
                                   />
-                                ) : (
-                                  <Text
-                                    fontSize="sm"
-                                    textDecoration={t.done ? "line-through" : "none"}
-                                    color={t.done ? "fg.muted" : "fg.primary"}
-                                    onDoubleClick={() => startEditing(t.line, t.text)}
+                                  <Checkbox.Label cursor="pointer">
+                                    {editingLine === t.line ? (
+                                      <Input
+                                        size={isMobile ? "md" : "xs"}
+                                        autoFocus
+                                        value={editingText}
+                                        onChange={(e) => setEditingText(e.currentTarget.value)}
+                                        onBlur={saveEditing}
+                                        onKeyDown={(e) => {
+                                          if (e.key === "Enter") saveEditing();
+                                          if (e.key === "Escape") cancelEditing();
+                                        }}
+                                      />
+                                    ) : (
+                                      <Text
+                                        fontSize={isMobile ? "md" : "sm"}
+                                        textDecoration={t.done ? "line-through" : "none"}
+                                        color={t.done ? "fg.muted" : "fg.primary"}
+                                        onDoubleClick={() => startEditing(t.line, t.text)}
+                                      >
+                                        {t.text || "(empty)"}
+                                      </Text>
+                                    )}
+                                  </Checkbox.Label>
+                                </HStack>
+                              </Checkbox.Root>
+                              <HStack gap="sm">
+                                {editingLine === t.line ? (
+                                  <Button
+                                    size={isMobile ? "md" : "xs"}
+                                    minHeight={isMobile ? "44px" : undefined}
+                                    onClick={saveEditing}
                                   >
-                                    {t.text || "(empty)"}
-                                  </Text>
+                                    Save
+                                  </Button>
+                                ) : (
+                                  <IconButton
+                                    size={isMobile ? "md" : "xs"}
+                                    variant="ghost"
+                                    onClick={() => startEditing(t.line, t.text)}
+                                    minHeight={isMobile ? "44px" : undefined}
+                                  >
+                                    <PencilIcon size={isMobile ? 18 : 14} />
+                                  </IconButton>
                                 )}
-                              </Checkbox.Label>
+                                <IconButton
+                                  size={isMobile ? "md" : "xs"}
+                                  variant="ghost"
+                                  colorPalette="red"
+                                  onClick={() => removeItem(t.line)}
+                                  minHeight={isMobile ? "44px" : undefined}
+                                >
+                                  <Trash2 size={isMobile ? 18 : 14} />
+                                </IconButton>
+                              </HStack>
                             </HStack>
-                          </Checkbox.Root>
-                          <HStack>
-                            {editingLine === t.line ? (
-                              <Button size="xs" onClick={saveEditing}>
-                                Save
-                              </Button>
-                            ) : (
-                              <IconButton size="xs" variant="ghost" onClick={() => startEditing(t.line, t.text)}>
-                                <PencilIcon size={14} />
-                              </IconButton>
-                            )}
-                            <IconButton size="xs" variant="ghost" colorPalette="red" onClick={() => removeItem(t.line)}>
-                              <Trash2 size={14} />
-                            </IconButton>
-                          </HStack>
-                        </HStack>
-                      ))}
+                          ))}
+                        </VStack>
+                      )}
                     </VStack>
                   )}
-                </VStack>
-              )}
 
-              {!selectedList && (
-                <Text fontSize="sm" color="fg.secondary">
-                  Select or create a list.
-                </Text>
-              )}
+                  {!selectedList && (
+                    <Text fontSize={isMobile ? "md" : "sm"} color="fg.secondary">
+                      Select or create a list.
+                    </Text>
+                  )}
 
-              {error && (
-                <Text fontSize="sm" color="red.400">
-                  {String(error)}
-                </Text>
-              )}
+                  {error && (
+                    <Text fontSize={isMobile ? "md" : "sm"} color="red.400">
+                      {String(error)}
+                    </Text>
+                  )}
+                </Box>
+              </Box>
             </Box>
           </Box>
-        </Box>
+        )}
       </Box>
       <DeleteConfirmationModal
         open={deleteModalOpen}

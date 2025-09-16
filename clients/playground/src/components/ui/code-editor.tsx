@@ -2,6 +2,7 @@ import { Editor } from "@monaco-editor/react";
 import { useFileContent } from "@pstdio/opfs-hooks";
 import { writeFile } from "@pstdio/opfs-utils";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 export const customTheme = {
   base: "vs-dark" as const,
@@ -53,6 +54,7 @@ export const CodeEditor = (props: CodeEditorProps) => {
     rootDir,
   } = props;
 
+  const isMobile = useIsMobile();
   const usingFilePath = Boolean(filePath);
 
   // Derive language from path if available, else use explicitLanguage or default
@@ -176,14 +178,15 @@ export const CodeEditor = (props: CodeEditorProps) => {
     };
   }, []);
 
+  const effectiveEditable = isEditable && !isMobile;
   const options = {
     tabSize: 2,
     minimap: {
       enabled: false,
     },
-    fontSize: 12,
-    readOnly: !isEditable,
-    lineNumbers: showLineNumbers ? "on" : "off",
+    fontSize: isMobile ? 14 : 12,
+    readOnly: !effectiveEditable,
+    lineNumbers: showLineNumbers && !isMobile ? "on" : "off",
     ...(disableScroll
       ? {
           scrollbar: {
@@ -214,7 +217,7 @@ export const CodeEditor = (props: CodeEditorProps) => {
           setEditorContent(next);
           editorContentRef.current = next;
           isDirtyRef.current = true;
-          if (filePath && isEditable) scheduleSave(filePath, next);
+          if (filePath && effectiveEditable) scheduleSave(filePath, next);
         }
         onChange?.(next);
       }}
@@ -230,12 +233,14 @@ export const CodeEditor = (props: CodeEditorProps) => {
         });
 
         // Format on cmd+s
-        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
-          await editor.getAction("editor.action.formatDocument")?.run();
-        });
+        if (effectiveEditable) {
+          editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, async () => {
+            await editor.getAction("editor.action.formatDocument")?.run();
+          });
 
-        // Run format on the initial value
-        await editor.getAction("editor.action.formatDocument")?.run();
+          // Run format on the initial value
+          await editor.getAction("editor.action.formatDocument")?.run();
+        }
       }}
     />
   );

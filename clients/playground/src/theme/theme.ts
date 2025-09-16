@@ -21,6 +21,7 @@ import { semanticColors } from "./tokens/colors";
 import { layerStyles } from "./tokens/layer-styles";
 import { semanticShadows, shadows } from "./tokens/shadows";
 import { textStyles } from "./tokens/text";
+import { breakpoints } from "./tokens/breakpoints";
 
 const config = defineConfig({
   globalCss,
@@ -42,6 +43,7 @@ const config = defineConfig({
       radii,
       shadows,
       spacing,
+      breakpoints,
     },
     semanticTokens: {
       colors: semanticColors,
