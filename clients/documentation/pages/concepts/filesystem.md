@@ -4,6 +4,8 @@ title: Your App as a Filesystem
 
 # Your App as a Filesystem
 
+Think of OPFS as a workspace your app and its agents share, where state, config, and output are files the agent can list, search, and edit.
+
 ## What is OPFS?
 
 The Origin Private File System (OPFS) is a browser-native file system that provides:

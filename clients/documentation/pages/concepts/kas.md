@@ -1,8 +1,8 @@
 ---
-title: Meet KAS
+title: Coding Agents
 ---
 
-# Meet KAS
+# Coding Agents in the Browser
 
 KAS is a small coding agent that runs entirely client‑side. It uses OPFS for a safe, local file sandbox. KAS can search, read, patch, and generate files with user approval.
 
