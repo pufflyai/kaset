@@ -65,3 +65,16 @@ export {
   normalizeSlashes,
   parentOf,
 } from "./utils/path";
+export { createJsonFileStorage, type JsonFileStorage, type JsonFileStorageOptions } from "./state/json-storage";
+export {
+  bindStoreToJsonFile,
+  createJotaiAdapter,
+  createReduxAdapter,
+  createZustandAdapter,
+  type BindStoreOptions,
+  type CreateJotaiAdapterOptions,
+  type JotaiStoreLike,
+  type ReduxStoreLike,
+  type StoreAdapter,
+  type ZustandStoreLike,
+} from "./state/store-binding";
