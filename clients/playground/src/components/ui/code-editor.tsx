@@ -73,7 +73,7 @@ export const CodeEditor = (props: CodeEditorProps) => {
   // File-based content handling
   const { content: opfsContent } = useFileContent(usingFilePath ? filePath! : "");
   const [editorContent, setEditorContent] = useState<string>("");
-  const editorContentRef = useRef('');
+  const editorContentRef = useRef("");
   const lastFilePathRef = useRef<string | undefined>(undefined);
   const lastSyncedContentRef = useRef<string>("");
   const isDirtyRef = useRef(false);
@@ -100,7 +100,6 @@ export const CodeEditor = (props: CodeEditorProps) => {
       lastSyncedContentRef.current = "";
       isDirtyRef.current = false;
       setEditorContent("");
-      editorContentRef.current = "";
       return;
     }
 
@@ -111,7 +110,6 @@ export const CodeEditor = (props: CodeEditorProps) => {
       lastSyncedContentRef.current = nextContent;
       isDirtyRef.current = false;
       setEditorContent(nextContent);
-      editorContentRef.current = nextContent;
       return;
     }
 
@@ -157,7 +155,7 @@ export const CodeEditor = (props: CodeEditorProps) => {
         if (pendingSaveRef.current) {
           const next = pendingSaveRef.current;
           pendingSaveRef.current = null;
-          void runSave(next.path, next.content);
+          runSave(next.path, next.content);
         }
       }
     };
@@ -168,7 +166,7 @@ export const CodeEditor = (props: CodeEditorProps) => {
         return;
       }
 
-      void runSave(path, content);
+      runSave(path, content);
     }, 500);
   };
 
