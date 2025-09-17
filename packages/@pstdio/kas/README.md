@@ -28,7 +28,7 @@ const agent = createKasAgent({
   apiKey: "<YOUR_API_KEY>",
   workspaceDir,
   // Optional: customize which tools require approval
-  approvalGatedTools: ["opfs_write"],
+  approvalGatedTools: ["opfs_write_file"],
   // Require permission before the approval gated tool in this workspace
   requestApproval: async ({ tool, workspaceDir, detail }) => {
     console.log("Needs approval", tool, workspaceDir, detail);
