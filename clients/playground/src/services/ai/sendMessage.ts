@@ -11,18 +11,15 @@ export async function* sendMessage(conversation: UIConversation) {
 
   const { initialForAgent, uiBoot, devNote } = await buildInitialConversation(conversation, dir);
 
-  const modelId = useWorkspaceStore.getState().modelId;
-  const apiKey = useWorkspaceStore.getState().apiKey!;
-  const baseURL = useWorkspaceStore.getState().baseUrl;
-  const approvalGatedTools = useWorkspaceStore.getState().approvalGatedTools;
+  const { modelId, apiKey, baseUrl, approvalGatedTools } = useWorkspaceStore.getState();
 
   const agent = createKasAgent({
     model: modelId,
-    apiKey,
-    baseURL,
     workspaceDir: dir,
     approvalGatedTools,
     requestApproval,
+    ...(apiKey ? { apiKey } : {}),
+    ...(baseUrl ? { baseURL: baseUrl } : {}),
   });
 
   for await (const ui of toConversation(agent(initialForAgent), { boot: uiBoot, devNote })) {

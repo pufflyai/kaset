@@ -136,7 +136,7 @@ interface MessageListProps {
 
 export function MessageList({ messages, streaming, onOpenFile, onUseExample }: MessageListProps) {
   const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
-  const hasKey = useWorkspaceStore((s) => !!s.apiKey);
+  const hasCredentials = useWorkspaceStore((s) => Boolean(s.apiKey || s.baseUrl));
 
   const projectPrompts = EXAMPLE_PROMPTS_BY_PROJECT[selectedProject] ?? EXAMPLE_PROMPTS_BY_PROJECT.todo;
   const examplesToShow = useMemo(() => pickRandom(projectPrompts, 4), [projectPrompts]);
@@ -161,7 +161,7 @@ export function MessageList({ messages, streaming, onOpenFile, onUseExample }: M
             </Link>
             .
           </Text>
-          {hasKey && (
+          {hasCredentials && (
             <VStack gap="sm" mt="sm" align="stretch">
               <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
                 Try one of these example prompts to get see it in action:

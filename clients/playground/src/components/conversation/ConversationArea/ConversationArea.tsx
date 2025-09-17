@@ -27,7 +27,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
 
   const [modelPricing, setModelPricing] = useState<ModelPricing | undefined>(undefined);
   const modelId = useWorkspaceStore((s) => s.modelId);
-  const hasKey = useWorkspaceStore((s) => !!s.apiKey);
+  const hasCredentials = useWorkspaceStore((s) => Boolean(s.apiKey || s.baseUrl));
   const settings = useDisclosure();
 
   // Load selected model from localStorage and resolve pricing
@@ -75,12 +75,12 @@ export const ConversationArea = (props: ConversationAreaProps) => {
               )}
             </Text>
           </Flex>
-          {!hasKey && (
+          {!hasCredentials && (
             <Alert.Root status="warning">
               <Alert.Indicator />
               <Alert.Content>
-                <Alert.Title fontWeight="bold">API key missing</Alert.Title>
-                <Alert.Description>Add your API key to enable chat.</Alert.Description>
+                <Alert.Title fontWeight="bold">Connection details missing</Alert.Title>
+                <Alert.Description>Add your API key or set a Base URL to enable chat.</Alert.Description>
                 <Button size="xs" variant="solid" onClick={settings.onOpen}>
                   Open Settings
                 </Button>

@@ -113,7 +113,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                 </HStack>
               </Field.Root>
               <Field.Root>
-                <Field.Label>OpenAI Base URL (optional)</Field.Label>
+                <Field.Label>Base URL (optional)</Field.Label>
                 <Input
                   placeholder="https://api.openai.com/v1"
                   value={baseUrl}
