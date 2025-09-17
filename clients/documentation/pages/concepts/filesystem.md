@@ -4,7 +4,7 @@ title: Your App as a Filesystem
 
 # Your App as a Filesystem
 
-Think of OPFS as a workspace your app and its agents share, where state, config, and output are files the agent can list, search, and edit.
+Kaset helps you add a workspace (using OPFS) inside your webapp that agents can browse and modify.
 
 ## What is OPFS?
 
