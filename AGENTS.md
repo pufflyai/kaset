@@ -49,6 +49,7 @@ Import rules:
 - ✅ `import { foo } from "@pstdio/<package>"`
 - ❌ No deep relative imports across packages (e.g., `../../..` between packages)
 - Packages must not import from `clients/*`
+- Imports must always be placed at the top of the file
 
 Key configuration:
 
