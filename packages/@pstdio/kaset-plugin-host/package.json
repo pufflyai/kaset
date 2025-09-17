@@ -41,7 +41,13 @@
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@pstdio/opfs-utils": "^0.1.6",
+    "ajv": "~8.13.0",
+    "ajv-formats": "^3.0.1",
+    "micromatch": "^4.0.8",
+    "semver": "^7.6.2"
+  },
   "volta": {
     "node": "22.18.0"
   }
