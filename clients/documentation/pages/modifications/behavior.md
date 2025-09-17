@@ -86,6 +86,5 @@ Example Rules after the update:
 ## User Rules (additional rules provided by the user)
 
 - grocery list items should always have a unit (use metric for quantities)
-- grocery list additions should assume 4 servings unless specified
 - grocery lists should never have duplicates
 ```

@@ -103,11 +103,15 @@ export function ConversationHost() {
         ],
       };
 
-      const id = useWorkspaceStore.getState().selectedConversationId;
+      const stateSnapshot = useWorkspaceStore.getState();
+      const id = stateSnapshot.selectedConversationId;
+
       if (id) {
+        const currentMessages = stateSnapshot.conversations[id]?.messages ?? base;
+
         useWorkspaceStore.setState(
           (state) => {
-            state.conversations[id].messages = [...convo.messages, assistantError];
+            state.conversations[id].messages = [...currentMessages, assistantError];
           },
           false,
           "conversations/send/error",

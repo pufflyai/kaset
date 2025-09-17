@@ -6,6 +6,16 @@ title: Changelog
 
 All notable changes to Kaset are documented here. This monorepo contains multiple packages under the `@pstdio` scope.
 
+## 2025-09-17
+
+### Changed
+
+- [playground] Unified the todo demo hooks so both OPFS sync and directory watching take the same store instance.
+- [playground] Expanded `agents.md` and README guidance to cover editing `todo/state.json` and auto-navigating to new lists.
+- [documentation] Extended the Application State page with the todo playground example and rationale for exposing state files to agents.
+- [@pstdio/opfs-utils] JSON storage and directory watcher usage for keeping OPFS-backed todo state current.
+- [@pstdio/opfs-hooks] add `useOpfsStoreBinding` as bridge between stores and OPFS state files.
+
 ## 2025-09-16
 
 ### Changed

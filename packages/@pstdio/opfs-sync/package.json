@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/opfs-sync",
   "description": "Browser-based sync engine between OPFS and remote storage (Supabase adapter included).",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -43,16 +43,16 @@
     }
   },
   "devDependencies": {
+    "@au-re/vite-plugin-externalize-deps": "^0.9.1",
+    "@supabase/supabase-js": "^2.48.1",
     "@types/node": "^22.10.2",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
-    "@supabase/supabase-js": "^2.48.1",
     "fake-indexeddb": "^6.2.2",
     "happy-dom": "^18.0.1",
     "vite": "^7.1.0",
     "vite-plugin-dts": "^4.5.4",
-    "vitest": "^3.2.4",
-    "@au-re/vite-plugin-externalize-deps": "^0.9.1"
+    "vitest": "^3.2.4"
   },
   "volta": {
     "node": "22.18.0"

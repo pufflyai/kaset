@@ -31,6 +31,8 @@ export {
 export { applyPatchInOPFS as patch } from "./git/patch";
 export { ensureDirExists, getDirectoryHandle, stripAnsi } from "./shared";
 export { runOpfsCommandLine } from "./shell/opfs-shell";
+export { createJsonFileStorage, type JsonFileStorage, type JsonFileStorageOptions } from "./state/json-storage";
+export { bindStoreToJsonFile, type BindStoreOptions, type StoreAdapter } from "./state/store-binding";
 export { deleteFile, downloadFile, moveFile, readFile, writeFile } from "./utils/opfs-crud";
 export {
   DEFAULT_MAX_LINES_TEXT_FILE,

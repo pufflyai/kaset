@@ -75,6 +75,7 @@ export default defineConfig({
         items: [
           { text: "Your App as a Filesystem", link: "/concepts/filesystem" },
           { text: "Coding Agents in the Browser", link: "/concepts/kas" },
+          { text: "Versioning Changes", link: "/concepts/versioning" },
         ],
       },
       {
