@@ -27,8 +27,8 @@ export function createKasAgent(opts: CreateKasAgentOptions) {
 
   const llm = createLLMTask({
     model: opts.model,
-    reasoning: { effort: opts.effort ?? "low" },
     ...(opts.apiKey ? { apiKey: opts.apiKey } : {}),
+    ...(opts.effort ? { reasoning: { effort: opts.effort } } : {}),
     ...(opts.baseURL ? { baseUrl: opts.baseURL } : {}),
     dangerouslyAllowBrowser: opts.dangerouslyAllowBrowser ?? true,
   });

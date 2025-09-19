@@ -8,11 +8,11 @@ This Quick Start integrates the Kaset Agent (KAS) into your app so it can search
 
 You’ll:
 
-1. Install dependencies
-2. Initialize the agent with an OPFS workspace
-3. Build initial conversation and stream UI updates
-4. Auto‑commit changes to your workspace (optional)
-5. Browse files live in React (optional)
+1. Initialize the agent with an OPFS workspace
+2. Build initial conversation and stream UI updates (optional)
+3. Auto‑commit changes to your workspace (optional)
+4. Show files in React (optional)
+5. Seed the workspace (optional)
 
 ## KAS Installation
 
@@ -40,7 +40,7 @@ const agent = createKasAgent({
   apiKey: "<YOUR_API_KEY>",
   workspaceDir,
   // Optional: customize which tools require approval
-  approvalGatedTools: ["opfs_write"],
+  approvalGatedTools: ["opfs_write_file"],
   // Require permission before the approval gated tool in this workspace
   requestApproval: async ({ tool, workspaceDir, detail }) => {
     console.log("Needs approval", tool, workspaceDir, detail);
@@ -109,7 +109,7 @@ export function TodoViewer() {
 }
 ```
 
-## 4. Optional: seed the workspace
+## 5. Optional: Seed the workspace
 
 If the folder may not exist yet, write once to create it:
 

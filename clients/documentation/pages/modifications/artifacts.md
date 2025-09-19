@@ -57,3 +57,6 @@ When you turn your app’s outputs into artifacts, follow the same pattern:
 
 1. **Pick a path** for each artifact type (e.g., `reports/<slug>.md`, `boards/<id>.json`).
 2. **Document the schema** in your `agents.md` so agents know how to edit it safely.
+3. **Record agent permissions** in the same guide ("may edit `reports/**/*.md`", "may create `boards/<id>.json`") so KAS can confidently propose patches to those files.
+4. **Keep the UI in sync** by wiring file subscriptions (`watchDirectory`, `useOpfsFile`) so agent edits instantly refresh editors, previews, or tables.
+5. **Expose artifacts in the interface**—render a gallery, list, or tabs sourced directly from the OPFS paths so users and agents always act on the same files.

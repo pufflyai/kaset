@@ -56,23 +56,6 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     onClose();
   };
 
-  const clear = () => {
-    useWorkspaceStore.setState(
-      (state) => {
-        state.apiKey = undefined;
-        state.baseUrl = undefined;
-        state.modelId = "gpt-5-mini";
-        state.approvalGatedTools = [...DEFAULT_APPROVAL_GATED_TOOLS];
-      },
-      false,
-      "settings/clear-llm-config",
-    );
-    setApiKey("");
-    setBaseUrl("");
-    setModel("gpt-5-mini");
-    setApprovalTools([...DEFAULT_APPROVAL_GATED_TOOLS]);
-  };
-
   return (
     <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && onClose()} closeOnInteractOutside={false}>
       <Dialog.Backdrop />
@@ -142,9 +125,6 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
             </VStack>
           </Dialog.Body>
           <Dialog.Footer gap="sm">
-            <Button variant="outline" onClick={clear}>
-              Clear
-            </Button>
             <Button onClick={save} variant="solid">
               Save
             </Button>
