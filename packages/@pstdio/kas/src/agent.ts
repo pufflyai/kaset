@@ -5,7 +5,7 @@ import { createOpfsTools } from "./tools/createOpfsTools";
 
 export type CreateKasAgentOptions = {
   model: string;
-  apiKey: string;
+  apiKey?: string;
   workspaceDir: string;
   baseURL?: string;
   requestApproval?: RequestApproval;
@@ -19,13 +19,15 @@ export type CreateKasAgentOptions = {
 };
 
 export function createKasAgent(opts: CreateKasAgentOptions) {
-  if (!opts.apiKey) throw new Error("Missing OpenAI API key");
+  if (!opts.apiKey && !opts.baseURL) {
+    throw new Error("Missing OpenAI API key. Provide an API key or configure a Base URL.");
+  }
   if (!opts.model) throw new Error("Missing model");
   if (!opts.workspaceDir) throw new Error("Missing workspaceDir");
 
   const llm = createLLMTask({
     model: opts.model,
-    apiKey: opts.apiKey,
+    ...(opts.apiKey ? { apiKey: opts.apiKey } : {}),
     ...(opts.effort ? { reasoning: { effort: opts.effort } } : {}),
     ...(opts.baseURL ? { baseUrl: opts.baseURL } : {}),
     dangerouslyAllowBrowser: opts.dangerouslyAllowBrowser ?? true,
