@@ -13,6 +13,7 @@ export { toOpenAITools } from "./tools/toOpenAITools";
 export * from "./messages/bus";
 export { mergeStreamingMessages } from "./messages/mergeStreaming";
 export * from "./messages/scratchpad";
+export { sanitizeConversation } from "./messages/sanitizeConversation";
 export * from "./utils/errors";
 export * from "./utils/messageTypes";
 

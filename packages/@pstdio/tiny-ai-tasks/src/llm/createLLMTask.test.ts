@@ -1,7 +1,7 @@
 import type { InterruptObject, Snapshot } from "@pstdio/tiny-tasks";
 import { MemorySaver } from "../runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AssistantMessage } from "../utils/messageTypes";
+import type { AssistantMessage, BaseMessage } from "../utils/messageTypes";
 import { createLLMTask } from "./createLLMTask";
 import { Tool } from "../tools/Tool";
 
@@ -139,6 +139,43 @@ describe("createLLMTask", () => {
       }),
     );
     expect(final?.content).toBe("Hello world");
+  });
+
+  it("concatenates system prompts before calling the provider", async () => {
+    const create = vi.fn();
+    const stream = async function* () {
+      yield { choices: [{ delta: {} }] } as any;
+    };
+    MockedOpenAI.mockImplementation(() => ({
+      chat: { completions: { create: create.mockResolvedValue(stream()) } },
+    }));
+
+    const task = createLLMTask({
+      model: "gpt-4o",
+      apiKey: "test-key",
+    });
+
+    const messages: BaseMessage[] = [
+      { role: "user", content: "Hi" },
+      { role: "system", content: "You are helpful." },
+      { role: "assistant", content: "Sure" },
+      { role: "system", content: "Always cite sources." },
+    ];
+
+    const saver = new MemorySaver();
+    for await (const _ of task(messages, { runId: "system-merge", checkpointer: saver })) {
+      // consume generator
+    }
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        messages: [
+          { role: "system", content: "You are helpful.\n\nAlways cite sources." },
+          { role: "user", content: "Hi" },
+          { role: "assistant", content: "Sure" },
+        ],
+      }),
+    );
   });
 
   it("accepts router-style input with Tool[] and forwards OpenAI tool defs", async () => {

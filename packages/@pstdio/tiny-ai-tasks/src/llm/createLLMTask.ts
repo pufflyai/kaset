@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { task } from "../runtime";
+import { sanitizeConversation } from "../messages/sanitizeConversation";
 import type { Tool } from "../tools/Tool";
 import { toOpenAITools } from "../tools/toOpenAITools";
 import type { AssistantMessage, BaseMessage } from "../utils/messageTypes";
@@ -35,7 +36,8 @@ export function createLLMTask(opts: LLMTaskOptions) {
     async function* (
       input: BaseMessage[] | { messages: BaseMessage[]; tools?: Array<Tool<any, any>> },
     ): AsyncGenerator<AssistantMessage, AssistantMessage, unknown> {
-      const messages = Array.isArray(input) ? input : input.messages;
+      const rawMessages = Array.isArray(input) ? input : input.messages;
+      const messages = sanitizeConversation(rawMessages);
       const callTools = Array.isArray(input) ? [] : (input.tools ?? []);
 
       const toolDefs: ChatCompletionTool[] = [...toOpenAITools(tools ?? []), ...toOpenAITools(callTools)];
