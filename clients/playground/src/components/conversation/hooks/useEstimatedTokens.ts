@@ -1,4 +1,4 @@
-import { toMessageHistory } from "@/services/ai/utils";
+import { toMessageHistory } from "@pstdio/kas";
 import type { Message } from "@/types";
 import { roughCounter, type BaseMessage } from "@pstdio/tiny-ai-tasks";
 import { useMemo } from "react";

@@ -1,5 +1,6 @@
 import { PROJECTS_ROOT } from "@/constant";
 import { setApprovalHandler } from "@/services/ai/approval";
+import { useMcpService } from "@/services/mcp";
 import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useRef, useState } from "react";
@@ -34,6 +35,8 @@ export function ConversationHost() {
       ? (s.conversations[s.selectedConversationId!]?.messages ?? EMPTY_MESSAGES)
       : EMPTY_MESSAGES,
   );
+  const hasKey = useWorkspaceStore((s) => !!s.apiKey);
+  const { tools: mcpTools } = useMcpService({ enabled: hasKey });
 
   const [streaming, setStreaming] = useState(false);
   const hasCredentials = useWorkspaceStore((s) => Boolean(s.apiKey || s.baseUrl));
@@ -81,7 +84,7 @@ export function ConversationHost() {
 
     try {
       setStreaming(true);
-      for await (const updated of sendMessage(conversationId, base)) {
+      for await (const updated of sendMessage(conversationId, base, mcpTools)) {
         if (!conversationId) continue;
         useWorkspaceStore.setState(
           (state) => {

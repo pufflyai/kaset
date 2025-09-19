@@ -18,6 +18,7 @@
     "@lexical/react": "^0.34.0",
     "@lexical/selection": "^0.34.0",
     "@lexical/utils": "^0.34.0",
+    "@modelcontextprotocol/sdk": "^1.18.1",
     "@monaco-editor/react": "^4.7.0",
     "@pstdio/kas": "^0.1.2",
     "@pstdio/opfs-hooks": "^0.1.4",
