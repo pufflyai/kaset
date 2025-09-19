@@ -24,5 +24,8 @@
   },
   "volta": {
     "node": "22.18.0"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2"
   }
 }

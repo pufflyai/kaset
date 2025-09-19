@@ -1,6 +1,7 @@
+import "dotenv/config";
 import { defineConfig } from "vitepress";
 
-const base = "/kaset/";
+const base = process.env.BASE_URL ?? "/kaset/";
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
