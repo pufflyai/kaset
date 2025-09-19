@@ -2,10 +2,11 @@ import { PROJECTS_ROOT } from "@/constant";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { UIConversation } from "@/types";
 import { buildInitialConversation, createKasAgent, toConversation } from "@pstdio/kas";
+import type { Tool } from "@pstdio/tiny-ai-tasks";
 import { safeAutoCommit } from "@pstdio/opfs-utils";
 import { requestApproval } from "./approval";
 
-export async function* sendMessage(conversation: UIConversation) {
+export async function* sendMessage(conversation: UIConversation, extraTools: Tool[] = []) {
   const projectId = useWorkspaceStore.getState().selectedProjectId;
   const dir = `/${PROJECTS_ROOT}/${projectId}`;
 
@@ -23,6 +24,7 @@ export async function* sendMessage(conversation: UIConversation) {
     workspaceDir: dir,
     approvalGatedTools,
     requestApproval,
+    extraTools: extraTools.length > 0 ? extraTools : undefined,
   });
 
   for await (const ui of toConversation(agent(initialForAgent), { boot: uiBoot, devNote })) {

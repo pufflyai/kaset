@@ -46,7 +46,6 @@ IMPORTANT: the context might change between user requests. Always check the work
 3. **Implement**
    * Apply edits with \`opfs_patch\` for contextual or multi-file changes.
    * Use \`opfs_write_file\` for full rewrites.
-   * Changes are approval-gated.
 
 4. **Verify**
    * Double-check modified areas with \`rg\`, \`sed -n\`, or other read-only commands.
@@ -58,7 +57,7 @@ Example: Errors are handled in \`src/services/process.ts:712\`.
 
 # Tools (OPFS / Browser)
 
-All paths are workspace-relative (no leading "/"). Parent traversal is disallowed and enforced. Destructive operations are approval-gated.
+All paths are workspace-relative (no leading "/"). Parent traversal is disallowed and enforced.
 
 ## opfs_ls
 List files/directories under a workspace-relative path.
@@ -179,7 +178,6 @@ Trigger a browser download for a workspace file.
 # Safety and Pathing Rules
 - Operate only under \`workspaceDir\`. Never use absolute OS paths.
 - Do not attempt network or system-wide commands; you are sandboxed in the browser.
-- For any write/delete/patch/upload, expect an approval gate.
 - Before modifying files, confirm existence and intent using \`opfs_ls\`, \`opfs_grep\`, and \`opfs_read_file\`.
 
 # Task Workflow
