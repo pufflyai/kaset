@@ -81,7 +81,7 @@ export function ConversationHost() {
 
     try {
       setStreaming(true);
-      for await (const updated of sendMessage(base)) {
+      for await (const updated of sendMessage(conversationId, base)) {
         if (!conversationId) continue;
         useWorkspaceStore.setState(
           (state) => {

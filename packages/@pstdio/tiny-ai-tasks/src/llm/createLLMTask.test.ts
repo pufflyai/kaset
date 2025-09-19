@@ -141,6 +141,34 @@ describe("createLLMTask", () => {
     expect(final?.content).toBe("Hello world");
   });
 
+  it("forwards the session id to OpenAI when provided", async () => {
+    const create = vi.fn();
+    const stream = async function* () {
+      yield { choices: [{ delta: {} }] } as any;
+    };
+    MockedOpenAI.mockImplementation(() => ({
+      chat: { completions: { create: create.mockResolvedValue(stream()) } },
+    }));
+
+    const task = createLLMTask({
+      model: "gpt-5-mini",
+      apiKey: "test-key",
+    });
+
+    const saver = new MemorySaver();
+    for await (const _ of task(
+      { messages: [{ role: "user", content: "Hello" }], sessionId: "session-123" },
+      {
+        runId: "session-test",
+        checkpointer: saver,
+      },
+    )) {
+      // exhaust generator
+    }
+
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ session_id: "session-123" }));
+  });
+
   it("accepts router-style input with Tool[] and forwards OpenAI tool defs", async () => {
     const create = vi.fn();
     const stream = async function* () {
