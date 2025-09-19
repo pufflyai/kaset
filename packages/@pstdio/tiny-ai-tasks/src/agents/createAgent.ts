@@ -12,12 +12,20 @@ export interface CallToolResult {
 
 export type MessageHistory = BaseMessage[];
 
+type AgentInput = {
+  history: MessageHistory;
+  sessionId?: string;
+};
+
 export interface AgentOptions {
   /** Prepended to the initial history on each run */
   template?: MessageHistory;
 
   /** LLM/router that plans the next AssistantMessage and (optionally) tool calls */
-  llm: Task<{ messages: MessageHistory; tools?: Tool<any, any>[] }, AssistantMessage>;
+  llm: Task<
+    { messages: MessageHistory; tools?: Tool<any, any>[]; sessionId?: string } | MessageHistory,
+    AssistantMessage
+  >;
 
   /** Executable tools that the router can choose to call */
   tools?: Tool<any, any>[];
@@ -29,15 +37,18 @@ export interface AgentOptions {
 export function createAgent({ template = [], llm, tools = [], maxTurns = 5 }: AgentOptions) {
   const callTool = createToolTask(tools);
 
-  return task<MessageHistory, MessageHistory, MessageHistory>(
+  const agentTask = task<AgentInput, MessageHistory, MessageHistory>(
     "agent",
-    async function* (initial: MessageHistory): AsyncGenerator<MessageHistory, MessageHistory> {
-      let history: MessageHistory = [...template, ...initial];
+    async function* ({
+      history: initialHistory,
+      sessionId,
+    }: AgentInput): AsyncGenerator<MessageHistory, MessageHistory> {
+      let history: MessageHistory = [...template, ...initialHistory];
 
       for (let turn = 0; turn < maxTurns; turn++) {
         let assistant: AssistantMessage | undefined;
 
-        for await (const [msg, snap] of llm({ messages: history, tools })) {
+        for await (const [msg, snap] of llm({ messages: history, tools, sessionId })) {
           assistant = msg as AssistantMessage;
 
           if (snap) {
@@ -77,4 +88,27 @@ export function createAgent({ template = [], llm, tools = [], maxTurns = 5 }: Ag
       return history;
     },
   );
+
+  type AgentTaskRunOptions = Parameters<typeof agentTask>[1] & { sessionId?: string };
+  type AgentTask = Task<MessageHistory, MessageHistory, MessageHistory> & {
+    (initial: MessageHistory, opts?: AgentTaskRunOptions): ReturnType<typeof agentTask>;
+    invoke(initial: MessageHistory, opts?: AgentTaskRunOptions): ReturnType<typeof agentTask.invoke>;
+    resume(resumeVal: unknown, opts?: AgentTaskRunOptions): ReturnType<typeof agentTask.resume>;
+  };
+
+  const run = (initial: MessageHistory, opts?: AgentTaskRunOptions): ReturnType<typeof agentTask> => {
+    const { sessionId, ...rest } = opts ?? {};
+    return agentTask({ history: initial, sessionId }, rest as Parameters<typeof agentTask>[1]);
+  };
+
+  run.invoke = (initial: MessageHistory, opts?: AgentTaskRunOptions): ReturnType<typeof agentTask.invoke> => {
+    const { sessionId, ...rest } = opts ?? {};
+    return agentTask.invoke({ history: initial, sessionId }, rest as Parameters<typeof agentTask>[1]);
+  };
+
+  run.resume = (resumeVal: unknown, opts?: AgentTaskRunOptions): ReturnType<typeof agentTask.resume> => {
+    return agentTask.resume(resumeVal, opts as Parameters<typeof agentTask.resume>[1]);
+  };
+
+  return run as AgentTask;
 }

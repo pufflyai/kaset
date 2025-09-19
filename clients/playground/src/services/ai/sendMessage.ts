@@ -5,9 +5,11 @@ import { buildInitialConversation, createKasAgent, toConversation } from "@pstdi
 import { safeAutoCommit } from "@pstdio/opfs-utils";
 import { requestApproval } from "./approval";
 
-export async function* sendMessage(conversation: UIConversation) {
+export async function* sendMessage(conversationId: string, conversation: UIConversation) {
   const projectId = useWorkspaceStore.getState().selectedProjectId;
   const dir = `/${PROJECTS_ROOT}/${projectId}`;
+
+  const sessionId = conversationId;
 
   const { initialForAgent, uiBoot, devNote } = await buildInitialConversation(conversation, dir);
 
@@ -25,7 +27,7 @@ export async function* sendMessage(conversation: UIConversation) {
     requestApproval,
   });
 
-  for await (const ui of toConversation(agent(initialForAgent), { boot: uiBoot, devNote })) {
+  for await (const ui of toConversation(agent(initialForAgent, { sessionId }), { boot: uiBoot, devNote })) {
     yield ui;
   }
 
