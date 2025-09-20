@@ -175,7 +175,6 @@ console.log("scratch:", scratch.get());
 
 - Provide OpenAI credentials via env or `apiKey`; set `baseUrl` for proxies/compatible endpoints.
 - The last streamed chunk may include `usage` metrics; the task attaches them to the final message.
-- Tools with a single object property schema and a 1‑parameter `run` function receive that property as the positional arg.
 - Import `MemorySaver` and other runtime helpers from `@pstdio/tiny-tasks` for checkpointing.
 - For multiline prompts, use `prompt\`` from `@pstdio/prompt-utils` to strip indentation and tidy whitespace.
 

@@ -54,28 +54,8 @@ export function createToolTask(tools: Tool<any, any>[]) {
       return res;
     }
 
-    const schema: any = tool.definition?.parameters;
-    const propKeys = schema?.type === "object" && schema?.properties ? Object.keys(schema.properties) : [];
-    const singlePropKey = propKeys.length === 1 ? propKeys[0] : undefined;
-
-    const declaredArgs = typeof tool.run === "function" ? tool.run.length : 1;
-    const firstParam = tool.run
-      .toString()
-      .match(/^[^(]*\(([^)]*)\)/)?.[1]
-      ?.trim();
-    const isDestructured = firstParam?.startsWith("{");
-
-    let callArg: any = params;
-    if (
-      singlePropKey &&
-      declaredArgs <= 1 &&
-      !isDestructured &&
-      params &&
-      typeof params === "object" &&
-      singlePropKey in params
-    ) {
-      callArg = params[singlePropKey];
-    }
+    // Object-by-default: forward the parsed arguments exactly as provided by the caller.
+    const callArg: any = params;
 
     try {
       const result = await tool.run(callArg, { toolCall: call } as any);
