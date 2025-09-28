@@ -1,7 +1,10 @@
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import type { McpServerConfig } from "@/state/types";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import { useEffect, useMemo, useState } from "react";
+import { DEFAULT_MCP_SERVER, DEFAULT_MCP_SERVER_URL } from "./constants";
 
 type RemoteTool = {
   name: string;
@@ -16,8 +19,6 @@ type CallToolResult = {
   message?: string;
   [key: string]: unknown;
 };
-
-export const DEFAULT_MCP_SERVER_URL = "https://mcp.context7.com/mcp";
 
 export interface UseMcpClientOptions {
   /** Remote MCP endpoint. Defaults to the Context7 sample server. */
@@ -65,7 +66,7 @@ function normalizeResult(result: CallToolResult) {
 }
 
 function createMcpTool(client: Client, tool: RemoteTool): Tool {
-  const parameters = tool.inputSchema && typeof tool.inputSchema === "object" ? tool.inputSchema : { type: "object" };
+  const parameters = tool.inputSchema;
 
   return {
     definition: {
@@ -73,8 +74,6 @@ function createMcpTool(client: Client, tool: RemoteTool): Tool {
       description: tool.description || undefined,
       parameters,
     },
-    // NOTE: there is something wrong here, if _config is not present, the arguments are destructured in a wrong way
-    // TODO: fix this in the SDK
     async run(callArguments, _config) {
       const result = (await client.callTool({
         name: tool.name,
@@ -143,7 +142,9 @@ export function useMcpClient(options: UseMcpClientOptions = {}): UseMcpClientSta
   return state;
 }
 
-export type UseMcpServiceOptions = UseMcpClientOptions;
+export interface UseMcpServiceOptions extends UseMcpClientOptions {
+  serverId?: string;
+}
 
 export interface UseMcpServiceResult {
   client: Client | null;
@@ -154,16 +155,59 @@ export interface UseMcpServiceResult {
 }
 
 export function useMcpService(options: UseMcpServiceOptions = {}): UseMcpServiceResult {
-  const { client, status, error } = useMcpClient(options);
+  const { serverId, serverUrl: overrideUrl, accessToken: overrideToken, enabled: enabledOption } = options;
+
+  const servers = useWorkspaceStore((state) => state.mcpServers);
+  const selectedId = useWorkspaceStore((state) => state.selectedMcpServerId);
+
+  const normalizedServers = useMemo(() => {
+    if (!servers) return [DEFAULT_MCP_SERVER];
+    return servers;
+  }, [servers]);
+
+  const activeServer: McpServerConfig | undefined = useMemo(() => {
+    if (!normalizedServers.length) return undefined;
+
+    const desiredId = serverId ?? selectedId;
+
+    if (desiredId) {
+      const match = normalizedServers.find((entry) => entry.id === desiredId);
+      if (match) return match;
+    }
+
+    return normalizedServers[0];
+  }, [normalizedServers, serverId, selectedId]);
+
+  const clientOptions = useMemo<UseMcpClientOptions>(() => {
+    const resolvedUrl = overrideUrl ?? activeServer?.url;
+    const resolvedToken = overrideToken ?? activeServer?.accessToken;
+    const enabled = (enabledOption ?? true) && !!resolvedUrl;
+
+    if (!resolvedUrl) {
+      return {
+        serverUrl: DEFAULT_MCP_SERVER_URL,
+        accessToken: null,
+        enabled,
+      };
+    }
+
+    return {
+      serverUrl: resolvedUrl,
+      accessToken: resolvedToken ? resolvedToken : null,
+      enabled,
+    };
+  }, [activeServer?.accessToken, activeServer?.url, enabledOption, overrideToken, overrideUrl]);
+
+  const { client, status, error } = useMcpClient(clientOptions);
   const [tools, setTools] = useState<Tool[]>([]);
   const [loading, setLoading] = useState(false);
   const [toolsError, setToolsError] = useState<unknown>(null);
 
   useEffect(() => {
     if (!client) {
-      setTools([]);
-      setLoading(false);
-      setToolsError(null);
+      setTools((prev) => (prev.length > 0 ? [] : prev));
+      setLoading((prev) => (prev ? false : prev));
+      setToolsError((prev: unknown) => (prev == null ? prev : null));
       return;
     }
 
@@ -171,7 +215,7 @@ export function useMcpService(options: UseMcpServiceOptions = {}): UseMcpService
     const activeClient = client;
 
     async function loadTools() {
-      setLoading(true);
+      setLoading((prev) => (prev ? prev : true));
       try {
         const response = await activeClient.listTools();
         if (cancelled) return;
@@ -179,14 +223,16 @@ export function useMcpService(options: UseMcpServiceOptions = {}): UseMcpService
         const mapped = response.tools.map((tool) => createMcpTool(activeClient, tool as RemoteTool));
 
         setTools(mapped);
-        setToolsError(null);
+        setToolsError((prev: unknown) => (prev == null ? prev : null));
       } catch (err) {
         if (cancelled) return;
         console.error("Failed to load MCP tools", err);
-        setTools([]);
+        setTools((prev) => (prev.length > 0 ? [] : prev));
         setToolsError(err);
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading((prev) => (prev ? false : prev));
+        }
       }
     }
 

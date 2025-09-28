@@ -1,6 +1,6 @@
 import { PROJECTS_ROOT } from "@/constant";
 import { setApprovalHandler } from "@/services/ai/approval";
-import { useMcpService } from "@/services/mcp";
+import { useMcpService } from "@/services/mcp/useMcpService";
 import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useRef, useState } from "react";

@@ -9,6 +9,13 @@ export interface Conversation {
   projectId: string;
 }
 
+export interface McpServerConfig {
+  id: string;
+  name: string;
+  url: string;
+  accessToken?: string;
+}
+
 export interface WorkspaceState {
   version: string;
   conversations: Record<string, Conversation>;
@@ -21,6 +28,8 @@ export interface WorkspaceState {
   apiKey?: string;
   baseUrl?: string;
   approvalGatedTools?: string[];
+  mcpServers: McpServerConfig[];
+  selectedMcpServerId?: string;
 }
 
 export type WorkspaceStore = WorkspaceState;

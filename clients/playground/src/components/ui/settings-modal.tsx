@@ -1,4 +1,6 @@
+import { DEFAULT_MCP_SERVER } from "@/services/mcp/constants";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import type { McpServerConfig } from "@/state/types";
 import {
   Alert,
   Button,
@@ -13,6 +15,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
+import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useState } from "react";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -31,23 +34,108 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [model, setModel] = useState<string>("gpt-5-mini");
   const [showKey, setShowKey] = useState<boolean>(false);
   const [approvalTools, setApprovalTools] = useState<string[]>([...DEFAULT_APPROVAL_GATED_TOOLS]);
+  const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
+  const [activeMcpServerId, setActiveMcpServerId] = useState<string | undefined>();
+  const [showServerTokens, setShowServerTokens] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (!isOpen) return;
-    const s = useWorkspaceStore.getState();
-    setApiKey(s.apiKey || "");
-    setBaseUrl(s.baseUrl || "");
-    setModel(s.modelId || "gpt-5-mini");
-    setApprovalTools(s.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
+
+    const snapshot = useWorkspaceStore.getState();
+    setApiKey(snapshot.apiKey ?? "");
+    setBaseUrl(snapshot.baseUrl ?? "");
+    setModel(snapshot.modelId || "gpt-5-mini");
+    setApprovalTools(snapshot.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
+
+    const storedServers = Array.isArray(snapshot.mcpServers) ? snapshot.mcpServers : undefined;
+    const effectiveServers = storedServers ?? [{ ...DEFAULT_MCP_SERVER }];
+    const hasServers = effectiveServers.length > 0;
+
+    setMcpServers(hasServers ? effectiveServers.map((server) => ({ ...server })) : []);
+    setActiveMcpServerId(() => {
+      if (!hasServers) return undefined;
+      if (
+        snapshot.selectedMcpServerId &&
+        effectiveServers.some((server) => server.id === snapshot.selectedMcpServerId)
+      ) {
+        return snapshot.selectedMcpServerId;
+      }
+
+      return effectiveServers[0].id;
+    });
+    setShowServerTokens(() => {
+      const next: Record<string, boolean> = {};
+      effectiveServers.forEach((server) => {
+        next[server.id] = false;
+      });
+      return next;
+    });
   }, [isOpen]);
 
+  const addMcpServer = () => {
+    const id = shortUID();
+    const next: McpServerConfig = { id, name: "", url: "" };
+
+    setMcpServers((prev) => [...prev, next]);
+    setShowServerTokens((prev) => ({ ...prev, [id]: false }));
+    setActiveMcpServerId((prev) => prev ?? id);
+  };
+
+  const updateMcpServer = (id: string, patch: Partial<McpServerConfig>) => {
+    setMcpServers((prev) => prev.map((server) => (server.id === id ? { ...server, ...patch } : server)));
+  };
+
+  const removeMcpServer = (id: string) => {
+    setMcpServers((prev) => {
+      const next = prev.filter((server) => server.id !== id);
+      setActiveMcpServerId((current) => {
+        if (!current || current !== id) return current;
+        return next[0]?.id;
+      });
+      return next;
+    });
+
+    setShowServerTokens((prev) => {
+      if (!(id in prev)) return prev;
+      const { [id]: _removed, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const toggleServerTokenVisibility = (id: string) => {
+    setShowServerTokens((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const save = () => {
+    const sanitizedServers = mcpServers
+      .map((server) => {
+        const name = server.name?.trim() ?? "";
+        const url = server.url?.trim() ?? "";
+        const token = server.accessToken?.trim() ?? "";
+
+        return {
+          ...server,
+          name,
+          url,
+          accessToken: token ? token : undefined,
+        };
+      })
+      .filter((server) => server.url.length > 0);
+
+    const nextSelectedId = sanitizedServers.length
+      ? sanitizedServers.some((server) => server.id === activeMcpServerId)
+        ? activeMcpServerId
+        : sanitizedServers[0].id
+      : undefined;
+
     useWorkspaceStore.setState(
       (state) => {
         state.apiKey = apiKey || undefined;
         state.baseUrl = baseUrl || undefined;
         state.modelId = model || "gpt-5-mini";
         state.approvalGatedTools = [...approvalTools];
+        state.mcpServers = sanitizedServers.map((server) => ({ ...server }));
+        state.selectedMcpServerId = nextSelectedId;
       },
       false,
       "settings/save-llm-config",
@@ -111,7 +199,6 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                       key={tool}
                       checked={approvalTools.includes(tool)}
                       onCheckedChange={(e) => {
-                        console.log(e.checked, tool, DEFAULT_APPROVAL_GATED_TOOLS);
                         setApprovalTools((prev) => (e.checked ? [...prev, tool] : prev.filter((t) => t !== tool)));
                       }}
                     >
@@ -121,6 +208,87 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                     </Checkbox.Root>
                   ))}
                 </VStack>
+              </Flex>
+              <Flex gap="xs" direction="column" width="100%">
+                <Text>MCP servers</Text>
+                <Text fontSize="sm" color="fg.muted">
+                  Configure remote MCP endpoints to surface their tools in the playground.
+                </Text>
+                <VStack align="stretch" gap="sm">
+                  {mcpServers.length === 0 ? (
+                    <Flex align="center" borderRadius="md" borderWidth="1px" justify="space-between" p="md">
+                      <Text color="fg.muted">No MCP servers configured.</Text>
+                    </Flex>
+                  ) : (
+                    mcpServers.map((server, index) => {
+                      const tokenVisible = showServerTokens[server.id] ?? false;
+
+                      return (
+                        <Flex key={server.id} direction="column" gap="sm" borderRadius="md" borderWidth="1px" p="md">
+                          <Flex align="center" justify="space-between">
+                            <HStack gap="xs">
+                              <Text fontWeight="medium">Server {index + 1}</Text>
+                              {activeMcpServerId === server.id ? (
+                                <Text fontSize="xs" color="fg.muted">
+                                  Active
+                                </Text>
+                              ) : null}
+                            </HStack>
+                            <HStack gap="xs">
+                              <Button
+                                size="xs"
+                                variant={activeMcpServerId === server.id ? "solid" : "outline"}
+                                onClick={() => setActiveMcpServerId(server.id)}
+                              >
+                                {activeMcpServerId === server.id ? "Active" : "Set active"}
+                              </Button>
+                              <Button size="xs" variant="ghost" onClick={() => removeMcpServer(server.id)}>
+                                Remove
+                              </Button>
+                            </HStack>
+                          </Flex>
+                          <Field.Root>
+                            <Field.Label>Name</Field.Label>
+                            <Input
+                              placeholder="Example MCP server"
+                              value={server.name}
+                              onChange={(e) => updateMcpServer(server.id, { name: e.target.value })}
+                            />
+                          </Field.Root>
+                          <Field.Root>
+                            <Field.Label>Server URL</Field.Label>
+                            <Input
+                              placeholder="https://example.com/mcp"
+                              value={server.url}
+                              onChange={(e) => updateMcpServer(server.id, { url: e.target.value })}
+                            />
+                          </Field.Root>
+                          <Field.Root>
+                            <Field.Label>Access token (optional)</Field.Label>
+                            <HStack>
+                              <Input
+                                type={tokenVisible ? "text" : "password"}
+                                placeholder="Bearer token"
+                                value={server.accessToken ?? ""}
+                                onChange={(e) =>
+                                  updateMcpServer(server.id, {
+                                    accessToken: e.target.value ? e.target.value : undefined,
+                                  })
+                                }
+                              />
+                              <Button size="sm" variant="ghost" onClick={() => toggleServerTokenVisibility(server.id)}>
+                                {tokenVisible ? "Hide" : "Show"}
+                              </Button>
+                            </HStack>
+                          </Field.Root>
+                        </Flex>
+                      );
+                    })
+                  )}
+                </VStack>
+                <Button alignSelf="flex-start" size="sm" variant="outline" onClick={addMcpServer}>
+                  Add MCP server
+                </Button>
               </Flex>
             </VStack>
           </Dialog.Body>
