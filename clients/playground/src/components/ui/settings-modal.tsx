@@ -1,3 +1,4 @@
+import { useMcpService } from "@/services/mcp/useMcpService";
 import { DEFAULT_MCP_SERVER } from "@/services/mcp/constants";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { McpServerConfig } from "@/state/types";
@@ -16,7 +17,8 @@ import {
 } from "@chakra-ui/react";
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { McpServerCard } from "./mcp-server-card";
 
 const TOOL_LABELS: Record<string, string> = {
   opfs_write_file: "Write file",
@@ -37,6 +39,18 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
   const [activeMcpServerId, setActiveMcpServerId] = useState<string | undefined>();
   const [showServerTokens, setShowServerTokens] = useState<Record<string, boolean>>({});
+
+  const activeServer = useMemo(() => {
+    if (!activeMcpServerId) return undefined;
+    return mcpServers.find((server) => server.id === activeMcpServerId);
+  }, [activeMcpServerId, mcpServers]);
+
+  const { status: mcpStatus, error: mcpError } = useMcpService({
+    serverId: activeMcpServerId,
+    serverUrl: activeServer?.url,
+    accessToken: activeServer?.accessToken,
+    enabled: Boolean(activeServer?.url),
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -106,6 +120,10 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setShowServerTokens((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
+  const setActiveServer = (id: string) => {
+    setActiveMcpServerId(id);
+  };
+
   const save = () => {
     const sanitizedServers = mcpServers
       .map((server) => {
@@ -172,7 +190,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                 <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
               </Field.Root>
               <Field.Root>
-                <Field.Label>OpenAI API Key</Field.Label>
+                <Field.Label>API Key</Field.Label>
                 <HStack>
                   <Input
                     type={showKey ? "text" : "password"}
@@ -220,70 +238,21 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                       <Text color="fg.muted">No MCP servers configured.</Text>
                     </Flex>
                   ) : (
-                    mcpServers.map((server, index) => {
-                      const tokenVisible = showServerTokens[server.id] ?? false;
-
-                      return (
-                        <Flex key={server.id} direction="column" gap="sm" borderRadius="md" borderWidth="1px" p="md">
-                          <Flex align="center" justify="space-between">
-                            <HStack gap="xs">
-                              <Text fontWeight="medium">Server {index + 1}</Text>
-                              {activeMcpServerId === server.id ? (
-                                <Text fontSize="xs" color="fg.muted">
-                                  Active
-                                </Text>
-                              ) : null}
-                            </HStack>
-                            <HStack gap="xs">
-                              <Button
-                                size="xs"
-                                variant={activeMcpServerId === server.id ? "solid" : "outline"}
-                                onClick={() => setActiveMcpServerId(server.id)}
-                              >
-                                {activeMcpServerId === server.id ? "Active" : "Set active"}
-                              </Button>
-                              <Button size="xs" variant="ghost" onClick={() => removeMcpServer(server.id)}>
-                                Remove
-                              </Button>
-                            </HStack>
-                          </Flex>
-                          <Field.Root>
-                            <Field.Label>Name</Field.Label>
-                            <Input
-                              placeholder="Example MCP server"
-                              value={server.name}
-                              onChange={(e) => updateMcpServer(server.id, { name: e.target.value })}
-                            />
-                          </Field.Root>
-                          <Field.Root>
-                            <Field.Label>Server URL</Field.Label>
-                            <Input
-                              placeholder="https://example.com/mcp"
-                              value={server.url}
-                              onChange={(e) => updateMcpServer(server.id, { url: e.target.value })}
-                            />
-                          </Field.Root>
-                          <Field.Root>
-                            <Field.Label>Access token (optional)</Field.Label>
-                            <HStack>
-                              <Input
-                                type={tokenVisible ? "text" : "password"}
-                                placeholder="Bearer token"
-                                value={server.accessToken ?? ""}
-                                onChange={(e) =>
-                                  updateMcpServer(server.id, {
-                                    accessToken: e.target.value ? e.target.value : undefined,
-                                  })
-                                }
-                              />
-                              <Button size="sm" variant="ghost" onClick={() => toggleServerTokenVisibility(server.id)}>
-                                {tokenVisible ? "Hide" : "Show"}
-                              </Button>
-                            </HStack>
-                          </Field.Root>
-                        </Flex>
-                      );
-                    })
+                    mcpServers.map((server, index) => (
+                      <McpServerCard
+                        key={server.id}
+                        server={server}
+                        index={index}
+                        isActive={activeMcpServerId === server.id}
+                        tokenVisible={showServerTokens[server.id] ?? false}
+                        status={activeMcpServerId === server.id ? mcpStatus : "idle"}
+                        error={activeMcpServerId === server.id ? mcpError : undefined}
+                        onSetActive={setActiveServer}
+                        onRemove={removeMcpServer}
+                        onChange={updateMcpServer}
+                        onToggleTokenVisibility={toggleServerTokenVisibility}
+                      />
+                    ))
                   )}
                 </VStack>
                 <Button alignSelf="flex-start" size="sm" variant="outline" onClick={addMcpServer}>

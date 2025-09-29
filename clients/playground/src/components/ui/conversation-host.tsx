@@ -35,9 +35,7 @@ export function ConversationHost() {
       ? (s.conversations[s.selectedConversationId!]?.messages ?? EMPTY_MESSAGES)
       : EMPTY_MESSAGES,
   );
-  const hasKey = useWorkspaceStore((s) => !!s.apiKey);
-  const { tools: mcpTools } = useMcpService({ enabled: hasKey });
-
+  const { tools: mcpTools } = useMcpService();
   const [streaming, setStreaming] = useState(false);
   const hasCredentials = useWorkspaceStore((s) => Boolean(s.apiKey || s.baseUrl));
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);

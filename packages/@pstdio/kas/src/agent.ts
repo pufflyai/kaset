@@ -20,7 +20,7 @@ export type CreateKasAgentOptions = {
 
 export function createKasAgent(opts: CreateKasAgentOptions) {
   if (!opts.apiKey && !opts.baseURL) {
-    throw new Error("Missing OpenAI API key. Provide an API key or configure a Base URL.");
+    throw new Error("Missing API key. Provide an API key or configure a Base URL.");
   }
   if (!opts.model) throw new Error("Missing model");
   if (!opts.workspaceDir) throw new Error("Missing workspaceDir");

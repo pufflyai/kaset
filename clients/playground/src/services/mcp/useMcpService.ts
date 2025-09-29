@@ -35,6 +35,8 @@ interface UseMcpClientState {
   error: unknown;
 }
 
+export type McpClientStatus = UseMcpClientState["status"];
+
 function extractMessage(result: CallToolResult): string | undefined {
   if (typeof result.message === "string" && result.message.trim()) return result.message.trim();
 

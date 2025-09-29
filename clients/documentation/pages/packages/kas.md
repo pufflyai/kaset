@@ -93,10 +93,10 @@ Creates a new KAS coding agent.
 
 **Options:**
 
-- `model: string` - OpenAI model name (e.g., "gpt-5-mini")
-- `apiKey: string` - OpenAI API key
+- `model: string` - Model name (e.g., "gpt-5-mini")
+- `apiKey: string` - API key
 - `workspaceDir: string` - OPFS workspace directory path
-- `baseURL?: string` - Custom OpenAI API base URL
+- `baseURL?: string` - Custom API base URL
 - `requestApproval?: RequestApproval` - Approval callback for destructive operations
 - `approvalGatedTools?: string[]` - Tools requiring approval (defaults to a predefined list: writes, deletes, patches, uploads, moves)
 - `systemPrompt?: string` - Custom system prompt
