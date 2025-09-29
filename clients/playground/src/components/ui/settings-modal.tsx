@@ -1,4 +1,3 @@
-import { useMcpService } from "@/services/mcp/useMcpService";
 import { DEFAULT_MCP_SERVER } from "@/services/mcp/constants";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { McpServerConfig } from "@/state/types";
@@ -17,7 +16,7 @@ import {
 } from "@chakra-ui/react";
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { McpServerCard } from "./mcp-server-card";
 
 const TOOL_LABELS: Record<string, string> = {
@@ -37,20 +36,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [showKey, setShowKey] = useState<boolean>(false);
   const [approvalTools, setApprovalTools] = useState<string[]>([...DEFAULT_APPROVAL_GATED_TOOLS]);
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
-  const [activeMcpServerId, setActiveMcpServerId] = useState<string | undefined>();
+  const [activeMcpServerIds, setActiveMcpServerIds] = useState<string[]>([]);
   const [showServerTokens, setShowServerTokens] = useState<Record<string, boolean>>({});
-
-  const activeServer = useMemo(() => {
-    if (!activeMcpServerId) return undefined;
-    return mcpServers.find((server) => server.id === activeMcpServerId);
-  }, [activeMcpServerId, mcpServers]);
-
-  const { status: mcpStatus, error: mcpError } = useMcpService({
-    serverId: activeMcpServerId,
-    serverUrl: activeServer?.url,
-    accessToken: activeServer?.accessToken,
-    enabled: Boolean(activeServer?.url),
-  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -66,16 +53,20 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     const hasServers = effectiveServers.length > 0;
 
     setMcpServers(hasServers ? effectiveServers.map((server) => ({ ...server })) : []);
-    setActiveMcpServerId(() => {
-      if (!hasServers) return undefined;
-      if (
-        snapshot.selectedMcpServerId &&
-        effectiveServers.some((server) => server.id === snapshot.selectedMcpServerId)
-      ) {
-        return snapshot.selectedMcpServerId;
+
+    setActiveMcpServerIds(() => {
+      if (!hasServers) return [];
+
+      const storedActiveIds = Array.isArray(snapshot.activeMcpServerIds) ? snapshot.activeMcpServerIds : undefined;
+
+      if (storedActiveIds) {
+        const validStored = storedActiveIds.filter((id) => effectiveServers.some((server) => server.id === id));
+
+        if (validStored.length > 0) return validStored;
+        if (storedActiveIds.length === 0) return [];
       }
 
-      return effectiveServers[0].id;
+      return [effectiveServers[0].id];
     });
     setShowServerTokens(() => {
       const next: Record<string, boolean> = {};
@@ -92,7 +83,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
 
     setMcpServers((prev) => [...prev, next]);
     setShowServerTokens((prev) => ({ ...prev, [id]: false }));
-    setActiveMcpServerId((prev) => prev ?? id);
+    setActiveMcpServerIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
   };
 
   const updateMcpServer = (id: string, patch: Partial<McpServerConfig>) => {
@@ -102,9 +93,12 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const removeMcpServer = (id: string) => {
     setMcpServers((prev) => {
       const next = prev.filter((server) => server.id !== id);
-      setActiveMcpServerId((current) => {
-        if (!current || current !== id) return current;
-        return next[0]?.id;
+      setActiveMcpServerIds((current) => {
+        const filtered = current.filter((entry) => entry !== id && next.some((server) => server.id === entry));
+        if (filtered.length > 0) return filtered;
+
+        const fallback = next[0]?.id;
+        return fallback ? [fallback] : [];
       });
       return next;
     });
@@ -120,8 +114,14 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setShowServerTokens((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const setActiveServer = (id: string) => {
-    setActiveMcpServerId(id);
+  const toggleServerActive = (id: string) => {
+    setActiveMcpServerIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((entry) => entry !== id);
+      }
+
+      return [...prev, id];
+    });
   };
 
   const save = () => {
@@ -140,11 +140,9 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
       })
       .filter((server) => server.url.length > 0);
 
-    const nextSelectedId = sanitizedServers.length
-      ? sanitizedServers.some((server) => server.id === activeMcpServerId)
-        ? activeMcpServerId
-        : sanitizedServers[0].id
-      : undefined;
+    const nextActiveIds = sanitizedServers.length
+      ? activeMcpServerIds.filter((id) => sanitizedServers.some((server) => server.id === id))
+      : [];
 
     useWorkspaceStore.setState(
       (state) => {
@@ -153,7 +151,11 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         state.modelId = model || "gpt-5-mini";
         state.approvalGatedTools = [...approvalTools];
         state.mcpServers = sanitizedServers.map((server) => ({ ...server }));
-        state.selectedMcpServerId = nextSelectedId;
+        state.activeMcpServerIds = nextActiveIds.length > 0 ? [...nextActiveIds] : [];
+
+        if ((state as Record<string, unknown>).selectedMcpServerId) {
+          delete (state as Record<string, unknown>).selectedMcpServerId;
+        }
       },
       false,
       "settings/save-llm-config",
@@ -238,16 +240,13 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                       <Text color="fg.muted">No MCP servers configured.</Text>
                     </Flex>
                   ) : (
-                    mcpServers.map((server, index) => (
+                    mcpServers.map((server) => (
                       <McpServerCard
                         key={server.id}
                         server={server}
-                        index={index}
-                        isActive={activeMcpServerId === server.id}
+                        enabled={activeMcpServerIds.includes(server.id)}
                         tokenVisible={showServerTokens[server.id] ?? false}
-                        status={activeMcpServerId === server.id ? mcpStatus : "idle"}
-                        error={activeMcpServerId === server.id ? mcpError : undefined}
-                        onSetActive={setActiveServer}
+                        onToggleEnabled={toggleServerActive}
                         onRemove={removeMcpServer}
                         onChange={updateMcpServer}
                         onToggleTokenVisibility={toggleServerTokenVisibility}

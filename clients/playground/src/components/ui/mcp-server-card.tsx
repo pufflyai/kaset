@@ -1,3 +1,4 @@
+import { useMcpClient } from "@/services/mcp/useMcpService";
 import type { McpClientStatus } from "@/services/mcp/useMcpService";
 import type { McpServerConfig } from "@/state/types";
 import { Button, Field, Flex, HStack, Input, Text } from "@chakra-ui/react";
@@ -12,30 +13,25 @@ const STATUS_LABELS: Record<McpClientStatus, { label: string; color: string }> =
 
 interface McpServerCardProps {
   server: McpServerConfig;
-  index: number;
-  isActive: boolean;
+  enabled: boolean;
   tokenVisible: boolean;
-  status: McpClientStatus;
-  error?: unknown;
-  onSetActive: (id: string) => void;
+  onToggleEnabled: (id: string) => void;
   onRemove: (id: string) => void;
   onChange: (id: string, patch: Partial<McpServerConfig>) => void;
   onToggleTokenVisibility: (id: string) => void;
 }
 
 export function McpServerCard(props: McpServerCardProps) {
-  const {
-    server,
-    index,
-    isActive,
-    tokenVisible,
-    status,
-    error,
-    onSetActive,
-    onRemove,
-    onChange,
-    onToggleTokenVisibility,
-  } = props;
+  const { server, enabled, tokenVisible, onToggleEnabled, onRemove, onChange, onToggleTokenVisibility } = props;
+
+  const trimmedUrl = server.url?.trim() ?? "";
+  const connectionEnabled = enabled && Boolean(trimmedUrl);
+
+  const { status, error } = useMcpClient({
+    serverUrl: trimmedUrl || undefined,
+    accessToken: server.accessToken,
+    enabled: connectionEnabled,
+  });
 
   const handleNameChange = (event: ChangeEvent<HTMLInputElement>) => {
     onChange(server.id, { name: event.target.value });
@@ -50,10 +46,20 @@ export function McpServerCard(props: McpServerCardProps) {
     onChange(server.id, { accessToken: value ? value : undefined });
   };
 
-  const { label: statusLabel, color: statusColor } = STATUS_LABELS[status];
+  const { label: statusLabel, color: statusColor } = (() => {
+    if (!enabled) {
+      return { label: "Disabled", color: "fg.muted" };
+    }
+
+    if (!trimmedUrl) {
+      return { label: "Enter a URL", color: "fg.muted" };
+    }
+
+    return STATUS_LABELS[status];
+  })();
 
   const errorMessage = (() => {
-    if (status !== "error" || error == null) return undefined;
+    if (status !== "error" || !connectionEnabled || error == null) return undefined;
     if (error instanceof Error && error.message) return error.message;
     if (typeof error === "string" && error.trim()) return error.trim();
     return String(error);
@@ -63,30 +69,24 @@ export function McpServerCard(props: McpServerCardProps) {
     <Flex direction="column" gap="sm" borderRadius="md" borderWidth="1px" p="md">
       <Flex align="center" justify="space-between">
         <HStack gap="xs">
-          <Text fontWeight="medium">Server {index + 1}</Text>
-          {isActive ? (
-            <Text fontSize="xs" color="fg.muted">
-              Active
+          <Text fontSize="xs" color={statusColor}>
+            Status: {statusLabel}
+          </Text>
+          {errorMessage ? (
+            <Text fontSize="xs" color="red.500">
+              {errorMessage}
             </Text>
           ) : null}
         </HStack>
         <HStack gap="xs">
-          <Button size="xs" variant={isActive ? "solid" : "outline"} onClick={() => onSetActive(server.id)}>
-            {isActive ? "Active" : "Set active"}
+          <Button size="xs" variant={enabled ? "solid" : "outline"} onClick={() => onToggleEnabled(server.id)}>
+            {enabled ? "Disable" : "Enable"}
           </Button>
           <Button size="xs" variant="ghost" onClick={() => onRemove(server.id)}>
             Remove
           </Button>
         </HStack>
       </Flex>
-      <Text fontSize="xs" color={statusColor}>
-        Status: {statusLabel}
-      </Text>
-      {errorMessage ? (
-        <Text fontSize="xs" color="red.500">
-          {errorMessage}
-        </Text>
-      ) : null}
       <Field.Root>
         <Field.Label>Name</Field.Label>
         <Input placeholder="Example MCP server" value={server.name} onChange={handleNameChange} />

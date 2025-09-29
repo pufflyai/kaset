@@ -29,7 +29,7 @@ export interface WorkspaceState {
   baseUrl?: string;
   approvalGatedTools?: string[];
   mcpServers: McpServerConfig[];
-  selectedMcpServerId?: string;
+  activeMcpServerIds?: string[];
 }
 
 export type WorkspaceStore = WorkspaceState;

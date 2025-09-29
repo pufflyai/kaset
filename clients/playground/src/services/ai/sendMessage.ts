@@ -16,8 +16,6 @@ export async function* sendMessage(conversationId: string, conversation: UIConve
 
   const { modelId, apiKey, baseUrl, approvalGatedTools } = useWorkspaceStore.getState();
 
-  console.log({ extraTools });
-
   const agent = createKasAgent({
     model: modelId,
     workspaceDir: dir,
