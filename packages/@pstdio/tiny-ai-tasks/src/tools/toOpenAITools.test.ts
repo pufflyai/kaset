@@ -14,4 +14,22 @@ describe("toOpenAITools", () => {
     const result = toOpenAITools([t]);
     expect(result).toEqual([{ type: "function", function: schema }]);
   });
+
+  it("wraps non-object schemas under input", async () => {
+    const definition = {
+      name: "echo",
+      description: "Echo input",
+      parameters: { type: "string" },
+    };
+    const t = Tool(async () => ({}), definition);
+    const [{ function: fnDef }] = toOpenAITools([t]);
+
+    expect(fnDef.parameters).toEqual({
+      type: "object",
+      properties: {
+        input: { type: "string" },
+      },
+      additionalProperties: false,
+    });
+  });
 });

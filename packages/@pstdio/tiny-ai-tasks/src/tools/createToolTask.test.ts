@@ -95,8 +95,8 @@ describe("createToolTask", () => {
     expect(JSON.parse(final!.messages[0].content).data).toEqual({ ok: true, x: 1 });
   });
 
-  it("maps single-property schema to positional arg when tool expects one parameter", async () => {
-    const fn = vi.fn(async (topic: string = "general") => ({ topic }));
+  it("passes the arguments object through to the tool", async () => {
+    const fn = vi.fn(async (args: any) => args);
     const t = Tool(fn as any, {
       name: "news",
       parameters: { type: "object", properties: { topic: { type: "string" } } },
@@ -110,9 +110,9 @@ describe("createToolTask", () => {
     } as any;
 
     for await (const _ of rt(call)) {
-      // consume
+      // consume iterator
     }
 
-    expect(fn).toHaveBeenCalledWith("tech", expect.anything());
+    expect(fn).toHaveBeenCalledWith({ topic: "tech" }, expect.anything());
   });
 });

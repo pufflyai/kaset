@@ -12,7 +12,7 @@ Composable AI workflows and tool-using agents for TypeScript/JavaScript. Stream 
 npm i @pstdio/tiny-ai-tasks @pstdio/tiny-tasks
 ```
 
-Provide your OpenAI API key via `OPENAI_API_KEY` or pass `apiKey` to the LLM task.
+Provide your API key via `OPENAI_API_KEY` or pass `apiKey` to the LLM task.
 
 ## Quick Start
 
@@ -127,6 +127,6 @@ console.log("scratch:", scratch.get());
 
 ## Notes
 
-- Pass OpenAI credentials via env or `apiKey`; use `baseUrl` for proxies/compatible endpoints.
+- Pass credentials via env or `apiKey`; use `baseUrl` for proxies/compatible endpoints.
 - The last stream chunk may include `usage` metrics; the final assistant message includes them.
 - Import `MemorySaver` from `@pstdio/tiny-tasks` for demo checkpointing; swap for persistence in production.

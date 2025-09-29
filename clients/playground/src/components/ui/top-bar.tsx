@@ -98,7 +98,7 @@ export function TopBar(props: TopBarProps) {
                 <MenuItem
                   primaryLabel="Documentation"
                   leftIcon={<ExternalLinkIcon size={16} />}
-                  onClick={() => window.open("https://pufflyai.github.io/kaset/", "_blank", "noopener,noreferrer")}
+                  onClick={() => window.open("https://kaset.dev/", "_blank", "noopener,noreferrer")}
                 />
                 <MenuItem
                   primaryLabel="Contact & Support"
