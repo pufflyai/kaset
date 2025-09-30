@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/opfs-utils",
   "description": "Utilities for the browser's OPFS: ls, grep, safe file read, unified diff patching, and MIME helpers.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
