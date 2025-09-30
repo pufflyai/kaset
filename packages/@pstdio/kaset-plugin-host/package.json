@@ -1,0 +1,48 @@
+{
+  "name": "@pstdio/kaset-plugin-host",
+  "description": "",
+  "version": "0.1.0",
+  "author": "Pufflig AB",
+  "email": "support@prompt.studio",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pufflyai/kaset.git"
+  },
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "tsc -b && vite build",
+    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
+    "visualize-bundle": "npx vite-bundle-visualizer",
+    "test": "vitest run --passWithNoTests"
+  },
+  "keywords": [
+    "react",
+    "hooks",
+    "opfs",
+    "origin-private-file-system",
+    "filesystem",
+    "browser"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@au-re/vite-plugin-externalize-deps": "^0.9.1",
+    "jsdom": "^26.1.0",
+    "vite": "^7.1.0",
+    "vite-plugin-dts": "^4.5.4",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {},
+  "volta": {
+    "node": "22.18.0"
+  }
+}
