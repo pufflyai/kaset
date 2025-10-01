@@ -36,6 +36,7 @@
   },
   "devDependencies": {
     "@au-re/vite-plugin-externalize-deps": "^0.9.1",
+    "@types/picomatch": "^4.0.2",
     "jsdom": "^26.1.0",
     "vite": "^7.1.0",
     "vite-plugin-dts": "^4.5.4",
@@ -43,7 +44,7 @@
   },
   "dependencies": {
     "@pstdio/opfs-utils": "^0.1.7",
-    "micromatch": "^4.0.7"
+    "picomatch": "^4.0.3"
   },
   "volta": {
     "node": "22.18.0"

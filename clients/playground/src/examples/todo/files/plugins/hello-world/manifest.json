@@ -1,0 +1,23 @@
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "version": "0.1.0",
+  "api": "^1.0.0",
+  "entry": "index.js",
+  "ui": {
+    "commands": [
+      {
+        "id": "hello.sayHello",
+        "title": "Hello World",
+        "category": "Examples"
+      }
+    ]
+  },
+  "settingsSchema": {
+    "type": "object",
+    "properties": {
+      "greeting": { "type": "string", "default": "Hello" },
+      "recipient": { "type": "string", "default": "Kaset" }
+    }
+  }
+}

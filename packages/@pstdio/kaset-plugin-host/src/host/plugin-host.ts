@@ -10,7 +10,7 @@ import {
   writeFile,
   type ChangeRecord,
 } from "@pstdio/opfs-utils";
-import micromatch from "micromatch";
+import * as picomatch from "picomatch/posix";
 import { Manifest, type JSONSchema } from "../model/manifest";
 import type { Plugin, PluginModule } from "../model/plugin";
 import { type EventsApi, type Logger, type PluginContext, type RegisteredCommand, type UIAdapter } from "./context";
@@ -334,7 +334,7 @@ export function createPluginHost(config: HostConfig = {}): PluginHost {
 
   const activateFsChanges = async (plugin: LoadedPlugin, activation: Extract<Activation, { type: "onFSChange" }>) => {
     const glob = activation.glob;
-    const matcher = micromatch.matcher(glob, { dot: true });
+    const matcher = picomatch(glob, { dot: true, windows: false, posixSlashes: true });
     const cleanup = await watchDirectory(
       "",
       (changes: ChangeRecord[]) => {

@@ -53,7 +53,7 @@ Each workspace has one plugins root and a public state area:
 - `api`: host API compatibility. Host rejects plugins whose range doesn’t match `"1.x"`.
 - `activation`: **when** the host should wake a plugin (see _Lifecycle & activation_).
 - `permissions`: FS globs for read/write and optional network allowlist (see _Permission model_).
-- `ui.commands`: declarative command metadata (v1).
+- `ui.commands`: declarative command metadata.
 - `settingsSchema`: JSON Schema for persisted settings (host validates & stores).
 
 ## How Kaset loads plugins
@@ -103,7 +103,7 @@ Each workspace has one plugins root and a public state area:
 - `activate`: 10s, `command`: 10s, `deactivate`: 5s (defaults; configurable).
 - Repeated failures can auto‑disable a plugin after N consecutive errors (host policy).
 
-## Runtime surfaces (v1)
+## Runtime surfaces
 
 **Declarative only**
 
@@ -142,7 +142,7 @@ Each workspace has one plugins root and a public state area:
 - **Logger**: `ctx.log.info|warn|error(...)`.
 - **Auditability**: FS writes and network calls can be logged centrally by the host.
 
-## Webviews (v2 — preview)
+## Webviews
 
 For custom UI, a plugin may declare **webviews/panels** rendered in sandboxed iframes.
 

@@ -1,5 +1,7 @@
 // Shared glob helpers for OPFS utilities
 
+import * as picomatch from "picomatch/posix";
+
 export interface GlobToRegExpOptions {
   // When false, wildcards at the start of a segment do not match a leading dot
   // (like many glob implementations). Default: true (match dotfiles).
@@ -11,119 +13,58 @@ export interface GlobToRegExpOptions {
 
 /**
  * Convert a glob pattern into a RegExp that matches the FULL POSIX-like path (anchored ^$).
- * Supports: **, *, ?, character classes [..] with leading ! for negation, and escapes.
  */
 export function globToRegExp(glob: string, opts: GlobToRegExpOptions = {}): RegExp {
   const dot = opts.dot ?? true;
   const caseSensitive = opts.caseSensitive ?? true;
 
-  let re = "^";
-  let i = 0;
+  const normalized = normalizeGlob(glob);
 
-  while (i < glob.length) {
-    const c = glob[i];
+  const regex = picomatch.makeRe(normalized, {
+    dot,
+    nocase: !caseSensitive,
+    windows: false,
+    posixSlashes: true,
+  });
 
-    if (c === "*") {
-      if (glob[i + 1] === "*") {
-        // ** -> match across directories
-        re += ".*";
-        i += 2;
-      } else {
-        // * -> match within a segment
-        // If dot=false, avoid matching a leading dot for a segment wildcard
-        re += dot ? "[^/]*" : "(?!\\.)[^/]*";
-        i++;
-      }
-      continue;
-    }
-
-    if (c === "?") {
-      re += dot ? "[^/]" : "(?!\\.)[^/]";
-      i++;
-      continue;
-    }
-
-    if (c === "[") {
-      const { src, newIndex } = parseCharClass(glob, i);
-      re += src;
-      i = newIndex;
-      continue;
-    }
-
-    if (c === "\\") {
-      // escape next char literally
-      if (i + 1 < glob.length) {
-        re += escapeRegex(glob[i + 1]);
-        i += 2;
-      } else {
-        re += "\\\\";
-        i++;
-      }
-      continue;
-    }
-
-    // Path separator
-    if (c === "/") {
-      re += "/";
-      i++;
-      continue;
-    }
-
-    // Ordinary character
-    re += escapeRegex(c);
-    i++;
+  if (!regex) {
+    throw new Error(`Failed to create RegExp from glob: ${glob}`);
   }
 
-  re += "$";
-  const flags = caseSensitive ? "" : "i";
-  return new RegExp(re, flags);
+  return regex;
 }
 
-function parseCharClass(glob: string, start: number): { src: string; newIndex: number } {
-  let i = start + 1;
-  let negate = false;
-  if (glob[i] === "!") {
-    negate = true;
-    i++;
-  }
-  // Edge case: literal ']' at start of class
-  let content = "";
-  if (glob[i] === "]") {
-    content += "\\]";
-    i++;
-  }
-  while (i < glob.length && glob[i] !== "]") {
-    const ch = glob[i];
+function normalizeGlob(pattern: string): string {
+  let result = "";
+
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+
     if (ch === "\\") {
-      // take the next char literally
-      if (i + 1 < glob.length) {
-        content += "\\" + glob[i + 1];
-        i += 2;
-      } else {
-        content += "\\\\";
+      result += ch;
+      if (i + 1 < pattern.length) {
+        result += pattern[i + 1];
         i++;
       }
-    } else if ("^$.|+(){}".includes(ch)) {
-      content += "\\" + ch;
-      i++;
-    } else {
-      content += ch;
-      i++;
+      continue;
     }
-  }
-  // If no closing ']', treat the '[' literally
-  if (i >= glob.length || glob[i] !== "]") {
-    return { src: "\\[", newIndex: start + 1 };
-  }
-  const close = glob[i]; // ']'
-  i++;
 
-  const cls = "[" + (negate ? "^" : "") + content + close;
-  return { src: cls, newIndex: i };
-}
+    if (ch === "[") {
+      result += ch;
+      const next = pattern[i + 1];
+      const after = pattern[i + 2];
 
-function escapeRegex(ch: string): string {
-  return /[\\^$.*+?()[\]{}|]/.test(ch) ? "\\" + ch : ch;
+      if (next === "!" && after && after !== "]") {
+        result += "^";
+        i++;
+      }
+      continue;
+    }
+
+    result += ch;
+  }
+
+  return result;
 }
 
 // Expand simple one-or-more brace lists like:
