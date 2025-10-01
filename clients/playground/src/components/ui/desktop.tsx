@@ -219,7 +219,7 @@ export const useDesktopStore = create<DesktopState>()(
       storage: typeof window === "undefined" ? undefined : createJSONStorage(() => window.localStorage),
       partialize: (state) => ({
         nextZIndex: state.nextZIndex,
-        windows: state.windows.map(({ restoreBounds, ...window }) => window),
+        windows: state.windows.map(({ restoreBounds: _, ...window }) => window),
       }),
       version: 1,
     },

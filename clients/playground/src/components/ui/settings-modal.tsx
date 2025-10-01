@@ -253,18 +253,18 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                       />
                     ))
                   )}
-              </VStack>
-              <Button alignSelf="flex-start" size="sm" variant="outline" onClick={addMcpServer}>
-                Add MCP server
-              </Button>
-            </Flex>
-          </VStack>
-        </Dialog.Body>
-        <Dialog.Footer gap="sm">
-          <Button onClick={save} variant="solid">
-            Save
-          </Button>
-        </Dialog.Footer>
+                </VStack>
+                <Button alignSelf="flex-start" size="sm" variant="outline" onClick={addMcpServer}>
+                  Add MCP server
+                </Button>
+              </Flex>
+            </VStack>
+          </Dialog.Body>
+          <Dialog.Footer gap="sm">
+            <Button onClick={save} variant="solid">
+              Save
+            </Button>
+          </Dialog.Footer>
         </Dialog.Content>
       </Dialog.Positioner>
     </Dialog.Root>
