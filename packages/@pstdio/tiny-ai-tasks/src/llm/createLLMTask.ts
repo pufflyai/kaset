@@ -37,7 +37,6 @@ export function createLLMTask(opts: LLMTaskOptions) {
     ): AsyncGenerator<AssistantMessage, AssistantMessage, unknown> {
       const messages = Array.isArray(input) ? input : input.messages;
       const callTools = Array.isArray(input) ? [] : (input.tools ?? []);
-      const sessionId = Array.isArray(input) ? undefined : input.sessionId;
 
       const toolDefs: ChatCompletionTool[] = [...toOpenAITools(tools ?? []), ...toOpenAITools(callTools)];
 
@@ -53,7 +52,6 @@ export function createLLMTask(opts: LLMTaskOptions) {
         ...(temperature !== undefined ? { temperature } : {}),
         ...(reasoning ? { reasoning_effort: reasoning.effort } : {}),
         ...(toolDefs.length ? { tools: toolDefs } : {}),
-        ...(sessionId ? { session_id: sessionId } : {}),
       });
 
       const assistant: AssistantMessage = { role: "assistant", content: "" };
