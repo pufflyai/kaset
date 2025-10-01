@@ -13,13 +13,7 @@ import {
 import micromatch from "micromatch";
 import { Manifest, type JSONSchema } from "../model/manifest";
 import type { Plugin, PluginModule } from "../model/plugin";
-import {
-  type EventsApi,
-  type Logger,
-  type PluginContext,
-  type RegisteredCommand,
-  type UIAdapter,
-} from "./context";
+import { type EventsApi, type Logger, type PluginContext, type RegisteredCommand, type UIAdapter } from "./context";
 import type { HostConfig, PluginHost } from "./types";
 
 const HOST_API_VERSION = "1.0.0";
@@ -140,11 +134,7 @@ function createAbortError(message: string) {
   }
 }
 
-async function runWithTimeout<T>(
-  fn: () => Promise<T> | T,
-  timeoutMs: number,
-  abortSignal?: AbortSignal,
-): Promise<T> {
+async function runWithTimeout<T>(fn: () => Promise<T> | T, timeoutMs: number, abortSignal?: AbortSignal): Promise<T> {
   if (abortSignal?.aborted) {
     throw createAbortError("Operation aborted");
   }
@@ -228,21 +218,25 @@ export function createPluginHost(config: HostConfig = {}): PluginHost {
   const ensureWatcher = async () => {
     if (config.watchPlugins === false || pluginsWatcherCleanup) return;
     try {
-      pluginsWatcherCleanup = await watchDirectory(pluginsRoot, async (changes: ChangeRecord[]) => {
-        const touched = new Set<string>();
-        for (const change of changes) {
-          const [pluginId] = change.path;
-          if (pluginId) touched.add(pluginId);
-        }
-        for (const pluginId of touched) {
-          await reloadPlugin(pluginId).catch((error) => {
-            console.error(`[kaset-plugin-host] Failed to reload plugin ${pluginId}`, error);
-          });
-        }
-      }, {
-        recursive: true,
-        emitInitial: false,
-      });
+      pluginsWatcherCleanup = await watchDirectory(
+        pluginsRoot,
+        async (changes: ChangeRecord[]) => {
+          const touched = new Set<string>();
+          for (const change of changes) {
+            const [pluginId] = change.path;
+            if (pluginId) touched.add(pluginId);
+          }
+          for (const pluginId of touched) {
+            await reloadPlugin(pluginId).catch((error) => {
+              console.error(`[kaset-plugin-host] Failed to reload plugin ${pluginId}`, error);
+            });
+          }
+        },
+        {
+          recursive: true,
+          emitInitial: false,
+        },
+      );
     } catch (error) {
       console.warn("[kaset-plugin-host] Failed to start plugin watcher", error);
     }
@@ -338,24 +332,25 @@ export function createPluginHost(config: HostConfig = {}): PluginHost {
     return { context, eventHub: eventsHub };
   };
 
-  const activateFsChanges = async (
-    plugin: LoadedPlugin,
-    activation: Extract<Activation, { type: "onFSChange" }>,
-  ) => {
+  const activateFsChanges = async (plugin: LoadedPlugin, activation: Extract<Activation, { type: "onFSChange" }>) => {
     const glob = activation.glob;
     const matcher = micromatch.matcher(glob, { dot: true });
-    const cleanup = await watchDirectory("", (changes: ChangeRecord[]) => {
-      for (const change of changes) {
-        const asPath = ensureAbsolute(change.path.join("/"));
-        if (matcher(asPath)) {
-          plugin.emit("fs:change", { glob, change });
+    const cleanup = await watchDirectory(
+      "",
+      (changes: ChangeRecord[]) => {
+        for (const change of changes) {
+          const asPath = ensureAbsolute(change.path.join("/"));
+          if (matcher(asPath)) {
+            plugin.emit("fs:change", { glob, change });
+          }
         }
-      }
-    }, {
-      recursive: true,
-      emitInitial: false,
-      signal: plugin.abort.signal,
-    });
+      },
+      {
+        recursive: true,
+        emitInitial: false,
+        signal: plugin.abort.signal,
+      },
+    );
     plugin.cleanups.push(cleanup);
   };
 

@@ -79,7 +79,5 @@ declare module "@pstdio/opfs-utils" {
     content: string;
   }
 
-  export function processSingleFileContent(
-    options: ProcessSingleFileOptions,
-  ): Promise<ProcessedFileReadResult>;
+  export function processSingleFileContent(options: ProcessSingleFileOptions): Promise<ProcessedFileReadResult>;
 }

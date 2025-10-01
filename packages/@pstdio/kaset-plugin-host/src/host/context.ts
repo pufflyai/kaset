@@ -44,9 +44,9 @@ export interface PluginContext {
   manifest: Manifest;
   log: Logger;
   fs: FSApi;
-  grep: typeof import("@pstdio/opfs-utils")["grep"];
-  patch: typeof import("@pstdio/opfs-utils")["patch"];
-  processSingleFileContent: typeof import("@pstdio/opfs-utils")["processSingleFileContent"];
+  grep: (typeof import("@pstdio/opfs-utils"))["grep"];
+  patch: (typeof import("@pstdio/opfs-utils"))["patch"];
+  processSingleFileContent: (typeof import("@pstdio/opfs-utils"))["processSingleFileContent"];
   settings: SettingsApi;
   ui: UIHostApi;
   events: EventsApi;

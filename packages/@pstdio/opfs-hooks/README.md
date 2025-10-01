@@ -34,10 +34,6 @@ function Example() {
 }
 ```
 
-## Notes & limitations
-
-- Requires a secure context and browser support for the File System Access API; designed for React 18+.
-
 ## Contributing
 
 See the [monorepo README](https://github.com/pufflyai/kaset#readme) for contribution guidelines.

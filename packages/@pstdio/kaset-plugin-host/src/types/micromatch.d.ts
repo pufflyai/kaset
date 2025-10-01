@@ -3,16 +3,9 @@ declare module "micromatch" {
     dot?: boolean;
   }
 
-  export function matcher(
-    pattern: string | string[],
-    options?: MicromatchOptions,
-  ): (value: string) => boolean;
+  export function matcher(pattern: string | string[], options?: MicromatchOptions): (value: string) => boolean;
 
-  export function isMatch(
-    value: string,
-    pattern: string | string[],
-    options?: MicromatchOptions,
-  ): boolean;
+  export function isMatch(value: string, pattern: string | string[], options?: MicromatchOptions): boolean;
 
   interface MicromatchExport {
     (list: string[], pattern: string | string[], options?: MicromatchOptions): string[];
