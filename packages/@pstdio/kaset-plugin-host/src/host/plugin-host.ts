@@ -480,7 +480,7 @@ export function createPluginHost(config: HostConfig = {}): PluginHost {
 
     try {
       if (typeof loaded.plugin.deactivate === "function") {
-        await runWithTimeout(() => loaded.plugin.deactivate?.(), timeouts.deactivate);
+        await runWithTimeout(() => loaded.plugin.deactivate(), timeouts.deactivate);
       }
     } catch (error) {
       console.warn(`[kaset-plugin-host] Error while deactivating plugin ${pluginId}`, error);
