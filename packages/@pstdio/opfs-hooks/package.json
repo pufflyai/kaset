@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/opfs-hooks",
   "description": "React hooks for working with the browser's Origin Private File System (OPFS).",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -45,7 +45,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@pstdio/opfs-utils": "^0.1.7"
+    "@pstdio/opfs-utils": "^0.1.8"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
