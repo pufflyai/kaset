@@ -1,6 +1,6 @@
 {
   "name": "@pstdio/kaset-plugin-host",
-  "description": "",
+  "description": "Browser-based plugin runtime for Kaset that loads plugins from OPFS.",
   "version": "0.1.0",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
