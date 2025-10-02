@@ -45,7 +45,6 @@ export function TopBar(props: TopBarProps) {
   const conversations = useWorkspaceStore((s) => s.conversations);
   const selectedId = useWorkspaceStore((s) => s.selectedConversationId);
   const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
-
   const triggerId = useId();
 
   const PROJECTS: Array<{ id: string; label: string }> = [

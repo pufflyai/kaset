@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/opfs-utils",
   "description": "Utilities for the browser's OPFS: ls, grep, safe file read, unified diff patching, and MIME helpers.",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -54,6 +54,7 @@
     "@storybook/react": "^9.1.2",
     "@storybook/react-vite": "^9.1.1",
     "@storybook/test-runner": "^0.23.0",
+    "@types/picomatch": "^4.0.2",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "concurrently": "^9.1.2",
@@ -72,7 +73,8 @@
     "@zenfs/dom": "^1.2.5",
     "buffer": "^6.0.3",
     "diff": "^8.0.2",
-    "isomorphic-git": "^1.33.1"
+    "isomorphic-git": "^1.33.1",
+    "picomatch": "^4.0.3"
   },
   "volta": {
     "node": "22.18.0"

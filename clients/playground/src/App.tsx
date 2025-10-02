@@ -8,7 +8,9 @@ import { ConversationHost } from "./components/ui/conversation-host";
 import { DragOverlay } from "./components/ui/drag-overlay";
 import { FileExplorer } from "./components/ui/file-explorer";
 import { GithubCorner } from "./components/ui/github-corner";
+import { PluginSettings } from "./components/ui/plugin-settings";
 import { TopBar } from "./components/ui/top-bar";
+import { Toaster } from "./components/ui/toaster";
 import { PROJECTS_ROOT } from "./constant";
 import { TodoList } from "./examples/todo/component";
 import { TodoProvider } from "./examples/todo/state/TodoProvider";
@@ -156,6 +158,7 @@ export function App() {
                 </Drawer.Positioner>
               </Portal>
             </Drawer.Root>
+            <PluginSettings />
           </Flex>
 
           {/* Preview panel: render the example component */}
@@ -249,6 +252,7 @@ export function App() {
       {!isMobile && <GithubCorner href="https://github.com/pufflyai/kaset" />}
 
       {!isMobile && <DragOverlay visible={isDragging} />}
+      <Toaster />
     </Flex>
   );
 }

@@ -1,9 +1,10 @@
 import { PROJECTS_ROOT } from "@/constant";
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
+import { usePluginHost } from "@/services/plugins/usePluginHost";
 import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import type { Message } from "../../types";
@@ -36,10 +37,12 @@ export function ConversationHost() {
       : EMPTY_MESSAGES,
   );
   const { tools: mcpTools } = useMcpService();
+  const { tools: pluginTools } = usePluginHost();
   const [streaming, setStreaming] = useState(false);
   const hasCredentials = useWorkspaceStore((s) => Boolean(s.apiKey || s.baseUrl));
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
+  const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
 
   useEffect(() => {
     setApprovalHandler(
@@ -82,7 +85,7 @@ export function ConversationHost() {
 
     try {
       setStreaming(true);
-      for await (const updated of sendMessage(conversationId, base, mcpTools)) {
+      for await (const updated of sendMessage(conversationId, base, toolset)) {
         if (!conversationId) continue;
         useWorkspaceStore.setState(
           (state) => {

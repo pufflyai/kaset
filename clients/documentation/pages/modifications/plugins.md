@@ -2,13 +2,15 @@
 title: Plugins
 ---
 
-:::warning
-Draft
-:::
-
 # Plugins
 
-Kaset **Plugins** are small, user‑editable extensions that run in the browser and live entirely in **OPFS**. They are loaded by the `kaset-plugin-host` library, which provides a runtime (FS + optional network), **declarative UI surfaces (v1)**, and a **preview webview surface (v2)** for custom UI.
+Plugins help teams move faster by letting third parties extend the app. A clear API keeps customizations easy to share while preserving a stable contract between the host and extensions.
+
+:::info
+The trade-off is that plugins can only reach the surfaces you expose.
+:::
+
+In Kaset **Plugins** are small, user-editable extensions that run entirely in the browser. They are loaded by the `kaset-plugin-host` library, which provides a runtime, declarative UI surfaces, and webview support for custom UX.
 
 ## Workspace layout
 
@@ -51,7 +53,7 @@ Each workspace has one plugins root and a public state area:
 - `api`: host API compatibility. Host rejects plugins whose range doesn’t match `"1.x"`.
 - `activation`: **when** the host should wake a plugin (see _Lifecycle & activation_).
 - `permissions`: FS globs for read/write and optional network allowlist (see _Permission model_).
-- `ui.commands`: declarative command metadata (v1).
+- `ui.commands`: declarative command metadata.
 - `settingsSchema`: JSON Schema for persisted settings (host validates & stores).
 
 ## How Kaset loads plugins
@@ -101,7 +103,7 @@ Each workspace has one plugins root and a public state area:
 - `activate`: 10s, `command`: 10s, `deactivate`: 5s (defaults; configurable).
 - Repeated failures can auto‑disable a plugin after N consecutive errors (host policy).
 
-## Runtime surfaces (v1)
+## Runtime surfaces
 
 **Declarative only**
 
@@ -140,7 +142,7 @@ Each workspace has one plugins root and a public state area:
 - **Logger**: `ctx.log.info|warn|error(...)`.
 - **Auditability**: FS writes and network calls can be logged centrally by the host.
 
-## Webviews (v2 — preview)
+## Webviews
 
 For custom UI, a plugin may declare **webviews/panels** rendered in sandboxed iframes.
 
