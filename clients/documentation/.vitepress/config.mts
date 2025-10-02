@@ -85,6 +85,7 @@ export default defineConfig({
           { text: "Artifacts", link: "/modifications/artifacts" },
           { text: "Application State", link: "/modifications/app-state" },
           { text: "Agent Behavior", link: "/modifications/behavior" },
+          { text: "Plugins", link: "/modifications/plugins" },
         ],
       },
       {
