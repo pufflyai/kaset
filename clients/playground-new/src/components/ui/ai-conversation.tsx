@@ -7,7 +7,7 @@ import { StickToBottom as StickToBottomEl, useStickToBottomContext } from "use-s
 const ArrowDownIcon = getIconComponent("arrow-down");
 const ARROW_ICON_SIZE = 16;
 
-export interface ConversationRootProps extends HTMLChakraProps<"div", React.ComponentProps<typeof StickToBottomEl>> {}
+export type ConversationRootProps = HTMLChakraProps<"div", React.ComponentProps<typeof StickToBottomEl>>;
 
 export const ConversationRoot = chakra(
   StickToBottomEl,
@@ -30,7 +30,7 @@ export const ConversationRoot = chakra(
   },
 );
 
-export interface ConversationContentProps extends HTMLChakraProps<"div"> {}
+export type ConversationContentProps = HTMLChakraProps<"div">;
 
 export const ConversationContent = chakra(StickToBottomEl.Content, {
   base: {
@@ -38,7 +38,7 @@ export const ConversationContent = chakra(StickToBottomEl.Content, {
   },
 });
 
-export interface ConversationScrollButtonProps extends IconButtonProps {}
+export type ConversationScrollButtonProps = IconButtonProps;
 
 export const ConversationScrollButton = (props: ConversationScrollButtonProps) => {
   const { isAtBottom, scrollToBottom } = useStickToBottomContext();

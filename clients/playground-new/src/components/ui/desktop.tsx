@@ -1,35 +1,47 @@
-import { Box } from "@chakra-ui/react";
-import { shortUID } from "@pstdio/prompt-utils";
-import { ListTodoIcon } from "lucide-react";
+import { Box, Text } from "@chakra-ui/react";
+import * as LucideIcons from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+import {
+  applyDesktopWindowSnap,
+  closeDesktopWindow,
+  focusDesktopWindow,
+  minimizeDesktopWindow,
+  openDesktopApp,
+  releaseDesktopWindowSnap,
+  setDesktopWindowPosition,
+  setDesktopWindowSize,
+  toggleDesktopWindowMaximize,
+} from "@/state/actions/desktop";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import type { DesktopApp, DesktopWindow, Size } from "@/state/types";
+import {
+  ensurePluginHost,
+  subscribeToPluginDesktopSurfaces,
+  type PluginDesktopSurface,
+} from "@/services/plugins/plugin-host";
+import { PluginSandpackWindow } from "../../services/plugins/sandpack-wrapper";
 import { DesktopIcon } from "./desktop-icon";
-import { Window, type DesktopApp, type DesktopWindow, type Position, type Size } from "./window";
+import { Window } from "./window";
 
-interface DesktopState {
-  windows: DesktopWindow[];
-  nextZIndex: number;
-  openApp: (appId: string) => void;
-  focusWindow: (windowId: string) => void;
-  closeWindow: (windowId: string) => void;
-  minimizeWindow: (windowId: string) => void;
-  toggleMaximize: (windowId: string, container?: Size) => void;
-  setPosition: (windowId: string, position: Position) => void;
-  setSize: (windowId: string, size: Size) => void;
-  showDesktop: () => void;
-  restoreAll: () => void;
-}
+const FALLBACK_ICON: LucideIcon =
+  (LucideIcons.ListTodoIcon as LucideIcon | undefined) ??
+  (LucideIcons.AppWindow as LucideIcon | undefined) ??
+  (LucideIcons.Square as LucideIcon | undefined) ??
+  (LucideIcons.Box as LucideIcon | undefined) ??
+  (LucideIcons.Circle as LucideIcon | undefined) ??
+  ((() => null) as unknown as LucideIcon);
 
-const WINDOW_STORAGE_KEY = "kaset-playground-desktop";
+const ICON_CACHE = new Map<string, LucideIcon>();
 
-const createWindowId = (appId: string) => `${appId}-${shortUID()}`;
+const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
+const DEFAULT_MIN_WINDOW_SIZE = { width: 420, height: 320 };
 
-const default_app = {
+const default_app: DesktopApp = {
   minSize: { width: 200, height: 100 },
   id: "unknown",
   title: "Unknown",
-  icon: ListTodoIcon,
+  icon: FALLBACK_ICON,
   description: "Unknown app",
   defaultPosition: { x: 120, y: 80 },
   defaultSize: { width: 800, height: 600 },
@@ -37,225 +49,146 @@ const default_app = {
   render: () => <Box p="md">Unknown app</Box>,
 };
 
-const desktopApps: DesktopApp[] = [default_app];
+const resolveIcon = (iconName?: string): LucideIcon => {
+  if (!iconName) return FALLBACK_ICON!;
 
-const getAppById = (appId: string) => desktopApps.find((app) => app.id === appId) ?? default_app;
+  const cached = ICON_CACHE.get(iconName);
+  if (cached) return cached;
 
-export const useDesktopStore = create<DesktopState>()(
-  persist(
-    (set, get) => ({
-      windows: [],
-      nextZIndex: 1,
-      openApp: (appId) => {
-        const state = get();
-        const app = getAppById(appId);
-        const existing = state.windows.find((window) => window.appId === appId && app.singleton !== false);
+  const source = (LucideIcons as Record<string, unknown>)[iconName];
+  if (typeof source === "function") {
+    const icon = source as LucideIcon;
+    ICON_CACHE.set(iconName, icon);
+    return icon;
+  }
 
-        if (existing) {
-          set({
-            windows: state.windows.map((window) =>
-              window.id === existing.id
-                ? {
-                    ...window,
-                    isMinimized: false,
-                    zIndex: state.nextZIndex,
-                  }
-                : window,
-            ),
-            nextZIndex: state.nextZIndex + 1,
-          });
-          return;
-        }
+  const alternativeName = `${iconName}Icon`;
+  const altSource = (LucideIcons as Record<string, unknown>)[alternativeName];
+  if (typeof altSource === "function") {
+    const icon = altSource as LucideIcon;
+    ICON_CACHE.set(iconName, icon);
+    return icon;
+  }
 
-        const id = createWindowId(appId);
-        const offset = state.windows.length * 24;
-        const newWindow: DesktopWindow = {
-          id,
-          appId,
-          title: app.title,
-          position: app.defaultPosition ? { ...app.defaultPosition } : { x: 120 + offset, y: 80 + offset },
-          size: { ...app.defaultSize },
-          zIndex: state.nextZIndex,
-          isMinimized: false,
-          isMaximized: false,
-          openedAt: Date.now(),
-        };
+  ICON_CACHE.set(iconName, FALLBACK_ICON!);
+  return FALLBACK_ICON!;
+};
 
-        set({
-          windows: [...state.windows, newWindow],
-          nextZIndex: state.nextZIndex + 1,
-        });
-      },
-      focusWindow: (windowId) => {
-        const state = get();
-        if (!state.windows.some((window) => window.id === windowId)) return;
+const normalizeSize = (
+  value: { width: number; height: number } | undefined,
+  fallback: { width: number; height: number },
+) => {
+  if (!value) return { ...fallback };
+  const width = Number(value.width);
+  const height = Number(value.height);
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return { ...fallback };
+  return { width, height };
+};
 
-        set({
-          windows: state.windows.map((window) =>
-            window.id === windowId
-              ? {
-                  ...window,
-                  isMinimized: false,
-                  zIndex: state.nextZIndex,
-                }
-              : window,
-          ),
-          nextZIndex: state.nextZIndex + 1,
-        });
-      },
-      closeWindow: (windowId) => {
-        const state = get();
-        const remaining = state.windows.filter((window) => window.id !== windowId);
-        const nextZIndex = Math.max(1, Math.max(0, ...remaining.map((window) => window.zIndex)) + 1);
-        set({
-          windows: remaining,
-          nextZIndex,
-        });
-      },
-      minimizeWindow: (windowId) => {
-        const state = get();
+const normalizePosition = (value?: { x: number; y: number }) => {
+  if (!value) return undefined;
+  const x = Number(value.x);
+  const y = Number(value.y);
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return undefined;
+  return { x, y };
+};
 
-        set({
-          windows: state.windows.map((window) =>
-            window.id === windowId
-              ? {
-                  ...window,
-                  isMinimized: true,
-                }
-              : window,
-          ),
-        });
-      },
-      toggleMaximize: (windowId, container) => {
-        const state = get();
+const renderSurfaceWindow = (surface: PluginDesktopSurface, windowId: string) => {
+  const descriptor = surface.window;
 
-        set({
-          windows: state.windows.map((window) => {
-            if (window.id !== windowId) return window;
+  if (!descriptor) {
+    return (
+      <Box padding="md">
+        <Text fontSize="sm">This plugin surface does not define a window entry.</Text>
+      </Box>
+    );
+  }
 
-            if (!window.isMaximized) {
-              return {
-                ...window,
-                isMaximized: true,
-                isMinimized: false,
-                restoreBounds: {
-                  position: window.position,
-                  size: window.size,
-                },
-                position: { x: 0, y: 0 },
-                size: container ?? window.size,
-                zIndex: state.nextZIndex,
-              };
-            }
+  return <PluginSandpackWindow pluginId={surface.pluginId} window={descriptor} instanceId={windowId} />;
+};
 
-            const restore = window.restoreBounds;
-            if (!restore) {
-              return {
-                ...window,
-                isMaximized: false,
-              };
-            }
+const createDesktopAppFromSurface = (surface: PluginDesktopSurface): DesktopApp => {
+  const icon = resolveIcon(surface.icon);
+  const defaultSize = normalizeSize(surface.defaultSize, DEFAULT_WINDOW_SIZE);
+  const minSize = normalizeSize(surface.minSize, DEFAULT_MIN_WINDOW_SIZE);
+  const defaultPosition = normalizePosition(surface.defaultPosition);
+  const description = surface.description ?? `Surface provided by ${surface.pluginId}`;
+  const singleton = surface.singleton ?? true;
 
-            return {
-              ...window,
-              isMaximized: false,
-              isMinimized: false,
-              restoreBounds: undefined,
-              position: restore.position,
-              size: restore.size,
-              zIndex: state.nextZIndex,
-            };
-          }),
-          nextZIndex: state.nextZIndex + 1,
-        });
-      },
-      setPosition: (windowId, position) => {
-        const state = get();
+  const app: DesktopApp = {
+    id: `${surface.pluginId}/${surface.surfaceId}`,
+    title: surface.title,
+    icon,
+    description,
+    defaultSize,
+    minSize,
+    singleton,
+    render: (windowId: string) => renderSurfaceWindow(surface, windowId),
+  };
 
-        set({
-          windows: state.windows.map((window) =>
-            window.id === windowId
-              ? {
-                  ...window,
-                  position,
-                }
-              : window,
-          ),
-        });
-      },
-      setSize: (windowId, size) => {
-        const state = get();
+  if (defaultPosition) {
+    app.defaultPosition = defaultPosition;
+  }
 
-        set({
-          windows: state.windows.map((window) =>
-            window.id === windowId
-              ? {
-                  ...window,
-                  size,
-                }
-              : window,
-          ),
-        });
-      },
-      showDesktop: () => {
-        const state = get();
-
-        set({
-          windows: state.windows.map((window) => ({
-            ...window,
-            isMinimized: true,
-          })),
-        });
-      },
-      restoreAll: () => {
-        const state = get();
-
-        set({
-          windows: state.windows.map((window) => ({
-            ...window,
-            isMinimized: false,
-            isMaximized: false,
-            restoreBounds: undefined,
-          })),
-        });
-      },
-    }),
-    {
-      name: WINDOW_STORAGE_KEY,
-      storage: typeof window === "undefined" ? undefined : createJSONStorage(() => window.localStorage),
-      partialize: (state) => ({
-        nextZIndex: state.nextZIndex,
-        windows: state.windows.map(({ restoreBounds: _, ...window }) => window),
-      }),
-      version: 1,
-    },
-  ),
-);
+  return app;
+};
 
 export const Desktop = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const containerSizeRef = useRef<Size | null>(null);
   const [containerSize, setContainerSize] = useState<Size | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const windows = useDesktopStore((state) => state.windows);
-  const openApp = useDesktopStore((state) => state.openApp);
-  const focusWindow = useDesktopStore((state) => state.focusWindow);
-  const closeWindow = useDesktopStore((state) => state.closeWindow);
-  const minimizeWindow = useDesktopStore((state) => state.minimizeWindow);
-  const toggleMaximize = useDesktopStore((state) => state.toggleMaximize);
-  const setPosition = useDesktopStore((state) => state.setPosition);
-  const setSize = useDesktopStore((state) => state.setSize);
+  const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
+  const [snapPreviewSide, setSnapPreviewSide] = useState<"left" | "right" | null>(null);
+  const windows = useWorkspaceStore((state) => state.desktop.windows);
 
-  const handleSelectApp = useCallback((appId: string) => {
-    setSelectedAppId(appId);
+  useEffect(() => {
+    const unsubscribe = subscribeToPluginDesktopSurfaces((surfaces) => {
+      const apps = surfaces
+        .map((surface) => createDesktopAppFromSurface(surface))
+        .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+      setPluginApps(apps);
+    });
+
+    ensurePluginHost().catch((error) => {
+      console.error("[desktop] Failed to initialize plugin host", error);
+    });
+
+    return unsubscribe;
   }, []);
+
+  const apps = useMemo(() => [default_app, ...pluginApps], [pluginApps]);
+
+  const appsById = useMemo(() => {
+    const map = new Map<string, DesktopApp>();
+    apps.forEach((app) => {
+      map.set(app.id, app);
+    });
+    return map;
+  }, [apps]);
+
+  useEffect(() => {
+    if (!selectedAppId) return;
+    if (!appsById.has(selectedAppId)) {
+      setSelectedAppId(null);
+    }
+  }, [appsById, selectedAppId]);
+
+  const getAppById = useCallback((appId: string) => appsById.get(appId) ?? default_app, [appsById]);
+
+  const handleSelectApp = useCallback(
+    (appId: string) => {
+      setSelectedAppId(appId);
+    },
+    [setSelectedAppId],
+  );
 
   const handleOpenApp = useCallback(
     (appId: string) => {
       setSelectedAppId(appId);
-      openApp(appId);
+      openDesktopApp(getAppById(appId));
     },
-    [openApp],
+    [setSelectedAppId, openDesktopApp, getAppById],
   );
 
   useEffect(() => {
@@ -285,6 +218,24 @@ export const Desktop = () => {
     containerSizeRef.current = containerSize;
   }, [containerSize]);
 
+  const snapPreviewStyle = useMemo(() => {
+    if (!snapPreviewSide) return null;
+
+    if (!containerSize) {
+      return {
+        side: snapPreviewSide,
+        width: "50%",
+      };
+    }
+
+    const halfWidth = Math.max(0, Math.floor(containerSize.width / 2));
+
+    return {
+      side: snapPreviewSide,
+      width: `${halfWidth}px`,
+    };
+  }, [containerSize, snapPreviewSide]);
+
   const focusedId = useMemo(() => {
     let current: DesktopWindow | undefined;
     windows.forEach((window) => {
@@ -295,12 +246,12 @@ export const Desktop = () => {
     return current?.id;
   }, [windows]);
 
-  const visibleWindows = useMemo(() => windows.sort((a, b) => a.zIndex - b.zIndex), [windows]);
+  const visibleWindows = useMemo(() => [...windows].sort((a, b) => a.zIndex - b.zIndex), [windows]);
 
   return (
     <Box ref={containerRef} position="relative" height="100%" width="100%" overflow="hidden">
       <Box position="absolute" inset="0" padding="lg" display="grid" gap="xl" alignContent="start">
-        {desktopApps.map((app) => (
+        {apps.map((app) => (
           <DesktopIcon
             key={app.id}
             icon={app.icon}
@@ -312,6 +263,23 @@ export const Desktop = () => {
           />
         ))}
       </Box>
+      {snapPreviewStyle ? (
+        <Box
+          pointerEvents="none"
+          position="absolute"
+          top="0"
+          bottom="0"
+          left={snapPreviewStyle.side === "left" ? 0 : undefined}
+          right={snapPreviewStyle.side === "right" ? 0 : undefined}
+          width={snapPreviewStyle.width}
+          borderRadius={"sm"}
+          border="1px solid"
+          borderColor={"background.accent-primary.light"}
+          background="background.accent-primary.very-light"
+          opacity={0.7}
+          zIndex={2}
+        />
+      ) : null}
       {visibleWindows.map((window) => (
         <Window
           key={window.id}
@@ -319,12 +287,23 @@ export const Desktop = () => {
           app={getAppById(window.appId)}
           containerSize={containerSize}
           isFocused={focusedId === window.id}
-          onFocus={() => focusWindow(window.id)}
-          onClose={() => closeWindow(window.id)}
-          onMinimize={() => minimizeWindow(window.id)}
-          onMaximize={() => toggleMaximize(window.id, containerSize ?? undefined)}
-          onPositionChange={(position) => setPosition(window.id, position)}
-          onSizeChange={(size) => setSize(window.id, size)}
+          onFocus={() => focusDesktopWindow(window.id)}
+          onClose={() => closeDesktopWindow(window.id)}
+          onMinimize={() => minimizeDesktopWindow(window.id)}
+          onMaximize={() => toggleDesktopWindowMaximize(window.id, containerSize ?? undefined)}
+          onPositionChange={(position) => setDesktopWindowPosition(window.id, position)}
+          onSizeChange={(size) => setDesktopWindowSize(window.id, size)}
+          onSnapPreview={(side) => {
+            setSnapPreviewSide((current) => (current === side ? current : side));
+          }}
+          onSnap={(options) => {
+            applyDesktopWindowSnap(window.id, options);
+            setSnapPreviewSide(null);
+          }}
+          onReleaseSnap={() => {
+            releaseDesktopWindowSnap(window.id);
+            setSnapPreviewSide(null);
+          }}
         />
       ))}
     </Box>

@@ -11,6 +11,10 @@ export const DEFAULT_STATE: WorkspaceState = {
     },
   },
   selectedConversationId: "default",
+  desktop: {
+    windows: [],
+    nextZIndex: 1,
+  },
   settings: {
     modelId: "gpt-5-mini",
     baseUrl: "",

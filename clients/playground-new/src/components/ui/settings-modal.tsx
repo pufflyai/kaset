@@ -1,4 +1,5 @@
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
+import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
 import type { McpServerConfig } from "@/state/types";
 import {
   Alert,
@@ -41,13 +42,13 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   useEffect(() => {
     if (!isOpen) return;
 
-    const snapshot = useWorkspaceStore.getState();
-    setApiKey(snapshot.settings.apiKey ?? "");
-    setBaseUrl(snapshot.settings.baseUrl ?? "");
-    setModel(snapshot.settings.modelId || "gpt-5-mini");
-    setApprovalTools(snapshot.settings.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
+    const settings = getWorkspaceSettings();
+    setApiKey(settings.apiKey ?? "");
+    setBaseUrl(settings.baseUrl ?? "");
+    setModel(settings.modelId || "gpt-5-mini");
+    setApprovalTools(settings.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
 
-    const storedServers = snapshot.settings.mcpServers;
+    const storedServers = settings.mcpServers;
     const effectiveServers = storedServers ?? [];
     const hasServers = effectiveServers.length > 0;
 
@@ -56,7 +57,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setActiveMcpServerIds(() => {
       if (!hasServers) return [];
 
-      const storedActiveIds = snapshot.settings.activeMcpServerIds;
+      const storedActiveIds = settings.activeMcpServerIds;
 
       if (storedActiveIds) {
         const validStored = storedActiveIds.filter((id) => effectiveServers.some((server) => server.id === id));
@@ -144,22 +145,14 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
       ? activeMcpServerIds.filter((id) => sanitizedServers.some((server) => server.id === id))
       : [];
 
-    useWorkspaceStore.setState(
-      (state) => {
-        state.settings.apiKey = apiKey || undefined;
-        state.settings.baseUrl = baseUrl || undefined;
-        state.settings.modelId = model || "gpt-5-mini";
-        state.settings.approvalGatedTools = [...approvalTools];
-        state.settings.mcpServers = sanitizedServers.map((server) => ({ ...server }));
-        state.settings.activeMcpServerIds = nextActiveIds.length > 0 ? [...nextActiveIds] : [];
-
-        if ((state as Record<string, unknown>).selectedMcpServerId) {
-          delete (state as Record<string, unknown>).selectedMcpServerId;
-        }
-      },
-      false,
-      "settings/save-llm-config",
-    );
+    saveWorkspaceSettings({
+      apiKey: apiKey || undefined,
+      baseUrl: baseUrl || undefined,
+      modelId: model || "gpt-5-mini",
+      approvalGatedTools: [...approvalTools],
+      mcpServers: sanitizedServers.map((server) => ({ ...server })),
+      activeMcpServerIds: nextActiveIds,
+    });
 
     onClose();
   };

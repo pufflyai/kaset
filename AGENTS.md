@@ -339,3 +339,17 @@ const statusText = isError
           ? "Running"
           : "Waiting";
 ```
+
+## 9. Avoid using `void` when calling functions
+
+✅ Example (good):
+
+```ts
+hello("world");
+```
+
+❌ Example (bad):
+
+```ts
+void hello("world");
+```

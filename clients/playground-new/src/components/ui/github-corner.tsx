@@ -15,7 +15,7 @@ export function GithubCorner(props: GithubCornerProps) {
       position="absolute"
       top={0}
       right={0}
-      zIndex={1000}
+      zIndex={1}
       outline="none"
       className="github-corner"
       aria-label="View source on GitHub"

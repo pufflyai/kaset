@@ -1,7 +1,11 @@
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
-import { usePluginHost } from "@/services/plugins/usePluginHost";
+import { appendConversationMessages } from "@/state/actions/appendConversationMessages";
+import { getConversation } from "@/state/actions/getConversation";
+import { getConversationMessages } from "@/state/actions/getConversationMessages";
+import { getSelectedConversationId } from "@/state/actions/getSelectedConversationId";
 import { hasCredentials } from "@/state/actions/hasCredentials";
+import { setConversationMessages } from "@/state/actions/setConversationMessages";
 import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -20,11 +24,10 @@ export function ConversationHost() {
       : EMPTY_MESSAGES,
   );
   const { tools: mcpTools } = useMcpService();
-  const { tools: pluginTools } = usePluginHost();
   const [streaming, setStreaming] = useState(false);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
-  const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
+  const toolset = useMemo(() => [...mcpTools], [mcpTools]);
 
   useEffect(() => {
     setApprovalHandler(
@@ -43,10 +46,10 @@ export function ConversationHost() {
   }, []);
 
   const handleSendMessage = async (text: string) => {
-    const conversationId = useWorkspaceStore.getState().selectedConversationId;
-    const convo = useWorkspaceStore.getState().conversations[conversationId];
+    const conversationId = getSelectedConversationId();
+    const conversation = getConversation(conversationId);
 
-    if (!conversationId || !convo) return;
+    if (!conversationId || !conversation) return;
 
     const userMessage: Message = {
       id: shortUID(),
@@ -54,28 +57,16 @@ export function ConversationHost() {
       parts: [{ type: "text", text }],
     };
 
-    const current = useWorkspaceStore.getState().conversations[conversationId]?.messages ?? [];
+    const current = getConversationMessages(conversationId);
     const base = [...current, userMessage];
 
-    useWorkspaceStore.setState(
-      (state) => {
-        state.conversations[conversationId].messages = base;
-      },
-      false,
-      "conversations/send/user",
-    );
+    setConversationMessages(conversationId, base, "conversations/send/user");
 
     try {
       setStreaming(true);
       for await (const updated of sendMessage(conversationId, base, toolset)) {
         if (!conversationId) continue;
-        useWorkspaceStore.setState(
-          (state) => {
-            state.conversations[conversationId].messages = updated;
-          },
-          false,
-          "conversations/send/assistant",
-        );
+        setConversationMessages(conversationId, updated, "conversations/send/assistant");
       }
     } catch (err) {
       const assistantError: Message = {
@@ -89,19 +80,9 @@ export function ConversationHost() {
         ],
       };
 
-      const stateSnapshot = useWorkspaceStore.getState();
-      const id = stateSnapshot.selectedConversationId;
-
+      const id = getSelectedConversationId();
       if (id) {
-        const currentMessages = stateSnapshot.conversations[id]?.messages ?? base;
-
-        useWorkspaceStore.setState(
-          (state) => {
-            state.conversations[id].messages = [...currentMessages, assistantError];
-          },
-          false,
-          "conversations/send/error",
-        );
+        appendConversationMessages(id, [assistantError], "conversations/send/error");
       }
     } finally {
       setStreaming(false);

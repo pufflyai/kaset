@@ -1,0 +1,27 @@
+{
+  "id": "todo",
+  "name": "Todo",
+  "version": "0.1.0",
+  "api": "^1.0.0",
+  "entry": "index.js",
+  "description": "Example todo plugin that renders a simple desktop window.",
+  "ui": {
+    "desktop": {
+      "title": "Todo",
+      "description": "Manage todo lists stored in OPFS.",
+      "icon": "ListTodo",
+      "singleton": true,
+      "defaultSize": { "width": 840, "height": 620 },
+      "minSize": { "width": 420, "height": 320 },
+      "window": {
+        "entry": "src/window.tsx",
+        "dependencies": {
+          "@chakra-ui/react": "^3.24.2",
+          "@emotion/react": "^11.14.0",
+          "@emotion/styled": "^11.14.0",
+          "lucide-react": "^0.542.0"
+        }
+      }
+    }
+  }
+}

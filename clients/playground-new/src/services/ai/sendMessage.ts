@@ -1,5 +1,5 @@
 import { ROOT } from "@/constant";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
 import type { UIConversation } from "@/types";
 import { buildInitialConversation, createKasAgent, toConversation } from "@pstdio/kas";
 import { safeAutoCommit } from "@pstdio/opfs-utils";
@@ -13,8 +13,7 @@ export async function* sendMessage(conversationId: string, conversation: UIConve
 
   const { initialForAgent, uiBoot, devNote } = await buildInitialConversation(conversation, directory);
 
-  const { settings } = useWorkspaceStore.getState();
-  const { modelId, approvalGatedTools, apiKey, baseUrl } = settings;
+  const { modelId, approvalGatedTools, apiKey, baseUrl } = getWorkspaceSettings();
 
   const agent = createKasAgent({
     model: modelId,
