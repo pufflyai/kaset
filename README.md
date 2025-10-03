@@ -20,7 +20,7 @@ No coding experience required.
 
 Directly _inside_ your app.
 
-Curious? Check out our [documentation](https://pufflyai.github.io/kaset/).
+Curious? Check out our [documentation](https://kaset.dev).
 
 ## Contents
 

@@ -1,0 +1,60 @@
+{
+  "name": "playground-new",
+  "description": "Kaset Playground - a collection of agentic web app demos",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "start": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "preview": "vite preview",
+    "format": "prettier --check \"./src/**/*.{js,jsx,ts,tsx,css,scss,html,md}\" --write",
+    "visualize-bundle": "npx vite-bundle-visualizer"
+  },
+  "dependencies": {
+    "@chakra-ui/react": "^3.24.2",
+    "@emotion/react": "^11.14.0",
+    "@lexical/react": "^0.34.0",
+    "@lexical/selection": "^0.34.0",
+    "@lexical/utils": "^0.34.0",
+    "@modelcontextprotocol/sdk": "^1.18.1",
+    "@monaco-editor/react": "^4.7.0",
+    "@pstdio/kas": "^0.1.2",
+    "@pstdio/kaset-plugin-host": "^0.1.0",
+    "@pstdio/opfs-hooks": "^0.1.4",
+    "@pstdio/opfs-utils": "^0.1.6",
+    "@pstdio/prompt-utils": "^0.1.1",
+    "allotment": "^1.20.4",
+    "buffer": "^6.0.3",
+    "immer": "^10.1.3",
+    "katex": "^0.16.22",
+    "lexical": "^0.34.0",
+    "lucide-react": "^0.542.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-helmet": "^6.1.0",
+    "react-rnd": "^10.5.2",
+    "react-router-dom": "^7.8.1",
+    "use-stick-to-bottom": "^1.1.1",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "@types/react-helmet": "^6.1.11",
+    "@vitejs/plugin-react": "^5.0.0",
+    "eslint": "^9.32.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.3.0",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.39.0",
+    "vite": "^7.1.0",
+    "vite-plugin-svgr": "^4.3.0"
+  },
+  "volta": {
+    "node": "22.18.0"
+  }
+}

@@ -1,5 +1,5 @@
 import { toaster } from "@/components/ui/toaster";
-import { PROJECTS_ROOT } from "@/constant";
+import { ROOT } from "@/constant";
 import {
   createPluginHost,
   type HostConfig,
@@ -10,7 +10,7 @@ import {
 import { deleteFile, getDirectoryHandle, readFile, writeFile } from "@pstdio/opfs-utils";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 
-const DEFAULT_PLUGINS_ROOT = `${PROJECTS_ROOT}/plugins`;
+const DEFAULT_PLUGINS_ROOT = `${ROOT}/plugins`;
 
 type PluginMetadata = {
   id: string;

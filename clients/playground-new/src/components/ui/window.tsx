@@ -1,6 +1,6 @@
 import { Box, Flex, HStack, IconButton, Text } from "@chakra-ui/react";
 import type { LucideIcon } from "lucide-react";
-import { Square, X } from "lucide-react";
+import { Minimize2, Square, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { Rnd } from "react-rnd";
 
@@ -61,35 +61,30 @@ interface WindowChromeProps {
 
 const WindowChrome = (props: WindowChromeProps) => {
   const { window, app, isFocused, onFocus, onClose, onMaximize } = props;
-  const Icon = app.icon;
 
   return (
     <Flex
+      background="background.primary"
       direction="column"
       height="100%"
       borderWidth="1px"
       borderRadius={window.isMaximized ? undefined : "md"}
       overflow="hidden"
-      boxShadow={isFocused ? "0 20px 45px rgba(0, 0, 0, 0.45)" : "0 16px 30px rgba(0, 0, 0, 0.3)"}
+      boxShadow={isFocused ? "high" : "low"}
       onMouseDown={onFocus}
     >
-      <Flex align="center" justify="space-between" paddingX="sm" paddingY="2xs" gap="sm">
+      <Flex align="center" justify="space-between" paddingX="sm" paddingY="xs" gap="sm">
         <HStack gap="xs">
-          <Icon size={16} />
+          <app.icon size={16} />
           <Text fontSize="sm" fontWeight="medium">
             {window.title}
           </Text>
         </HStack>
         <HStack gap="2xs">
-          <IconButton
-            aria-label={window.isMaximized ? "Restore" : "Maximize"}
-            variant="ghost"
-            size="2xs"
-            onClick={onMaximize}
-          >
-            <Square size={14} />
+          <IconButton aria-label={window.isMaximized ? "Restore" : "Maximize"} size="2xs" onClick={onMaximize}>
+            {window.isMaximized ? <Minimize2 size={14} /> : <Square size={14} />}
           </IconButton>
-          <IconButton aria-label="Close" variant="ghost" size="2xs" onClick={onClose}>
+          <IconButton aria-label="Close" size="2xs" onClick={onClose}>
             <X size={14} />
           </IconButton>
         </HStack>

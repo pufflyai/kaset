@@ -1,10 +1,11 @@
-import { Box, Flex, HStack, IconButton } from "@chakra-ui/react";
+import { Box } from "@chakra-ui/react";
 import { shortUID } from "@pstdio/prompt-utils";
-import { LayoutDashboard } from "lucide-react";
+import { ListTodoIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { Window, type DesktopWindow, type Position, type Size } from "./window";
+import { DesktopIcon } from "./desktop-icon";
+import { Window, type DesktopApp, type DesktopWindow, type Position, type Size } from "./window";
 
 interface DesktopState {
   windows: DesktopWindow[];
@@ -28,13 +29,17 @@ const default_app = {
   minSize: { width: 200, height: 100 },
   id: "unknown",
   title: "Unknown",
-  icon: LayoutDashboard,
+  icon: ListTodoIcon,
   description: "Unknown app",
   defaultPosition: { x: 120, y: 80 },
   defaultSize: { width: 800, height: 600 },
-  singleton: true,
+  singleton: false,
   render: () => <Box p="md">Unknown app</Box>,
 };
+
+const desktopApps: DesktopApp[] = [default_app];
+
+const getAppById = (appId: string) => desktopApps.find((app) => app.id === appId) ?? default_app;
 
 export const useDesktopStore = create<DesktopState>()(
   persist(
@@ -43,7 +48,9 @@ export const useDesktopStore = create<DesktopState>()(
       nextZIndex: 1,
       openApp: (appId) => {
         const state = get();
-        const existing = state.windows.find((window) => window.appId === appId && default_app.singleton !== false);
+        const app = getAppById(appId);
+        const existing = state.windows.find((window) => window.appId === appId && app.singleton !== false);
+
         if (existing) {
           set({
             windows: state.windows.map((window) =>
@@ -65,9 +72,9 @@ export const useDesktopStore = create<DesktopState>()(
         const newWindow: DesktopWindow = {
           id,
           appId,
-          title: default_app.title,
-          position: default_app.defaultPosition ?? { x: 120 + offset, y: 80 + offset },
-          size: default_app.defaultSize,
+          title: app.title,
+          position: app.defaultPosition ? { ...app.defaultPosition } : { x: 120 + offset, y: 80 + offset },
+          size: { ...app.defaultSize },
           zIndex: state.nextZIndex,
           isMinimized: false,
           isMaximized: false,
@@ -100,7 +107,6 @@ export const useDesktopStore = create<DesktopState>()(
         const state = get();
         const remaining = state.windows.filter((window) => window.id !== windowId);
         const nextZIndex = Math.max(1, Math.max(0, ...remaining.map((window) => window.zIndex)) + 1);
-
         set({
           windows: remaining,
           nextZIndex,
@@ -226,51 +232,11 @@ export const useDesktopStore = create<DesktopState>()(
   ),
 );
 
-const formatClock = (date: Date) =>
-  date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
-interface TaskbarProps {
-  windows: DesktopWindow[];
-  focusedId?: string;
-  onClickWindow: (window: DesktopWindow) => void;
-  onShowDesktop: () => void;
-  clock: string;
-}
-
-const Taskbar = (props: TaskbarProps) => {
-  const { onShowDesktop } = props;
-
-  return (
-    <Flex
-      position="absolute"
-      bottom="0"
-      left="0"
-      right="0"
-      height="56px"
-      align="center"
-      paddingX="lg"
-      paddingY="sm"
-      gap="md"
-      bg="blackAlpha.700"
-      backdropFilter="blur(12px)"
-      zIndex={1_000}
-    >
-      <IconButton aria-label="Show desktop" size="sm" variant="ghost" onClick={onShowDesktop}>
-        <LayoutDashboard size={18} />
-      </IconButton>
-      <HStack gap="xs" overflow="hidden"></HStack>
-    </Flex>
-  );
-};
-
 export const Desktop = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const containerSizeRef = useRef<Size | null>(null);
   const [containerSize, setContainerSize] = useState<Size | null>(null);
-  const [clock, setClock] = useState(() => formatClock(new Date()));
+  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const windows = useDesktopStore((state) => state.windows);
   const openApp = useDesktopStore((state) => state.openApp);
   const focusWindow = useDesktopStore((state) => state.focusWindow);
@@ -279,7 +245,18 @@ export const Desktop = () => {
   const toggleMaximize = useDesktopStore((state) => state.toggleMaximize);
   const setPosition = useDesktopStore((state) => state.setPosition);
   const setSize = useDesktopStore((state) => state.setSize);
-  const showDesktop = useDesktopStore((state) => state.showDesktop);
+
+  const handleSelectApp = useCallback((appId: string) => {
+    setSelectedAppId(appId);
+  }, []);
+
+  const handleOpenApp = useCallback(
+    (appId: string) => {
+      setSelectedAppId(appId);
+      openApp(appId);
+    },
+    [openApp],
+  );
 
   useEffect(() => {
     if (typeof window === "undefined" || !containerRef.current || typeof ResizeObserver === "undefined") return;
@@ -305,18 +282,6 @@ export const Desktop = () => {
   }, []);
 
   useEffect(() => {
-    const interval = window.setInterval(() => setClock(formatClock(new Date())), 15_000);
-    return () => window.clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (!useDesktopStore.persist.hasHydrated()) return;
-    if (windows.length > 0) return;
-
-    openApp("unknown");
-  }, [windows.length, openApp]);
-
-  useEffect(() => {
     containerSizeRef.current = containerSize;
   }, [containerSize]);
 
@@ -332,38 +297,26 @@ export const Desktop = () => {
 
   const visibleWindows = useMemo(() => windows.sort((a, b) => a.zIndex - b.zIndex), [windows]);
 
-  const taskbarWindows = useMemo(() => [...windows].sort((a, b) => a.openedAt - b.openedAt), [windows]);
-
-  const handleTaskbarClick = useCallback(
-    (window: DesktopWindow) => {
-      if (window.isMinimized || focusedId !== window.id) {
-        focusWindow(window.id);
-      } else {
-        minimizeWindow(window.id);
-      }
-    },
-    [focusWindow, minimizeWindow, focusedId],
-  );
-
   return (
-    <Box ref={containerRef} position="relative" height="100%" width="100%" overflow="hidden" color="white">
-      <Box
-        position="absolute"
-        inset="0"
-        padding="lg"
-        display="grid"
-        gridTemplateColumns={{
-          base: "repeat(auto-fill, minmax(120px, 1fr))",
-          md: "repeat(auto-fill, minmax(140px, 1fr))",
-        }}
-        gap="xl"
-        alignContent="start"
-      ></Box>
+    <Box ref={containerRef} position="relative" height="100%" width="100%" overflow="hidden">
+      <Box position="absolute" inset="0" padding="lg" display="grid" gap="xl" alignContent="start">
+        {desktopApps.map((app) => (
+          <DesktopIcon
+            key={app.id}
+            icon={app.icon}
+            label={app.title}
+            isSelected={selectedAppId === app.id}
+            onSelect={() => handleSelectApp(app.id)}
+            onFocus={() => handleSelectApp(app.id)}
+            onOpen={() => handleOpenApp(app.id)}
+          />
+        ))}
+      </Box>
       {visibleWindows.map((window) => (
         <Window
           key={window.id}
           window={window}
-          app={default_app}
+          app={getAppById(window.appId)}
           containerSize={containerSize}
           isFocused={focusedId === window.id}
           onFocus={() => focusWindow(window.id)}
@@ -374,13 +327,6 @@ export const Desktop = () => {
           onSizeChange={(size) => setSize(window.id, size)}
         />
       ))}
-      <Taskbar
-        windows={taskbarWindows}
-        focusedId={focusedId}
-        onClickWindow={handleTaskbarClick}
-        onShowDesktop={showDesktop}
-        clock={clock}
-      />
     </Box>
   );
 };

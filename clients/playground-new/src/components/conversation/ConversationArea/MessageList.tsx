@@ -1,19 +1,12 @@
 import { MessageContent, MessageRoot } from "@/components/ui/ai-message";
 import { EmptyState } from "@/components/ui/empty-state";
-import { examplePrompts as slidesPrompts } from "@/examples/slides/example-prompts";
-import { examplePrompts as todoPrompts } from "@/examples/todo/example-prompts";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import { hasCredentials } from "@/state/actions/hasCredentials";
 import type { Message, ToolInvocation } from "@/types";
 import { Box, Button, Link, Text, VStack } from "@chakra-ui/react";
 import { CassetteTapeIcon } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
 import { CollapsibleToolTimeline } from "./CollapsibleToolTimeline";
 import { MessagePartsRenderer } from "./MessagePartsRenderer";
-
-const EXAMPLE_PROMPTS_BY_PROJECT: Record<string, string[]> = {
-  todo: todoPrompts,
-  slides: slidesPrompts,
-};
 
 const isToolOnlyMessage = (m: Message) =>
   m.parts.length > 0 && m.parts.every((p) => (p as any).type === "tool-invocation");
@@ -135,10 +128,7 @@ interface MessageListProps {
 }
 
 export function MessageList({ messages, streaming, onOpenFile, onUseExample }: MessageListProps) {
-  const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
-  const hasCredentials = useWorkspaceStore((s) => Boolean(s.apiKey || s.baseUrl));
-
-  const projectPrompts = EXAMPLE_PROMPTS_BY_PROJECT[selectedProject] ?? EXAMPLE_PROMPTS_BY_PROJECT.todo;
+  const projectPrompts: string[] = [];
   const examplesToShow = useMemo(() => pickRandom(projectPrompts, 4), [projectPrompts]);
 
   const plan = useRenderPlan(messages);
@@ -161,7 +151,7 @@ export function MessageList({ messages, streaming, onOpenFile, onUseExample }: M
             </Link>
             .
           </Text>
-          {hasCredentials && (
+          {hasCredentials() && (
             <VStack gap="sm" mt="sm" align="stretch">
               <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
                 Try one of these example prompts to get see it in action:

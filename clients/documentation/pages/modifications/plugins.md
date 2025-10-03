@@ -130,18 +130,6 @@ Each workspace has one plugins root and a public state area:
   - `onFSChange`: path changes under a glob trigger a plugin event.
   - `onEvent`: app‑level events via `host.emit(name, payload)`.
 
-## Settings & persistence
-
-- **Location**: `/state/public/plugins/<id>.json` (host‑managed).
-- **Validation**: host recommends AJV and rejects invalid writes.
-- **Access**: `ctx.settings.read<T>()`, `ctx.settings.write<T>(value)`.
-
-## Logging & diagnostics
-
-- **Per plugin log**: `/artifacts/logs/<id>.ndjson` (append‑only; written by host).
-- **Logger**: `ctx.log.info|warn|error(...)`.
-- **Auditability**: FS writes and network calls can be logged centrally by the host.
-
 ## Webviews
 
 For custom UI, a plugin may declare **webviews/panels** rendered in sandboxed iframes.
@@ -155,7 +143,7 @@ For custom UI, a plugin may declare **webviews/panels** rendered in sandboxed if
 - **Theming**
   Host sends design tokens on load; the webview chooses whether to adopt them.
 
-## Host integration (minimal)
+## Host integration
 
 Bind host surfaces to your app with the **UI Adapter**.
 
@@ -225,21 +213,6 @@ export default {
 - `ctx.net?`: `{ fetch(url, init) }` (if host enabled + domain allowlisted)
 - `ctx.cancelToken`: `AbortSignal` cancelled on reload/unload
 - `ctx.disposables`: array of `{ dispose(): void | Promise<void> }` (host calls on unload)
-
-## Implementation notes
-
-- **CSP**: Loading ESM from Blob URLs requires `script-src blob:`. If your app forbids it, plugins cannot load.
-- **Globs**: Use narrow FS globs. Prefer dedicated subtrees (`/todos/**`, `/state/public/plugins/<id>.json`).
-- **Debouncing**: For busy trees, debounce FS change handlers inside the plugin.
-- **Idempotency**: Make `activate` safe to run after reloads. Use `ctx.cancelToken` to abort long tasks.
-- **Crash containment**: Keep hot paths short; rely on the host time budgets.
-
-## Operational guidance (short)
-
-- **Principle of least privilege**: Declare only the FS and network scopes you need.
-- **Small, composable plugins**: Favor many focused plugins over one monolith.
-- **Observability first**: Log early; surface health via notifications sparingly.
-- **Upgrade policy**: Pin `api` to `^1.0.0`; test on host upgrades.
 
 ## Reference plugins
 

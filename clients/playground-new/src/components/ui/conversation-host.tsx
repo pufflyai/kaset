@@ -1,0 +1,135 @@
+import { setApprovalHandler } from "@/services/ai/approval";
+import { useMcpService } from "@/services/mcp/useMcpService";
+import { usePluginHost } from "@/services/plugins/usePluginHost";
+import { hasCredentials } from "@/state/actions/hasCredentials";
+import type { ApprovalRequest } from "@pstdio/kas";
+import { shortUID } from "@pstdio/prompt-utils";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { sendMessage } from "../../services/ai/sendMessage";
+import { useWorkspaceStore } from "../../state/WorkspaceProvider";
+import type { Message } from "../../types";
+import { ConversationArea } from "../conversation/ConversationArea";
+import { ApprovalModal } from "./approval-modal";
+
+const EMPTY_MESSAGES: Message[] = [];
+
+export function ConversationHost() {
+  const messages = useWorkspaceStore((s) =>
+    s.selectedConversationId
+      ? (s.conversations[s.selectedConversationId!]?.messages ?? EMPTY_MESSAGES)
+      : EMPTY_MESSAGES,
+  );
+  const { tools: mcpTools } = useMcpService();
+  const { tools: pluginTools } = usePluginHost();
+  const [streaming, setStreaming] = useState(false);
+  const [approval, setApproval] = useState<ApprovalRequest | null>(null);
+  const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
+  const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
+
+  useEffect(() => {
+    setApprovalHandler(
+      (req) =>
+        new Promise<boolean>((resolve) => {
+          setApproval(req);
+          approvalResolve.current = resolve;
+        }),
+    );
+
+    return () => {
+      // On unmount, reset handler and resolve any pending approval as denied
+      setApprovalHandler(null);
+      approvalResolve.current?.(false);
+    };
+  }, []);
+
+  const handleSendMessage = async (text: string) => {
+    const conversationId = useWorkspaceStore.getState().selectedConversationId;
+    const convo = useWorkspaceStore.getState().conversations[conversationId];
+
+    if (!conversationId || !convo) return;
+
+    const userMessage: Message = {
+      id: shortUID(),
+      role: "user",
+      parts: [{ type: "text", text }],
+    };
+
+    const current = useWorkspaceStore.getState().conversations[conversationId]?.messages ?? [];
+    const base = [...current, userMessage];
+
+    useWorkspaceStore.setState(
+      (state) => {
+        state.conversations[conversationId].messages = base;
+      },
+      false,
+      "conversations/send/user",
+    );
+
+    try {
+      setStreaming(true);
+      for await (const updated of sendMessage(conversationId, base, toolset)) {
+        if (!conversationId) continue;
+        useWorkspaceStore.setState(
+          (state) => {
+            state.conversations[conversationId].messages = updated;
+          },
+          false,
+          "conversations/send/assistant",
+        );
+      }
+    } catch (err) {
+      const assistantError: Message = {
+        id: shortUID(),
+        role: "assistant",
+        parts: [
+          {
+            type: "text",
+            text: `Sorry, I couldn't process that. ${err instanceof Error ? err.message : String(err)}`,
+          },
+        ],
+      };
+
+      const stateSnapshot = useWorkspaceStore.getState();
+      const id = stateSnapshot.selectedConversationId;
+
+      if (id) {
+        const currentMessages = stateSnapshot.conversations[id]?.messages ?? base;
+
+        useWorkspaceStore.setState(
+          (state) => {
+            state.conversations[id].messages = [...currentMessages, assistantError];
+          },
+          false,
+          "conversations/send/error",
+        );
+      }
+    } finally {
+      setStreaming(false);
+    }
+  };
+
+  return (
+    <>
+      <ConversationArea
+        messages={messages}
+        streaming={streaming}
+        canSend={hasCredentials() && !streaming}
+        onSendMessage={handleSendMessage}
+        onSelectFile={(_path) => {}}
+      />
+      <ApprovalModal
+        request={approval}
+        onApprove={() => {
+          approvalResolve.current?.(true);
+          setApproval(null);
+          approvalResolve.current = null;
+        }}
+        onDeny={() => {
+          approvalResolve.current?.(false);
+          setApproval(null);
+          approvalResolve.current = null;
+        }}
+      />
+    </>
+  );
+}
