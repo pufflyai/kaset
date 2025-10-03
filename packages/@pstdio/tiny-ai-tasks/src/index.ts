@@ -4,6 +4,7 @@ export type { MessageHistory } from "./agents/createAgent";
 export { createLLMTask } from "./llm/createLLMTask";
 export type { LLMTaskOptions } from "./llm/createLLMTask";
 
+export { createMcpTool } from "./tools/createMCPTool";
 export { createToolTask } from "./tools/createToolTask";
 export type { ToolResult } from "./tools/createToolTask";
 export { Tool } from "./tools/Tool";

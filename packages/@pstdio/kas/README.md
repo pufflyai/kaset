@@ -23,9 +23,7 @@ import { createKasAgent } from "@pstdio/kas";
 
 const workspaceDir = "/projects/demo";
 
-const agent = createKasAgent({
-  model: "gpt-5-mini",
-  apiKey: "<YOUR_API_KEY>",
+const OPFSTools = createOpfsTools({
   workspaceDir,
   // Optional: customize which tools require approval
   approvalGatedTools: ["opfs_write_file"],
@@ -34,6 +32,12 @@ const agent = createKasAgent({
     console.log("Needs approval", tool, workspaceDir, detail);
     return confirm(`Allow ${tool} in ${workspaceDir}?`);
   },
+});
+
+const agent = createKasAgent({
+  model: "gpt-5-mini",
+  apiKey: "<YOUR_API_KEY>",
+  tools: [...OPFSTools],
 });
 
 // Run agent with messages

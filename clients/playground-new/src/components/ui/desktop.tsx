@@ -37,18 +37,6 @@ const ICON_CACHE = new Map<string, LucideIcon>();
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
 const DEFAULT_MIN_WINDOW_SIZE = { width: 420, height: 320 };
 
-const default_app: DesktopApp = {
-  minSize: { width: 200, height: 100 },
-  id: "unknown",
-  title: "Unknown",
-  icon: FALLBACK_ICON,
-  description: "Unknown app",
-  defaultPosition: { x: 120, y: 80 },
-  defaultSize: { width: 800, height: 600 },
-  singleton: false,
-  render: () => <Box p="md">Unknown app</Box>,
-};
-
 const resolveIcon = (iconName?: string): LucideIcon => {
   if (!iconName) return FALLBACK_ICON!;
 
@@ -157,7 +145,7 @@ export const Desktop = () => {
     return unsubscribe;
   }, []);
 
-  const apps = useMemo(() => [default_app, ...pluginApps], [pluginApps]);
+  const apps = useMemo(() => pluginApps, [pluginApps]);
 
   const appsById = useMemo(() => {
     const map = new Map<string, DesktopApp>();
@@ -174,7 +162,7 @@ export const Desktop = () => {
     }
   }, [appsById, selectedAppId]);
 
-  const getAppById = useCallback((appId: string) => appsById.get(appId) ?? default_app, [appsById]);
+  const getAppById = useCallback((appId: string) => appsById.get(appId), [appsById]);
 
   const handleSelectApp = useCallback(
     (appId: string) => {
@@ -185,8 +173,11 @@ export const Desktop = () => {
 
   const handleOpenApp = useCallback(
     (appId: string) => {
+      const app = getAppById(appId);
+      if (!app) return;
+
       setSelectedAppId(appId);
-      openDesktopApp(getAppById(appId));
+      openDesktopApp(app);
     },
     [setSelectedAppId, openDesktopApp, getAppById],
   );
@@ -280,32 +271,37 @@ export const Desktop = () => {
           zIndex={2}
         />
       ) : null}
-      {visibleWindows.map((window) => (
-        <Window
-          key={window.id}
-          window={window}
-          app={getAppById(window.appId)}
-          containerSize={containerSize}
-          isFocused={focusedId === window.id}
-          onFocus={() => focusDesktopWindow(window.id)}
-          onClose={() => closeDesktopWindow(window.id)}
-          onMinimize={() => minimizeDesktopWindow(window.id)}
-          onMaximize={() => toggleDesktopWindowMaximize(window.id, containerSize ?? undefined)}
-          onPositionChange={(position) => setDesktopWindowPosition(window.id, position)}
-          onSizeChange={(size) => setDesktopWindowSize(window.id, size)}
-          onSnapPreview={(side) => {
-            setSnapPreviewSide((current) => (current === side ? current : side));
-          }}
-          onSnap={(options) => {
-            applyDesktopWindowSnap(window.id, options);
-            setSnapPreviewSide(null);
-          }}
-          onReleaseSnap={() => {
-            releaseDesktopWindowSnap(window.id);
-            setSnapPreviewSide(null);
-          }}
-        />
-      ))}
+      {visibleWindows.map((window) => {
+        const app = getAppById(window.appId);
+        if (!app) return null;
+
+        return (
+          <Window
+            key={window.id}
+            window={window}
+            app={app}
+            containerSize={containerSize}
+            isFocused={focusedId === window.id}
+            onFocus={() => focusDesktopWindow(window.id)}
+            onClose={() => closeDesktopWindow(window.id)}
+            onMinimize={() => minimizeDesktopWindow(window.id)}
+            onMaximize={() => toggleDesktopWindowMaximize(window.id, containerSize ?? undefined)}
+            onPositionChange={(position) => setDesktopWindowPosition(window.id, position)}
+            onSizeChange={(size) => setDesktopWindowSize(window.id, size)}
+            onSnapPreview={(side) => {
+              setSnapPreviewSide((current) => (current === side ? current : side));
+            }}
+            onSnap={(options) => {
+              applyDesktopWindowSnap(window.id, options);
+              setSnapPreviewSide(null);
+            }}
+            onReleaseSnap={() => {
+              releaseDesktopWindowSnap(window.id);
+              setSnapPreviewSide(null);
+            }}
+          />
+        );
+      })}
     </Box>
   );
 };

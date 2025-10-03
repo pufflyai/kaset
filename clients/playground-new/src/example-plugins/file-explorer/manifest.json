@@ -1,0 +1,30 @@
+{
+  "id": "file-explorer",
+  "name": "File Explorer",
+  "version": "0.1.0",
+  "api": "^1.0.0",
+  "entry": "index.js",
+  "description": "Browse and edit files stored in the playground workspace.",
+  "ui": {
+    "desktop": {
+      "title": "File Explorer",
+      "description": "Inspect files beneath the playground root and edit them in place.",
+      "icon": "Folder",
+      "singleton": true,
+      "defaultSize": { "width": 840, "height": 620 },
+      "minSize": { "width": 420, "height": 320 },
+      "window": {
+        "entry": "src/window.tsx",
+        "dependencies": {
+          "@chakra-ui/react": "^3.24.2",
+          "@emotion/react": "^11.14.0",
+          "@emotion/styled": "^11.14.0",
+          "@monaco-editor/react": "^4.7.0",
+          "@pstdio/opfs-hooks": "^0.1.4",
+          "@pstdio/opfs-utils": "^0.1.6",
+          "lucide-react": "^0.542.0"
+        }
+      }
+    }
+  }
+}

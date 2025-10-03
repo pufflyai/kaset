@@ -1,4 +1,3 @@
-import type { LsEntry, LsOptions } from "@pstdio/opfs-utils";
 import type { Manifest } from "../model/manifest";
 
 export interface Disposable {
@@ -12,7 +11,6 @@ export interface Logger {
 }
 
 export interface FSApi {
-  ls(path: string, options?: LsOptions): Promise<LsEntry[]>;
   readFile(path: string): Promise<string>;
   writeFile(path: string, contents: string): Promise<void>;
   deleteFile(path: string): Promise<void>;
@@ -44,9 +42,6 @@ export interface PluginContext {
   manifest: Manifest;
   log: Logger;
   fs: FSApi;
-  grep: (typeof import("@pstdio/opfs-utils"))["grep"];
-  patch: (typeof import("@pstdio/opfs-utils"))["patch"];
-  processSingleFileContent: (typeof import("@pstdio/opfs-utils"))["processSingleFileContent"];
   settings: SettingsApi;
   ui: UIHostApi;
   events: EventsApi;

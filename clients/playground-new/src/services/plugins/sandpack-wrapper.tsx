@@ -2,7 +2,11 @@ import { Box, Center, Spinner, Text } from "@chakra-ui/react";
 import { SandpackLayout, SandpackPreview, SandpackProvider } from "@codesandbox/sandpack-react";
 import { useEffect, useMemo, useState } from "react";
 import { ls, readFile } from "@pstdio/opfs-utils";
-import { getPluginsRoot, type PluginDesktopWindowDescriptor } from "@/services/plugins/plugin-host";
+import {
+  getPluginsRoot,
+  subscribeToPluginFiles,
+  type PluginDesktopWindowDescriptor,
+} from "@/services/plugins/plugin-host";
 
 const GENERATED_ENTRY_PATH = "/__kaset_entry__.tsx";
 
@@ -90,8 +94,19 @@ export const PluginSandpackWindow = (props: PluginSandpackWindowProps) => {
   const [status, setStatus] = useState<Status>("idle");
   const [files, setFiles] = useState<Record<string, string> | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [refreshToken, setRefreshToken] = useState(0);
 
   const entryPath = useMemo(() => sanitizeEntry(window.entry), [window.entry]);
+
+  useEffect(() => {
+    const unsubscribe = subscribeToPluginFiles(pluginId, () => {
+      setRefreshToken((value) => value + 1);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [pluginId]);
 
   useEffect(() => {
     if (!entryPath) {
@@ -151,7 +166,7 @@ export const PluginSandpackWindow = (props: PluginSandpackWindowProps) => {
     return () => {
       cancelled = true;
     };
-  }, [pluginId, entryPath]);
+  }, [pluginId, entryPath, refreshToken]);
 
   const dependencies = useMemo(() => {
     const manifestDeps = window.dependencies ?? {};
@@ -187,11 +202,12 @@ export const PluginSandpackWindow = (props: PluginSandpackWindowProps) => {
         key={`${pluginId}:${instanceId}`}
         template="react-ts"
         files={files}
+        style={{ height: "100%" }}
         customSetup={{ dependencies, entry: GENERATED_ENTRY_PATH }}
         options={{ activeFile: `/${entryPath}`, autorun: true }}
       >
         <SandpackLayout style={{ height: "100%" }}>
-          <SandpackPreview showOpenInCodeSandbox={false} showRefreshButton={true} style={{ height: "100%" }} />
+          <SandpackPreview showOpenInCodeSandbox={false} showRefreshButton={false} style={{ height: "100%" }} />
         </SandpackLayout>
       </SandpackProvider>
     </Box>

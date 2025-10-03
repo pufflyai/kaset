@@ -1,3 +1,10 @@
+import { TodoList } from "./component";
+import { TodoProvider } from "./state/TodoProvider";
+
 export default function TodoWindow() {
-  return <div>This is the content of the TODO window.</div>;
+  return (
+    <TodoProvider>
+      <TodoList />
+    </TodoProvider>
+  );
 }

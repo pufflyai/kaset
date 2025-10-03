@@ -1,15 +1,4 @@
-import {
-  deleteFile,
-  grep,
-  ls,
-  moveFile,
-  patch,
-  processSingleFileContent,
-  readFile,
-  watchDirectory,
-  writeFile,
-  type ChangeRecord,
-} from "@pstdio/opfs-utils";
+import { deleteFile, ls, moveFile, readFile, watchDirectory, writeFile, type ChangeRecord } from "@pstdio/opfs-utils";
 import * as picomatch from "picomatch/posix";
 import { Manifest, type JSONSchema } from "../model/manifest";
 import type { Plugin, PluginModule } from "../model/plugin";
@@ -307,9 +296,6 @@ export function createPluginHost(config: HostConfig = {}): PluginHost {
       manifest,
       log: logger,
       fs: fsApi,
-      grep,
-      patch,
-      processSingleFileContent,
       settings: settingsApi,
       ui: {
         notify,

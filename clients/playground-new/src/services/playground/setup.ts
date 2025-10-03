@@ -1,5 +1,13 @@
 import { ROOT } from "@/constant";
-import { deleteFile, getDirectoryHandle, readFile, writeFile } from "@pstdio/opfs-utils";
+import {
+  commitAll,
+  deleteFile,
+  ensureRepo,
+  getDirectoryHandle,
+  listCommits,
+  readFile,
+  writeFile,
+} from "@pstdio/opfs-utils";
 
 export type SetupOptions = {
   rootDir?: string;
@@ -107,6 +115,35 @@ export async function setupPlayground(options: SetupOptions = {}) {
     baseDir: "/src/example-plugins",
     overwrite,
   });
+
+  try {
+    const dir = await getDirectoryHandle(normalizedRoot);
+    await ensureRepo({ dir });
+
+    let hasCommit = false;
+    try {
+      const commits = await listCommits({ dir }, { limit: 1 });
+      hasCommit = Array.isArray(commits) && commits.length > 0;
+    } catch {
+      hasCommit = false;
+    }
+
+    if (!hasCommit) {
+      try {
+        await commitAll(
+          { dir },
+          {
+            message: "chore: initial commit",
+            author: { name: "KAS", email: "kas@kaset.dev" },
+          },
+        );
+      } catch (error) {
+        console.error("Failed to create initial commit in new repo", error);
+      }
+    }
+  } catch {
+    // Non-fatal: git may be unavailable in the current environment.
+  }
 
   return {
     rootDir: normalizedRoot,

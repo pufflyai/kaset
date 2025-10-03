@@ -7,7 +7,7 @@ import {
   type PluginHost,
   type RegisteredCommand,
 } from "@pstdio/kaset-plugin-host";
-import { deleteFile, getDirectoryHandle, ls, readFile, writeFile } from "@pstdio/opfs-utils";
+import { deleteFile, getDirectoryHandle, ls, readFile, watchDirectory, writeFile, type ChangeRecord } from "@pstdio/opfs-utils";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 
 const DEFAULT_PLUGINS_ROOT = `${ROOT}/plugins`;
@@ -70,6 +70,19 @@ export type PluginDesktopSurface = {
   window?: PluginDesktopWindowDescriptor;
 };
 
+type PluginFilesEvent = {
+  pluginId: string;
+  changes: ChangeRecord[];
+};
+
+type PluginFilesListener = (event: PluginFilesEvent) => void;
+
+type PluginFileWatcher = {
+  listeners: Set<PluginFilesListener>;
+  cleanup?: () => void | Promise<void>;
+  pending?: Promise<void>;
+};
+
 export type PluginCommand = RegisteredCommand & { pluginName?: string };
 
 type CommandsListener = (commands: PluginCommand[]) => void;
@@ -102,6 +115,7 @@ type DesktopSurfaceListener = (surfaces: PluginDesktopSurface[]) => void;
 
 const desktopSurfaceSubscribers = new Set<DesktopSurfaceListener>();
 const pluginDesktopSurfaces = new Map<string, PluginDesktopSurface[]>();
+const pluginFileWatchers = new Map<string, PluginFileWatcher>();
 
 function notifyCommandSubscribers() {
   const snapshot = decoratedCommands.map((cmd) => ({ ...cmd }));
@@ -154,6 +168,88 @@ function notifyDesktopSurfaceSubscribers() {
   if (desktopSurfaceSubscribers.size === 0) return;
   const snapshot = getDesktopSurfaceSnapshot();
   desktopSurfaceSubscribers.forEach((listener) => listener(snapshot));
+}
+
+function getPluginDirectory(pluginId: string) {
+  const normalizedRoot = pluginsRoot.replace(/\/+$/, "");
+  const normalizedId = pluginId.replace(/^\/+/, "");
+  return `${normalizedRoot}/${normalizedId}`.replace(/^\/+/, "");
+}
+
+async function disposePluginFileWatcher(pluginId: string) {
+  const record = pluginFileWatchers.get(pluginId);
+  if (!record) return;
+
+  const pending = record.pending;
+  record.pending = undefined;
+  if (pending) {
+    try {
+      await pending;
+    } catch {
+      // ignore setup failures on dispose
+    }
+  }
+
+  const cleanup = record.cleanup;
+  record.cleanup = undefined;
+  if (!cleanup) return;
+
+  try {
+    await cleanup();
+  } catch (error) {
+    console.warn(`[plugin-host] Failed to dispose file watcher for ${pluginId}`, error);
+  }
+}
+
+async function ensurePluginFileWatcher(pluginId: string) {
+  const record = pluginFileWatchers.get(pluginId);
+  if (!record || record.listeners.size === 0) return;
+  if (typeof window === "undefined") return;
+  if (record.cleanup) return;
+
+  if (record.pending) {
+    try {
+      await record.pending;
+    } catch {
+      // ignore setup failure; we'll retry below if needed
+    }
+    return;
+  }
+
+  const directory = getPluginDirectory(pluginId);
+
+  record.pending = watchDirectory(
+    directory,
+    (changes: ChangeRecord[]) => {
+      if (!changes?.length) return;
+      record.listeners.forEach((listener) => {
+        try {
+          listener({ pluginId, changes });
+        } catch (error) {
+          console.error(`[plugin-host] Plugin file listener failed for ${pluginId}`, error);
+        }
+      });
+    },
+    {
+      recursive: true,
+      emitInitial: false,
+    },
+  )
+    .then((cleanup) => {
+      record.cleanup = cleanup;
+    })
+    .catch((error) => {
+      console.warn(`[plugin-host] Failed to watch plugin files for ${pluginId}`, error);
+    })
+    .finally(() => {
+      record.pending = undefined;
+    });
+
+  try {
+    await record.pending;
+  } catch {
+    // ignore; warning already logged above
+  }
 }
 
 function sanitizeToolName(pluginId: string, commandId: string) {
@@ -401,6 +497,11 @@ async function refreshPluginManifests(options: { force?: boolean } = {}) {
     if (pluginDesktopSurfaces.delete(pluginId)) {
       surfacesRemoved = true;
     }
+    const watcher = pluginFileWatchers.get(pluginId);
+    if (watcher) {
+      void disposePluginFileWatcher(pluginId);
+      pluginFileWatchers.delete(pluginId);
+    }
   });
 
   if (metadataRemoved) {
@@ -415,6 +516,13 @@ async function refreshPluginManifests(options: { force?: boolean } = {}) {
   for (const pluginId of nextIds) {
     await loadManifestMetadata(pluginId, { force: options.force });
   }
+
+  pluginFileWatchers.forEach((watcher, pluginId) => {
+    if (!nextIds.has(pluginId)) return;
+    if (watcher.listeners.size === 0) return;
+    if (watcher.cleanup) return;
+    void ensurePluginFileWatcher(pluginId);
+  });
 }
 
 function handleCommandsChanged(next: RegisteredCommand[]) {
@@ -471,6 +579,10 @@ function resetPluginsState() {
     notifyDesktopSurfaceSubscribers();
   }
 
+  pluginFileWatchers.forEach((_watcher, pluginId) => {
+    void disposePluginFileWatcher(pluginId);
+  });
+
   pluginMetadata.clear();
 }
 
@@ -512,6 +624,12 @@ export async function ensurePluginHost(): Promise<PluginHost> {
       } catch (error) {
         console.warn("[plugin-host] Failed to refresh plugin manifests", error);
       }
+
+      pluginFileWatchers.forEach((watcher, pluginId) => {
+        if (watcher.listeners.size === 0) return;
+        if (watcher.cleanup) return;
+        void ensurePluginFileWatcher(pluginId);
+      });
 
       host = instance;
       hostReady = true;
@@ -588,6 +706,28 @@ export function subscribeToPluginDesktopSurfaces(listener: DesktopSurfaceListene
   listener(getDesktopSurfaceSnapshot());
   return () => {
     desktopSurfaceSubscribers.delete(listener);
+  };
+}
+
+export function subscribeToPluginFiles(pluginId: string, listener: PluginFilesListener) {
+  let record = pluginFileWatchers.get(pluginId);
+  if (!record) {
+    record = { listeners: new Set() } satisfies PluginFileWatcher;
+    pluginFileWatchers.set(pluginId, record);
+  }
+
+  record.listeners.add(listener);
+  void ensurePluginFileWatcher(pluginId);
+
+  return () => {
+    const current = pluginFileWatchers.get(pluginId);
+    if (!current) return;
+
+    current.listeners.delete(listener);
+    if (current.listeners.size === 0) {
+      void disposePluginFileWatcher(pluginId);
+      pluginFileWatchers.delete(pluginId);
+    }
   };
 }
 

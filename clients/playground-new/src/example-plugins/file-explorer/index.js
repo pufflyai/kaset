@@ -1,5 +1,5 @@
 export default {
   async activate({ log }) {
-    log.info("Todo plugin activated");
+    log.info("File Explorer plugin activated");
   },
 };

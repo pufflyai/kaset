@@ -1,7 +1,46 @@
 import { useEffect, useMemo, useState } from "react";
-import type { FsNode } from "./types";
+import { getDirectoryHandle, ls } from "@pstdio/opfs-utils";
 
-// Normalize an OPFS tree so directories always have a children array (even when empty)
+export interface FsNode {
+  id: string;
+  name: string;
+  children?: FsNode[];
+}
+
+export function useDirIds(rootDir: string) {
+  const [dirIds, setDirIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        await getDirectoryHandle(rootDir);
+        const entries = await ls(rootDir, { maxDepth: Infinity, kinds: ["directory"] });
+
+        const prefix = rootDir ? rootDir.replace(/\/+$/, "") + "/" : "";
+        const next = new Set<string>();
+
+        next.add(rootDir);
+
+        for (const entry of entries) {
+          next.add(prefix + entry.path);
+        }
+
+        if (!cancelled) setDirIds(next);
+      } catch (error) {
+        console.warn("useDirIds: failed to list directories", error);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rootDir]);
+
+  return dirIds;
+}
+
 export function useFsTree(rootNode: any, rootDir: string, dirIds: Set<string>) {
   const fileTree = useMemo<FsNode>(() => {
     type OpfsNode = {
@@ -35,7 +74,6 @@ export function useFsTree(rootNode: any, rootDir: string, dirIds: Set<string>) {
   return fileTree;
 }
 
-// Keep an internal selectedValue array in sync with a single selectedPath
 export function useSelectedValueState(selectedPath?: string | null) {
   const [selectedValue, setSelectedValue] = useState<string[]>(selectedPath ? [selectedPath] : []);
 
@@ -50,7 +88,6 @@ export function useSelectedValueState(selectedPath?: string | null) {
   return [selectedValue, setSelectedValue] as const;
 }
 
-// Manage expanded state and auto-expand parent directories for the current selection
 export function useExpandedStateForSelection(args: {
   defaultExpanded?: string[];
   selectedPath?: string | null;
@@ -70,8 +107,8 @@ export function useExpandedStateForSelection(args: {
     const ensureRootPrefixed = hasRootPrefix ? parts : [...rootParts, ...parts];
 
     const parentDirs: string[] = [];
-    for (let i = 0; i < ensureRootPrefixed.length - 1; i++) {
-      const dirPath = ensureRootPrefixed.slice(0, i + 1).join("/");
+    for (let index = 0; index < ensureRootPrefixed.length - 1; index += 1) {
+      const dirPath = ensureRootPrefixed.slice(0, index + 1).join("/");
       if (dirIds.has(dirPath)) parentDirs.push(dirPath);
     }
 
