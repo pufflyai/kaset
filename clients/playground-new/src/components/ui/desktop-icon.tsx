@@ -33,7 +33,7 @@ export const DesktopIcon = (props: DesktopIconProps) => {
       flexDirection="column"
       alignItems="center"
       gap="xs"
-      width="100%"
+      width="8rem"
       cursor="pointer"
       tabIndex={tabIndex}
       onClick={(event) => {
@@ -57,7 +57,7 @@ export const DesktopIcon = (props: DesktopIconProps) => {
       >
         <IconComponent size={18} />
       </Box>
-      <Text textStyle="label/M/medium" color="black">
+      <Text textStyle="label/M/medium" color="black" textAlign="center">
         {label}
       </Text>
     </DesktopIconRoot>

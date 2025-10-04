@@ -241,7 +241,17 @@ export const Desktop = () => {
 
   return (
     <Box ref={containerRef} position="relative" height="100%" width="100%" overflow="hidden">
-      <Box position="absolute" inset="0" padding="lg" display="grid" gap="xl" alignContent="start">
+      <Box
+        position="absolute"
+        inset="0"
+        padding="lg"
+        display="grid"
+        gap="xl"
+        alignContent="start"
+        justifyContent="start"
+        justifyItems="start"
+        gridTemplateColumns="repeat(auto-fit, minmax(8rem, max-content))"
+      >
         {apps.map((app) => (
           <DesktopIcon
             key={app.id}

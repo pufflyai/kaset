@@ -1,4 +1,5 @@
 import { ROOT } from "@/constant";
+import { createConversation } from "@/state/actions/createConversation";
 import { deleteAllConversations as deleteAllConversationsAction } from "@/state/actions/deleteAllConversations";
 import { resetWorkspace } from "@/state/actions/resetWorkspace";
 import { selectConversation } from "@/state/actions/selectConversation";
@@ -119,7 +120,7 @@ export function TopBar(props: TopBarProps) {
           </Menu.Positioner>
         </Menu.Root>
         <Tooltip content="New Conversation">
-          <IconButton aria-label="New" size="xs" variant="ghost" onClick={() => {}}>
+          <IconButton aria-label="New" size="xs" variant="ghost" onClick={createConversation}>
             <EditIcon size={16} />
           </IconButton>
         </Tooltip>

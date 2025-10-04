@@ -1,0 +1,22 @@
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "version": "0.1.0",
+  "api": "^1.0.0",
+  "entry": "index.js",
+  "description": "Hello World plugin for OPFS.",
+  "ui": {
+    "desktop": {
+      "title": "Hello World",
+      "description": "A simple Hello World plugin.",
+      "icon": "Plug",
+      "singleton": true,
+      "defaultSize": { "width": 840, "height": 620 },
+      "minSize": { "width": 420, "height": 320 },
+      "window": {
+        "entry": "src/window.tsx",
+        "dependencies": {}
+      }
+    }
+  }
+}
