@@ -1,8 +1,6 @@
-import type { PluginCommand } from "@/services/plugins/plugin-host";
 import { usePluginHost } from "@/services/plugins/usePluginHost";
 import { Button, Field, Flex, HStack, Text, Textarea, VStack } from "@chakra-ui/react";
-import { PlayIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { toaster } from "./toaster";
 
 interface PluginFormState {
@@ -14,12 +12,6 @@ interface PluginFormState {
 
 interface PluginSettingsProps {
   isOpen: boolean;
-}
-
-interface PluginCommandGroup {
-  pluginId: string;
-  name: string;
-  commands: PluginCommand[];
 }
 
 function serializeSettings(value: unknown) {
@@ -36,46 +28,9 @@ function serializeSettings(value: unknown) {
 export function PluginSettings(props: PluginSettingsProps) {
   const { isOpen } = props;
 
-  const {
-    commands,
-    settings: pluginSettings,
-    readSettings,
-    writeSettings,
-    getDisplayName,
-    runCommand,
-    loading: hostLoading,
-  } = usePluginHost();
+  const { settings: pluginSettings, readSettings, writeSettings, getDisplayName } = usePluginHost();
   const [pluginForms, setPluginForms] = useState<Record<string, PluginFormState>>({});
   const [pluginLoading, setPluginLoading] = useState(false);
-
-  const pluginCommandGroups = useMemo<PluginCommandGroup[]>(() => {
-    if (!commands.length) return [];
-
-    const groups = new Map<string, PluginCommandGroup>();
-
-    commands.forEach((command) => {
-      const existing = groups.get(command.pluginId);
-      if (existing) {
-        existing.commands.push(command);
-        return;
-      }
-
-      groups.set(command.pluginId, {
-        pluginId: command.pluginId,
-        name: getDisplayName(command.pluginId),
-        commands: [command],
-      });
-    });
-
-    return Array.from(groups.values())
-      .map((group) => ({
-        ...group,
-        commands: [...group.commands].sort((a, b) => (a.title || a.id).localeCompare(b.title || b.id)),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [commands, getDisplayName]);
-
-  const showCommandEmptyState = !hostLoading && pluginCommandGroups.length === 0;
 
   useEffect(() => {
     if (!isOpen) {
@@ -156,19 +111,6 @@ export function PluginSettings(props: PluginSettingsProps) {
         },
       };
     });
-  };
-
-  const handleRunPluginCommand = async (command: PluginCommand) => {
-    try {
-      await runCommand(command.pluginId, command.id);
-    } catch (error) {
-      toaster.create({
-        type: "error",
-        title: `Failed to run ${command.title || command.id}`,
-        description: error instanceof Error ? error.message : String(error),
-        duration: 7000,
-      });
-    }
   };
 
   const reloadPluginSettings = async (pluginId: string) => {
@@ -264,47 +206,6 @@ export function PluginSettings(props: PluginSettingsProps) {
 
   return (
     <Flex direction="column" gap="lg" width="100%">
-      <Flex direction="column" gap="xs">
-        <Text>Plugin commands</Text>
-        <Text fontSize="sm" color="fg.muted">
-          Run commands provided by installed plugins.
-        </Text>
-        {hostLoading && <Text fontSize="sm">Loading plugin commands…</Text>}
-        {showCommandEmptyState && (
-          <Text fontSize="sm" color="fg.muted">
-            No plugin commands available.
-          </Text>
-        )}
-        {!hostLoading && !showCommandEmptyState && (
-          <VStack align="stretch" gap="sm">
-            {pluginCommandGroups.map((group) => (
-              <VStack key={group.pluginId} align="stretch" gap="xs">
-                <Text fontSize="sm" fontWeight="medium" color="fg.muted">
-                  {group.name}
-                </Text>
-                <VStack align="stretch" gap="xs">
-                  {group.commands.map((command) => (
-                    <Button
-                      key={`${command.pluginId}:${command.id}`}
-                      size="xs"
-                      variant="ghost"
-                      justifyContent="flex-start"
-                      gap="2xs"
-                      onClick={() => handleRunPluginCommand(command)}
-                    >
-                      <PlayIcon size={16} />
-                      <Text fontSize="sm" fontWeight="medium">
-                        {command.title || command.id}
-                      </Text>
-                    </Button>
-                  ))}
-                </VStack>
-              </VStack>
-            ))}
-          </VStack>
-        )}
-      </Flex>
-
       <Flex direction="column" gap="xs">
         <Text>Plugin settings</Text>
         <Text fontSize="sm" color="fg.muted">

@@ -44,10 +44,10 @@ type DesktopSurfaceManifest = {
 
 type ManifestJson = Partial<PluginMetadata> & {
   description?: string;
-  ui?: {
+  commands?: unknown;
+  ui?: (Record<string, unknown> & {
     desktop?: DesktopSurfaceManifest | DesktopSurfaceManifest[];
-    commands?: unknown;
-  };
+  }) | undefined;
 };
 
 export type PluginDesktopSurface = {
@@ -154,9 +154,9 @@ function notifyDesktopSurfaceSubscribers() {
 }
 
 function rebuildTools() {
-  pluginTools = createToolsForCommands(rawCommands, async (pluginId, commandId) => {
+  pluginTools = createToolsForCommands(rawCommands, async (pluginId, commandId, params) => {
     const instance = await ensureHost();
-    await instance.runCommand(pluginId, commandId);
+    await instance.runCommand(pluginId, commandId, params);
   });
 }
 
@@ -525,9 +525,9 @@ export function subscribeToPluginFiles(pluginId: string, listener: PluginFilesLi
   };
 }
 
-export async function runPluginCommand(pluginId: string, commandId: string) {
+export async function runPluginCommand(pluginId: string, commandId: string, params?: unknown) {
   const instance = await ensureHost();
-  await instance.runCommand(pluginId, commandId);
+  await instance.runCommand(pluginId, commandId, params);
 }
 
 export async function readPluginSettings<T = unknown>(pluginId: string): Promise<T> {

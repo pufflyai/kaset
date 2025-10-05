@@ -53,7 +53,7 @@ Each workspace has one plugins root and a public state area:
 - `api`: host API compatibility. Host rejects plugins whose range doesn’t match `"1.x"`.
 - `activation`: **when** the host should wake a plugin (see _Lifecycle & activation_).
 - `permissions`: FS globs for read/write and optional network allowlist (see _Permission model_).
-- `ui.commands`: declarative command metadata.
+- `commands`: declarative command metadata.
 - `settingsSchema`: JSON Schema for persisted settings (host validates & stores).
 
 ## How Kaset loads plugins
@@ -108,7 +108,7 @@ Each workspace has one plugins root and a public state area:
 **Declarative only**
 
 - **Commands**
-  Declared in the manifest and surfaced through your app via the `UIAdapter`. Handlers come from the plugin module (`export const commands = { ... }`) or via `ctx.ui.invoke(id)`.
+  Declared in the manifest and surfaced through your app via the `UIAdapter`. Handlers come from the plugin module (`export const commands = { ... }`) or via `ctx.commands.invoke(id)`.
 
 - **Settings**
   JSON Schema‑driven settings persisted under `/state/public/plugins/<id>.json`. The host notifies the app via `ui.onSettingsSchema(pluginId, schema)` so you can render a form.
@@ -172,8 +172,8 @@ const host = createPluginHost({
 await host.loadAll();
 
 // Example: invoke from your palette
-function runCommand(pid, cid) {
-  host.invokeCommand(pid, cid);
+function runCommand(pid, cid, params) {
+  host.invokeCommand(pid, cid, params);
 }
 
 // App → plugin event bridge
@@ -207,7 +207,8 @@ export default {
 - `ctx.fs`: { ls, readFile, writeFile, moveFile, deleteFile } (permission‑checked)
 - `ctx.grep`, `ctx.patch`, `ctx.processSingleFileContent` (from `@pstdio/opfs-utils`)
 - `ctx.settings`: `read<T>(), write<T>(value)`
-- `ctx.ui`: `notify?(level, message)`, `invoke(id)` (adapter‑routed)
+- `ctx.ui`: `notify?(level, message)` (adapter-routed)
+- `ctx.commands`: `invoke(id, params?)`
 - `ctx.scheduler`: cron/interval hooks (host‑provided)
 - `ctx.events`: event bus (plugin emits/listens within host constraints)
 - `ctx.net?`: `{ fetch(url, init) }` (if host enabled + domain allowlisted)
@@ -227,7 +228,7 @@ export default {
   "version": "0.1.0",
   "api": "^1.0.0",
   "entry": "index.js",
-  "ui": { "commands": [{ "id": "slack.test", "title": "Slack: Send Test Notification", "category": "Slack" }] },
+  "commands": [{ "id": "slack.test", "title": "Slack: Send Test Notification", "category": "Slack" }],
   "settingsSchema": {
     "type": "object",
     "properties": {
@@ -305,7 +306,7 @@ function extractTitle(md) {
   "version": "0.1.0",
   "api": "^1.0.0",
   "entry": "index.js",
-  "ui": { "commands": [{ "id": "theme.next", "title": "Theme: Next", "category": "Appearance" }] },
+  "commands": [{ "id": "theme.next", "title": "Theme: Next", "category": "Appearance" }],
   "settingsSchema": {
     "type": "object",
     "properties": {

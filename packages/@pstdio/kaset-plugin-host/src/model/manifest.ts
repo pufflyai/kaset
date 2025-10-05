@@ -12,15 +12,13 @@ export type ActivationEvent =
   | { type: "onCron"; expr: string }
   | { type: "onEvent"; name: string };
 
-export interface UICommandDefinition {
+export interface CommandDefinition {
   id: string;
   title: string;
   category?: string;
   when?: string;
-}
-
-export interface UICommands {
-  commands?: UICommandDefinition[];
+  description?: string;
+  parameters?: JSONSchema;
 }
 
 export type JSONSchema = Record<string, unknown>;
@@ -33,6 +31,7 @@ export interface Manifest {
   entry: string;
   activation?: ActivationEvent[];
   permissions?: Permissions;
-  ui?: UICommands;
+  commands?: CommandDefinition[];
+  ui?: Record<string, unknown>;
   settingsSchema?: JSONSchema;
 }

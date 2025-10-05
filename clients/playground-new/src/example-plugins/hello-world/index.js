@@ -9,12 +9,23 @@ async function readSettings(ctx) {
 }
 
 export const commands = {
-  async "hello.sayHello"(ctx) {
+  async "hello.sayHello"(ctx, params) {
     const settings = await readSettings(ctx);
-    const greeting = settings.greeting || defaults.greeting;
-    const recipient = settings.recipient || defaults.recipient;
+    const overrideGreeting = typeof params?.greeting === "string" ? params.greeting : undefined;
+    const overrideRecipient = typeof params?.recipient === "string" ? params.recipient : undefined;
 
-    ctx.ui.notify?.("info", `${greeting}, ${recipient}!`);
+    const greeting = overrideGreeting || settings.greeting || defaults.greeting;
+    const recipient = overrideRecipient || settings.recipient || defaults.recipient;
+
+    ctx.ui.notify?.("info", `${greeting}, ${recipient}!");
+
+    if (overrideGreeting || overrideRecipient) {
+      await ctx.settings.write({
+        ...settings,
+        ...(overrideGreeting ? { greeting: overrideGreeting } : {}),
+        ...(overrideRecipient ? { recipient: overrideRecipient } : {}),
+      });
+    }
   },
 };
 

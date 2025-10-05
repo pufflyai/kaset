@@ -353,3 +353,5 @@ hello("world");
 ```ts
 void hello("world");
 ```
+
+## 10. Keep files shorter than 400 lines

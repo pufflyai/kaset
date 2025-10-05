@@ -39,7 +39,7 @@ export interface BrowserPluginHost {
   /** Keep command UIs in sync by subscribing to changes in the command registry. */
   subscribeCommands(listener: (commands: RegisteredCommand[]) => void): () => void;
   /** Invoke a plugin command in response to user actions. */
-  runCommand(pluginId: string, commandId: string): Promise<void>;
+  runCommand(pluginId: string, commandId: string, params?: unknown): Promise<void>;
   /** Watch for settings schema updates so forms can adapt dynamically. */
   subscribeSettings(listener: (pluginId: string, schema?: JSONSchema) => void): () => void;
   /** Retrieve persisted settings to hydrate configuration views. */
@@ -481,10 +481,10 @@ export function createBrowserPluginHost(options: BrowserHostOptions): BrowserPlu
         commandSubscribers.delete(listener);
       };
     },
-    async runCommand(pluginId, commandId) {
+    async runCommand(pluginId, commandId, params) {
       if (!host) await start();
       if (!host) throw new Error("Plugin host failed to start.");
-      await host.invokeCommand(pluginId, commandId);
+      await host.invokeCommand(pluginId, commandId, params);
     },
     subscribeSettings(listener) {
       settingsSubscribers.add(listener);

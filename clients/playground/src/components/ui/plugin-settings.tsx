@@ -1,7 +1,7 @@
 import type { PluginCommand } from "@/services/plugins/pluginHost";
 import { usePluginHost } from "@/services/plugins/usePluginHost";
 import { Box, Button, Drawer, Field, Flex, HStack, Portal, Text, Textarea, VStack } from "@chakra-ui/react";
-import { PlayIcon, Plug as PlugIcon } from "lucide-react";
+import { Plug as PlugIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toaster } from "./toaster";
 import { Tooltip } from "./tooltip";
@@ -94,41 +94,8 @@ export function PluginSettings() {
             </Drawer.Header>
             <Drawer.Body>
               <VStack align="stretch" gap="lg">
-                <Flex gap="xs" direction="column">
-                  <Text>Plugin commands</Text>
-                  <Text fontSize="sm" color="fg.muted">
-                    Run commands provided by installed plugins.
-                  </Text>
-                </Flex>
                 {loading && <Text fontSize="sm">Loading plugin commands…</Text>}
                 {showEmptyState && <Text fontSize="sm">No plugin commands available.</Text>}
-                {!loading && !showEmptyState && (
-                  <VStack align="stretch" gap="md">
-                    {pluginCommandGroups.map((group) => (
-                      <VStack key={group.pluginId} align="stretch" gap="xs">
-                        <Text textStyle="label/S/regular" fontWeight="medium" color="fg.muted">
-                          {group.name}
-                        </Text>
-                        <VStack align="stretch" gap="xs">
-                          {group.commands.map((cmd) => (
-                            <Button
-                              size="sm"
-                              key={`${cmd.pluginId}:${cmd.id}`}
-                              justifyContent="flex-start"
-                              variant="ghost"
-                              onClick={() => {
-                                void handleRunPluginCommand(cmd);
-                              }}
-                            >
-                              <PlayIcon />
-                              <Text textStyle="label/M/regular">{cmd.title || cmd.id}</Text>
-                            </Button>
-                          ))}
-                        </VStack>
-                      </VStack>
-                    ))}
-                  </VStack>
-                )}
 
                 <PluginSettingsPanel isOpen={isDrawerOpen} />
               </VStack>

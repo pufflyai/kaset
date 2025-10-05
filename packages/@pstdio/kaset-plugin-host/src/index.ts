@@ -12,6 +12,7 @@ export type {
   Logger,
   NotificationLevel,
   PluginContext,
+  CommandsApi,
   RegisteredCommand,
   SettingsApi,
   UIAdapter,
@@ -19,5 +20,5 @@ export type {
 } from "./host/context";
 export { createPluginHost, HOST_API_VERSION } from "./host/plugin-host";
 export type { HostConfig, PluginHost } from "./host/types";
-export type { ActivationEvent, JSONSchema, Manifest, Permissions } from "./model/manifest";
+export type { ActivationEvent, CommandDefinition, JSONSchema, Manifest, Permissions } from "./model/manifest";
 export type { Plugin, PluginModule } from "./model/plugin";

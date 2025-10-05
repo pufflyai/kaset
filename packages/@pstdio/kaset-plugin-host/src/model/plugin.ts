@@ -1,5 +1,5 @@
 import type { Manifest } from "./manifest";
-import type { PluginContext } from "../host/context";
+import type { CommandHandler, PluginContext } from "../host/context";
 
 export interface Plugin {
   activate(ctx: PluginContext): Promise<void> | void;
@@ -8,7 +8,7 @@ export interface Plugin {
 
 export interface PluginModule {
   default?: Plugin;
-  commands?: Record<string, (ctx: PluginContext) => Promise<void> | void>;
+  commands?: Record<string, CommandHandler>;
   [key: string]: unknown;
 }
 

@@ -1,4 +1,4 @@
-import type { Manifest } from "../model/manifest";
+import type { JSONSchema, Manifest } from "../model/manifest";
 
 export interface Disposable {
   dispose(): void | Promise<void>;
@@ -26,7 +26,10 @@ export type NotificationLevel = "info" | "warn" | "error";
 
 export interface UIHostApi {
   notify?(level: NotificationLevel, message: string): void;
-  invoke(commandId: string): Promise<void>;
+}
+
+export interface CommandsApi {
+  invoke(commandId: string, params?: unknown): Promise<void>;
 }
 
 export type EventListener = (payload?: unknown) => void | Promise<void>;
@@ -44,21 +47,24 @@ export interface PluginContext {
   fs: FSApi;
   settings: SettingsApi;
   ui: UIHostApi;
+  commands: CommandsApi;
   events: EventsApi;
   net?: { fetch: (url: string, init?: RequestInit) => Promise<Response> };
   cancelToken: AbortSignal;
   disposables: Array<Disposable | (() => void | Promise<void>)>;
 }
 
-export type CommandHandler = (ctx: PluginContext) => Promise<void> | void;
+export type CommandHandler = (ctx: PluginContext, params?: unknown) => Promise<void> | void;
 
 export interface RegisteredCommand {
   pluginId: string;
   id: string;
   title: string;
+  description?: string;
   category?: string;
   when?: string;
-  run: () => Promise<void>;
+  parameters?: JSONSchema;
+  run: (params?: unknown) => Promise<void>;
 }
 
 export interface UIAdapter {

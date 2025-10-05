@@ -12,6 +12,28 @@
       "recipient": { "type": "string", "default": "Kaset" }
     }
   },
+  "commands": [
+    {
+      "id": "hello.sayHello",
+      "title": "Say Hello",
+      "category": "Examples",
+      "description": "Show a greeting using the plugin's saved settings or parameters.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "greeting": {
+            "type": "string",
+            "description": "Override the greeting text before persisting settings."
+          },
+          "recipient": {
+            "type": "string",
+            "description": "Override who should receive the greeting."
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  ],
   "ui": {
     "desktop": {
       "title": "Hello World",
@@ -24,13 +46,6 @@
         "entry": "src/window.tsx",
         "dependencies": {}
       }
-    },
-    "commands": [
-      {
-        "id": "hello.sayHello",
-        "title": "Say Hello",
-        "category": "Examples"
-      }
-    ]
+    }
   }
 }

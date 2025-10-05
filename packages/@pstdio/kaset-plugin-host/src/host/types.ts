@@ -17,7 +17,7 @@ export interface PluginHost {
   loadAll(): Promise<void>;
   unloadAll(): Promise<void>;
   reloadPlugin(id: string): Promise<void>;
-  invokeCommand(pluginId: string, commandId: string): Promise<void>;
+  invokeCommand(pluginId: string, commandId: string, params?: unknown): Promise<void>;
   listCommands(): RegisteredCommand[];
   emit(name: string, payload?: unknown): void;
   getSettingsSchema(pluginId: string): JSONSchema | undefined;

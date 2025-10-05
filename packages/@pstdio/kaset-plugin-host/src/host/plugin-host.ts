@@ -299,8 +299,10 @@ export function createPluginHost(config: HostConfig = {}): PluginHost {
       settings: settingsApi,
       ui: {
         notify,
-        invoke: async (commandId: string) => {
-          await invokeCommand(manifest.id, commandId);
+      },
+      commands: {
+        invoke: async (commandId: string, params?: unknown) => {
+          await invokeCommand(manifest.id, commandId, params);
         },
       },
       events: eventsHub,
@@ -420,29 +422,36 @@ export function createPluginHost(config: HostConfig = {}): PluginHost {
       throw error;
     }
 
-    const declaredCommands = manifest.ui?.commands ?? [];
+    const declaredCommands = manifest.commands ?? [];
     const commandHandlers = module?.commands ?? {};
     const registeredCommands: RegisteredCommand[] = [];
+
     for (const definition of declaredCommands) {
       const handler = commandHandlers?.[definition.id];
+
       if (typeof handler !== "function") {
         console.warn(
           `[kaset-plugin-host] Command ${definition.id} declared by plugin ${pluginId} has no implementation`,
         );
         continue;
       }
+
       const registered: RegisteredCommand = {
         pluginId,
         id: definition.id,
         title: definition.title,
+        description: definition.description,
         category: definition.category,
         when: definition.when,
-        run: async () => {
-          await runWithTimeout(() => handler(context), timeouts.command, abort.signal);
+        parameters: definition.parameters,
+        run: async (params?: unknown) => {
+          await runWithTimeout(() => handler(context, params), timeouts.command, abort.signal);
         },
       };
+
       registeredCommands.push(registered);
     }
+
     loaded.commands = registeredCommands;
     addCommands(registeredCommands);
 
@@ -511,12 +520,12 @@ export function createPluginHost(config: HostConfig = {}): PluginHost {
     }
   };
 
-  const invokeCommand = async (pluginId: string, commandId: string) => {
+  const invokeCommand = async (pluginId: string, commandId: string, params?: unknown) => {
     const command = commandList.find((cmd) => cmd.pluginId === pluginId && cmd.id === commandId);
     if (!command) {
       throw new Error(`Command not found: ${pluginId}:${commandId}`);
     }
-    await command.run();
+    await command.run(params);
   };
 
   const emit = (name: string, payload?: unknown) => {

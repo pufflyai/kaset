@@ -28,6 +28,8 @@ type ToolResultPayload = {
   pluginId: string;
   commandId: string;
   title?: string;
+  description?: string;
+  parameters?: unknown;
 };
 
 let pluginsRoot = DEFAULT_PLUGINS_ROOT;
@@ -70,18 +72,20 @@ function createToolForCommand(command: RegisteredCommand): Tool {
   return {
     definition: {
       name: sanitizeToolName(command.pluginId, command.id),
-      description: command.title || `${command.pluginId}:${command.id}`,
-      parameters: { type: "object", properties: {}, additionalProperties: false },
+      description: command.description?.trim() || command.title || `${command.pluginId}:${command.id}`,
+      parameters: command.parameters ?? { type: "object", properties: {}, additionalProperties: false },
     },
-    async run(_params, { toolCall }) {
+    async run(params, { toolCall }) {
       const instance = await ensurePluginHost();
-      await instance.invokeCommand(command.pluginId, command.id);
+      await instance.invokeCommand(command.pluginId, command.id, params);
 
       const payload: ToolResultPayload = {
         success: true,
         pluginId: command.pluginId,
         commandId: command.id,
         title: command.title,
+        description: command.description,
+        parameters: params,
       };
 
       return {
@@ -289,9 +293,9 @@ export function getPluginSettingsEntries() {
   return Array.from(pluginSchemas.entries()).map(([pluginId, schema]) => ({ pluginId, schema }));
 }
 
-export async function runPluginCommand(pluginId: string, commandId: string) {
+export async function runPluginCommand(pluginId: string, commandId: string, params?: unknown) {
   const instance = await ensurePluginHost();
-  await instance.invokeCommand(pluginId, commandId);
+  await instance.invokeCommand(pluginId, commandId, params);
 }
 
 export async function readPluginSettings<T = unknown>(pluginId: string): Promise<T> {

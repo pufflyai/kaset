@@ -47,7 +47,7 @@ host.subscribePluginFiles("theme-switcher", ({ changes }) => {
   refreshEditor(changes);
 });
 
-await host.runCommand("theme-switcher", "theme.next");
+await host.runCommand("theme-switcher", "theme.next", { skipAnimation: true });
 ```
 
 Browser host capabilities:
@@ -86,7 +86,7 @@ const host = createPluginHost({
 
 await host.loadAll();
 
-await host.invokeCommand("theme-switcher", "theme.next");
+await host.invokeCommand("theme-switcher", "theme.next", { skipAnimation: true });
 
 const settings = await host.readSettings("theme-switcher");
 await host.writeSettings("theme-switcher", { ...settings, currentTheme: "dark" });
@@ -98,7 +98,7 @@ Core host methods:
 
 - `loadAll()` / `unloadAll()` – manage the lifecycle of all plugins
 - `reloadPlugin(id)` – re-import code and re-run manifests after edits
-- `invokeCommand(pluginId, commandId)` – execute a specific command handler
+- `invokeCommand(pluginId, commandId, params?)` – execute a specific command handler
 - `listCommands()` – retrieve the registered command list
 - `emit(name, payload)` – broadcast custom events to every plugin
 - `getSettingsSchema(pluginId)` – read the manifest-declared JSON schema
@@ -124,9 +124,22 @@ Hosts expect the plugin directory name to match the manifest `id`. Files live in
   "version": "0.1.0",
   "api": "^1.0.0",
   "entry": "index.js",
-  "ui": {
-    "commands": [{ "id": "theme.next", "title": "Theme: Next", "category": "Appearance" }]
-  },
+  "commands": [
+    {
+      "id": "theme.next",
+      "title": "Theme: Next",
+      "category": "Appearance",
+      "description": "Advance to the next accent theme without repeating the current one.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "skipAnimation": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  ],
+  "ui": {},
   "permissions": {
     "fs": {
       "read": ["/docs/**"],
@@ -142,7 +155,7 @@ Manifest fields:
 - `entry` points to the ES module that exports the plugin implementation
 - `activation` configures lifecycle triggers (currently `onFSChange` is implemented)
 - `permissions` constrain file-system and network access requested by the plugin
-- `ui.commands` registers commands that can be wired into palettes or menus
+- `commands` registers commands (with optional descriptions and parameter schemas) for palettes or menus
 - `settingsSchema` surfaces JSON schema metadata that the host shares with UIs
 
 ## Events, Settings, and Disposables
@@ -151,7 +164,8 @@ Plugins receive a scoped context:
 
 - **Settings**: use `ctx.settings.read()` / `ctx.settings.write(value)` to manage persisted state stored under `state/public/plugins/<pluginId>.json`.
 - **Events**: call `ctx.events.on("app:userSignedIn", listener)` to react to host-emitted events and push cleanup handlers onto `ctx.disposables` for automatic teardown.
-- **UI helpers**: `ctx.ui.notify(level, message)` surfaces toast-style notifications (if configured) and `ctx.ui.invoke(commandId)` runs other commands.
+- **UI helpers**: `ctx.ui.notify(level, message)` surfaces toast-style notifications (if configured).
+- **Commands**: `ctx.commands.invoke(commandId, params?)` runs other commands.
 - **Filesystem**: `ctx.fs` exposes `readFile`, `writeFile`, `deleteFile`, `moveFile`, and `ls` via `@pstdio/opfs-utils`.
 - **Network**: when `netFetch` is provided to the host, `ctx.net.fetch(url, init)` mirrors that capability to plugins.
 
@@ -166,8 +180,8 @@ import { createToolsForCommands } from "@pstdio/kaset-plugin-host/browser/adapte
 const browserHost = createBrowserPluginHost({ root: "plugins" });
 await browserHost.start();
 
-const tools = createToolsForCommands(browserHost.listCommands(), (pluginId, commandId) => {
-  return browserHost.runCommand(pluginId, commandId);
+const tools = createToolsForCommands(browserHost.listCommands(), (pluginId, commandId, params) => {
+  return browserHost.runCommand(pluginId, commandId, params);
 });
 ```
 

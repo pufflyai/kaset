@@ -24,7 +24,7 @@ export interface UsePluginHostResult {
   tools: Tool[];
   loading: boolean;
   error: unknown;
-  runCommand(pluginId: string, commandId: string): Promise<void>;
+  runCommand(pluginId: string, commandId: string, params?: unknown): Promise<void>;
   getDisplayName(pluginId: string): string;
   settings: Array<{ pluginId: string; schema: JSONSchema }>;
   readSettings<T = unknown>(pluginId: string): Promise<T>;
