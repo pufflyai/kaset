@@ -3,6 +3,7 @@ import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
 import type { McpServerConfig } from "@/state/types";
 import {
   Alert,
+  Box,
   Button,
   Checkbox,
   CloseButton,
@@ -13,11 +14,14 @@ import {
   Input,
   Text,
   VStack,
+  chakra,
+  useBreakpointValue,
 } from "@chakra-ui/react";
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useState } from "react";
 import { McpServerCard } from "./mcp-server-card";
+import { PluginSettings } from "./plugin-settings";
 
 const TOOL_LABELS: Record<string, string> = {
   opfs_write_file: "Write file",
@@ -26,6 +30,17 @@ const TOOL_LABELS: Record<string, string> = {
   opfs_upload_files: "Upload files",
   opfs_move_file: "Move file",
 };
+
+type SettingsSectionId = "kas" | "permissions" | "mcp" | "plugins";
+
+const SETTINGS_SECTIONS: Array<{ id: SettingsSectionId; label: string }> = [
+  { id: "kas", label: "Kas" },
+  { id: "permissions", label: "Permissions" },
+  { id: "mcp", label: "MCP" },
+  { id: "plugins", label: "Plugins" },
+];
+
+const MobileSectionSelect = chakra("select");
 
 export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const { isOpen, onClose } = props;
@@ -38,6 +53,9 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
   const [activeMcpServerIds, setActiveMcpServerIds] = useState<string[]>([]);
   const [showServerTokens, setShowServerTokens] = useState<Record<string, boolean>>({});
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [activeSection, setActiveSection] = useState<SettingsSectionId>("kas");
+  const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -76,6 +94,108 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
       });
       return next;
     });
+  }, [isOpen]);
+
+  const handleSectionChange = (sectionId: SettingsSectionId) => {
+    setActiveSection(sectionId);
+  };
+
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case "kas":
+        return (
+          <VStack align="stretch" gap="md">
+            <Field.Root>
+              <Field.Label>Model</Field.Label>
+              <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
+            </Field.Root>
+            <Field.Root>
+              <Field.Label>API Key</Field.Label>
+              <HStack>
+                <Input
+                  type={showKey ? "text" : "password"}
+                  placeholder="sk-..."
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+                <Button onClick={() => setShowKey((v) => !v)}>{showKey ? "Hide" : "Show"}</Button>
+              </HStack>
+            </Field.Root>
+            <Field.Root>
+              <Field.Label>Base URL (optional)</Field.Label>
+              <Input
+                placeholder="https://api.openai.com/v1"
+                value={baseUrl}
+                onChange={(e) => setBaseUrl(e.target.value)}
+              />
+            </Field.Root>
+          </VStack>
+        );
+      case "permissions":
+        return (
+          <Flex gap="xs" direction="column" width="100%">
+            <Text>Approval-gated tools</Text>
+            <VStack align="stretch">
+              {DEFAULT_APPROVAL_GATED_TOOLS.map((tool) => (
+                <Checkbox.Root
+                  key={tool}
+                  checked={approvalTools.includes(tool)}
+                  onCheckedChange={(e) => {
+                    setApprovalTools((prev) => (e.checked ? [...prev, tool] : prev.filter((t) => t !== tool)));
+                  }}
+                >
+                  <Checkbox.HiddenInput />
+                  <Checkbox.Control />
+                  <Checkbox.Label>{TOOL_LABELS[tool]}</Checkbox.Label>
+                </Checkbox.Root>
+              ))}
+            </VStack>
+          </Flex>
+        );
+      case "mcp":
+        return (
+          <Flex gap="xs" direction="column" width="100%">
+            <Text>MCP servers</Text>
+            <Text fontSize="sm" color="fg.muted">
+              Configure remote MCP endpoints to surface their tools in the playground.
+            </Text>
+            <VStack align="stretch" gap="sm">
+              {mcpServers.length === 0 ? (
+                <Flex align="center" borderRadius="md" borderWidth="1px" justify="space-between" p="md">
+                  <Text color="fg.muted">No MCP servers configured.</Text>
+                </Flex>
+              ) : (
+                mcpServers.map((server) => (
+                  <McpServerCard
+                    key={server.id}
+                    server={server}
+                    enabled={activeMcpServerIds.includes(server.id)}
+                    tokenVisible={showServerTokens[server.id] ?? false}
+                    onToggleEnabled={toggleServerActive}
+                    onRemove={removeMcpServer}
+                    onChange={updateMcpServer}
+                    onToggleTokenVisibility={toggleServerTokenVisibility}
+                  />
+                ))
+              )}
+            </VStack>
+            <Button alignSelf="flex-start" size="sm" variant="outline" onClick={addMcpServer}>
+              Add MCP server
+            </Button>
+          </Flex>
+        );
+      case "plugins":
+        return <PluginSettings isOpen={isOpen} />;
+      default:
+        return null;
+    }
+  };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setActiveSection("kas");
+      setSavingSettings(false);
+    }
   }, [isOpen]);
 
   const addMcpServer = () => {
@@ -125,40 +245,46 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     });
   };
 
-  const save = () => {
-    const sanitizedServers = mcpServers
-      .map((server) => {
-        const name = server.name?.trim() ?? "";
-        const url = server.url?.trim() ?? "";
-        const token = server.accessToken?.trim() ?? "";
+  const save = async () => {
+    if (savingSettings) return;
 
-        return {
-          ...server,
-          name,
-          url,
-          accessToken: token ? token : undefined,
-        };
-      })
-      .filter((server) => server.url.length > 0);
+    setSavingSettings(true);
 
-    const nextActiveIds = sanitizedServers.length
-      ? activeMcpServerIds.filter((id) => sanitizedServers.some((server) => server.id === id))
-      : [];
+    try {
+      const sanitizedServers = mcpServers
+        .map((server) => {
+          const name = server.name?.trim() ?? "";
+          const url = server.url?.trim() ?? "";
+          const token = server.accessToken?.trim() ?? "";
 
-    saveWorkspaceSettings({
-      apiKey: apiKey || undefined,
-      baseUrl: baseUrl || undefined,
-      modelId: model || "gpt-5-mini",
-      approvalGatedTools: [...approvalTools],
-      mcpServers: sanitizedServers.map((server) => ({ ...server })),
-      activeMcpServerIds: nextActiveIds,
-    });
+          return {
+            ...server,
+            name,
+            url,
+            accessToken: token ? token : undefined,
+          };
+        })
+        .filter((server) => server.url.length > 0);
 
-    onClose();
+      const nextActiveIds = sanitizedServers.length
+        ? activeMcpServerIds.filter((id) => sanitizedServers.some((server) => server.id === id))
+        : [];
+
+      saveWorkspaceSettings({
+        apiKey: apiKey || undefined,
+        baseUrl: baseUrl || undefined,
+        modelId: model || "gpt-5-mini",
+        approvalGatedTools: [...approvalTools],
+        mcpServers: sanitizedServers.map((server) => ({ ...server })),
+        activeMcpServerIds: nextActiveIds,
+      });
+    } finally {
+      setSavingSettings(false);
+    }
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(e) => !e.open && onClose()} closeOnInteractOutside={false}>
+    <Dialog.Root size="lg" open={isOpen} onOpenChange={(e) => !e.open && onClose()} closeOnInteractOutside={false}>
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content>
@@ -169,7 +295,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
             </Dialog.CloseTrigger>
           </Dialog.Header>
           <Dialog.Body>
-            <VStack gap="md">
+            <VStack gap="md" align="stretch">
               <Alert.Root status="info">
                 <Alert.Indicator />
                 <Alert.Content>
@@ -180,81 +306,55 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                   </Alert.Description>
                 </Alert.Content>
               </Alert.Root>
-              <Field.Root>
-                <Field.Label>Model</Field.Label>
-                <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
-              </Field.Root>
-              <Field.Root>
-                <Field.Label>API Key</Field.Label>
-                <HStack>
-                  <Input
-                    type={showKey ? "text" : "password"}
-                    placeholder="sk-..."
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                  />
-                  <Button onClick={() => setShowKey((v) => !v)}>{showKey ? "Hide" : "Show"}</Button>
-                </HStack>
-              </Field.Root>
-              <Field.Root>
-                <Field.Label>Base URL (optional)</Field.Label>
-                <Input
-                  placeholder="https://api.openai.com/v1"
-                  value={baseUrl}
-                  onChange={(e) => setBaseUrl(e.target.value)}
-                />
-              </Field.Root>
-              <Flex gap="xs" direction="column" width="100%">
-                <Text>Approval-gated tools</Text>
-                <VStack align="stretch">
-                  {DEFAULT_APPROVAL_GATED_TOOLS.map((tool) => (
-                    <Checkbox.Root
-                      key={tool}
-                      checked={approvalTools.includes(tool)}
-                      onCheckedChange={(e) => {
-                        setApprovalTools((prev) => (e.checked ? [...prev, tool] : prev.filter((t) => t !== tool)));
-                      }}
-                    >
-                      <Checkbox.HiddenInput />
-                      <Checkbox.Control />
-                      <Checkbox.Label>{TOOL_LABELS[tool]}</Checkbox.Label>
-                    </Checkbox.Root>
-                  ))}
-                </VStack>
-              </Flex>
-              <Flex gap="xs" direction="column" width="100%">
-                <Text>MCP servers</Text>
-                <Text fontSize="sm" color="fg.muted">
-                  Configure remote MCP endpoints to surface their tools in the playground.
-                </Text>
-                <VStack align="stretch" gap="sm">
-                  {mcpServers.length === 0 ? (
-                    <Flex align="center" borderRadius="md" borderWidth="1px" justify="space-between" p="md">
-                      <Text color="fg.muted">No MCP servers configured.</Text>
-                    </Flex>
-                  ) : (
-                    mcpServers.map((server) => (
-                      <McpServerCard
-                        key={server.id}
-                        server={server}
-                        enabled={activeMcpServerIds.includes(server.id)}
-                        tokenVisible={showServerTokens[server.id] ?? false}
-                        onToggleEnabled={toggleServerActive}
-                        onRemove={removeMcpServer}
-                        onChange={updateMcpServer}
-                        onToggleTokenVisibility={toggleServerTokenVisibility}
-                      />
-                    ))
+              <Flex direction={{ base: "column", md: "row" }} gap="md">
+                {!isMobile && (
+                  <Flex direction="column" gap="xs" width="200px" flexShrink={0}>
+                    {SETTINGS_SECTIONS.map((section) => (
+                      <Button
+                        key={section.id}
+                        variant={activeSection === section.id ? "solid" : "ghost"}
+                        justifyContent="flex-start"
+                        size="sm"
+                        onClick={() => handleSectionChange(section.id)}
+                        aria-current={activeSection === section.id ? "page" : undefined}
+                      >
+                        {section.label}
+                      </Button>
+                    ))}
+                  </Flex>
+                )}
+                <Box flex="1">
+                  {isMobile && (
+                    <Box mb="md">
+                      <Field.Root>
+                        <Field.Label>Section</Field.Label>
+                        <MobileSectionSelect
+                          value={activeSection}
+                          onChange={(event) => handleSectionChange(event.target.value as SettingsSectionId)}
+                          paddingY="xs"
+                          paddingX="sm"
+                          borderRadius="md"
+                          borderWidth="1px"
+                          width="100%"
+                          color="foreground.primary"
+                          bg="background.primary"
+                        >
+                          {SETTINGS_SECTIONS.map((section) => (
+                            <option key={section.id} value={section.id}>
+                              {section.label}
+                            </option>
+                          ))}
+                        </MobileSectionSelect>
+                      </Field.Root>
+                    </Box>
                   )}
-                </VStack>
-                <Button alignSelf="flex-start" size="sm" variant="outline" onClick={addMcpServer}>
-                  Add MCP server
-                </Button>
+                  {renderActiveSection()}
+                </Box>
               </Flex>
             </VStack>
           </Dialog.Body>
           <Dialog.Footer gap="sm">
-            <Button onClick={save} variant="solid">
+            <Button onClick={save} variant="solid" loading={savingSettings} disabled={savingSettings}>
               Save
             </Button>
           </Dialog.Footer>

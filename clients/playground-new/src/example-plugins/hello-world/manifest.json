@@ -5,6 +5,13 @@
   "api": "^1.0.0",
   "entry": "index.js",
   "description": "Hello World plugin for OPFS.",
+  "settingsSchema": {
+    "type": "object",
+    "properties": {
+      "greeting": { "type": "string", "default": "Hello" },
+      "recipient": { "type": "string", "default": "Kaset" }
+    }
+  },
   "ui": {
     "desktop": {
       "title": "Hello World",
@@ -17,6 +24,13 @@
         "entry": "src/window.tsx",
         "dependencies": {}
       }
-    }
+    },
+    "commands": [
+      {
+        "id": "hello.sayHello",
+        "title": "Say Hello",
+        "category": "Examples"
+      }
+    ]
   }
 }

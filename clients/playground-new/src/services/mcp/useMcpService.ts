@@ -11,7 +11,7 @@ type RemoteTool = {
 };
 
 export interface UseMcpClientOptions {
-  /** Remote MCP endpoint. Defaults to the Context7 sample server. */
+  /** Remote MCP endpoint. */
   serverUrl?: string;
   /** Optional bearer token passed in the `Authorization` header. */
   accessToken?: string | null;

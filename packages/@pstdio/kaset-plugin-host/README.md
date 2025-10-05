@@ -4,7 +4,7 @@
 [![license](https://img.shields.io/npm/l/@pstdio/kaset-plugin-host)](https://github.com/pufflyai/kaset/blob/main/LICENSE)
 [![bundle size](https://img.shields.io/bundlephobia/minzip/%40pstdio%2Fkaset-plugin-host)](https://bundlephobia.com/package/%40pstdio%2Fkaset-plugin-host)
 
-Plugin runtime for Kaset’s browser-first workflow platform. The host loads user-editable plugins from OPFS, validates manifests, wires declarative UI surfaces, and provides a permission-scoped execution context.
+Plugin runtime for Kaset. The host loads user-editable plugins from OPFS, validates manifests, wires declarative UI surfaces, and provides a permission-scoped execution context.
 
 For additional information, see the [Plugins documentation](https://pufflyai.github.io/kaset/modifications/plugins).
 
@@ -48,7 +48,6 @@ host.emit("app:userSignedIn", { userId: "123" });
   <plugin-id>/
     manifest.json
     index.js
-    assets/**
 ```
 
 ## Manifest example

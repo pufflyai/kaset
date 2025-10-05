@@ -3,12 +3,20 @@ import path from "path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
+const entries = {
+  index: path.resolve(__dirname, "src/index.ts"),
+  "browser/adapters/tiny-ai-tasks": path.resolve(__dirname, "src/browser/adapters/tiny-ai-tasks.ts"),
+};
+
 export default defineConfig({
   build: {
     lib: {
-      entry: path.resolve(__dirname, "src/index.ts"),
+      entry: entries,
       name: "kaset-plugin-host",
-      fileName: () => `index.js`,
+      fileName: (_format, entryName) => {
+        if (entryName === "index") return "index.js";
+        return `${entryName}.js`;
+      },
       formats: ["es"],
     },
     sourcemap: true,

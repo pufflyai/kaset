@@ -4,21 +4,34 @@ import { deleteAllConversations as deleteAllConversationsAction } from "@/state/
 import { resetWorkspace } from "@/state/actions/resetWorkspace";
 import { selectConversation } from "@/state/actions/selectConversation";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Box, Flex, HStack, IconButton, Menu, Separator, Spacer, useDisclosure } from "@chakra-ui/react";
+import {
+  Box,
+  Drawer,
+  Flex,
+  HStack,
+  IconButton,
+  Menu,
+  Portal,
+  Separator,
+  Spacer,
+  useDisclosure,
+} from "@chakra-ui/react";
 import {
   CassetteTapeIcon,
   Check as CheckIcon,
   EditIcon,
   ExternalLink as ExternalLinkIcon,
+  GitCommitVerticalIcon,
   HistoryIcon,
   RotateCcw,
   Settings as SettingsIcon,
   Trash2 as TrashIcon,
 } from "lucide-react";
 import { type ReactNode } from "react";
-import { resetPlayground } from "../../services/playground/reset";
 import { SettingsModal } from "../../components/ui/settings-modal";
 import { Tooltip } from "../../components/ui/tooltip";
+import { resetPlayground } from "../../services/playground/reset";
+import { CommitHistory } from "./commit-history";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { MenuItem } from "./menu-item";
 
@@ -31,6 +44,7 @@ export function TopBar(props: TopBarProps) {
   const { open: isOpen, onOpen, onClose } = useDisclosure();
   const deleteAll = useDisclosure();
   const resetProject = useDisclosure();
+  const versionHistory = useDisclosure();
   const conversations = useWorkspaceStore((s) => s.conversations);
   const selectedId = useWorkspaceStore((s) => s.selectedConversationId);
 
@@ -46,6 +60,15 @@ export function TopBar(props: TopBarProps) {
     }
 
     resetWorkspace();
+  };
+
+  const handleVersionHistoryChange = (event: { open: boolean }) => {
+    if (event.open) {
+      versionHistory.onOpen();
+      return;
+    }
+
+    versionHistory.onClose();
   };
 
   return (
@@ -94,6 +117,12 @@ export function TopBar(props: TopBarProps) {
           </Menu.Trigger>
           <Menu.Positioner>
             <Menu.Content bg="background.primary">
+              <MenuItem
+                primaryLabel="View version history"
+                leftIcon={<GitCommitVerticalIcon size={16} />}
+                onClick={versionHistory.onOpen}
+              />
+              <Separator marginY="sm" />
               <MenuItem
                 primaryLabel={`Reset playground`}
                 leftIcon={<RotateCcw size={16} />}
@@ -146,6 +175,23 @@ export function TopBar(props: TopBarProps) {
         notificationText={`Remove all files under "${ROOT}" and restore default files?`}
         buttonText="Reset project"
       />
+      <Drawer.Root open={versionHistory.open} onOpenChange={handleVersionHistoryChange}>
+        <Portal>
+          <Drawer.Backdrop />
+          <Drawer.Positioner>
+            <Drawer.Content>
+              <Drawer.CloseTrigger />
+              <Drawer.Header>
+                <Drawer.Title>Versions</Drawer.Title>
+              </Drawer.Header>
+              <Drawer.Body>
+                <CommitHistory />
+              </Drawer.Body>
+              <Drawer.Footer />
+            </Drawer.Content>
+          </Drawer.Positioner>
+        </Portal>
+      </Drawer.Root>
     </Flex>
   );
 }
