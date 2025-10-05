@@ -18,10 +18,19 @@ interface ConversationAreaProps extends FlexProps {
   onFileUpload?: () => Promise<string[] | undefined>;
   availableFiles?: Array<string>;
   canSend?: boolean;
+  examplePrompts?: string[];
 }
 
 export const ConversationArea = (props: ConversationAreaProps) => {
-  const { messages, streaming, onSendMessage, onSelectFile, canSend = true, ...rest } = props;
+  const {
+    messages,
+    streaming,
+    onSendMessage,
+    onSelectFile,
+    canSend = true,
+    examplePrompts = [],
+    ...rest
+  } = props;
   const [input, setInput] = useState("");
 
   const estimatedTokens = useEstimatedTokens(messages, input);
@@ -54,6 +63,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
             messages={messages}
             streaming={streaming}
             onOpenFile={onSelectFile}
+            examplePrompts={examplePrompts}
             onUseExample={(text) => {
               const trimmed = text.trim();
               if (!trimmed || !canSend) return;

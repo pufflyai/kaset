@@ -23,6 +23,7 @@ export interface BrowserHostOptions {
     netFetch?: (url: string, init?: RequestInit) => Promise<Response>;
   };
   watch?: boolean;
+  onPluginEvent?: (pluginId: string, event: string, payload: unknown) => void;
 }
 
 /** Public surface exposed to browser consumers for managing OPFS-backed plugins. */
@@ -395,6 +396,7 @@ export function createBrowserPluginHost(options: BrowserHostOptions): BrowserPlu
 
           settingsSubscribers.forEach((listener) => listener(pluginId, schema));
         },
+        onPluginEvent: options.onPluginEvent,
       },
       timeouts: options.host?.timeouts,
     };

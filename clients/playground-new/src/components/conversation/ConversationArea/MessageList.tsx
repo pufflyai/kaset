@@ -125,11 +125,17 @@ interface MessageListProps {
   streaming: boolean;
   onOpenFile?: (filePath: string) => void;
   onUseExample?: (text: string) => void;
+  examplePrompts?: string[];
 }
 
-export function MessageList({ messages, streaming, onOpenFile, onUseExample }: MessageListProps) {
-  const projectPrompts: string[] = [];
-  const examplesToShow = useMemo(() => pickRandom(projectPrompts, 4), [projectPrompts]);
+export function MessageList({
+  messages,
+  streaming,
+  onOpenFile,
+  onUseExample,
+  examplePrompts = [],
+}: MessageListProps) {
+  const examplesToShow = useMemo(() => pickRandom(examplePrompts, 4), [examplePrompts]);
 
   const plan = useRenderPlan(messages);
   const lastMessageId = messages.length ? messages[messages.length - 1].id : undefined;

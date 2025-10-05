@@ -65,4 +65,5 @@ export interface UIAdapter {
   onCommandsChanged(commands: RegisteredCommand[]): void;
   notify?(level: NotificationLevel, message: string): void;
   onSettingsSchema?(pluginId: string, schema?: Record<string, unknown>): void;
+  onPluginEvent?(pluginId: string, event: string, payload: unknown): void;
 }

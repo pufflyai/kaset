@@ -9,7 +9,9 @@ import { setConversationMessages } from "@/state/actions/setConversationMessages
 import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
+import { usePluginHost } from "../../services/plugins/usePluginHost";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import type { Message } from "../../types";
 import { ConversationArea } from "../conversation/ConversationArea";
@@ -24,10 +26,11 @@ export function ConversationHost() {
       : EMPTY_MESSAGES,
   );
   const { tools: mcpTools } = useMcpService();
+  const { tools: pluginTools } = usePluginHost();
   const [streaming, setStreaming] = useState(false);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
-  const toolset = useMemo(() => [...mcpTools], [mcpTools]);
+  const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
 
   useEffect(() => {
     setApprovalHandler(
@@ -95,6 +98,7 @@ export function ConversationHost() {
         messages={messages}
         streaming={streaming}
         canSend={hasCredentials() && !streaming}
+        examplePrompts={examplePrompts}
         onSendMessage={handleSendMessage}
         onSelectFile={(_path) => {}}
       />

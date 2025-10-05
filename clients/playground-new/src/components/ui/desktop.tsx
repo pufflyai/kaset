@@ -20,7 +20,6 @@ import {
   subscribeToPluginDesktopSurfaces,
   type PluginDesktopSurface,
 } from "@/services/plugins/plugin-host";
-import { PluginSandpackWindow } from "../../services/plugins/sandpack-wrapper";
 import { DesktopIcon } from "./desktop-icon";
 import { Window } from "./window";
 
@@ -92,7 +91,7 @@ const renderSurfaceWindow = (surface: PluginDesktopSurface, windowId: string) =>
     );
   }
 
-  return <PluginSandpackWindow pluginId={surface.pluginId} window={descriptor} instanceId={windowId} />;
+  return <div>PLUGIN UI - {windowId} </div>;
 };
 
 const createDesktopAppFromSurface = (surface: PluginDesktopSurface): DesktopApp => {
