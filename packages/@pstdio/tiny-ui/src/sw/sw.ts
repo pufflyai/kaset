@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-import { CACHE_NAME } from "../../constant.js";
+import { CACHE_NAME } from "../constant.js";
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 

@@ -1,4 +1,4 @@
-import { CACHE_NAME } from "../../constant.js";
+import { CACHE_NAME } from "../constant.js";
 
 export const getBundleCacheName = () => CACHE_NAME;
 

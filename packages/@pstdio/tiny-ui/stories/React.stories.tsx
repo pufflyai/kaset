@@ -5,7 +5,7 @@ import type { CompileResult } from "../src/esbuild/types.js";
 import { TinyUI, type TinyUIHandle, type TinyUIStatus } from "../src/react/tiny-ui.js";
 import { setLockfile } from "../src/core/idb.js";
 import { registerVirtualSnapshot } from "../src/opfs/snapshot.js";
-import { CACHE_NAME } from "../constant.js";
+import { CACHE_NAME } from "../src/constant.js";
 
 const STORY_ROOT = "/stories/tiny-react";
 const SOURCE_ID = "tiny-ui-react";

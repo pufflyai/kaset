@@ -1,105 +1,106 @@
-# Tiny Plugins
+# tiny-plugins
 
-**Package:** `@pstdio/tiny-plugins`
-**Host API version:** `1.0.0` (see `HOST_API_VERSION`)
-**Scope:** Defines the runtime model, wire protocol, and browser wrapper for loading, activating, and invoking Kaset plugins stored in OPFS.
-
-> This specification **describes exactly what the current implementation does**, including limitations and non‑implemented features that are declared in types. Normative key words **MUST**, **SHOULD**, **MAY**, etc., indicate intent; when intent conflicts with code, the code wins and the spec calls that out explicitly.
-
----
-
-## Table of Contents
-
-1. [Architecture Overview](#architecture-overview)
-2. [Runtime Environments](#runtime-environments)
-3. [On‑disk Layout (OPFS)](#on-disk-layout-opfs)
-4. [Manifests](#manifests)
-5. [Plugin Module Contract](#plugin-module-contract)
-6. [Plugin Context API](#plugin-context-api)
-7. [Command Registration & Invocation](#command-registration--invocation)
-8. [Activation Events](#activation-events)
-9. [Settings Storage](#settings-storage)
-10. [Networking](#networking)
-11. [Core Host API (`createPluginHost`)](#core-host-api-createpluginhost)
-12. [Browser Wrapper (`createBrowserPluginHost`)](#browser-wrapper-createbrowserpluginhost)
-13. [File Watching & Hot Reload](#file-watching--hot-reload)
-14. [Timeouts & Cancellation](#timeouts--cancellation)
-15. [Notifications & UI Adapter](#notifications--ui-adapter)
-16. [Tiny‑AI Tasks Adapter](#tiny-ai-tasks-adapter)
-17. [Errors & Edge Cases](#errors--edge-cases)
-18. [Security Considerations](#security-considerations)
-19. [Versioning & Compatibility](#versioning--compatibility)
-20. [Examples](#examples)
-21. [Not Implemented / Reserved](#not-implemented--reserved)
-
----
-
-## Architecture Overview
-
-The host loads plugins from a **plugins root** in OPFS, validates basic manifest fields, dynamically imports each plugin’s `entry` module, calls `activate`, registers command handlers declared in the manifest, and exposes a permission‑scoped\* execution context (see [Security](#security-considerations)).
-
-Two layers are provided:
-
-- **Core Host** (`createPluginHost`) – environment‑agnostic logic for loading/unloading plugins, invoking commands, broadcasting events, and persisting settings.
-- **Browser Wrapper** (`createBrowserPluginHost`) – browser‑only façade that normalizes OPFS paths, manages subscriptions and UI‑friendly caches, and exposes higher‑level operations.
-
----
-
-## Runtime Environments
-
-- **Core Host** can run wherever `@pstdio/opfs-utils` is available.
-- **Browser Wrapper** **MUST** run in a browser; it checks `typeof window !== "undefined"` and will throw if called outside a browser.
-
----
-
-## On‑disk Layout (OPFS)
-
-```
-<pluginsRoot>/              (default: "plugins")
-  <plugin-id>/
-    manifest.json           (required)
-    <entry module>          (e.g., index.js)
-state/public/plugins/
-  <plugin-id>.json          (settings file per plugin, auto‑created on write)
-```
-
-The wrapper normalizes configured roots by trimming slashes; an empty or all‑slashes string normalizes to `"plugins"`.
-
----
-
-## Manifests
-
-**Type:** `src/model/manifest.ts`
+## 1) Browser‑only Host
 
 ```ts
-export interface Manifest {
-  id: string; // SHOULD equal directory name; mismatch is only warned
-  name: string;
-  version: string; // plugin's own semver
-  api: string; // required; MUST be compatible with host major (see below)
-  entry: string; // relative to plugin directory
-  activation?: ActivationEvent[];
-  permissions?: { fs?: { read?: string[]; write?: string[] }; net?: string[] };
-  commands?: CommandDefinition[];
-  ui?: Record<string, unknown>;
-  settingsSchema?: JSONSchema; // surfaced to UI at load/unload
+export interface HostOptions {
+  root: string; // OPFS root for plugins; "" -> "plugins"
+  watch?: boolean; // default true; watches <root>/<pluginId>/**
+  timeouts?: {
+    // ms; non-finite disables timeout
+    activate?: number; // default 10_000
+    deactivate?: number; // default 5_000
+    command?: number; // default 10_000
+  };
+  notify?: (level: "info" | "warn" | "error", message: string) => void;
+}
+
+export function createPluginHost(options: HostOptions): PluginHost;
+```
+
+```ts
+export interface PluginHost {
+  start(): Promise<void>;
+  stop(): Promise<void>;
+  isReady(): boolean;
+
+  // Inventory
+  listPlugins(): PluginMetadata[]; // { id, name?, version? }
+  subscribePlugins(cb: (list: PluginMetadata[]) => void): () => void;
+
+  // Per-plugin operations (host → plugin)
+  doesPluginExist(pluginId: string): boolean;
+  listPluginCommands(pluginId: string): RegisteredCommand[];
+  runPluginCommand<T = unknown>(pluginId: string, cmdId: string): (params?: unknown) => Promise<T | void>;
+  readPluginSettings<T = unknown>(pluginId: string): Promise<T>;
+  writePluginSettings<T = unknown>(pluginId: string, value: T): Promise<void>;
+  readPluginManifest(pluginId: string): Promise<Manifest | null>;
+
+  // Global convenience
+  listCommands(): Array<RegisteredCommand & { pluginId: string }>;
+
+  // Manifests & UI schemas
+  subscribePluginManifest(pluginId: string, cb: (manifest: Manifest | null) => void): () => void;
+  subscribeManifests(cb: (update: { pluginId: string; manifest: Manifest | null }) => void): () => void;
+
+  // File‑level watch
+  subscribePluginFiles(pluginId: string, cb: (e: { pluginId: string; changes: ChangeRecord[] }) => void): () => void;
 }
 ```
 
-**API compatibility:**
-A manifest is considered compatible **iff** the first integer in `api` (optionally prefixed by `^`) equals the host major (`1` today). Any other format or major mismatch rejects the plugin at load.
+---
 
-Examples considered compatible with host `1.0.0`: `"^1.0.0"`, `"1"`, `"^1"`.
+## 2) Manifest (strict, host‑validated)
 
-> **Note:** Only this major‑equality check is performed. No additional schema validation is performed by the core host.
+```ts
+export interface Manifest {
+  id: string;
+  name: string;
+  version: string; // semver
+  api: string; // e.g. "^1.0.0" (host checks major equality OR semver range)
+  entry: string; // relative module path to plugin code (e.g., "index.js")
+
+  // Host‑defined UI metadata; strictly validated against HostUISchema (below)
+  ui?: HostUIConfig;
+
+  // Commands declared by this plugin (host will register those with matching handlers)
+  commands?: CommandDefinition[];
+
+  // Optional: schema purely for settings UI & validation on write
+  settingsSchema?: JSONSchema;
+}
+```
+
+### Host‑defined UI schema (throws on mismatch)
+
+> The host **owns** this shape and validates it (AJV or similar). If `manifest.ui` doesn’t match, the plugin **fails to load**.
+
+```ts
+export interface HostUIConfig {
+  desktop?: {
+    title: string;
+    description?: string;
+    icon?: string; // host-specific icon key, e.g., "Plug"
+    singleton?: boolean; // default false
+    defaultSize?: { width: number; height: number };
+    minSize?: { width: number; height: number };
+    entry: string; // REQUIRED: path to the UI entry (html/js), relative to plugin dir
+  };
+  // Future surfaces can be added here (e.g., "panel", "commandPalette" etc.)
+}
+```
+
+**Validation rules (non‑negotiable):**
+
+- If `ui.desktop` exists:
+  - `title` is non‑empty string.
+  - `entry` is a valid relative path to an existing file at load time.
+  - Any `{width,height}` numbers are finite and `minSize` ≤ `defaultSize` if both supplied.
+  - Unknown properties → **throw**.
 
 ---
 
-## Plugin Module Contract
-
-**Type:** `src/model/plugin.ts`
-
-A plugin module **MUST** provide a default export with an `activate` function:
+## 3) Plugin Module Contract
 
 ```ts
 export interface Plugin {
@@ -108,410 +109,142 @@ export interface Plugin {
 }
 
 export interface PluginModule {
-  default?: Plugin;
-  commands?: Record<string, CommandHandler>; // handlers keyed by command id
+  default?: Plugin; // required default with activate()
+  // Command handlers keyed by command id; optional entries are ignored
+  commands?: Record<string, CommandHandler>;
 }
 ```
 
-- If `default.activate` is missing, loading fails.
-- If `default.deactivate` exists, it is called during unload with a timeout (see [Timeouts](#timeouts--cancellation)).
+```ts
+export interface CommandDefinition {
+  id: string; // e.g., "theme.next"
+  title: string;
+  description?: string;
+  category?: string;
+  when?: string; // surfaced; host doesn’t interpret
+  parameters?: JSONSchema; // host validates params if provided
+  timeoutMs?: number; // per-command override (optional)
+}
+
+export type CommandHandler = (ctx: PluginContext, params?: unknown) => Promise<unknown | void> | unknown;
+```
+
+- If a declared command lacks a matching handler, the host **warns and skips** registration.
+- Command return values are forwarded by `host.run(pluginId, ...)`.
 
 ---
 
-## Plugin Context API
+## 4) PluginContext (lean: host commands + file + network + settings)
 
-**Type:** `src/host/context.ts`
+> No permissions, no cancel token, no paths object.
 
 ```ts
 export interface PluginContext {
-  id: string; // manifest.id
-  manifest: Manifest; // parsed manifest
-  log: Logger; // console.* with plugin prefix
-  fs: FSApi; // OPFS access (no runtime permission checks)
-  settings: SettingsApi; // persisted under state/public/plugins/<id>.json
-  ui: UIHostApi; // notify -> UI adapter
-  commands: CommandsApi; // invoke() OWN plugin's commands only
-  events: EventsApi; // in-process event hub per plugin
-  net?: { fetch: (url: string, init?: RequestInit) => Promise<Response> }; // see Networking
-  cancelToken: AbortSignal; // aborted on unload/reload
-  disposables: Array<Disposable | (() => void | Promise<void>)>; // disposed on unload
-}
-```
+  id: string;
+  manifest: Manifest;
+  log: Logger;
 
-### FS API
+  // Host-provided commands (NOT the plugin's own)
+  commands: {
+    // Show a user-facing notification via host UI
+    notify(level: "info" | "warn" | "error", message: string): void;
 
-- `readFile(path)`, `writeFile(path, contents)`, `deleteFile(path)`, `moveFile(from, to)`
-- **No path sandboxing is enforced by the host.** See [Security](#security-considerations).
-
-### Settings API
-
-- `read<T>(): Promise<T>` returns `{}` if the settings file is missing.
-- `write<T>(value: T): Promise<void>` writes pretty‑printed JSON.
-
-**Storage path:** `state/public/plugins/<pluginId>.json`.
-
-### Commands API
-
-- `invoke(commandId, params?)` finds and runs a command **within the same plugin**.
-  - Cross‑plugin invocation is **not** supported by the implementation.
-
-### Events API
-
-In‑memory event hub per plugin:
-
-- `on(event, listener) -> Disposable`
-- `off(event, listener)`
-- `emit(event, payload?)`
-
-> The host also provides a top‑level `emit(name, payload?)` that **broadcasts** to all plugins’ event hubs (see [Core Host API](#core-host-api-createpluginhost)).
-
-### `net?.fetch`
-
-- Present **iff** the host was created with a `netFetch` function.
-  - In the **browser wrapper**, `net.fetch` is **always present** (defaults to `window.fetch` unless overridden).
-  - In the **core host**, `net.fetch` is **undefined** unless provided in `HostConfig.netFetch`.
-
----
-
-## Command Registration & Invocation
-
-**Declaration:** via `manifest.commands: CommandDefinition[]`.
-**Implementation:** module export `commands?: Record<string, CommandHandler>`.
-
-At load time:
-
-- For each declared command, the host looks up `module.commands[definition.id]`.
-- If a handler is missing, the host logs a warning and **does not** register that command.
-- For each registered command the host maintains a `RegisteredCommand` object:
-
-```ts
-export interface RegisteredCommand {
-  pluginId: string; // manifest.id
-  id: string; // CommandDefinition.id
-  title: string; // CommandDefinition.title
-  description?: string;
-  category?: string;
-  when?: string; // not interpreted by the host
-  parameters?: JSONSchema; // unvalidated, surfaced to UI
-  run: (params?: unknown) => Promise<void>; // executes handler with timeout
-}
-```
-
-**Parameters:** The host does **not** validate parameters against `parameters` (JSON Schema). It passes `params` verbatim to the handler.
-
-**Invocation:** By plugin ID and command ID: `host.invokeCommand(pluginId, commandId, params?)`. If not found, throws `Error("Command not found: <pluginId>:<commandId>")`.
-
----
-
-## Activation Events
-
-**Declared in manifest** via `activation?: ActivationEvent[]` with shapes:
-
-- `{ type: "onStartup" }`
-- `{ type: "onCommand", id: string }`
-- `{ type: "onFSChange", glob: string }`
-- `{ type: "onCron", expr: string }`
-- `{ type: "onEvent", name: string }`
-
-**Implemented behavior:**
-
-- `onFSChange` – **Implemented.**
-  The host installs a global OPFS watcher (root path `""`, recursive) and, for each change, matches the absolute path (e.g., `/foo/bar.txt`) against the plugin’s `glob` via `picomatch/posix`. On match, the host emits `events.emit("fs:change", { glob, change })` into that plugin’s event hub.
-
-- `onCron` – **Not implemented.** A warning is logged:
-  `"Plugin <id> requested cron activation (<expr>) but cron is not implemented yet."`
-
-- `onStartup`, `onCommand`, `onEvent` – **No special wiring** by the host. Plugins may observe `ctx.events` and respond as they wish.
-
-> Regardless of `activation`, the host **always** calls `plugin.activate(ctx)` during load.
-
----
-
-## Settings Storage
-
-- Per plugin settings are persisted at `state/public/plugins/<pluginId>.json`.
-- The core host **surfaces** `manifest.settingsSchema` to the UI adapter when a plugin loads, and **clears** it on unload.
-- Plugins **cannot** update the settings schema dynamically via code in the current implementation (no API to push schema updates beyond the manifest).
-
----
-
-## Networking
-
-- If a `netFetch` is provided to the host, `ctx.net.fetch` is available to plugins.
-- The browser wrapper always passes `netFetch = (url, init) => fetch(url, init)` unless overridden, so plugins **will** have `ctx.net.fetch` in browser usage.
-- **No URL allow‑list/deny‑list enforcement is performed** by the host against `permissions.net`.
-
----
-
-## Core Host API (`createPluginHost`)
-
-**Factory:** `createPluginHost(config?: HostConfig): PluginHost`
-
-```ts
-export interface HostConfig {
-  pluginsRoot?: string; // default "plugins"; leading slashes trimmed
-  watchPlugins?: boolean; // default true
-  ui?: UIAdapter; // see Notifications
-  netFetch?: (url: string, init?: RequestInit) => Promise<Response>;
-  timeouts?: { command?: number; activate?: number; deactivate?: number }; // ms
-}
-
-export interface PluginHost {
-  loadAll(): Promise<void>; // load all plugins under pluginsRoot
-  unloadAll(): Promise<void>; // unload all, stop watcher
-  reloadPlugin(id: string): Promise<void>; // unload + load
-  invokeCommand(pluginId: string, commandId: string, params?: unknown): Promise<void>;
-  listCommands(): RegisteredCommand[]; // snapshot (by reference; do not mutate)
-  emit(name: string, payload?: unknown): void; // broadcast to all plugins' event hubs
-  getSettingsSchema(pluginId: string): JSONSchema | undefined; // from manifest
-  readSettings<T>(pluginId: string): Promise<T>; // {} if missing
-  writeSettings<T>(pluginId: string, value: T): Promise<void>;
-}
-```
-
-### Behavior
-
-- **Loading:**
-  - Lists immediate subdirectories of `pluginsRoot` (`ls(..., { maxDepth: 1, kinds: ["directory"] })`).
-  - For each directory:
-    - Reads and parses `manifest.json` (rejects on parse error).
-    - Validates `api` compatibility (major equal); otherwise throws.
-    - Reads plugin `entry`, imports via `Blob` + `import(objectURL)`.
-    - Calls `plugin.activate(ctx)` with a timeout (default 10s).
-    - Registers commands that have matching handlers (`module.commands[commandId]`).
-    - If `manifest.settingsSchema` is present, calls `ui.onSettingsSchema(pluginId, schema)`.
-    - Applies activation (`onFSChange` only).
-
-- **Watching:**
-  If `watchPlugins !== false`, installs a recursive watcher on `pluginsRoot`. Any change groups by first path segment (plugin id) and triggers `reloadPlugin(id)`.
-
-- **Unloading:**
-  - Aborts the per‑plugin abort controller.
-  - Removes registered commands.
-  - Disposes registered cleanups and any `ctx.disposables`.
-  - Calls `plugin.deactivate()` with a timeout (default 5s).
-  - Revokes the imported module `objectURL`.
-  - Emits `ctx.events.emit("deactivated")`.
-  - Clears settings schema via `ui.onSettingsSchema(pluginId, undefined)`.
-
----
-
-## Browser Wrapper (`createBrowserPluginHost`)
-
-**Factory:** `createBrowserPluginHost(options: BrowserHostOptions): BrowserPluginHost`
-
-```ts
-export interface BrowserHostOptions {
-  root: string; // normalized; "" -> "plugins"
-  notify?: (level: NotificationLevel, message: string) => void; // convenience
-  host?: Omit<HostConfig, "pluginsRoot" | "ui" | "netFetch" | "watchPlugins"> & {
-    netFetch?: (url: string, init?: RequestInit) => Promise<Response>;
+    // (Reserved for future host commands; keep this minimal for now)
+    // e.g., openUrl(url: string): void; track(event: string, props?: Record<string, unknown>): void;
   };
-  watch?: boolean; // default true
-  onPluginEvent?: (pluginId: string, event: string, payload: unknown) => void; // reserved; not invoked
-}
 
-export interface BrowserPluginHost {
-  start(): Promise<void>;
-  stop(): Promise<void>;
-  isReady(): boolean;
+  // Files (scoped to plugin directory; host enforces path normalization)
+  fs: {
+    readFile(path: string): Promise<Uint8Array>;
+    writeFile(path: string, contents: Uint8Array | string): Promise<void>;
+    deleteFile(path: string): Promise<void>;
+    moveFile(from: string, to: string): Promise<void>;
+    exists(path: string): Promise<boolean>;
+    mkdirp(path: string): Promise<void>;
+    readJSON<T = unknown>(path: string): Promise<T>;
+    writeJSON(path: string, value: unknown, pretty?: boolean): Promise<void>;
+  };
 
-  // Commands
-  listCommands(): RegisteredCommand[];
-  subscribeCommands(listener: (commands: RegisteredCommand[]) => void): () => void;
-  runCommand(pluginId: string, commandId: string, params?: unknown): Promise<void>;
+  // Network (browser fetch)
+  net: {
+    fetch: (url: string, init?: RequestInit) => Promise<Response>;
+  };
 
-  // Settings schema & values
-  subscribeSettings(listener: (pluginId: string, schema?: JSONSchema) => void): () => void;
-  readSettings<T = unknown>(pluginId: string): Promise<T>;
-  writeSettings<T = unknown>(pluginId: string, value: T): Promise<void>;
-
-  // Plugin metadata & manifests
-  listPlugins(): PluginMetadata[]; // { id, name?, version? }
-  subscribePlugins(listener: (plugins: PluginMetadata[]) => void): () => void;
-  getPluginDisplayName(pluginId: string): string;
-  readManifest(pluginId: string): Promise<unknown | null>;
-  subscribeManifest(pluginId: string, listener: (manifest: unknown | null) => void): () => void;
-  subscribeManifests(listener: (update: { pluginId: string; manifest: unknown | null }) => void): () => void;
-
-  // File‑level changes under a specific plugin directory
-  subscribePluginFiles(
-    pluginId: string,
-    listener: (e: { pluginId: string; changes: ChangeRecord[] }) => void,
-  ): () => void;
-
-  // Debug
-  getRoot(): string;
+  // Settings (persisted at <root>/<id>/.settings.json; watcher ignores this file)
+  settings: {
+    read<T = unknown>(): Promise<T>; // {} if missing/invalid
+    write<T = unknown>(value: T): Promise<void>;
+  };
 }
 ```
 
-### Behavior
-
-- `start()`
-  - Ensures the root directory exists by writing and then trying to delete a `.keep` file.
-  - Creates an underlying core host with:
-    - `pluginsRoot = normalize(root)`
-    - `watchPlugins = options.watch ?? true`
-    - `netFetch = options.host?.netFetch ?? fetch`
-    - `ui` implementation that:
-      - pushes command snapshots on change,
-      - forwards `notify`,
-      - publishes the (static) `settingsSchema` from manifest,
-      - forwards `onPluginEvent` (**not invoked by core host; see [Not Implemented](#not-implemented--reserved)**).
-
-  - Calls `host.loadAll()`.
-  - Reads manifests and metadata for all plugin directories.
-  - Starts a root watcher to refresh inventory (150 ms debounce).
-  - Starts any per‑plugin file watchers that already have subscribers.
-  - Sets `ready = true`.
-
-- `stop()`
-  - Calls `host.unloadAll()`.
-  - Disposes root and per‑plugin file watchers.
-  - Clears in‑memory caches (`commands`, `schemas`, `metadata`, `manifests`) and notifies subscribers:
-    - `subscribeCommands` -> `[]`
-    - `subscribePlugins` -> `[]`
-    - `subscribeSettings` -> `(pluginId, undefined)` for each previously known schema
-    - `subscribeManifest(s)` -> `{ pluginId, manifest: null }` for each known manifest
-
-- **Subscriptions** call listeners immediately with the current snapshot when registered.
-
-- `runCommand`, `readSettings`, `writeSettings` **auto‑start** the host if needed.
-
-- `readManifest(pluginId)`
-  - Returns cached value if present (including `null` for missing).
-  - Otherwise reads `manifest.json` directly from OPFS and updates caches/metadata (without requiring `start()`).
-
-- `subscribePluginFiles(pluginId, listener)`
-  - Creates a dedicated watcher for `<root>/<pluginId>`; forwards raw `ChangeRecord[]`.
-  - If no listeners remain, disposes that watcher and deletes its record.
-
-- **Metadata derivation** from manifest: `{ id: manifest.id ?? pluginId, name?: manifest.name, version?: manifest.version }`.
+- `ctx.commands` is a **gateway to host services** (e.g., `notify`), not a way to call plugin handlers.
+- If you later add more host services, extend `ctx.commands` in one place without touching plugin code.
 
 ---
 
-## File Watching & Hot Reload
+## 5) Command Invocation (host → plugin)
 
-- **Core host** installs a recursive watcher on the plugins root. Any change under `pluginsRoot/<id>/...` triggers `reloadPlugin(<id>)`.
-- **Browser wrapper** installs:
-  - A root watcher that refreshes the _inventory_ and cached manifests (with 150 ms debounce).
-  - Optional per‑plugin directory watchers for subscribers of `subscribePluginFiles`.
-
-When a `manifest.json` is touched under a watched plugin directory, the browser wrapper re‑reads and republishes that manifest to subscribers (it does **not** itself reload the plugin; the core host’s root watcher handles reload).
-
----
-
-## Timeouts & Cancellation
-
-Default timeouts (ms):
+You wanted a curried call; the host supports both forms:
 
 ```ts
-command = 10_000;
-activate = 10_000;
-deactivate = 5_000;
+// Curried (as requested)
+host.runCommand("theme-switcher", "theme.next")({ fast: true });
+
+// Or direct sugar
+host.run("theme-switcher", "theme.next", { fast: true });
 ```
 
-- Timeouts are applied by `runWithTimeout`.
-- If `AbortSignal` is already aborted, operations reject with an `AbortError` (DOMException where available, else `Error` with `name = "AbortError"`).
-- Non‑finite or ≤0 timeouts effectively disable the timeout for that call.
-- On unload/reload, the plugin’s `AbortController` is aborted; any in‑flight commands/activate calls will reject accordingly.
+Both return `Promise<unknown | void>`.
 
 ---
 
-## Notifications & UI Adapter
+## 6) Loading, Watching & Settings
 
-**Type:** `src/host/context.ts` → `UIAdapter`
+- **Load flow**
+  1. Discover `<root>/<pluginId>/`.
+  2. Parse `manifest.json`.
+  3. **Enforce `manifest.id === <pluginId>`**; throw if mismatch.
+  4. Validate `api` (major equal or semver range containment).
+  5. Validate `manifest.ui` against **HostUIConfig schema**; throw on mismatch.
+  6. Import `entry` module via dynamic import (blob URL).
+  7. Call `plugin.activate(ctx)` (timeout).
+  8. Register commands with matching handlers.
+  9. Publish `settingsSchema` (if present) to subscribers.
 
-```ts
-export interface UIAdapter {
-  onCommandsChanged(commands: RegisteredCommand[]): void; // required
-  notify?(level: "info" | "warn" | "error", message: string): void;
-  onSettingsSchema?(pluginId: string, schema?: Record<string, unknown>): void;
-  onPluginEvent?(pluginId: string, event: string, payload: unknown): void; // not used by core host
-}
-```
+- **Watching**
+  - Recursive watcher on `<root>`.
+  - Any change under `<root>/<id>/**` triggers **reload** of that plugin **except**:
+    - `**/.settings.json`
+    - `**/.keep`
 
-- The core host **always** calls `onCommandsChanged` after any registration/removal.
-- The core host **calls** `onSettingsSchema(pluginId, schema)` exactly at:
-  - plugin load (with `manifest.settingsSchema` if present),
-  - plugin unload (with `undefined`).
+  - Debounced per plugin (150 ms).
 
-- `notify` is surfaced to plugins via `ctx.ui.notify` and called by the host for host‑level messages.
-- `onPluginEvent` exists in the type but is **not invoked** by the core host in this implementation.
-
----
-
-## Tiny‑AI Tasks Adapter
-
-**File:** `src/browser/adapters/tiny-ai-tasks.ts`
-
-`createToolsForCommands(commands, runner) => Tool[]` adapts `RegisteredCommand[]` to `@pstdio/tiny-ai-tasks` tools.
-
-- **Tool names** are sanitized: `plugin_<pluginId>_<commandId>` with `[^a-zA-Z0-9_-]` replaced by `_`.
-- **Definition.description** is chosen as `cmd.description?.trim() || cmd.title || "${pluginId}:${id}"`.
-- **Definition.parameters** is `cmd.parameters` if present, else `{ type: "object", properties: {}, additionalProperties: false }`.
-- **Run behavior:** calls `runner(pluginId, commandId, params)`; returns:
-
-  ```json
-  {
-    "data": {
-      "success": true,
-      "pluginId": "...",
-      "commandId": "...",
-      "title": "...",
-      "description": "...",
-      "parameters": {
-        /* the incoming params */
-      }
-    },
-    "messages": [
-      {
-        "role": "tool",
-        "tool_call_id": "<id or empty>",
-        "content": "<same payload as JSON string>"
-      }
-    ]
-  }
-  ```
-
-- The adapter does **not** validate parameter shapes against the schema.
+- **Settings**
+  - Stored at `<root>/<pluginId>/.settings.json`.
+  - `read()` returns `{}` if missing or invalid.
+  - If `settingsSchema` exists, the host validates on `write()` and rejects with a structured error.
 
 ---
 
-## Errors & Edge Cases
+## 7) Errors
 
-- **Manifest parse failure:** `Failed to parse JSON from <path>: <message>` (throws).
-- **API incompatibility:** `Plugin <id> targets API <range>, which is incompatible with host <HOST_API_VERSION>` (throws).
-- **Missing command at invocation:** throws `Error("Command not found: <pluginId>:<commandId>")`.
-- **OPFS missing directory:** core host treats missing `pluginsRoot` as empty set; browser wrapper auto‑creates the root on `start()` by touching `.keep`.
-- **File system errors:** Code recognizes both DOM `NotFoundError` and a custom `{ code: 404 }` shape when reading listings/manifests in the browser wrapper; other errors are logged via `console.warn` and treated as empty results where appropriate.
-- **Module import:** dynamic import via `Blob` + `ObjectURL`. Import errors revoke the URL and rethrow.
+Use a small, consistent taxonomy:
 
----
+- `E_MANIFEST_PARSE(path, message)`
+- `E_MANIFEST_UI_INVALID(pluginId, ajvErrors)`
+- `E_API_INCOMPATIBLE(pluginId, pluginApi, hostApi)`
+- `E_CMD_NOT_FOUND(pluginId, commandId)`
+- `E_CMD_PARAM_INVALID(pluginId, commandId, ajvErrors)`
+- `E_IMPORT_FAILED(pluginId, entry, cause)`
 
-## Security Considerations
-
-> ⚠️ **Important:** While `permissions` are declared in the manifest, **the current implementation does not enforce them**.
-
-- **FS access**: `ctx.fs` exposes unconstrained read/write/move/delete via `@pstdio/opfs-utils`. No glob‑based allow/deny logic is applied.
-- **Network**: If `netFetch` is provided, plugins can fetch arbitrary URLs; no allow‑list is enforced even if `permissions.net` exists.
-- **Dynamic import**: Plugins are imported as code blobs; treat plugin code as untrusted and rely on the browser’s execution context (e.g., COOP/COEP) and OPFS scoping where applicable.
-
-Consumers embedding the host **SHOULD** enforce permissions at the adapter layer (e.g., wrap `fs` and `netFetch`) until host‑level enforcement is introduced.
+All host errors include `pluginId` where applicable.
 
 ---
 
-## Versioning & Compatibility
+## 8) Examples
 
-- **Host API**: `HOST_API_VERSION = "1.0.0"`.
-- **Compatibility check**: manifest `api` must have the same **major** as the host (see [Manifests](#manifests)).
-- **Semantics stability**: Command registration, settings persistence path, and event names documented here are considered stable for the `1.x` line.
-
----
-
-## Examples
-
-### Minimal Manifest
+### Manifest
 
 ```json
 {
@@ -520,14 +253,24 @@ Consumers embedding the host **SHOULD** enforce permissions at the adapter layer
   "version": "0.1.0",
   "api": "^1.0.0",
   "entry": "index.js",
+  "ui": {
+    "desktop": {
+      "title": "Hello World",
+      "description": "A simple Hello World plugin.",
+      "icon": "Plug",
+      "singleton": true,
+      "defaultSize": { "width": 840, "height": 620 },
+      "minSize": { "width": 420, "height": 320 },
+      "entry": "ui/index.html"
+    }
+  },
   "commands": [
     {
       "id": "theme.next",
       "title": "Theme: Next",
-      "category": "Appearance",
       "parameters": {
         "type": "object",
-        "properties": {},
+        "properties": { "fast": { "type": "boolean" } },
         "additionalProperties": false
       }
     }
@@ -541,55 +284,90 @@ Consumers embedding the host **SHOULD** enforce permissions at the adapter layer
 }
 ```
 
-### Minimal Plugin Module (`index.js`)
+### Plugin module
 
 ```js
 export default {
   async activate(ctx) {
     ctx.log.info("activated", ctx.id);
-    ctx.events.on("fs:change", ({ glob, change }) => ctx.log.info("fs:change", glob, change));
   },
-  async deactivate() {
-    // cleanup if needed
-  },
+  async deactivate() {},
 };
 
 export const commands = {
   "theme.next": async (ctx, params) => {
     const settings = await ctx.settings.read();
-    // mutate settings and persist
-    await ctx.settings.write({ ...settings, preferred: "dark" });
-    ctx.ui.notify?.("info", "Switched theme");
+    const next = settings.preferred === "dark" ? "light" : "dark";
+    await ctx.settings.write({ ...settings, preferred: next });
+
+    // Host-provided command
+    ctx.commands.notify("info", `Switched theme to ${next}`);
   },
 };
 ```
 
-### Browser Host Usage
+### Host usage
 
 ```ts
-import { createBrowserPluginHost } from "@pstdio/kaset-plugin-host";
+import { createPluginHost } from "@pstdio/tiny-plugins";
 
-const host = createBrowserPluginHost({
+const host = createPluginHost({
   root: "plugins",
-  notify(level, message) {
-    console[level === "error" ? "error" : "log"]("[plugin]", message);
-  },
   watch: true,
-  host: { timeouts: { command: 15000 } },
+  notify(level, msg) {
+    console[level === "error" ? "error" : "log"]("[plugin]", msg);
+  },
 });
 
 await host.start();
-const commands = host.listCommands();
-await host.runCommand("theme-switcher", "theme.next");
+
+// Discover & run
+if (host.doesPluginExist("theme-switcher")) {
+  await host.runCommand("theme-switcher", "theme.next")({ fast: true });
+}
 ```
 
 ---
 
-## Not Implemented / Reserved
+## 9) Minimal JSON Schema for `manifest.ui`
 
-- `activation: onCron` – not implemented; logs a warning.
-- `activation: onStartup`, `onCommand`, `onEvent` – declared but no host‑side wiring; plugins must self‑manage via `ctx.events`.
-- `UIAdapter.onPluginEvent` – reserved but never called by the core host.
-- **Permissions** (`permissions.fs`, `permissions.net`) – **declared only**; not enforced.
-- **Parameter validation** against `CommandDefinition.parameters` – not performed.
-- `when` expressions on commands – surfaced but not interpreted by the host.
+> Host owns and validates this. If you want, embed it and compile once.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "desktop": {
+      "type": "object",
+      "required": ["title", "entry"],
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" },
+        "icon": { "type": "string" },
+        "singleton": { "type": "boolean" },
+        "defaultSize": {
+          "type": "object",
+          "required": ["width", "height"],
+          "additionalProperties": false,
+          "properties": {
+            "width": { "type": "number" },
+            "height": { "type": "number" }
+          }
+        },
+        "minSize": {
+          "type": "object",
+          "required": ["width", "height"],
+          "additionalProperties": false,
+          "properties": {
+            "width": { "type": "number" },
+            "height": { "type": "number" }
+          }
+        },
+        "entry": { "type": "string", "minLength": 1 }
+      }
+    }
+  },
+  "additionalProperties": false
+}
+```

@@ -4,7 +4,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { CompileResult } from "../src/esbuild/types.js";
 import { registerVirtualSnapshot } from "../src/opfs/snapshot.js";
 import { TinyUI, type TinyUIHandle, type TinyUIStatus } from "../src/react/tiny-ui.js";
-import { CACHE_NAME } from "../constant.js";
+import { CACHE_NAME } from "../src/constant.js";
 import { setLockfile } from "../src/core/idb.js";
 
 const STORY_ROOT = "/stories/tiny-vanilla";

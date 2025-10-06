@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ChangeEvent, CSSProperties } from "react";
-import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { CACHE_NAME } from "../constant.js";
+import { CACHE_NAME } from "../src/constant.js";
 import { setLockfile } from "../src/core/idb.js";
 import type { CompileResult } from "../src/esbuild/types.js";
 import { registerVirtualSnapshot } from "../src/opfs/snapshot.js";
@@ -184,40 +184,38 @@ const SharedThemeDemo = () => {
   const startedAtRef = useRef<number | null>(null);
   const tinyARef = useRef<TinyUIHandle | null>(null);
   const tinyBRef = useRef<TinyUIHandle | null>(null);
+  const didRegisterRef = useRef(false);
 
   useLayoutEffect(() => {
     // Make Chakra/React available to the builder + runtime via the lockfile.
     setLockfile(LOCKFILE);
   }, []);
 
-  const rebuildSharedBundles = useCallback(
-    (nextTokens: SharedThemeTokens) => {
-      registerChakraSnapshots(nextTokens);
-
-      setMessage("Updating shared theme tokens...");
-
-      const handles = [tinyARef.current, tinyBRef.current];
-      handles.forEach((handle) => {
-        handle?.rebuild().catch((error) => {
-          console.error("Failed to rebuild Tiny UI instance", error);
-        });
-      });
-    },
-    [setMessage],
-  );
-
   const handleTokenChange = useCallback(
     (key: keyof SharedThemeTokens) => (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
 
-      setTokens((previous) => {
-        const next = { ...previous, [key]: value };
-        rebuildSharedBundles(next);
-        return next;
-      });
+      setTokens((previous) => ({ ...previous, [key]: value }));
     },
-    [rebuildSharedBundles],
+    [],
   );
+
+  useEffect(() => {
+    if (!didRegisterRef.current) {
+      didRegisterRef.current = true;
+      return;
+    }
+
+    registerChakraSnapshots(tokens);
+    setMessage("Updating shared theme tokens...");
+
+    const handles = [tinyARef.current, tinyBRef.current];
+    handles.forEach((handle) => {
+      handle?.rebuild().catch((error) => {
+        console.error("Failed to rebuild Tiny UI instance", error);
+      });
+    });
+  }, [tokens]);
 
   const containerStyle = useMemo<CSSProperties>(
     () => ({
