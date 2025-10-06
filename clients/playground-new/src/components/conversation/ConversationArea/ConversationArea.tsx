@@ -1,11 +1,13 @@
 import { ConversationContent, ConversationRoot, ConversationScrollButton } from "@/components/ui/ai-conversation";
+import { ChangeBubble } from "@/components/ui/change-bubble";
 import { SettingsModal } from "@/components/ui/settings-modal";
 import { formatUSD, getModelPricing, type ModelPricing } from "@/models";
 import { hasCredentials } from "@/state/actions/hasCredentials";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Message } from "@/types";
 import { Alert, Button, Flex, HStack, Input, Stack, Text, useDisclosure, type FlexProps } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { summarizeConversationChanges } from "../utils/diff";
 import { useEstimatedTokens } from "../hooks/useEstimatedTokens";
 import { AutoScroll } from "./AutoScroll";
 import { MessageList } from "./MessageList";
@@ -38,6 +40,8 @@ export const ConversationArea = (props: ConversationAreaProps) => {
   const [modelPricing, setModelPricing] = useState<ModelPricing | undefined>(undefined);
   const modelId = useWorkspaceStore((s) => s.settings.modelId);
   const settings = useDisclosure();
+  const conversationChanges = useMemo(() => summarizeConversationChanges(messages), [messages]);
+  const showChangeBubble = streaming || conversationChanges.fileCount > 0;
 
   // Load selected model from localStorage and resolve pricing
   // Only input tokens are known before sending; we price those
@@ -96,6 +100,16 @@ export const ConversationArea = (props: ConversationAreaProps) => {
                 </Button>
               </Alert.Content>
             </Alert.Root>
+          )}
+          {showChangeBubble && (
+            <Flex justify="flex-end">
+              <ChangeBubble
+                additions={conversationChanges.additions}
+                deletions={conversationChanges.deletions}
+                fileCount={conversationChanges.fileCount}
+                streaming={streaming}
+              />
+            </Flex>
           )}
           <Input
             placeholder="Type a message..."

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tiny UI Runtime</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: transparent;
+      }
+      #root {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      const RUNTIME_LOG_PREFIX = '[Tiny UI runtime]';
+      const IMPORT_MAP_ID = 'tiny-importmap';
+      const STYLE_DATA_ATTR = 'data-tiny-style';
+
+      console.info(`${RUNTIME_LOG_PREFIX} Awaiting tiny:init message`);
+
+      const resolveContainer = (selector) => {
+        const fallback = document.getElementById('root') ?? document.body;
+        if (!selector) return fallback;
+
+        return document.querySelector(selector) ?? fallback;
+      };
+
+      const ensureImportMap = (importMap) => {
+        if (!importMap) return;
+
+        let script = document.querySelector(`#${IMPORT_MAP_ID}`);
+
+        if (!script) {
+          script = document.createElement('script');
+          script.type = 'importmap';
+          script.id = IMPORT_MAP_ID;
+          document.head.appendChild(script);
+        }
+
+        script.textContent = JSON.stringify(importMap, null, 2);
+        console.info(`${RUNTIME_LOG_PREFIX} Import map applied`, importMap);
+      };
+
+      const ensureStyles = (styles) => {
+        if (!Array.isArray(styles) || styles.length === 0) return;
+
+        styles
+          .filter((href) => typeof href === 'string' && href.length > 0)
+          .forEach((href) => {
+            const selector = `link[rel="stylesheet"][${STYLE_DATA_ATTR}="${href}"]`;
+            if (document.head.querySelector(selector)) return;
+
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            link.setAttribute(STYLE_DATA_ATTR, href);
+            document.head.appendChild(link);
+            console.info(`${RUNTIME_LOG_PREFIX} Linked stylesheet`, href);
+          });
+      };
+
+      const postMessageToParent = (message) => {
+        try {
+          window.parent.postMessage(message, '*');
+        } catch (error) {
+          console.error(`${RUNTIME_LOG_PREFIX} Failed to post message`, error);
+        }
+      };
+
+      const handleInit = async (event) => {
+        const init = event.data;
+        if (!init || init.type !== 'tiny:init') return;
+
+        try {
+          console.info(`${RUNTIME_LOG_PREFIX} Received init message`, init);
+          ensureImportMap(init.importMap);
+          ensureStyles(init.styles);
+
+          const moduleUrl = init.moduleUrl;
+          if (typeof moduleUrl !== 'string') {
+            throw new Error('Missing moduleUrl in tiny:init payload');
+          }
+
+          console.info(`${RUNTIME_LOG_PREFIX} Importing module`, moduleUrl);
+          const module = await import(moduleUrl);
+          const entryExport = init.entryExport ?? 'mount';
+          const entry = typeof module[entryExport] === 'function' ? module[entryExport] : module.default;
+          const container = resolveContainer(init.mountSelector ?? '#root');
+
+          if (typeof entry !== 'function') {
+            throw new Error(`Entry export '${entryExport}' is not a function`);
+          }
+
+          await entry(container, null, init.runtimeOptions ?? {});
+          console.info(`${RUNTIME_LOG_PREFIX} Mounted entry`, {
+            entryExport,
+            mountSelector: init.mountSelector ?? '#root',
+          });
+
+          postMessageToParent({ type: 'tiny:ready', id: init.id, meta: init.meta });
+        } catch (error) {
+          const payload = {
+            type: 'tiny:error',
+            id: init?.id,
+            error: {
+              message: error instanceof Error ? error.message : 'Failed to initialize module',
+              stack: error instanceof Error ? error.stack : undefined,
+            },
+          };
+
+          console.error(`${RUNTIME_LOG_PREFIX} Initialization failed`, error);
+          postMessageToParent(payload);
+        }
+      };
+
+      window.addEventListener('message', handleInit);
+      console.info(`${RUNTIME_LOG_PREFIX} Message listener attached`);
+    </script>
+  </body>
+</html>

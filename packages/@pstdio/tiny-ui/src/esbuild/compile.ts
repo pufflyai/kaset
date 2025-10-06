@@ -1,0 +1,165 @@
+import * as esbuild from "esbuild-wasm";
+
+import { hasBundle, publishBundleToSW } from "../core/cache.js";
+import { computeHash } from "../core/hash.js";
+import { getLockfile } from "../core/idb.js";
+import { getSource } from "../host/sources.js";
+import { readSnapshot } from "../opfs/snapshot.js";
+import { ENTRY_NAME, OUTPUT_DIR } from "./constants.js";
+import { createLockfilePlugin } from "./plugins/lockfile-plugin.js";
+import { createVirtualFsPlugin } from "./plugins/virtual-fs-plugin.js";
+import type { BuildMetadata, BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "./types.js";
+import { ensureLeadingSlash } from "./utils.js";
+
+const metadata = new Map<string, BuildMetadata>();
+let initializePromise: Promise<void> | null = null;
+
+const ensureInitialized = (wasmURL: string) => {
+  if (!initializePromise) {
+    initializePromise = esbuild.initialize({
+      wasmURL,
+      worker: true,
+    });
+  }
+
+  return initializePromise;
+};
+
+const createCompileResult = (id: string, hash: string, fromCache: boolean): CompileResult => {
+  const entry = metadata.get(hash);
+  return {
+    id,
+    hash,
+    url: `/virtual/${hash}.js`,
+    fromCache,
+    bytes: entry?.bytes ?? 0,
+    assets: entry?.assets ?? [],
+  } satisfies CompileResult;
+};
+
+const getContentType = (path: string) => {
+  if (path.endsWith(".css")) return "text/css";
+  if (path.endsWith(".json") || path.endsWith(".map")) return "application/json";
+  return "application/javascript";
+};
+
+const toVirtualAssetPath = (path: string) => {
+  const normalized = path.startsWith("/") ? path.slice(1) : path;
+  return normalized.startsWith(`${OUTPUT_DIR}/`) ? normalized.slice(OUTPUT_DIR.length + 1) : normalized;
+};
+
+export const compile = async (id: string, options: BuildWithEsbuildOptions): Promise<CompileResult> => {
+  await ensureInitialized(options.wasmURL);
+
+  const source = getSource(id);
+  if (!source) throw new Error(`Source not registered for id: ${id}`);
+
+  const snapshot = await readSnapshot(source);
+  const lockfile = getLockfile();
+
+  const hash = await computeHash({
+    id,
+    root: source.root,
+    entryRelativePath: snapshot.entryRelative,
+    digests: snapshot.digests,
+    tsconfig: snapshot.tsconfig ?? null,
+    lockfile: lockfile ?? null,
+  });
+
+  if (await hasBundle(hash)) {
+    return createCompileResult(id, hash, true);
+  }
+
+  const files: SnapshotFileMap = { ...snapshot.files };
+  const entry = ensureLeadingSlash(snapshot.entryRelative);
+
+  const remotePlugin = createLockfilePlugin(lockfile ?? null);
+  const plugins = [createVirtualFsPlugin(files, entry)];
+  if (remotePlugin) {
+    plugins.push(remotePlugin);
+  }
+
+  const buildResult = await esbuild.build({
+    entryPoints: { [ENTRY_NAME]: entry },
+    platform: "browser",
+    format: "esm",
+    bundle: true,
+    metafile: true,
+    write: false,
+    jsx: "automatic",
+    jsxImportSource: "react",
+    sourcemap: "external",
+    target: "es2022",
+    logLevel: "silent",
+    outdir: OUTPUT_DIR,
+    entryNames: ENTRY_NAME,
+    chunkNames: "chunks/[name]-[hash]",
+    assetNames: "assets/[name]-[hash]",
+    plugins,
+    loader: {
+      ".ts": "ts",
+      ".tsx": "tsx",
+      ".js": "js",
+      ".jsx": "jsx",
+      ".json": "json",
+      ".css": "css",
+    },
+    define: {
+      "process.env.NODE_ENV": '"production"',
+      ...options.define,
+    },
+  });
+
+  const outputs = buildResult.outputFiles ?? [];
+  const outputByPath = new Map(outputs.map((file) => [file.path.replace(/^[.\\/]+/, ""), file]));
+
+  const entryOutputPath = Object.entries(buildResult.metafile?.outputs ?? {}).find(
+    ([, details]) => details.entryPoint,
+  )?.[0];
+
+  if (!entryOutputPath) {
+    throw new Error("esbuild did not emit an entry chunk");
+  }
+
+  const normalizedEntryPath = entryOutputPath.replace(/^[.\\/]+/, "");
+  const entryFile = outputByPath.get(normalizedEntryPath);
+  if (!entryFile) {
+    throw new Error(`Missing entry output: ${normalizedEntryPath}`);
+  }
+
+  const entryBytes = entryFile.contents.byteLength;
+
+  const assetFiles = outputs.filter((file) => file !== entryFile);
+  const publishedAssets = assetFiles.map((file) => {
+    const assetPath = toVirtualAssetPath(file.path);
+    return {
+      path: assetPath,
+      source: file.text,
+      init: {
+        headers: {
+          "Content-Type": getContentType(assetPath),
+        },
+      } satisfies ResponseInit,
+      bytes: file.contents.byteLength,
+    };
+  });
+
+  await publishBundleToSW({
+    hash,
+    entry: {
+      source: entryFile.text,
+      init: {
+        headers: {
+          "Content-Type": "application/javascript",
+        },
+      },
+    },
+    assets: publishedAssets.map(({ path, source, init }) => ({ path, source, init })),
+  });
+
+  const totalBytes = entryBytes + publishedAssets.reduce((sum, asset) => sum + asset.bytes, 0);
+  const assetPaths = publishedAssets.map((asset) => asset.path);
+  metadata.set(hash, { bytes: totalBytes, assets: assetPaths });
+
+  return createCompileResult(id, hash, false);
+};

@@ -1,5 +1,5 @@
 import type { TitleSegment } from "@/components/ui/timeline";
-import type { ToolInvocation } from "@/types";
+import type { Message, ToolInvocation } from "@/types";
 
 export type FileChange = { filePath: string; additions: number; deletions: number };
 
@@ -78,7 +78,7 @@ export function parseUnifiedDiff(diffText?: string): FileChange[] {
   }));
 }
 
-export function buildDiffTitleSegments(inv: ToolInvocation): TitleSegment[] {
+export function extractFileChanges(inv: ToolInvocation): FileChange[] {
   if (!inv || (inv as any).type !== "tool-opfs_patch") return [];
 
   const input = (inv as any).input as { diff?: string } | undefined;
@@ -107,6 +107,13 @@ export function buildDiffTitleSegments(inv: ToolInvocation): TitleSegment[] {
     files = Array.from(paths).map((p) => ({ filePath: p, additions: 0, deletions: 0 }));
   }
 
+  return files;
+}
+
+export function buildDiffTitleSegments(inv: ToolInvocation): TitleSegment[] {
+  const files = extractFileChanges(inv);
+  if (files.length === 0) return [];
+
   return files.map((f) => ({
     kind: "diff",
     fileName: basenameSafe(f.filePath),
@@ -114,4 +121,47 @@ export function buildDiffTitleSegments(inv: ToolInvocation): TitleSegment[] {
     additions: f.additions,
     deletions: f.deletions,
   }));
+}
+
+export function summarizeConversationChanges(messages: Message[]): {
+  additions: number;
+  deletions: number;
+  fileCount: number;
+} {
+  const totals = new Map<string, { additions: number; deletions: number }>();
+
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (part.type !== "tool-invocation") continue;
+
+      const files = extractFileChanges(part.toolInvocation);
+      for (const file of files) {
+        const existing = totals.get(file.filePath);
+        const additions = Math.max(0, file.additions);
+        const deletions = Math.max(0, file.deletions);
+
+        if (existing) {
+          existing.additions += additions;
+          existing.deletions += deletions;
+          continue;
+        }
+
+        totals.set(file.filePath, { additions, deletions });
+      }
+    }
+  }
+
+  let totalAdditions = 0;
+  let totalDeletions = 0;
+
+  for (const item of totals.values()) {
+    totalAdditions += item.additions;
+    totalDeletions += item.deletions;
+  }
+
+  return {
+    additions: totalAdditions,
+    deletions: totalDeletions,
+    fileCount: totals.size,
+  };
 }
