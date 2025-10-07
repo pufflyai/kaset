@@ -1,15 +1,15 @@
 import * as esbuild from "esbuild-wasm";
 
-import { hasBundle, publishBundleToSW } from "../core/cache.js";
-import { computeHash } from "../core/hash.js";
-import { getLockfile } from "../core/idb.js";
-import { getSource } from "../core/sources.js";
-import { readSnapshot } from "../core/snapshot.js";
-import { ENTRY_NAME, OUTPUT_DIR } from "./constants.js";
-import { createLockfilePlugin } from "./plugins/lockfile-plugin.js";
-import { createVirtualFsPlugin } from "./plugins/virtual-fs-plugin.js";
-import type { BuildMetadata, BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "./types.js";
-import { ensureLeadingSlash } from "../utils.js";
+import { hasBundle, publishBundleToSW } from "../core/cache";
+import { computeHash } from "../core/hash";
+import { getLockfile } from "../core/idb";
+import { getSource } from "../core/sources";
+import { readSnapshot } from "../core/snapshot";
+import { ENTRY_NAME, OUTPUT_DIR } from "./constants";
+import { createLockfilePlugin } from "./plugins/lockfile-plugin";
+import { createVirtualFsPlugin } from "./plugins/virtual-fs-plugin";
+import type { BuildMetadata, BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "./types";
+import { ensureLeadingSlash } from "../utils";
 
 const metadata = new Map<string, BuildMetadata>();
 let initializePromise: Promise<void> | null = null;

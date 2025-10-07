@@ -64,7 +64,8 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "esbuild-wasm": "^0.25.10"
+    "esbuild-wasm": "^0.25.10",
+    "rimless": "^0.6.0"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

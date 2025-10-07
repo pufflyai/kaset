@@ -1,15 +1,6 @@
 import { Box, Center, Spinner, Text } from "@chakra-ui/react";
 import { ls, readFile } from "@pstdio/opfs-utils";
-import {
-  getLockfile,
-  registerVirtualSnapshot,
-  setLockfile,
-  TinyUI,
-  unregisterVirtualSnapshot,
-  type TinyUIStatus,
-} from "@pstdio/tiny-ui";
-import tinyUiRuntimeHtmlUrl from "@pstdio/tiny-ui/runtime.html?url";
-import tinyUiServiceWorkerUrl from "@pstdio/tiny-ui/sw?url";
+import { getLockfile, registerVirtualSnapshot, setLockfile, TinyUI, unregisterVirtualSnapshot } from "@pstdio/tiny-ui";
 import { useEffect, useMemo, useState } from "react";
 import { getPluginsRoot, subscribeToPluginFiles, type PluginDesktopWindowDescriptor } from "./plugin-host";
 
@@ -73,7 +64,6 @@ const buildPluginRoot = (pluginsRoot: string, pluginId: string) => {
 export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const { pluginId, window, instanceId } = props;
   const [status, setStatus] = useState<Status>("idle");
-  const [tinyStatus, setTinyStatus] = useState<TinyUIStatus>("idle");
   const [_error, setError] = useState<string | null>(null);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [sourceRoot, setSourceRoot] = useState<string | null>(null);
@@ -183,7 +173,6 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
 
   useEffect(() => {
     if (status === "error") {
-      setTinyStatus("error");
     }
   }, [status]);
 
@@ -205,34 +194,20 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     );
   }
 
-  console.log(sourceRoot, tinyStatus);
-
   return (
     <Box height="100%" width="100%" position="relative">
       <TinyUI
         key={`${pluginId}:${instanceId}:${snapshotVersion}`}
-        src={sourceRoot}
+        root={sourceRoot}
         id={`${pluginId}:${instanceId}`}
         autoCompile
-        runtimeSourceUrl={tinyUiRuntimeHtmlUrl}
-        serviceWorkerUrl={tinyUiServiceWorkerUrl}
-        onStatusChange={(next) => setTinyStatus(next)}
+        serviceWorkerUrl={"/sw.js"}
         onError={(tinyError) => {
           setError(tinyError.message);
           setStatus("error");
         }}
-        onRuntimeError={(runtimeError) => {
-          setError(runtimeError.message ?? "Plugin runtime failed");
-          setStatus("error");
-        }}
-        showStatus={false}
         style={{ width: "100%", height: "100%" }}
       />
-      {tinyStatus !== "ready" ? (
-        <Center position="absolute" inset={0} backgroundColor="blackAlpha.700" color="white" pointerEvents="none">
-          <Spinner />
-        </Center>
-      ) : null}
     </Box>
   );
 };

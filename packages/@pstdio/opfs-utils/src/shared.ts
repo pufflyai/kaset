@@ -106,7 +106,15 @@ export async function writeTextFile(path: string, content: string) {
   const fs = await getFs();
   const absPath = toAbsolutePath(path);
   const dir = toAbsolutePath(parentOf(path));
-  await fs.promises.mkdir?.(dir, { recursive: true });
+  if (dir !== "/") {
+    try {
+      await fs.promises.mkdir?.(dir, { recursive: true });
+    } catch (error: any) {
+      if (error && error.code !== "EEXIST" && error.name !== "InvalidModificationError") {
+        throw error;
+      }
+    }
+  }
   await fs.promises.writeFile(absPath, content, "utf8");
 }
 

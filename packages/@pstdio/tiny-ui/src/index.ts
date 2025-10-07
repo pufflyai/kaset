@@ -1,12 +1,13 @@
-export { TinyUI } from "./react/tiny-ui.js";
-export type { TinyUIHandle, TinyUIProps, TinyUIStatus } from "./react/tiny-ui.js";
+export { TinyUI } from "./react/tiny-ui";
 
-export { registerVirtualSnapshot, unregisterVirtualSnapshot, type ProjectSnapshot } from "./core/snapshot.js";
+export type { TinyUIHandle, TinyUIProps } from "./react/tiny-ui";
 
-export { setLockfile, getLockfile, resetStats, getStats } from "./core/idb.js";
+export type { TinyUIStatus } from "./react/types";
 
-export { buildImportMap, type ImportMap, type Lockfile } from "./core/import-map.js";
+export { registerVirtualSnapshot, unregisterVirtualSnapshot, type ProjectSnapshot } from "./core/snapshot";
 
-export { listSources, registerSources, updateSource, removeSource } from "./core/sources.js";
+export { setLockfile, getLockfile, resetStats, getStats } from "./core/idb";
 
-export { CACHE_NAME } from "./constant.js";
+export { buildImportMap, type ImportMap, type Lockfile } from "./core/import-map";
+
+export { CACHE_NAME } from "./constant";

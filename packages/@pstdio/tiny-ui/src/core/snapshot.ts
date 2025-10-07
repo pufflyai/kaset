@@ -1,6 +1,6 @@
-import { ensureLeadingSlash } from "../utils.js";
-import { hashText } from "./hash.js";
-import type { SourceConfig } from "./sources.js";
+import { ensureLeadingSlash } from "../utils";
+import { hashText } from "./hash";
+import type { SourceConfig } from "./sources";
 
 export interface ProjectSnapshot {
   id: string;
@@ -11,7 +11,7 @@ export interface ProjectSnapshot {
   tsconfig?: string | null;
 }
 
-interface VirtualSnapshot {
+export interface VirtualSnapshot {
   files: Record<string, string>;
   entry?: string;
   tsconfig?: string | null;

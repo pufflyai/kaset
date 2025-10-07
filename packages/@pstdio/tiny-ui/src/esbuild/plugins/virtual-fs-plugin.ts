@@ -1,8 +1,8 @@
 import * as esbuild from "esbuild-wasm";
 
-import { RESOLVE_EXTENSIONS } from "../constants.js";
-import type { SnapshotFileMap } from "../types.js";
-import { ensureLeadingSlash, joinPath, loaderFromPath } from "../../utils.js";
+import { RESOLVE_EXTENSIONS } from "../constants";
+import type { SnapshotFileMap } from "../types";
+import { ensureLeadingSlash, joinPath, loaderFromPath } from "../../utils";
 
 const VIRTUAL_NAMESPACE = "kaset-virtual";
 

@@ -3,26 +3,16 @@ import * as LucideIcons from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
-import {
-  applyDesktopWindowSnap,
-  closeDesktopWindow,
-  focusDesktopWindow,
-  minimizeDesktopWindow,
-  openDesktopApp,
-  releaseDesktopWindowSnap,
-  setDesktopWindowPosition,
-  setDesktopWindowSize,
-  toggleDesktopWindowMaximize,
-} from "@/state/actions/desktop";
+import { openDesktopApp } from "@/state/actions/desktop";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import type { DesktopApp, DesktopWindow, Size } from "@/state/types";
+import type { DesktopApp, Size } from "@/state/types";
 import {
   ensurePluginHost,
   subscribeToPluginDesktopSurfaces,
   type PluginDesktopSurface,
 } from "@/services/plugins/plugin-host";
 import { DesktopIcon } from "./desktop-icon";
-import { Window } from "./window";
+import { WindowHost } from "./window-host";
 
 const FALLBACK_ICON: LucideIcon =
   (LucideIcons.ListTodoIcon as LucideIcon | undefined) ??
@@ -135,8 +125,6 @@ export const Desktop = () => {
   const [containerSize, setContainerSize] = useState<Size | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
-  const [snapPreviewSide, setSnapPreviewSide] = useState<"left" | "right" | null>(null);
-  const snapFeatureEnabled = false;
 
   const windows = useWorkspaceStore((state) => state.desktop.windows);
 
@@ -219,37 +207,6 @@ export const Desktop = () => {
     containerSizeRef.current = containerSize;
   }, [containerSize]);
 
-  const snapPreviewStyle = useMemo(() => {
-    if (!snapFeatureEnabled) return null;
-    if (!snapPreviewSide) return null;
-
-    if (!containerSize) {
-      return {
-        side: snapPreviewSide,
-        width: "50%",
-      };
-    }
-
-    const halfWidth = Math.max(0, Math.floor(containerSize.width / 2));
-
-    return {
-      side: snapPreviewSide,
-      width: `${halfWidth}px`,
-    };
-  }, [containerSize, snapPreviewSide, snapFeatureEnabled]);
-
-  const focusedId = useMemo(() => {
-    let current: DesktopWindow | undefined;
-    windows.forEach((window) => {
-      if (window.isMinimized) return;
-      if (!current || window.zIndex > current.zIndex) current = window;
-    });
-
-    return current?.id;
-  }, [windows]);
-
-  const visibleWindows = useMemo(() => [...windows].sort((a, b) => a.zIndex - b.zIndex), [windows]);
-
   return (
     <Box ref={containerRef} position="relative" height="100%" width="100%" overflow="hidden">
       <Box
@@ -275,58 +232,7 @@ export const Desktop = () => {
           />
         ))}
       </Box>
-      {snapPreviewStyle ? (
-        <Box
-          pointerEvents="none"
-          position="absolute"
-          top="0"
-          bottom="0"
-          left={snapPreviewStyle.side === "left" ? 0 : undefined}
-          right={snapPreviewStyle.side === "right" ? 0 : undefined}
-          width={snapPreviewStyle.width}
-          borderRadius={"sm"}
-          border="1px solid"
-          borderColor={"background.accent-primary.light"}
-          background="background.accent-primary.very-light"
-          opacity={0.7}
-          zIndex={2}
-        />
-      ) : null}
-      {visibleWindows.map((window) => {
-        const app = getAppById(window.appId);
-        if (!app) return null;
-
-        return (
-          <Window
-            key={window.id}
-            window={window}
-            app={app}
-            snapEnabled={snapFeatureEnabled}
-            containerSize={containerSize}
-            isFocused={focusedId === window.id}
-            onFocus={() => focusDesktopWindow(window.id)}
-            onClose={() => closeDesktopWindow(window.id)}
-            onMinimize={() => minimizeDesktopWindow(window.id)}
-            onMaximize={() => toggleDesktopWindowMaximize(window.id, containerSize ?? undefined)}
-            onPositionChange={(position) => setDesktopWindowPosition(window.id, position)}
-            onSizeChange={(size) => setDesktopWindowSize(window.id, size)}
-            onSnapPreview={(side) => {
-              if (!snapFeatureEnabled) return;
-              setSnapPreviewSide((current) => (current === side ? current : side));
-            }}
-            onSnap={(options) => {
-              if (!snapFeatureEnabled) return;
-              applyDesktopWindowSnap(window.id, options);
-              setSnapPreviewSide(null);
-            }}
-            onReleaseSnap={() => {
-              if (!snapFeatureEnabled) return;
-              releaseDesktopWindowSnap(window.id);
-              setSnapPreviewSide(null);
-            }}
-          />
-        );
-      })}
+      <WindowHost windows={windows} containerSize={containerSize} getAppById={getAppById} />
     </Box>
   );
 };

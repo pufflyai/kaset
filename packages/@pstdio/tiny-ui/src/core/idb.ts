@@ -1,4 +1,4 @@
-import type { Lockfile } from "./import-map.js";
+import type { Lockfile } from "./import-map";
 
 type CompileMetrics = {
   total: number;

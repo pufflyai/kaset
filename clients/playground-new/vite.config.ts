@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), svgr()],
     base: env.VITE_BASE_URL,
+    build: {
+      assetsInlineLimit: 0,
+    },
     resolve: {
       dedupe: ["react", "react-dom"],
       alias: {

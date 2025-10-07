@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
-import { CACHE_NAME } from "../src/constant.js";
-import { setLockfile } from "../src/core/idb.js";
-import { registerVirtualSnapshot } from "../src/core/snapshot.js";
-import type { CompileResult } from "../src/esbuild/types.js";
-import { TinyUI, type TinyUIHandle, type TinyUIStatus } from "../src/react/tiny-ui.js";
+import { CACHE_NAME } from "../src/constant";
+import { setLockfile } from "../src/core/idb";
+import { registerVirtualSnapshot } from "../src/core/snapshot";
+import type { CompileResult } from "../src/esbuild/types";
+import { TinyUI, type TinyUIHandle, type TinyUIProps, type TinyUIStatus } from "../src/react/tiny-ui";
 
 const STORY_ROOT = "/stories/tiny-vanilla";
 const SOURCE_ID = "tiny-ui-vanilla";
@@ -86,7 +86,7 @@ const VANILLA_ENTRY_SOURCE = String.raw`export function mount(container) {
 `;
 
 registerVirtualSnapshot(STORY_ROOT, {
-  entry: "/index.js",
+  entry: "/index",
   tsconfig: JSON.stringify(
     {
       compilerOptions: {
@@ -104,34 +104,61 @@ registerVirtualSnapshot(STORY_ROOT, {
     2,
   ),
   files: {
-    "/index.js": VANILLA_ENTRY_SOURCE,
+    "/index": VANILLA_ENTRY_SOURCE,
   },
 });
 
 interface VanillaDemoProps {
   autoCompile?: boolean;
+  failureMode?: "none" | "serviceWorker" | "runtimeMissing";
 }
 
 const now = () =>
   typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
 
-const VanillaDemo = ({ autoCompile = true }: VanillaDemoProps) => {
+const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoProps) => {
   const uiRef = useRef<TinyUIHandle | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("idle");
   const [message, setMessage] = useState<string | null>(null);
 
+  const serviceWorkerUrl = failureMode === "serviceWorker" ? "/tiny-ui-sw-missing.js" : "/tiny-ui-sw.js";
+  const runtimeOverrides: Partial<TinyUIProps> =
+    failureMode === "runtimeMissing"
+      ? {
+          runtimeUrl: `${STORY_ROOT}/missing-runtime.html`,
+          runtimeSourceUrl: "",
+        }
+      : {};
+  const failureExplanation =
+    failureMode === "serviceWorker"
+      ? "Service worker registration fails because /tiny-ui-sw-missing.js does not exist."
+      : failureMode === "runtimeMissing"
+        ? "Runtime HTML caching fails because no runtimeSourceUrl is provided for the new runtime path."
+        : null;
+
   useLayoutEffect(() => {
     setLockfile(null);
   }, []);
 
-  const handleStatusChange = useCallback((next: TinyUIStatus) => {
-    setStatus(next);
-    if (next === "compiling") {
-      compileStartedAtRef.current = now();
-      setMessage("Compiling bundle with esbuild-wasm...");
-    }
-  }, []);
+  const handleStatusChange = useCallback(
+    (next: TinyUIStatus) => {
+      setStatus(next);
+      if (next === "compiling") {
+        compileStartedAtRef.current = now();
+        if (failureMode === "serviceWorker") {
+          setMessage("Attempting to register Tiny UI service worker (expected to fail)...");
+          return;
+        }
+        if (failureMode === "runtimeMissing") {
+          setMessage("Caching Tiny UI runtime HTML (expected to fail)...");
+          return;
+        }
+        setMessage("Compiling bundle with esbuild-wasm...");
+      }
+    },
+    [failureMode],
+  );
 
   const handleReady = useCallback((result: CompileResult) => {
     const startedAt = compileStartedAtRef.current;
@@ -190,22 +217,21 @@ const VanillaDemo = ({ autoCompile = true }: VanillaDemoProps) => {
         src={STORY_ROOT}
         id={SOURCE_ID}
         autoCompile={autoCompile}
+        serviceWorkerUrl={serviceWorkerUrl}
+        {...runtimeOverrides}
         onStatusChange={handleStatusChange}
         onReady={handleReady}
         onError={handleError}
         showStatus={false}
         style={{
-          width: "100%",
-          minHeight: 320,
-          background: "#020617",
-          borderRadius: 12,
-          padding: 16,
-          display: "flex",
-          alignItems: "stretch",
-          justifyContent: "center",
-          overflow: "hidden",
+          height: 320,
         }}
       />
+      {failureExplanation ? (
+        <div>
+          <strong>Expected failure:</strong> {failureExplanation}
+        </div>
+      ) : null}
       <div aria-live="polite">
         <strong>Status:</strong> {status}
         {message ? <div>{message}</div> : null}
@@ -217,6 +243,16 @@ const VanillaDemo = ({ autoCompile = true }: VanillaDemoProps) => {
 const meta: Meta<typeof VanillaDemo> = {
   title: "Tiny UI/Vanilla",
   component: VanillaDemo,
+  args: {
+    failureMode: "none",
+  },
+  argTypes: {
+    failureMode: {
+      options: ["none", "serviceWorker", "runtimeMissing"],
+      control: { type: "radio" },
+      description: "Intentionally misconfigure Tiny UI to surface unhappy path behaviour.",
+    },
+  },
   parameters: {
     layout: "centered",
     docs: {
@@ -235,5 +271,22 @@ type Story = StoryObj<typeof VanillaDemo>;
 export const Playground: Story = {
   args: {
     autoCompile: true,
+    failureMode: "none",
+  },
+};
+
+export const UnhappyPath: Story = {
+  name: "Unhappy Path",
+  args: {
+    autoCompile: true,
+    failureMode: "serviceWorker",
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Demonstrates Tiny UI error handling. Toggle the failureMode control to see a missing service worker or runtime HTML failure.",
+      },
+    },
   },
 };

@@ -17,7 +17,7 @@ export const commands = {
     const greeting = overrideGreeting || settings.greeting || defaults.greeting;
     const recipient = overrideRecipient || settings.recipient || defaults.recipient;
 
-    ctx.ui.notify?.("info", `${greeting}, ${recipient}!");
+    ctx.ui.notify?.("info", `${greeting}, ${recipient}!`);
 
     if (overrideGreeting || overrideRecipient) {
       await ctx.settings.write({

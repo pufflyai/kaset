@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
-import { CACHE_NAME } from "../src/constant.js";
-import { setLockfile } from "../src/core/idb.js";
-import { registerVirtualSnapshot } from "../src/core/snapshot.js";
-import type { CompileResult } from "../src/esbuild/types.js";
-import { TinyUI, type TinyUIHandle, type TinyUIStatus } from "../src/react/tiny-ui.js";
+import { CACHE_NAME } from "../src/constant";
+import { setLockfile } from "../src/core/idb";
+import { registerVirtualSnapshot } from "../src/core/snapshot";
+import type { CompileResult } from "../src/esbuild/types";
+import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
+import { TinyUIStatus } from "../src/react/types";
 
 const STORY_ROOT = "/stories/tiny-react";
 const SOURCE_ID = "tiny-ui-react";
@@ -52,7 +53,7 @@ const containerStyle = {
   background: "#0f172a",
   color: "#e2e8f0",
   borderRadius: "12px",
-  width: "320px",
+  maxWidth: "100%",
 };
 
 const headingStyle = {
@@ -160,7 +161,6 @@ const containerStyle = {
   background: "#0f172a",
   color: "#e2e8f0",
   borderRadius: "12px",
-  width: "360px",
   display: "flex",
   flexDirection: "column",
   gap: "1rem",
@@ -590,20 +590,12 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
         src={sourceRoot}
         id={bundleId}
         autoCompile={autoCompile}
+        serviceWorkerUrl="/tiny-ui-sw.js"
         onStatusChange={handleStatusChange}
         onReady={handleReady}
         onError={handleError}
-        showStatus={false}
         style={{
-          width: "100%",
-          minHeight: 320,
-          background: "#020617",
-          borderRadius: 12,
-          padding: 16,
-          display: "flex",
-          alignItems: "stretch",
-          justifyContent: "center",
-          overflow: "hidden",
+          height: 480,
         }}
       />
       <div aria-live="polite">

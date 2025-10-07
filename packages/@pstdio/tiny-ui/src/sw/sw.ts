@@ -1,13 +1,13 @@
 /// <reference lib="webworker" />
 
-import { CACHE_NAME } from "../constant.js";
+// KEEP IN SYNC with packages/@pstdio/tiny-ui/vite.config.ts
+const CACHE_NAME_PREFIX = "tiny-ui-";
+const CACHE_NAME = "tiny-ui-bundles-v1";
+const RUNTIME_HTML_PATH = "/tiny-ui/runtime.html";
+const VIRTUAL_PREFIX = "/virtual/";
+// -----------------------------
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
-
-const RUNTIME_HTML_PATH = "/tiny-ui/iframe.html";
-const VIRTUAL_PREFIX = "/virtual/";
-
-const CACHE_NAME_PREFIX = "tiny-ui-";
 
 const shouldHandleFetch = (request: Request) => {
   if (request.method !== "GET") return false;
@@ -66,7 +66,30 @@ sw.addEventListener("fetch", (event) => {
       const cached = await matchCachedResponse(cache, request);
       if (cached) return cached;
 
+      const url = new URL(request.url);
+
+      if (url.pathname === RUNTIME_HTML_PATH) {
+        try {
+          const response = await fetch(request);
+          if (response && response.ok) {
+            await cache.put(RUNTIME_HTML_PATH, response.clone());
+          }
+          return response;
+        } catch (error) {
+          console.error("SW runtime fetch failed:", error);
+          return new Response("Runtime unavailable", { status: 503 });
+        }
+      }
+
       return new Response("Not found", { status: 404 });
     })(),
   );
+});
+
+sw.addEventListener("error", (e) => {
+  console.error("SW error:", e.message, e.filename, e.lineno, e.colno, e.error);
+});
+
+sw.addEventListener("unhandledrejection", (e) => {
+  console.error("SW unhandledrejection:", e.reason);
 });

@@ -3,11 +3,12 @@ import debounce from "lodash.debounce";
 import type { ChangeEvent, CSSProperties } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { CACHE_NAME } from "../src/constant.js";
-import { setLockfile } from "../src/core/idb.js";
-import type { CompileResult } from "../src/esbuild/types.js";
-import { registerVirtualSnapshot } from "../src/core/snapshot.js";
-import { TinyUI, type TinyUIHandle, type TinyUIStatus } from "../src/react/tiny-ui.js";
+import { CACHE_NAME } from "../src/constant";
+import { setLockfile } from "../src/core/idb";
+import type { CompileResult } from "../src/esbuild/types";
+import { registerVirtualSnapshot } from "../src/core/snapshot";
+import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
+import { TinyUIStatus } from "../src/react/types";
 
 /** Virtual source roots for two MFEs that will share the same tokens */
 const CHAKRA_ROOT_A = "/stories/tiny-chakra/a";
@@ -321,6 +322,7 @@ const SharedThemeDemo = () => {
           src={CHAKRA_ROOT_A}
           id={SOURCE_ID_A}
           autoCompile
+          serviceWorkerUrl="/tiny-ui-sw.js"
           onStatusChange={onStatusChangeA}
           onReady={onReady}
           onError={onError}
@@ -331,6 +333,7 @@ const SharedThemeDemo = () => {
           src={CHAKRA_ROOT_B}
           id={SOURCE_ID_B}
           autoCompile
+          serviceWorkerUrl="/tiny-ui-sw.js"
           onStatusChange={onStatusChangeB}
           onReady={onReady}
           onError={onError}

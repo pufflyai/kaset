@@ -1,4 +1,4 @@
-import type { Lockfile } from "./import-map.js";
+import type { Lockfile } from "./import-map";
 
 export interface HashInput {
   id: string;

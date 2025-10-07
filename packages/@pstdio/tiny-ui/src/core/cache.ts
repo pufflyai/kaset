@@ -1,4 +1,4 @@
-import { CACHE_NAME } from "../constant.js";
+import { CACHE_NAME } from "../constant";
 
 export const getBundleCacheName = () => CACHE_NAME;
 
@@ -34,6 +34,7 @@ export const publishBundleToSW = async ({ hash, entry, assets }: PublishBundlePa
     entryBytes: typeof entry.source === "string" ? entry.source.length : null,
     assetCount: assets.length,
   });
+
   if (typeof entry.source === "string") {
     console.info("[Tiny UI cache] Entry preview", entry.source.slice(0, 200));
   }

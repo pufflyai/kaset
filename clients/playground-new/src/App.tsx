@@ -5,8 +5,8 @@ import { ConversationHost } from "./components/ui/conversation-host";
 import { Desktop } from "./components/ui/desktop";
 import { GithubCorner } from "./components/ui/github-corner";
 import { Toaster } from "./components/ui/toaster";
-import { setupPlayground } from "./services/playground/setup";
 import { TopBar } from "./components/ui/top-bar";
+import { setupPlayground } from "./services/playground/setup";
 
 export function App() {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
