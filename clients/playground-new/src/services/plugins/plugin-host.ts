@@ -45,9 +45,11 @@ type DesktopSurfaceManifest = {
 type ManifestJson = Partial<PluginMetadata> & {
   description?: string;
   commands?: unknown;
-  ui?: (Record<string, unknown> & {
-    desktop?: DesktopSurfaceManifest | DesktopSurfaceManifest[];
-  }) | undefined;
+  ui?:
+    | (Record<string, unknown> & {
+        desktop?: DesktopSurfaceManifest | DesktopSurfaceManifest[];
+      })
+    | undefined;
 };
 
 export type PluginDesktopSurface = {

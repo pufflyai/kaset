@@ -1,11 +1,19 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <title>Tiny UI Runtime</title>
     <style>
-      html, body { margin: 0; padding: 0; height: 100%; background: transparent; }
-      #root { height: 100%; }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: transparent;
+      }
+      #root {
+        height: 100%;
+      }
     </style>
     <script type="module">
       import { guest } from "https://esm.sh/rimless@0.6.0";
@@ -60,7 +68,7 @@
             const mod = await import(init.moduleUrl);
             const exportName = init.entryExport ?? "mount";
             const entry = typeof mod[exportName] === "function" ? mod[exportName] : mod.default;
-            
+
             if (typeof entry !== "function") {
               throw new Error(`Entry export '${exportName}' is not a function`);
             }

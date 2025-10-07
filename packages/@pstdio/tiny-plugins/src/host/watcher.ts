@@ -32,7 +32,7 @@ export interface PluginFileWatcherOptions {
 
 export async function watchPluginFiles(options: PluginFileWatcherOptions): Promise<Dispose> {
   const { root, pluginId, debounceMs = 150, onChange } = options;
-  const pluginRoot = [root, pluginId].filter(Boolean).join('/');
+  const pluginRoot = [root, pluginId].filter(Boolean).join("/");
 
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pending: ChangeRecord[] = [];

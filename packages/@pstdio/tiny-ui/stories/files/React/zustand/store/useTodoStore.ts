@@ -29,18 +29,13 @@ const store = createStore<TodoState>((set) => ({
 
     set((state) => ({
       ...state,
-      todos: [
-        ...state.todos,
-        { id: randomId(), text: trimmed, completed: false },
-      ],
+      todos: [...state.todos, { id: randomId(), text: trimmed, completed: false }],
     }));
   },
   toggleTodo(id) {
     set((state) => ({
       ...state,
-      todos: state.todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo,
-      ),
+      todos: state.todos.map((todo) => (todo.id === id ? { ...todo, completed: !todo.completed } : todo)),
     }));
   },
   clearCompleted() {

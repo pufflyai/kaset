@@ -8,7 +8,11 @@ function createAbortError(message: string) {
   }
 }
 
-export async function runWithTimeout<T>(fn: () => Promise<T> | T, timeoutMs: number, abortSignal?: AbortSignal): Promise<T> {
+export async function runWithTimeout<T>(
+  fn: () => Promise<T> | T,
+  timeoutMs: number,
+  abortSignal?: AbortSignal,
+): Promise<T> {
   if (abortSignal?.aborted) {
     throw createAbortError("Operation aborted");
   }

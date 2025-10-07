@@ -45,9 +45,8 @@ export class CommandRegistry {
         continue;
       }
 
-      const timeoutMs = Number.isFinite(definition.timeoutMs) && definition.timeoutMs! > 0
-        ? definition.timeoutMs!
-        : defaultTimeout;
+      const timeoutMs =
+        Number.isFinite(definition.timeoutMs) && definition.timeoutMs! > 0 ? definition.timeoutMs! : defaultTimeout;
 
       let validate: ValidateFunction | undefined;
       if (definition.parameters) {
@@ -130,10 +129,6 @@ export class CommandRegistry {
       throw commandParamsInvalid(pluginId, commandId, entry.validate.errors);
     }
 
-    return runWithTimeout(
-      () => entry.handler(entry.context, params),
-      entry.timeoutMs,
-      entry.abortSignal,
-    );
+    return runWithTimeout(() => entry.handler(entry.context, params), entry.timeoutMs, entry.abortSignal);
   }
 }

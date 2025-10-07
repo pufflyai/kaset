@@ -58,12 +58,7 @@ export function TodoList({ todos, onToggle }: TodoListProps) {
             }}
           >
             <label style={{ display: "flex", alignItems: "center", gap: "0.75rem", width: "100%" }}>
-              <input
-                checked={done}
-                onChange={() => onToggle(todo.id)}
-                style={checkboxStyle}
-                type="checkbox"
-              />
+              <input checked={done} onChange={() => onToggle(todo.id)} style={checkboxStyle} type="checkbox" />
               <span style={{ flex: 1 }}>{todo.text}</span>
             </label>
           </li>

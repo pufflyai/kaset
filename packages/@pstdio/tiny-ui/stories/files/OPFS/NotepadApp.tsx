@@ -332,9 +332,7 @@ export function NotepadApp() {
       </div>
 
       {!supportsOpfs ? (
-        <div style={errorStyle}>
-          Your browser does not expose the OPFS APIs required for this demo.
-        </div>
+        <div style={errorStyle}>Your browser does not expose the OPFS APIs required for this demo.</div>
       ) : null}
     </div>
   );

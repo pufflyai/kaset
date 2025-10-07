@@ -175,14 +175,11 @@ const SharedThemeDemo = () => {
         const rebuild = (handle: TinyUIHandle | null, setStatus: (next: TinyUIStatus) => void) => {
           if (!handle) return;
 
-          handle
-            .rebuild()
-            .catch((error) => {
-              const normalized =
-                error instanceof Error ? error : new Error("Failed to rebuild Tiny UI instance.");
-              setStatus("error");
-              setMessage(normalized.message);
-            });
+          handle.rebuild().catch((error) => {
+            const normalized = error instanceof Error ? error : new Error("Failed to rebuild Tiny UI instance.");
+            setStatus("error");
+            setMessage(normalized.message);
+          });
         };
 
         rebuild(tinyARef.current, setStatusA);
@@ -191,8 +188,7 @@ const SharedThemeDemo = () => {
       .catch((cause) => {
         if (cancelled) return;
 
-        const normalized =
-          cause instanceof Error ? cause : new Error("Failed to sync shared theme tokens into OPFS.");
+        const normalized = cause instanceof Error ? cause : new Error("Failed to sync shared theme tokens into OPFS.");
         setStatusA("error");
         setStatusB("error");
         setMessage(normalized.message);

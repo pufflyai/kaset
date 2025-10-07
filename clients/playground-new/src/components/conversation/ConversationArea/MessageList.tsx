@@ -128,13 +128,7 @@ interface MessageListProps {
   examplePrompts?: string[];
 }
 
-export function MessageList({
-  messages,
-  streaming,
-  onOpenFile,
-  onUseExample,
-  examplePrompts = [],
-}: MessageListProps) {
+export function MessageList({ messages, streaming, onOpenFile, onUseExample, examplePrompts = [] }: MessageListProps) {
   const examplesToShow = useMemo(() => pickRandom(examplePrompts, 4), [examplePrompts]);
 
   const plan = useRenderPlan(messages);

@@ -158,7 +158,7 @@ async function removeFile(path: string) {
 }
 
 async function ensureDir(path: string) {
-  if (!path || path === '/') return;
+  if (!path || path === "/") return;
   const fs = await getFs();
   await fs.promises.mkdir(path, { recursive: true });
 }

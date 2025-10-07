@@ -24,15 +24,7 @@ interface ConversationAreaProps extends FlexProps {
 }
 
 export const ConversationArea = (props: ConversationAreaProps) => {
-  const {
-    messages,
-    streaming,
-    onSendMessage,
-    onSelectFile,
-    canSend = true,
-    examplePrompts = [],
-    ...rest
-  } = props;
+  const { messages, streaming, onSendMessage, onSelectFile, canSend = true, examplePrompts = [], ...rest } = props;
   const [input, setInput] = useState("");
 
   const estimatedTokens = useEstimatedTokens(messages, input);

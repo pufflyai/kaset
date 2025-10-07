@@ -15,10 +15,7 @@
       "items": { "$ref": "#/definitions/command" }
     },
     "settingsSchema": {
-      "anyOf": [
-        { "type": "object" },
-        { "type": "boolean" }
-      ]
+      "anyOf": [{ "type": "object" }, { "type": "boolean" }]
     }
   },
   "definitions": {
@@ -33,10 +30,7 @@
         "category": { "type": "string" },
         "when": { "type": "string" },
         "parameters": {
-          "anyOf": [
-            { "type": "object" },
-            { "type": "boolean" }
-          ]
+          "anyOf": [{ "type": "object" }, { "type": "boolean" }]
         },
         "timeoutMs": { "type": "number" }
       }

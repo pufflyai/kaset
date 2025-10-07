@@ -65,8 +65,7 @@ const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
       .catch((error) => {
         if (cancelled) return;
 
-        const normalized =
-          error instanceof Error ? error : new Error("Failed to load OPFS notepad source files.");
+        const normalized = error instanceof Error ? error : new Error("Failed to load OPFS notepad source files.");
         setStatus("error");
         setMessage(normalized.message);
       });

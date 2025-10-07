@@ -30,7 +30,7 @@
           "@pstdio/opfs-hooks": "https://esm.sh/@pstdio/opfs-hooks@0.1.4?deps=react@19.1.1",
           "@pstdio/opfs-utils": "https://esm.sh/@pstdio/opfs-utils@0.1.6",
           "@zenfs/core": "https://esm.sh/@zenfs/core@2.4.0?bundle&target=es2022",
-          "@zenfs/dom": "https://esm.sh/@zenfs/dom@1.2.5?bundle&deps=@zenfs/core@2.4.0&target=es2022",
+          "@zenfs/dom": "https://esm.sh/@zenfs/dom@1.2.5?bundle&target=es2022&alias=%40zenfs%2Fcore:%40zenfs%2Fcore@2.4.0",
           "framer-motion": "https://esm.sh/framer-motion@12.1.0?deps=react@19.1.1,react-dom@19.1.1",
           "lucide-react": "https://esm.sh/lucide-react@0.542.0?deps=react@19.1.1",
           "monaco-editor": "https://esm.sh/monaco-editor@0.52.2?bundle",
