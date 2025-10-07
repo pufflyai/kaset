@@ -1,15 +1,18 @@
 import { toaster } from "@/components/ui/toaster";
 import { PLUGIN_ROOT } from "@/constant";
+import type { ChangeRecord } from "@pstdio/opfs-utils";
 import {
-  createBrowserPluginHost,
-  type BrowserPluginHost,
+  createPluginHost,
+  createToolsForCommands,
   type JSONSchema,
-  type PluginFilesListener,
+  type Manifest,
+  type PluginHost,
   type PluginMetadata,
   type RegisteredCommand,
-} from "@pstdio/kaset-plugin-host";
-import { createToolsForCommands } from "@pstdio/kaset-plugin-host/browser/adapters/tiny-ai-tasks";
+} from "@pstdio/tiny-plugins";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
+
+type HostCommand = RegisteredCommand & { pluginId: string };
 
 type Dimensions = {
   width: number;
@@ -35,22 +38,18 @@ type DesktopSurfaceManifest = {
   defaultSize?: Partial<Dimensions>;
   minSize?: Partial<Dimensions>;
   defaultPosition?: Partial<Coordinates>;
+  entry?: string;
+  dependencies?: Record<string, string>;
   window?: {
     entry?: string;
-    kind?: string;
     dependencies?: Record<string, string>;
   };
 };
 
-type ManifestJson = Partial<PluginMetadata> & {
-  description?: string;
-  commands?: unknown;
-  ui?:
-    | (Record<string, unknown> & {
-        desktop?: DesktopSurfaceManifest | DesktopSurfaceManifest[];
-      })
-    | undefined;
-};
+export type PluginFilesEvent = { pluginId: string; changes: ChangeRecord[] };
+export type PluginFilesListener = (event: PluginFilesEvent) => void;
+
+type ManifestWithUi = Manifest & { ui?: Manifest["ui"] & { desktop?: DesktopSurfaceManifest | DesktopSurfaceManifest[] } };
 
 export type PluginDesktopSurface = {
   pluginId: string;
@@ -65,7 +64,7 @@ export type PluginDesktopSurface = {
   window?: PluginDesktopWindowDescriptor;
 };
 
-export type PluginCommand = RegisteredCommand & { pluginName?: string };
+export type PluginCommand = HostCommand & { pluginName?: string };
 
 type CommandsListener = (commands: PluginCommand[]) => void;
 type SettingsListener = (pluginId: string, schema?: JSONSchema) => void;
@@ -74,11 +73,11 @@ type DesktopSurfaceListener = (surfaces: PluginDesktopSurface[]) => void;
 let pluginsRoot = normalizePluginsRoot(PLUGIN_ROOT);
 let hostGeneration = 0;
 
-let host: BrowserPluginHost | null = null;
-let startPromise: Promise<BrowserPluginHost> | null = null;
+let host: PluginHost | null = null;
+let startPromise: Promise<PluginHost> | null = null;
 let hostReady = false;
 
-let rawCommands: RegisteredCommand[] = [];
+let rawCommands: HostCommand[] = [];
 let pluginTools: Tool[] = [];
 
 const commandSubscribers = new Set<CommandsListener>();
@@ -91,7 +90,7 @@ const pluginDesktopSurfaces = new Map<string, PluginDesktopSurface[]>();
 
 let hostUnsubscribers: Array<() => void> = [];
 
-function buildPluginCommand(command: RegisteredCommand): PluginCommand {
+function buildPluginCommand(command: HostCommand): PluginCommand {
   return {
     ...command,
     pluginName: pluginMetadata.get(command.pluginId)?.name,
@@ -158,7 +157,8 @@ function notifyDesktopSurfaceSubscribers() {
 function rebuildTools() {
   pluginTools = createToolsForCommands(rawCommands, async (pluginId, commandId, params) => {
     const instance = await ensureHost();
-    await instance.runCommand(pluginId, commandId, params);
+    const execute = instance.runPluginCommand(pluginId, commandId);
+    await execute(params);
   });
 }
 
@@ -178,27 +178,45 @@ function normalizeCoordinates(value?: Partial<Coordinates>): Coordinates | undef
   return { x, y };
 }
 
-function normalizeWindowDescriptor(
-  window?: DesktopSurfaceManifest["window"],
-): PluginDesktopWindowDescriptor | undefined {
+function sanitizeEntryPath(entry?: string) {
+  const trimmed = entry?.trim();
+  if (!trimmed) return null;
+  const normalized = trimmed.replace(/^\/+/, "");
+  if (!normalized) return null;
+  return normalized;
+}
+
+function normalizeWindowSection(window?: DesktopSurfaceManifest["window"]): PluginDesktopWindowDescriptor | undefined {
   if (!window) return undefined;
-  const entry = window.entry?.trim();
+  const entry = sanitizeEntryPath(window.entry);
   if (!entry) return undefined;
-  const normalizedEntry = entry.replace(/^\/+/, "");
-  if (!normalizedEntry) return undefined;
   const dependencies = window.dependencies ? { ...window.dependencies } : undefined;
-  return { entry: normalizedEntry, dependencies };
+  return { entry, dependencies };
+}
+
+function normalizeWindowFromEntry(
+  entry?: string,
+  dependencies?: Record<string, string>,
+): PluginDesktopWindowDescriptor | undefined {
+  const normalizedEntry = sanitizeEntryPath(entry);
+  if (!normalizedEntry) return undefined;
+  const normalizedDependencies = dependencies ? { ...dependencies } : undefined;
+  return { entry: normalizedEntry, dependencies: normalizedDependencies };
+}
+
+function resolveWindowDescriptor(item: DesktopSurfaceManifest): PluginDesktopWindowDescriptor | undefined {
+  return normalizeWindowSection(item.window) ?? normalizeWindowFromEntry(item.entry, item.dependencies);
 }
 
 function normalizeDesktopSurfaces(
   pluginId: string,
-  manifest: ManifestJson,
+  manifest: ManifestWithUi,
   fallbackTitle: string,
 ): PluginDesktopSurface[] {
-  const desktop = manifest.ui?.desktop;
-  if (!desktop) return [];
+  const desktopConfig = manifest.ui?.desktop;
+  if (!desktopConfig) return [];
 
-  const items = Array.isArray(desktop) ? desktop : [desktop];
+  const items = Array.isArray(desktopConfig) ? desktopConfig : [desktopConfig];
   const normalized: PluginDesktopSurface[] = [];
 
   items.forEach((item, index) => {
@@ -212,7 +230,9 @@ function normalizeDesktopSurfaces(
     const defaultSize = normalizeDimensions(item.defaultSize);
     const minSize = normalizeDimensions(item.minSize);
     const defaultPosition = normalizeCoordinates(item.defaultPosition);
-    const window = normalizeWindowDescriptor(item.window);
+    const window = resolveWindowDescriptor(item);
+
+    if (!window) return;
 
     normalized.push({
       pluginId,
@@ -252,8 +272,12 @@ function resetPluginsState() {
   schemaIds.forEach((pluginId) => notifySettingsSubscribers(pluginId, undefined));
 
   pluginMetadata.clear();
+
+  const hadSurfaces = pluginDesktopSurfaces.size > 0;
   pluginDesktopSurfaces.clear();
-  notifyDesktopSurfaceSubscribers();
+  if (hadSurfaces) {
+    notifyDesktopSurfaceSubscribers();
+  }
 }
 
 function clearHostSubscriptions() {
@@ -268,15 +292,42 @@ function clearHostSubscriptions() {
   hostUnsubscribers = [];
 }
 
-function coerceManifest(value: unknown): ManifestJson | null {
-  if (!value || typeof value !== "object") return null;
-  return value as ManifestJson;
+function syncPluginMetadata(entries: PluginMetadata[]) {
+  const seen = new Set<string>();
+  let changed = false;
+
+  entries.forEach((entry) => {
+    seen.add(entry.id);
+    const stored = pluginMetadata.get(entry.id);
+    if (!stored || stored.id !== entry.id || stored.name !== entry.name || stored.version !== entry.version) {
+      pluginMetadata.set(entry.id, { ...entry });
+      changed = true;
+    }
+  });
+
+  pluginMetadata.forEach((_, pluginId) => {
+    if (seen.has(pluginId)) return;
+    pluginMetadata.delete(pluginId);
+    changed = true;
+  });
+
+  if (changed) {
+    notifyCommandSubscribers();
+  }
 }
 
-function handleManifestUpdate(pluginId: string, manifest: unknown | null) {
-  const manifestJson = coerceManifest(manifest);
-  const fallbackTitle = manifestJson?.name || pluginMetadata.get(pluginId)?.name || pluginId;
-  const nextSurfaces = manifestJson ? normalizeDesktopSurfaces(pluginId, manifestJson, fallbackTitle) : [];
+function handleManifestUpdate(pluginId: string, manifest: Manifest | null) {
+  if (manifest?.settingsSchema) {
+    pluginSchemas.set(pluginId, manifest.settingsSchema);
+  } else {
+    pluginSchemas.delete(pluginId);
+  }
+
+  notifySettingsSubscribers(pluginId, manifest?.settingsSchema);
+
+  const manifestWithUi = (manifest ?? undefined) as ManifestWithUi | undefined;
+  const fallbackTitle = manifest?.name || pluginMetadata.get(pluginId)?.name || pluginId;
+  const nextSurfaces = manifestWithUi ? normalizeDesktopSurfaces(pluginId, manifestWithUi, fallbackTitle) : [];
   const previous = pluginDesktopSurfaces.get(pluginId) ?? [];
 
   if (nextSurfaces.length === 0) {
@@ -292,84 +343,72 @@ function handleManifestUpdate(pluginId: string, manifest: unknown | null) {
   }
 }
 
-function attachHostSubscriptions(instance: BrowserPluginHost, generation: number) {
+function refreshCommands(instance: PluginHost) {
+  const commands = instance.listCommands() as HostCommand[];
+  rawCommands = commands.map((command) => ({ ...command }));
+  rebuildTools();
+  notifyCommandSubscribers();
+}
+
+function attachHostSubscriptions(instance: PluginHost, generation: number) {
   clearHostSubscriptions();
-
-  const unsubscribeCommands = instance.subscribeCommands((commands) => {
-    if (generation !== hostGeneration) return;
-    rawCommands = commands;
-    rebuildTools();
-    notifyCommandSubscribers();
-  });
-
-  const unsubscribeSettings = instance.subscribeSettings((pluginId, schema) => {
-    if (generation !== hostGeneration) return;
-    if (schema) {
-      pluginSchemas.set(pluginId, schema);
-    } else {
-      pluginSchemas.delete(pluginId);
-    }
-    notifySettingsSubscribers(pluginId, schema);
-  });
 
   const unsubscribePlugins = instance.subscribePlugins((entries) => {
     if (generation !== hostGeneration) return;
-
-    const seen = new Set<string>();
-    let metadataChanged = false;
-
-    entries.forEach((entry) => {
-      seen.add(entry.id);
-      const stored = pluginMetadata.get(entry.id);
-      if (!stored || stored.id !== entry.id || stored.name !== entry.name || stored.version !== entry.version) {
-        pluginMetadata.set(entry.id, { ...entry });
-        metadataChanged = true;
-      }
-    });
-
-    pluginMetadata.forEach((_, pluginId) => {
-      if (seen.has(pluginId)) return;
-      pluginMetadata.delete(pluginId);
-      metadataChanged = true;
-    });
-
-    if (metadataChanged) {
-      notifyCommandSubscribers();
-    }
+    syncPluginMetadata(entries);
+    refreshCommands(instance);
   });
 
   const unsubscribeManifests = instance.subscribeManifests(({ pluginId, manifest }) => {
     if (generation !== hostGeneration) return;
     handleManifestUpdate(pluginId, manifest);
+    refreshCommands(instance);
   });
 
-  hostUnsubscribers = [unsubscribeCommands, unsubscribeSettings, unsubscribePlugins, unsubscribeManifests];
+  hostUnsubscribers = [unsubscribePlugins, unsubscribeManifests];
 }
 
-function createHostInstance(): BrowserPluginHost {
-  return createBrowserPluginHost({
+function createHostInstance(): PluginHost {
+  return createPluginHost({
     root: pluginsRoot,
     watch: true,
     notify(level, message) {
       const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
       toaster.create({ type, title: message, duration: 5000 });
     },
-    host: {
-      netFetch: (url, init) => fetch(url, init),
-    },
   });
 }
 
-async function disposeHost(instance: BrowserPluginHost | null) {
+async function disposeHost(instance: PluginHost | null) {
   if (!instance) return;
   try {
     await instance.stop();
   } catch (error) {
-    console.warn("[plugin-host] Failed to dispose browser plugin host", error);
+    console.warn("[plugin-host] Failed to dispose plugin host", error);
   }
 }
 
-async function ensureHost(): Promise<BrowserPluginHost> {
+async function initializeHostState(instance: PluginHost, generation: number) {
+  const metadataList = instance.listPlugins();
+  if (generation !== hostGeneration) return;
+
+  syncPluginMetadata(metadataList);
+  refreshCommands(instance);
+
+  const manifestPromises = metadataList.map(async ({ id }) => {
+    try {
+      const manifest = await instance.readPluginManifest(id);
+      if (generation !== hostGeneration) return;
+      handleManifestUpdate(id, manifest);
+    } catch (error) {
+      console.warn(`[plugin-host] Failed to read manifest for ${id}`, error);
+    }
+  });
+
+  await Promise.allSettled(manifestPromises);
+}
+
+async function ensureHost(): Promise<PluginHost> {
   if (host && hostReady) return host;
 
   if (!startPromise) {
@@ -390,6 +429,12 @@ async function ensureHost(): Promise<BrowserPluginHost> {
           }
           throw new Error("Plugin root changed during initialization");
         }
+
+        await initializeHostState(instance, generation);
+        if (generation !== hostGeneration) {
+          throw new Error("Plugin host replaced during initialization");
+        }
+
         hostReady = true;
         return instance;
       } catch (error) {
@@ -434,14 +479,14 @@ export async function setPluginsRoot(nextRoot: string) {
     try {
       await previousPromise.catch(() => previousHost ?? null);
     } catch {
-      // ignore failures while resetting
+      /* ignore failures while resetting */
     }
   }
 
   await disposeHost(previousHost);
 }
 
-export async function ensurePluginHost(): Promise<BrowserPluginHost> {
+export async function ensurePluginHost(): Promise<PluginHost> {
   return ensureHost();
 }
 
@@ -529,17 +574,18 @@ export function subscribeToPluginFiles(pluginId: string, listener: PluginFilesLi
 
 export async function runPluginCommand(pluginId: string, commandId: string, params?: unknown) {
   const instance = await ensureHost();
-  await instance.runCommand(pluginId, commandId, params);
+  const execute = instance.runPluginCommand(pluginId, commandId);
+  await execute(params);
 }
 
 export async function readPluginSettings<T = unknown>(pluginId: string): Promise<T> {
   const instance = await ensureHost();
-  return instance.readSettings<T>(pluginId);
+  return instance.readPluginSettings<T>(pluginId);
 }
 
 export async function writePluginSettings<T = unknown>(pluginId: string, value: T): Promise<void> {
   const instance = await ensureHost();
-  await instance.writeSettings(pluginId, value);
+  await instance.writePluginSettings(pluginId, value);
 }
 
 export function getPluginDisplayName(pluginId: string) {

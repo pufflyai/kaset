@@ -1,4 +1,4 @@
-import type { JSONSchema } from "@pstdio/kaset-plugin-host";
+import type { JSONSchema } from "@pstdio/tiny-plugins";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import { useEffect, useState } from "react";
 
