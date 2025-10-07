@@ -1,110 +1,23 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { CACHE_NAME } from "../src/constant";
 import { setLockfile } from "../src/core/idb";
-import { registerVirtualSnapshot } from "../src/core/snapshot";
 import type { CompileResult } from "../src/esbuild/types";
-import { TinyUI, type TinyUIHandle, type TinyUIProps, type TinyUIStatus } from "../src/react/tiny-ui";
+import { TinyUI, type TinyUIHandle, type TinyUIProps } from "../src/react/tiny-ui";
+import { TinyUIStatus } from "../src/react/types";
+
+import { createSnapshotInitializer, now } from "./files/helpers";
+import VANILLA_ENTRY_SOURCE from "./files/Vanilla/index.js?raw";
 
 const STORY_ROOT = "/stories/tiny-vanilla";
 const SOURCE_ID = "tiny-ui-vanilla";
+const ENTRY_PATH = "/index.js";
 
-const VANILLA_ENTRY_SOURCE = String.raw`export function mount(container) {
-  const element = document.createElement("div");
-  element.style.fontFamily = "system-ui, sans-serif";
-  element.style.padding = "1.5rem";
-  element.style.background = "#0f172a";
-  element.style.color = "#e2e8f0";
-  element.style.borderRadius = "12px";
-  element.style.width = "320px";
-
-  const heading = document.createElement("h2");
-  heading.textContent = "Kaset Vanilla Demo";
-  heading.style.marginTop = "0";
-
-  const copy = document.createElement("p");
-  copy.textContent = "No external deps. Bundled once and cached under /virtual/*.";
-  copy.style.marginBottom = "1rem";
-  copy.style.color = "#94a3b8";
-
-  const counterValue = document.createElement("strong");
-  counterValue.style.display = "block";
-  counterValue.style.fontSize = "2.25rem";
-  counterValue.style.margin = "0.5rem 0";
-  counterValue.textContent = "0";
-
-  const buttons = document.createElement("div");
-  buttons.style.display = "flex";
-  buttons.style.gap = "0.75rem";
-  buttons.style.marginTop = "1.25rem";
-
-  const makeButton = (label, background, color, handler) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.textContent = label;
-    button.style.padding = "0.5rem 1rem";
-    button.style.borderRadius = "8px";
-    button.style.border = "none";
-    button.style.background = background;
-    button.style.color = color;
-    button.style.cursor = "pointer";
-    button.addEventListener("click", handler);
-    return button;
-  };
-
-  let count = 0;
-  const updateCount = () => {
-    counterValue.textContent = String(count);
-    counterValue.style.color = count > 0 ? "#22c55e" : count < 0 ? "#f97316" : "#e2e8f0";
-  };
-
-  buttons.appendChild(
-    makeButton("Decrease", "#1e293b", "#e2e8f0", () => {
-      count -= 1;
-      updateCount();
-    }),
-  );
-
-  buttons.appendChild(
-    makeButton("Increase", "#38bdf8", "#0f172a", () => {
-      count += 1;
-      updateCount();
-    }),
-  );
-
-  updateCount();
-
-  element.appendChild(heading);
-  element.appendChild(copy);
-  element.appendChild(counterValue);
-  element.appendChild(buttons);
-
-  container.innerHTML = "";
-  container.appendChild(element);
-}
-`;
-
-registerVirtualSnapshot(STORY_ROOT, {
-  entry: "/index",
-  tsconfig: JSON.stringify(
-    {
-      compilerOptions: {
-        jsx: "react-jsx",
-        target: "ES2022",
-        module: "ESNext",
-        moduleResolution: "Bundler",
-        strict: true,
-        esModuleInterop: true,
-        skipLibCheck: true,
-        allowSyntheticDefaultImports: true,
-      },
-    },
-    null,
-    2,
-  ),
+const ensureSnapshotReady = createSnapshotInitializer({
+  entry: ENTRY_PATH,
   files: {
-    "/index": VANILLA_ENTRY_SOURCE,
+    "index.js": VANILLA_ENTRY_SOURCE,
   },
 });
 
@@ -113,32 +26,55 @@ interface VanillaDemoProps {
   failureMode?: "none" | "serviceWorker" | "runtimeMissing";
 }
 
-const now = () =>
-  typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
-
 const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoProps) => {
   const uiRef = useRef<TinyUIHandle | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
-  const [status, setStatus] = useState<TinyUIStatus>("idle");
+  const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   const serviceWorkerUrl = failureMode === "serviceWorker" ? "/tiny-ui-sw-missing.js" : "/tiny-ui-sw.js";
   const runtimeOverrides: Partial<TinyUIProps> =
     failureMode === "runtimeMissing"
       ? {
           runtimeUrl: `${STORY_ROOT}/missing-runtime.html`,
-          runtimeSourceUrl: "",
         }
       : {};
   const failureExplanation =
     failureMode === "serviceWorker"
       ? "Service worker registration fails because /tiny-ui-sw-missing.js does not exist."
       : failureMode === "runtimeMissing"
-        ? "Runtime HTML caching fails because no runtimeSourceUrl is provided for the new runtime path."
+        ? "Runtime HTML caching fails because the runtimeUrl points to a missing HTML file."
         : null;
 
   useLayoutEffect(() => {
     setLockfile(null);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setInitialized(false);
+    setStatus("initializing");
+    setMessage("Loading vanilla sources into OPFS...");
+
+    ensureSnapshotReady(STORY_ROOT)
+      .then(() => {
+        if (cancelled) return;
+        setInitialized(true);
+        setStatus("idle");
+        setMessage("Vanilla sources loaded. Ready to compile.");
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        const normalized = error instanceof Error ? error : new Error("Failed to load vanilla source files.");
+        setStatus("error");
+        setMessage(normalized.message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleStatusChange = useCallback(
@@ -178,12 +114,14 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
   }, []);
 
   const handleRebuild = useCallback(() => {
+    if (!initialized) return;
+
     uiRef.current?.rebuild().catch((error) => {
       const normalized = error instanceof Error ? error : new Error("Failed to rebuild bundle");
       setStatus("error");
       setMessage(normalized.message);
     });
-  }, []);
+  }, [initialized]);
 
   const handleClearCache = useCallback(async () => {
     if (typeof caches === "undefined") return;
@@ -205,28 +143,44 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 480 }}>
       <div style={{ display: "flex", gap: 8 }}>
-        <button disabled={status === "compiling"} onClick={handleRebuild} type="button">
-          {status === "compiling" ? "Compiling..." : "Rebuild"}
+        <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
+          {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
         </button>
         <button onClick={handleClearCache} type="button">
           Clear Cache
         </button>
       </div>
-      <TinyUI
-        ref={uiRef}
-        src={STORY_ROOT}
-        id={SOURCE_ID}
-        autoCompile={autoCompile}
-        serviceWorkerUrl={serviceWorkerUrl}
-        {...runtimeOverrides}
-        onStatusChange={handleStatusChange}
-        onReady={handleReady}
-        onError={handleError}
-        showStatus={false}
-        style={{
-          height: 320,
-        }}
-      />
+      {initialized ? (
+        <TinyUI
+          ref={uiRef}
+          root={STORY_ROOT}
+          id={SOURCE_ID}
+          autoCompile={autoCompile}
+          serviceWorkerUrl={serviceWorkerUrl}
+          {...runtimeOverrides}
+          onStatusChange={handleStatusChange}
+          onReady={handleReady}
+          onError={handleError}
+          style={{
+            height: 320,
+          }}
+        />
+      ) : (
+        <div
+          aria-busy="true"
+          style={{
+            height: 320,
+            border: "1px dashed #475569",
+            borderRadius: 12,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "#475569",
+          }}
+        >
+          Loading vanilla source files...
+        </div>
+      )}
       {failureExplanation ? (
         <div>
           <strong>Expected failure:</strong> {failureExplanation}

@@ -14,8 +14,29 @@ export async function loadSnapshot(folderName: string, entry: string): Promise<V
   const relRoot = String(folderName || "").replace(/^\/+/, "");
   const tinyRoot = "/" + relRoot;
 
-  const INCLUDE = ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.json", "**/*.css"];
-  const EXCLUDE = ["**/node_modules/**", "**/.git/**", "**/.cache/**"];
+  const INCLUDE = [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx",
+    "**/*.mjs",
+    "**/*.cjs",
+    "**/*.json",
+    "**/*.css",
+    "**/*.scss",
+    "**/*.sass",
+    "**/*.md",
+  ];
+  const EXCLUDE = [
+    "**/node_modules/**",
+    "**/.git/**",
+    "**/.cache/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.turbo/**",
+    "**/.nx/**",
+    "**/out/**",
+  ];
 
   const entries = await ls(relRoot, {
     maxDepth: Infinity,
@@ -25,25 +46,43 @@ export async function loadSnapshot(folderName: string, entry: string): Promise<V
     showHidden: false,
   });
 
+  const tsconfigCandidates = ["tsconfig.ui.json", "tsconfig.app.json", "tsconfig.json"];
+  const tsconfigSet = new Set(tsconfigCandidates);
   const files: Record<string, string> = {};
+  let tsconfig: string | null = null;
+
+  for (const candidate of tsconfigCandidates) {
+    try {
+      tsconfig = await readFile(joinPath(relRoot, candidate));
+      break;
+    } catch {
+      // ignore missing tsconfig variants
+    }
+  }
 
   await Promise.all(
-    entries.map(async (e) => {
-      const absPath = joinPath(relRoot, e.path);
+    entries.map(async (entryInfo) => {
+      if (tsconfigSet.has(entryInfo.path)) return;
+
+      const absPath = joinPath(relRoot, entryInfo.path);
       const text = await readFile(absPath);
-      files["/" + e.path] = text;
+      files["/" + entryInfo.path] = text;
     }),
   );
 
-  registerVirtualSnapshot(tinyRoot, {
-    files,
-    entry,
-    tsconfig: null,
-  });
+  const entryRelative = entry.replace(/^\/+/, "");
+  if (!files["/" + entryRelative]) {
+    const entryText = await readFile(joinPath(relRoot, entryRelative));
+    files["/" + entryRelative] = entryText;
+  }
 
-  return {
+  const snapshot: VirtualSnapshot = {
     files,
     entry,
-    tsconfig: null,
+    tsconfig,
   };
+
+  registerVirtualSnapshot(tinyRoot, snapshot);
+
+  return snapshot;
 }

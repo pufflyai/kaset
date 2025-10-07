@@ -1,15 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { writeFile } from "@pstdio/opfs-utils";
-
 import { CACHE_NAME } from "../src/constant";
 import { setLockfile } from "../src/core/idb";
-import { loadSnapshot } from "../src/fs/loadSnapshot";
 import type { CompileResult } from "../src/esbuild/types";
 import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
 import { TinyUIStatus } from "../src/react/types";
 
+import { createSnapshotInitializer, now } from "./files/helpers";
 import NOTEPAD_ENTRY_SOURCE from "./files/OPFS/index.tsx?raw";
 import NOTEPAD_APP_SOURCE from "./files/OPFS/NotepadApp.tsx?raw";
 
@@ -29,38 +27,14 @@ const SNAPSHOT_FILES: Record<string, string> = {
   "NotepadApp.tsx": NOTEPAD_APP_SOURCE,
 };
 
-const INITIALIZED_SNAPSHOTS = new Map<string, Promise<void>>();
-
-const ensureSnapshotReady = (root: string) => {
-  const folder = root.replace(/^\/+/, "");
-  if (!folder) throw new Error("Snapshot root cannot be empty.");
-
-  let inFlight = INITIALIZED_SNAPSHOTS.get(folder);
-  if (inFlight) return inFlight;
-
-  inFlight = (async () => {
-    try {
-      await Promise.all(
-        Object.entries(SNAPSHOT_FILES).map(([relativePath, source]) => writeFile(`${folder}/${relativePath}`, source)),
-      );
-
-      await loadSnapshot(folder, ENTRY_PATH);
-    } catch (error) {
-      INITIALIZED_SNAPSHOTS.delete(folder);
-      throw error;
-    }
-  })();
-
-  INITIALIZED_SNAPSHOTS.set(folder, inFlight);
-  return inFlight;
-};
+const ensureSnapshotReady = createSnapshotInitializer({
+  entry: ENTRY_PATH,
+  files: SNAPSHOT_FILES,
+});
 
 interface OpfsNotepadDemoProps {
   autoCompile?: boolean;
 }
-
-const now = () =>
-  typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
 
 const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
   const uiRef = useRef<TinyUIHandle | null>(null);

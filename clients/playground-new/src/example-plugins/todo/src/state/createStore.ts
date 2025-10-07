@@ -1,10 +1,11 @@
-import { PLUGIN_ROOT } from "@/constant";
 import { deleteFile, ensureDirExists, ls, readFile, writeFile } from "@pstdio/opfs-utils";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import type { TodoItem, TodoStore } from "./types";
 
+export const ROOT = "playground";
+export const PLUGIN_ROOT = `${ROOT}/plugins`;
 export const TODO_LISTS_DIR = `${PLUGIN_ROOT}/todo/todos`;
 
 function parseMarkdownTodos(md: string): TodoItem[] {
@@ -80,7 +81,7 @@ export const createTodoStore = () =>
 
               const entries = await ls(TODO_LISTS_DIR, { maxDepth: 1, kinds: ["file"], include: ["*.md"] });
               const names = entries.map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
-              const nextSelected = names.includes(previousSelected ?? "") ? previousSelected : names[0] ?? null;
+              const nextSelected = names.includes(previousSelected ?? "") ? previousSelected : (names[0] ?? null);
 
               setState(
                 {

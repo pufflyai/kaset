@@ -1,14 +1,7 @@
 import { Box, Center, Spinner, Text } from "@chakra-ui/react";
-import { ls, readFile } from "@pstdio/opfs-utils";
-import { getLockfile, registerVirtualSnapshot, setLockfile, TinyUI, unregisterVirtualSnapshot } from "@pstdio/tiny-ui";
+import { getLockfile, loadSnapshot, setLockfile, TinyUI, unregisterVirtualSnapshot } from "@pstdio/tiny-ui";
 import { useEffect, useMemo, useState } from "react";
 import { getPluginsRoot, subscribeToPluginFiles, type PluginDesktopWindowDescriptor } from "./plugin-host";
-
-const GENERATED_TS_CONFIGS = new Set(["tsconfig.json", "tsconfig.app.json", "tsconfig.ui.json"]);
-
-const SUPPORTED_FILE_EXTENSIONS = new Set([".ts", ".tsx", ".js", ".jsx", ".json", ".css", ".scss", ".sass", ".md"]);
-
-const IGNORED_PREFIXES = ["node_modules/", "dist/", "build/", ".git/", ".turbo/", ".nx/", "out/"];
 
 const DEFAULT_LOCKFILE: Record<string, string> = {
   react: "https://esm.sh/react@19.1.1/es2022/react.mjs",
@@ -33,20 +26,6 @@ const sanitizeEntry = (entry: string) => {
   return segments.join("/");
 };
 
-const shouldInclude = (path: string, entryPath: string) => {
-  const normalized = toPosix(path);
-  if (!normalized) return false;
-  if (normalized === entryPath) return true;
-  if (IGNORED_PREFIXES.some((prefix) => normalized.startsWith(prefix))) return false;
-  return SUPPORTED_FILE_EXTENSIONS.has(fileExtension(normalized));
-};
-
-const fileExtension = (path: string) => {
-  const normalized = toPosix(path);
-  const index = normalized.lastIndexOf(".");
-  return index === -1 ? "" : normalized.slice(index);
-};
-
 const applyLockfile = (dependencies: Record<string, string>) => {
   const current = getLockfile() ?? {};
   setLockfile({
@@ -64,7 +43,7 @@ const buildPluginRoot = (pluginsRoot: string, pluginId: string) => {
 export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const { pluginId, window, instanceId } = props;
   const [status, setStatus] = useState<Status>("idle");
-  const [_error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [sourceRoot, setSourceRoot] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
@@ -96,63 +75,20 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
 
     const pluginsRoot = getPluginsRoot();
     const pluginRoot = buildPluginRoot(pluginsRoot, pluginId);
+    const snapshotRoot = `/${pluginRoot}`;
 
     let cancelled = false;
 
-    const loadSnapshot = async () => {
+    const refreshSnapshot = async () => {
       setStatus("loading");
       setError(null);
 
       try {
-        const entries = await ls(pluginRoot, { maxDepth: Infinity, kinds: ["file"] });
-        const files: Record<string, string> = {};
-        let tsconfig: string | null = null;
-
-        for (const entry of entries) {
-          const relativePath = toPosix(entry.path);
-
-          if (GENERATED_TS_CONFIGS.has(relativePath)) {
-            try {
-              tsconfig = await readFile(`${pluginRoot}/${relativePath}`);
-            } catch (tsError) {
-              console.warn(`[tiny-ui] Failed to read tsconfig ${relativePath} for ${pluginId}`, tsError);
-            }
-            continue;
-          }
-
-          if (!shouldInclude(relativePath, entryPath)) continue;
-
-          const opfsPath = `${pluginRoot}/${relativePath}`;
-          try {
-            const content = await readFile(opfsPath);
-            files[`/${relativePath}`] = content;
-          } catch (fileError) {
-            console.warn(`[tiny-ui] Failed to read plugin file ${opfsPath}`, fileError);
-          }
-
-          if (cancelled) return;
-        }
-
-        if (!files[`/${entryPath}`]) {
-          try {
-            const content = await readFile(`${pluginRoot}/${entryPath}`);
-            files[`/${entryPath}`] = content;
-          } catch (entryError) {
-            setError(entryError instanceof Error ? entryError.message : "Failed to read plugin entry");
-            setStatus("error");
-            return;
-          }
-        }
-
-        registerVirtualSnapshot(pluginRoot, {
-          entry: `/${entryPath}`,
-          files,
-          tsconfig,
-        });
+        await loadSnapshot(pluginRoot, `/${entryPath}`);
 
         if (cancelled) return;
 
-        setSourceRoot(pluginRoot);
+        setSourceRoot(snapshotRoot);
         setSnapshotVersion((value) => value + 1);
         setStatus("ready");
       } catch (loadError: any) {
@@ -163,18 +99,13 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       }
     };
 
-    loadSnapshot();
+    refreshSnapshot();
 
     return () => {
       cancelled = true;
-      unregisterVirtualSnapshot(pluginRoot);
+      unregisterVirtualSnapshot(snapshotRoot);
     };
   }, [pluginId, entryPath, refreshToken]);
-
-  useEffect(() => {
-    if (status === "error") {
-    }
-  }, [status]);
 
   if (status === "loading" || status === "idle") {
     return (
@@ -190,6 +121,11 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         <Text fontSize="sm" textAlign="center">
           Failed to load plugin window
         </Text>
+        {error ? (
+          <Text fontSize="xs" marginTop="2" textAlign="center">
+            {error}
+          </Text>
+        ) : null}
       </Center>
     );
   }

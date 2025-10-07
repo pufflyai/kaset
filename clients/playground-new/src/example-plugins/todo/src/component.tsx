@@ -1,4 +1,4 @@
-import { DeleteConfirmationModal } from "@/components/ui/delete-confirmation-modal";
+import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import {
   Box,
   Button,

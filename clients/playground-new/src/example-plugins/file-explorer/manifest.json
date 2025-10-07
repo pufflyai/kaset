@@ -11,18 +11,33 @@
       "description": "Inspect files beneath the playground root and edit them in place.",
       "icon": "Folder",
       "singleton": true,
-      "defaultSize": { "width": 840, "height": 620 },
-      "minSize": { "width": 420, "height": 320 },
+      "defaultSize": {
+        "width": 840,
+        "height": 620
+      },
+      "minSize": {
+        "width": 420,
+        "height": 320
+      },
       "window": {
         "entry": "src/window.tsx",
         "dependencies": {
-          "@chakra-ui/react": "^3.24.2",
-          "@emotion/react": "^11.14.0",
-          "@emotion/styled": "^11.14.0",
-          "@monaco-editor/react": "^4.7.0",
-          "@pstdio/opfs-hooks": "^0.1.4",
-          "@pstdio/opfs-utils": "^0.1.6",
-          "lucide-react": "^0.542.0"
+          "@chakra-ui/react": "https://esm.sh/@chakra-ui/react@3.24.2?deps=react@19.1.1,react-dom@19.1.1,@emotion/react@11.14.0,@emotion/styled@11.14.0,framer-motion@12.1.0",
+          "@emotion/react": "https://esm.sh/@emotion/react@11.14.0?deps=react@19.1.1",
+          "@emotion/styled": "https://esm.sh/@emotion/styled@11.14.0?deps=react@19.1.1",
+          "@monaco-editor/loader": "https://esm.sh/@monaco-editor/loader@1.5.0?deps=monaco-editor@0.52.2",
+          "@monaco-editor/react": "https://esm.sh/@monaco-editor/react@4.7.0?deps=react@19.1.1,react-dom@19.1.1,@monaco-editor/loader@1.5.0,monaco-editor@0.52.2",
+          "@pstdio/opfs-hooks": "https://esm.sh/@pstdio/opfs-hooks@0.1.4?deps=react@19.1.1",
+          "@pstdio/opfs-utils": "https://esm.sh/@pstdio/opfs-utils@0.1.6",
+          "@zenfs/core": "https://esm.sh/@zenfs/core@2.4.0?bundle&target=es2022",
+          "@zenfs/dom": "https://esm.sh/@zenfs/dom@1.2.5?bundle&deps=@zenfs/core@2.4.0&target=es2022",
+          "framer-motion": "https://esm.sh/framer-motion@12.1.0?deps=react@19.1.1,react-dom@19.1.1",
+          "lucide-react": "https://esm.sh/lucide-react@0.542.0?deps=react@19.1.1",
+          "monaco-editor": "https://esm.sh/monaco-editor@0.52.2?bundle",
+          "react": "https://esm.sh/react@19.1.1/es2022/react.mjs",
+          "react-dom": "https://esm.sh/react-dom@19.1.1/es2022/react-dom.mjs",
+          "react-dom/client": "https://esm.sh/react-dom@19.1.1/es2022/client.mjs",
+          "react/jsx-runtime": "https://esm.sh/react@19.1.1/es2022/jsx-runtime.mjs"
         }
       }
     }

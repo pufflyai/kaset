@@ -6,9 +6,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { CACHE_NAME } from "../src/constant";
 import { setLockfile } from "../src/core/idb";
 import type { CompileResult } from "../src/esbuild/types";
-import { registerVirtualSnapshot } from "../src/core/snapshot";
 import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
 import { TinyUIStatus } from "../src/react/types";
+
+import { now, normalizeRoot, writeSnapshotFiles } from "./files/helpers";
+import CHAKRA_ENTRY_SOURCE from "./files/SharedTheme/index.tsx?raw";
 
 /** Virtual source roots for two MFEs that will share the same tokens */
 const CHAKRA_ROOT_A = "/stories/tiny-chakra/a";
@@ -28,56 +30,9 @@ const LOCKFILE = {
   "framer-motion": "https://esm.sh/framer-motion@11.0.3?deps=react@18.3.1,react-dom@18.3.1",
 } as const;
 
-const CHAKRA_ENTRY = String.raw`import { StrictMode } from "react";
-import { createRoot } from "react-dom/client";
-import { ChakraProvider, Box, Button, extendTheme, Text, VStack } from "@chakra-ui/react";
-import "./tokens.css";
-
-const theme = extendTheme({
-  colors: {
-    brand: {
-      50: "var(--brand-50, #eef2ff)",
-      100: "var(--brand-100, #e0e7ff)",
-      500: "var(--brand-500, #6366f1)",
-      600: "var(--brand-600, #4f46e5)",
-    },
-  },
-  radii: {
-    lg: "var(--radius-lg, 12px)",
-  },
-});
-
-function App() {
-  return (
-    <Box bg="var(--surface, #0f172a)" color="var(--text, #e2e8f0)" p={6} rounded="lg">
-      <VStack align="stretch" spacing={4}>
-        <Text as="h2" fontSize="xl" fontWeight="bold" m={0}>
-          Shared Theme · Chakra UI
-        </Text>
-        <Text color="var(--muted, #94a3b8)">
-          Tokens come from CSS custom properties shared by the host.
-        </Text>
-        <Button colorScheme="brand" size="md">
-          Brand Button
-        </Button>
-      </VStack>
-    </Box>
-  );
-}
-
-export function mount(container: HTMLElement) {
-  container.innerHTML = "";
-  const root = createRoot(container);
-  root.render(
-    <StrictMode>
-      <ChakraProvider theme={theme}>
-        <App />
-      </ChakraProvider>
-    </StrictMode>,
-  );
-  return () => root.unmount();
-}
-`;
+const ENTRY_PATH = "/index.tsx";
+const SNAPSHOT_ROOTS = [CHAKRA_ROOT_A, CHAKRA_ROOT_B] as const;
+const SNAPSHOT_WRITE_QUEUES = new Map<string, Promise<void>>();
 
 type SharedThemeTokens = {
   surface: string;
@@ -117,40 +72,27 @@ const createTokensCss = (tokens: SharedThemeTokens) =>
 }
 `;
 
-const SHARED_TSCONFIG = JSON.stringify(
-  {
-    compilerOptions: {
-      jsx: "react-jsx",
-      target: "ES2022",
-      module: "ESNext",
-      moduleResolution: "Bundler",
-      strict: true,
-      esModuleInterop: true,
-      skipLibCheck: true,
-      allowSyntheticDefaultImports: true,
-    },
-  },
-  null,
-  2,
-);
+const enqueueSnapshotWrite = (root: string, tokensCss: string) => {
+  const folder = normalizeRoot(root);
 
-const registerChakraSnapshots = (tokens: SharedThemeTokens) => {
-  const tokensCss = createTokensCss(tokens);
+  const previous = SNAPSHOT_WRITE_QUEUES.get(folder) ?? Promise.resolve();
+  const next = previous
+    .catch(() => {})
+    .then(() =>
+      writeSnapshotFiles(folder, ENTRY_PATH, {
+        "index.tsx": CHAKRA_ENTRY_SOURCE,
+        "tokens.css": tokensCss,
+      }),
+    );
 
-  const buildSnapshot = () => ({
-    entry: "/index.tsx",
-    tsconfig: SHARED_TSCONFIG,
-    files: {
-      "/index.tsx": CHAKRA_ENTRY,
-      "/tokens.css": tokensCss,
-    },
-  });
-
-  registerVirtualSnapshot(CHAKRA_ROOT_A, buildSnapshot());
-  registerVirtualSnapshot(CHAKRA_ROOT_B, buildSnapshot());
+  SNAPSHOT_WRITE_QUEUES.set(folder, next);
+  return next;
 };
 
-registerChakraSnapshots(DEFAULT_TOKENS);
+const syncChakraSnapshots = (tokens: SharedThemeTokens) => {
+  const tokensCss = createTokensCss(tokens);
+  return Promise.all(SNAPSHOT_ROOTS.map((root) => enqueueSnapshotWrite(root, tokensCss))).then(() => undefined);
+};
 
 const TOKEN_CONTROLS: Array<{ key: keyof SharedThemeTokens; label: string }> = [
   { key: "surface", label: "Surface" },
@@ -162,18 +104,16 @@ const TOKEN_CONTROLS: Array<{ key: keyof SharedThemeTokens; label: string }> = [
   { key: "brand600", label: "Brand · 600" },
 ];
 
-const now = () =>
-  typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
-
 const SharedThemeDemo = () => {
   const [tokens, setTokens] = useState<SharedThemeTokens>(() => ({ ...DEFAULT_TOKENS }));
-  const [statusA, setStatusA] = useState<TinyUIStatus>("idle");
-  const [statusB, setStatusB] = useState<TinyUIStatus>("idle");
+  const [statusA, setStatusA] = useState<TinyUIStatus>("initializing");
+  const [statusB, setStatusB] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
   const startedAtRef = useRef<number | null>(null);
   const tinyARef = useRef<TinyUIHandle | null>(null);
   const tinyBRef = useRef<TinyUIHandle | null>(null);
-  const didRegisterRef = useRef(false);
+  const firstSyncRef = useRef(true);
 
   useLayoutEffect(() => {
     setLockfile(LOCKFILE);
@@ -207,20 +147,60 @@ const SharedThemeDemo = () => {
   );
 
   useEffect(() => {
-    if (!didRegisterRef.current) {
-      didRegisterRef.current = true;
-      return;
+    let cancelled = false;
+    const isFirstSync = firstSyncRef.current;
+    firstSyncRef.current = false;
+
+    if (!isFirstSync) {
+      setStatusA("initializing");
+      setStatusB("initializing");
     }
 
-    registerChakraSnapshots(tokens);
-    setMessage("Updating shared theme tokens...");
+    setMessage(isFirstSync ? "Loading Chakra UI sources into OPFS..." : "Updating shared theme tokens...");
 
-    const handles = [tinyARef.current, tinyBRef.current];
-    handles.forEach((handle) => {
-      handle?.rebuild().catch((error) => {
-        console.error("Failed to rebuild Tiny UI instance", error);
+    syncChakraSnapshots(tokens)
+      .then(() => {
+        if (cancelled) return;
+
+        if (isFirstSync) {
+          setInitialized(true);
+          setStatusA("idle");
+          setStatusB("idle");
+          setMessage("Chakra UI sources loaded. Ready to compile.");
+          return;
+        }
+
+        setMessage("Shared theme tokens updated. Rebuilding...");
+
+        const rebuild = (handle: TinyUIHandle | null, setStatus: (next: TinyUIStatus) => void) => {
+          if (!handle) return;
+
+          handle
+            .rebuild()
+            .catch((error) => {
+              const normalized =
+                error instanceof Error ? error : new Error("Failed to rebuild Tiny UI instance.");
+              setStatus("error");
+              setMessage(normalized.message);
+            });
+        };
+
+        rebuild(tinyARef.current, setStatusA);
+        rebuild(tinyBRef.current, setStatusB);
+      })
+      .catch((cause) => {
+        if (cancelled) return;
+
+        const normalized =
+          cause instanceof Error ? cause : new Error("Failed to sync shared theme tokens into OPFS.");
+        setStatusA("error");
+        setStatusB("error");
+        setMessage(normalized.message);
       });
-    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [tokens]);
 
   const containerStyle = useMemo<CSSProperties>(
@@ -317,28 +297,61 @@ const SharedThemeDemo = () => {
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        <TinyUI
-          ref={tinyARef}
-          src={CHAKRA_ROOT_A}
-          id={SOURCE_ID_A}
-          autoCompile
-          serviceWorkerUrl="/tiny-ui-sw.js"
-          onStatusChange={onStatusChangeA}
-          onReady={onReady}
-          onError={onError}
-          style={frameStyle}
-        />
-        <TinyUI
-          ref={tinyBRef}
-          src={CHAKRA_ROOT_B}
-          id={SOURCE_ID_B}
-          autoCompile
-          serviceWorkerUrl="/tiny-ui-sw.js"
-          onStatusChange={onStatusChangeB}
-          onReady={onReady}
-          onError={onError}
-          style={frameStyle}
-        />
+        {initialized ? (
+          <>
+            <TinyUI
+              ref={tinyARef}
+              root={CHAKRA_ROOT_A}
+              id={SOURCE_ID_A}
+              autoCompile
+              serviceWorkerUrl="/tiny-ui-sw.js"
+              onStatusChange={onStatusChangeA}
+              onReady={onReady}
+              onError={onError}
+              style={frameStyle}
+            />
+            <TinyUI
+              ref={tinyBRef}
+              root={CHAKRA_ROOT_B}
+              id={SOURCE_ID_B}
+              autoCompile
+              serviceWorkerUrl="/tiny-ui-sw.js"
+              onStatusChange={onStatusChangeB}
+              onReady={onReady}
+              onError={onError}
+              style={frameStyle}
+            />
+          </>
+        ) : (
+          <>
+            <div
+              aria-busy="true"
+              style={{
+                ...frameStyle,
+                borderRadius: 12,
+                border: "1px dashed #475569",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#475569",
+              }}
+            >
+              Loading Chakra UI sources...
+            </div>
+            <div
+              aria-busy="true"
+              style={{
+                ...frameStyle,
+                borderRadius: 12,
+                border: "1px dashed #475569",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#475569",
+              }}
+            >
+              Loading Chakra UI sources...
+            </div>
+          </>
+        )}
       </div>
 
       <div aria-live="polite">

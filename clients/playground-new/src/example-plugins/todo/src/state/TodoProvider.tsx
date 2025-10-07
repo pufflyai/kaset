@@ -3,7 +3,6 @@ import type { PropsWithChildren } from "react";
 import type { StoreApi, UseBoundStore } from "zustand";
 import { createTodoStore } from "./createStore";
 import { useDirectoryWatcher } from "./hooks/useDirectoryWatcher";
-import { useOpfsSync } from "./hooks/useOpfsSync";
 import type { TodoStore } from "./types";
 
 export const TodoContext = createContext<UseBoundStore<StoreApi<TodoStore>> | null>(null);
@@ -20,7 +19,6 @@ export function TodoProvider({ children }: PropsWithChildren) {
 
   const store = storeRef.current!;
 
-  useOpfsSync(store);
   useDirectoryWatcher(store);
 
   return <TodoContext.Provider value={store}>{children}</TodoContext.Provider>;

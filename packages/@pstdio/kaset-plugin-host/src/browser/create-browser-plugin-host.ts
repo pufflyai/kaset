@@ -94,7 +94,7 @@ async function ensureDirectory(path: string) {
 export function createBrowserPluginHost(options: BrowserHostOptions): BrowserPluginHost {
   const watchPlugins = options.watch ?? true;
 
-  let pluginsRoot = normalizeRoot(options.root);
+  const pluginsRoot = normalizeRoot(options.root);
   let host: PluginHost | null = null;
   let ready = false;
 
