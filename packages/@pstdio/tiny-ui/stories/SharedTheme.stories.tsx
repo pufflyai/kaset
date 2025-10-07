@@ -1,11 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
+import debounce from "lodash.debounce";
 import type { ChangeEvent, CSSProperties } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { CACHE_NAME } from "../src/constant.js";
 import { setLockfile } from "../src/core/idb.js";
 import type { CompileResult } from "../src/esbuild/types.js";
-import { registerVirtualSnapshot } from "../src/opfs/snapshot.js";
+import { registerVirtualSnapshot } from "../src/core/snapshot.js";
 import { TinyUI, type TinyUIHandle, type TinyUIStatus } from "../src/react/tiny-ui.js";
 
 /** Virtual source roots for two MFEs that will share the same tokens */
@@ -25,13 +26,6 @@ const LOCKFILE = {
   "@emotion/styled": "https://esm.sh/@emotion/styled@11.13.0?deps=react@18.3.1",
   "framer-motion": "https://esm.sh/framer-motion@11.0.3?deps=react@18.3.1,react-dom@18.3.1",
 } as const;
-
-/** ---------------------------
- *  Virtual sources (the MFE)
- *  ---------------------------
- *  - index.tsx: Chakra UI mount + theme mapping CSS vars to colors.brand
- *  - tokens.css: default tokens (can be overridden at runtime)
- */
 
 const CHAKRA_ENTRY = String.raw`import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -155,13 +149,7 @@ const registerChakraSnapshots = (tokens: SharedThemeTokens) => {
   registerVirtualSnapshot(CHAKRA_ROOT_B, buildSnapshot());
 };
 
-/** Register two virtual workspaces that share the same sources */
 registerChakraSnapshots(DEFAULT_TOKENS);
-
-/** ---------------------------
- *  The Story component (host)
- *  ---------------------------
- */
 
 const TOKEN_CONTROLS: Array<{ key: keyof SharedThemeTokens; label: string }> = [
   { key: "surface", label: "Surface" },
@@ -187,17 +175,34 @@ const SharedThemeDemo = () => {
   const didRegisterRef = useRef(false);
 
   useLayoutEffect(() => {
-    // Make Chakra/React available to the builder + runtime via the lockfile.
     setLockfile(LOCKFILE);
   }, []);
+
+  const setTokenValue = useMemo(
+    () =>
+      debounce((key: keyof SharedThemeTokens, value: string) => {
+        setTokens((previous) => {
+          if (previous[key] === value) return previous;
+
+          return { ...previous, [key]: value };
+        });
+      }, 120),
+    [setTokens],
+  );
+
+  useEffect(() => {
+    return () => {
+      setTokenValue.cancel();
+    };
+  }, [setTokenValue]);
 
   const handleTokenChange = useCallback(
     (key: keyof SharedThemeTokens) => (event: ChangeEvent<HTMLInputElement>) => {
       const value = event.target.value;
 
-      setTokens((previous) => ({ ...previous, [key]: value }));
+      setTokenValue(key, value);
     },
-    [],
+    [setTokenValue],
   );
 
   useEffect(() => {
@@ -263,9 +268,6 @@ const SharedThemeDemo = () => {
   const onError = useCallback((err: Error) => {
     startedAtRef.current = null;
     console.log(err);
-    // setStatusA("error");
-    // setStatusB("error");
-    // setMessage(err.message);
   }, []);
 
   const clearCache = useCallback(async () => {

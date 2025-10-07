@@ -39,6 +39,13 @@ const fnv1a64 = (payload: string) => {
   return hash.toString(16).padStart(16, "0");
 };
 
+export const hashText = async (payload: string): Promise<string> => {
+  const subtleHash = await hashWithSubtle(payload);
+  if (typeof subtleHash === "string") return subtleHash;
+
+  return fnv1a64(payload);
+};
+
 export const computeHash = async (input: HashInput): Promise<string> => {
   const normalizedDigests = sortRecord(input.digests);
   const normalizedLockfile = input.lockfile ? sortRecord(input.lockfile) : null;
@@ -53,8 +60,5 @@ export const computeHash = async (input: HashInput): Promise<string> => {
   };
 
   const serialized = JSON.stringify(payload);
-  const subtleHash = await hashWithSubtle(serialized);
-  if (typeof subtleHash === "string") return subtleHash;
-
-  return fnv1a64(serialized);
+  return hashText(serialized);
 };

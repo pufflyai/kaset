@@ -1,4 +1,6 @@
-import type { SourceConfig } from "../host/sources.js";
+import { ensureLeadingSlash } from "../utils.js";
+import { hashText } from "./hash.js";
+import type { SourceConfig } from "./sources.js";
 
 export interface ProjectSnapshot {
   id: string;
@@ -15,9 +17,13 @@ interface VirtualSnapshot {
   tsconfig?: string | null;
 }
 
+/**
+ * In-memory store of host-provided snapshots. A snapshot captures the current OPFS-backed file
+ * tree for a project root (files plus the designated entry file and optional tsconfig). Host
+ * integrations feed those captured contents through `registerVirtualSnapshot`, and this module
+ * focuses on transforming that data into a consistent shape for the compiler.
+ */
 const virtualSnapshots = new Map<string, VirtualSnapshot>();
-
-const ensureLeadingSlash = (value: string) => (value.startsWith("/") ? value : `/${value}`);
 
 const ensureRelativeToRoot = (root: string, path: string) => {
   const normalizedRoot = root.endsWith("/") ? root.slice(0, -1) : root;
@@ -30,26 +36,18 @@ const ensureRelativeToRoot = (root: string, path: string) => {
 };
 
 const digest = async (input: string) => {
+  const hashed = await hashText(input);
+
   if (
     typeof crypto !== "undefined" &&
     "subtle" in crypto &&
     typeof crypto.subtle.digest === "function" &&
     typeof TextEncoder !== "undefined"
   ) {
-    const data = new TextEncoder().encode(input);
-    const buffer = await crypto.subtle.digest("SHA-256", data);
-    return Array.from(new Uint8Array(buffer))
-      .map((value) => value.toString(16).padStart(2, "0"))
-      .join("");
+    return hashed;
   }
 
-  let hash = 0;
-  for (let index = 0; index < input.length; index += 1) {
-    hash = (hash << 5) - hash + input.charCodeAt(index);
-    hash |= 0;
-  }
-
-  return `placeholder-${Math.abs(hash)}`;
+  return `placeholder-${hashed}`;
 };
 
 const resolveEntryRelative = (config: SourceConfig, override?: string) => {
@@ -64,6 +62,11 @@ const resolveEntryRelative = (config: SourceConfig, override?: string) => {
   return ensureLeadingSlash(relative || "/index.tsx");
 };
 
+/**
+ * Store the latest OPFS-backed view for a source root. Callers usually gather file contents via
+ * `@pstdio/opfs-utils` (for example, `clients/playground-new/src/services/plugins/tiny-ui-window.tsx`)
+ * and then hand them to this helper.
+ */
 export const registerVirtualSnapshot = (root: string, snapshot: VirtualSnapshot) => {
   virtualSnapshots.set(root, snapshot);
 };

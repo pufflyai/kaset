@@ -2,6 +2,7 @@ import { Box, Text } from "@chakra-ui/react";
 import * as LucideIcons from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import {
   applyDesktopWindowSnap,
   closeDesktopWindow,
@@ -91,7 +92,15 @@ const renderSurfaceWindow = (surface: PluginDesktopSurface, windowId: string) =>
     );
   }
 
-  return <div>PLUGIN UI - {windowId} </div>;
+  if (!descriptor.entry) {
+    return (
+      <Box padding="md">
+        <Text fontSize="sm">This plugin window is missing an entry file.</Text>
+      </Box>
+    );
+  }
+
+  return <PluginTinyUiWindow pluginId={surface.pluginId} instanceId={windowId} window={descriptor} />;
 };
 
 const createDesktopAppFromSurface = (surface: PluginDesktopSurface): DesktopApp => {
@@ -127,6 +136,8 @@ export const Desktop = () => {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
   const [snapPreviewSide, setSnapPreviewSide] = useState<"left" | "right" | null>(null);
+  const snapFeatureEnabled = false;
+
   const windows = useWorkspaceStore((state) => state.desktop.windows);
 
   useEffect(() => {
@@ -209,6 +220,7 @@ export const Desktop = () => {
   }, [containerSize]);
 
   const snapPreviewStyle = useMemo(() => {
+    if (!snapFeatureEnabled) return null;
     if (!snapPreviewSide) return null;
 
     if (!containerSize) {
@@ -224,7 +236,7 @@ export const Desktop = () => {
       side: snapPreviewSide,
       width: `${halfWidth}px`,
     };
-  }, [containerSize, snapPreviewSide]);
+  }, [containerSize, snapPreviewSide, snapFeatureEnabled]);
 
   const focusedId = useMemo(() => {
     let current: DesktopWindow | undefined;
@@ -289,6 +301,7 @@ export const Desktop = () => {
             key={window.id}
             window={window}
             app={app}
+            snapEnabled={snapFeatureEnabled}
             containerSize={containerSize}
             isFocused={focusedId === window.id}
             onFocus={() => focusDesktopWindow(window.id)}
@@ -298,13 +311,16 @@ export const Desktop = () => {
             onPositionChange={(position) => setDesktopWindowPosition(window.id, position)}
             onSizeChange={(size) => setDesktopWindowSize(window.id, size)}
             onSnapPreview={(side) => {
+              if (!snapFeatureEnabled) return;
               setSnapPreviewSide((current) => (current === side ? current : side));
             }}
             onSnap={(options) => {
+              if (!snapFeatureEnabled) return;
               applyDesktopWindowSnap(window.id, options);
               setSnapPreviewSide(null);
             }}
             onReleaseSnap={() => {
+              if (!snapFeatureEnabled) return;
               releaseDesktopWindowSnap(window.id);
               setSnapPreviewSide(null);
             }}

@@ -1,6 +1,6 @@
 {
   "name": "@pstdio/tiny-plugins",
-  "description": "",
+  "description": "Plugin host for OPFS plugins with manifest validation, command routing, and settings storage.",
   "version": "0.1.0",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
@@ -51,7 +51,12 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "esbuild-wasm": "^0.25.10"
+    "@pstdio/opfs-utils": "*",
+    "esbuild-wasm": "^0.25.10",
+    "ajv": "^8.17.1",
+    "semver": "^7.6.3",
+    "@zenfs/core": "^2.4.0",
+    "@zenfs/dom": "^1.2.5"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

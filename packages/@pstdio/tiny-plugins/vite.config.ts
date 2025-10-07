@@ -5,7 +5,6 @@ import dts from "vite-plugin-dts";
 
 const entries = {
   index: path.resolve(__dirname, "src/index.ts"),
-  "tiny-ui-sw": path.resolve(__dirname, "src/sw/sw.ts"),
 };
 
 export default defineConfig({
@@ -15,7 +14,6 @@ export default defineConfig({
       name: "tiny-ui",
       fileName: (_format, entryName) => {
         if (entryName === "index") return "index.js";
-        if (entryName === "tiny-ui-sw") return "tiny-ui-sw.js";
         return `${entryName}.js`;
       },
       formats: ["es"],

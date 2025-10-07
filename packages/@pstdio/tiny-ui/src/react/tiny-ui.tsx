@@ -6,7 +6,7 @@ import { getLockfile, recordCompile, setBundleCount, setIframeCount } from "../c
 import { buildImportMap, type ImportMap } from "../core/import-map.js";
 import { compile } from "../esbuild/compile.js";
 import type { BuildWithEsbuildOptions, CompileResult } from "../esbuild/types.js";
-import { registerSources, removeSource, type SourceConfig } from "../host/sources.js";
+import { registerSources, removeSource, type SourceConfig } from "../core/sources.js";
 
 export interface TinyUIHandle {
   rebuild: () => Promise<CompileResult | undefined>;
@@ -118,18 +118,19 @@ const ensureServiceWorker = (url: string, scope: string) => {
     return Promise.resolve(null);
   }
 
-  const key = `${url}|${scope}`;
-  if (!serviceWorkerPromises.has(key)) {
+  const cacheKey = JSON.stringify([url, scope]);
+  if (!serviceWorkerPromises.has(cacheKey)) {
     const registrationPromise = (async () => {
-      const registration = await navigator.serviceWorker.register(url, { scope });
+      const options = { scope };
+      const registration = await navigator.serviceWorker.register(url, options);
       await navigator.serviceWorker.ready;
       return registration;
     })();
 
-    serviceWorkerPromises.set(key, registrationPromise);
+    serviceWorkerPromises.set(cacheKey, registrationPromise);
   }
 
-  return serviceWorkerPromises.get(key)!;
+  return serviceWorkerPromises.get(cacheKey)!;
 };
 
 const ensureRuntimeCached = async (runtimeUrl: string, runtimeSourceUrl?: string) => {

@@ -41,7 +41,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
   const modelId = useWorkspaceStore((s) => s.settings.modelId);
   const settings = useDisclosure();
   const conversationChanges = useMemo(() => summarizeConversationChanges(messages), [messages]);
-  const showChangeBubble = streaming || conversationChanges.fileCount > 0;
+  const showChangeBubble = conversationChanges.fileCount > 0;
 
   // Load selected model from localStorage and resolve pricing
   // Only input tokens are known before sending; we price those

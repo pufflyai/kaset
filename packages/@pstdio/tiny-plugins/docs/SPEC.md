@@ -371,3 +371,34 @@ if (host.doesPluginExist("theme-switcher")) {
   "additionalProperties": false
 }
 ```
+
+Package structure
+
+```
+└─ src/
+   ├─ index.ts                 # single public entry (stable API surface)
+   │
+   ├─ host/
+   │  ├─ host.ts               # createPluginHost(), start/stop, caches, subs
+   │  ├─ watcher.ts            # OPFS watcher (per-plugin debounce, ignore list)
+   │  ├─ commands.ts           # register/list/run, param validation
+   │  ├─ loader.ts             # manifest read/validate, module import, activate/deactivate
+   │  ├─ settings.ts           # <plugin>/.settings.json read/write + schema validate
+   │  └─ errors.ts             # error taxonomy + helpers
+   │
+   ├─ runtime/
+   │  ├─ context.ts            # PluginContext ctor (log, commands.notify, fs, net, settings)
+   │  ├─ fs-opfs.ts            # tiny OPFS utils (exists, readJSON, writeJSON, mkdirp, moveFile)
+   │  ├─ net.ts                # browser fetch wrapper (net.fetch)
+   │  └─ logging.ts            # prefixed console shim
+   │
+   ├─ model/
+   │  ├─ manifest.ts           # Manifest, CommandDefinition, HostUIConfig, RegisteredCommand types
+   │  └─ plugin.ts             # Plugin, PluginModule, CommandHandler types
+   │
+   ├─ schema/
+   │  ├─ manifest.schema.json  # structural manifest schema
+   │  └─ ui.schema.json        # strict host-owned UI object schema
+   │
+   ``
+```

@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
+import { CACHE_NAME } from "../src/constant.js";
+import { setLockfile } from "../src/core/idb.js";
+import { registerVirtualSnapshot } from "../src/core/snapshot.js";
 import type { CompileResult } from "../src/esbuild/types.js";
 import { TinyUI, type TinyUIHandle, type TinyUIStatus } from "../src/react/tiny-ui.js";
-import { setLockfile } from "../src/core/idb.js";
-import { registerVirtualSnapshot } from "../src/opfs/snapshot.js";
-import { CACHE_NAME } from "../src/constant.js";
 
 const STORY_ROOT = "/stories/tiny-react";
 const SOURCE_ID = "tiny-ui-react";
@@ -257,7 +257,7 @@ export function TodoInput() {
   };
 
   return (
-    <form style={formStyle}>
+    <div style={formStyle}>
       <input
         value={value}
         onChange={(event) => setValue(event.target.value)}
@@ -268,7 +268,7 @@ export function TodoInput() {
       <button style={buttonStyle} onClick={handleSubmit}>
         Add
       </button>
-    </form>
+    </div>
   );
 }
 `;

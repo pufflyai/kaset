@@ -2,7 +2,7 @@ import * as esbuild from "esbuild-wasm";
 
 import type { Lockfile } from "../../core/import-map.js";
 import { REMOTE_NAMESPACE } from "../constants.js";
-import { isHttpUrl, loaderFromPath } from "../utils.js";
+import { isHttpUrl, loaderFromPath } from "../../utils.js";
 
 const createRemoteResolver = (lockfile: Lockfile) => {
   const resolveFromLockfile = (specifier: string) => lockfile?.[specifier] ?? null;

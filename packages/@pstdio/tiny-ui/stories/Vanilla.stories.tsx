@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 
-import type { CompileResult } from "../src/esbuild/types.js";
-import { registerVirtualSnapshot } from "../src/opfs/snapshot.js";
-import { TinyUI, type TinyUIHandle, type TinyUIStatus } from "../src/react/tiny-ui.js";
 import { CACHE_NAME } from "../src/constant.js";
 import { setLockfile } from "../src/core/idb.js";
+import { registerVirtualSnapshot } from "../src/core/snapshot.js";
+import type { CompileResult } from "../src/esbuild/types.js";
+import { TinyUI, type TinyUIHandle, type TinyUIStatus } from "../src/react/tiny-ui.js";
 
 const STORY_ROOT = "/stories/tiny-vanilla";
 const SOURCE_ID = "tiny-ui-vanilla";

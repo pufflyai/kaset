@@ -25,7 +25,7 @@ function serializeSettings(value: unknown) {
 }
 
 export function PluginSettings() {
-  const { commands, runCommand, getDisplayName, loading } = usePluginHost();
+  const { commands, getDisplayName, loading } = usePluginHost();
 
   const pluginCommandGroups = useMemo(() => {
     if (!commands.length) return [] as Array<{ pluginId: string; name: string; commands: PluginCommand[] }>;
@@ -52,19 +52,6 @@ export function PluginSettings() {
   }, [commands, getDisplayName]);
 
   const [isDrawerOpen, setDrawerOpen] = useState(false);
-
-  const handleRunPluginCommand = async (command: PluginCommand) => {
-    try {
-      await runCommand(command.pluginId, command.id);
-    } catch (error) {
-      toaster.create({
-        type: "error",
-        title: `Failed to run ${command.title || command.id}`,
-        description: error instanceof Error ? error.message : String(error),
-        duration: 7000,
-      });
-    }
-  };
 
   const handleDrawerChange = (event: { open: boolean }) => {
     setDrawerOpen(event.open);

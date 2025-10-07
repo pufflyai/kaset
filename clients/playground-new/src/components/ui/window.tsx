@@ -1,7 +1,7 @@
 import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
 import { Box, Flex, HStack, IconButton, Text } from "@chakra-ui/react";
 import { Minimize2, Square, X } from "lucide-react";
-import { useRef } from "react";
+import { memo, useRef } from "react";
 import type { DraggableData } from "react-rnd";
 import { Rnd } from "react-rnd";
 
@@ -23,6 +23,21 @@ interface WindowChromeProps {
   onMinimize: () => void;
   onMaximize: () => void;
 }
+
+interface WindowContentProps {
+  app: DesktopApp;
+  windowId: string;
+}
+
+const WindowContentComponent = (props: WindowContentProps) => {
+  const { app, windowId } = props;
+  return <>{app.render(windowId)}</>;
+};
+
+const WindowContent = memo(
+  WindowContentComponent,
+  (prev, next) => prev.app === next.app && prev.windowId === next.windowId,
+);
 
 const WindowChrome = (props: WindowChromeProps) => {
   const { window, app, isFocused, onFocus, onClose, onMaximize } = props;
@@ -55,7 +70,7 @@ const WindowChrome = (props: WindowChromeProps) => {
         </HStack>
       </Flex>
       <Box flex="1" overflow="hidden">
-        {app.render(window.id)}
+        <WindowContent app={app} windowId={window.id} />
       </Box>
     </Flex>
   );
@@ -80,6 +95,7 @@ interface WindowProps {
     restore: { position: Position; size: Size };
   }) => void;
   onReleaseSnap: () => void;
+  snapEnabled: boolean;
 }
 
 export const Window = (props: WindowProps) => {
@@ -97,6 +113,7 @@ export const Window = (props: WindowProps) => {
     onSnapPreview,
     onSnap,
     onReleaseSnap,
+    snapEnabled,
   } = props;
 
   const pendingSnapReleaseRef = useRef(false);
@@ -131,6 +148,12 @@ export const Window = (props: WindowProps) => {
     onFocus();
     if (window.isMaximized) return;
 
+    wasSnappedAtDragStartRef.current = false;
+    releasedSnapThisDragRef.current = false;
+    pendingSnapReleaseRef.current = false;
+
+    if (!snapEnabled) return;
+
     const isSnapped = Boolean(window.snapRestore);
 
     wasSnappedAtDragStartRef.current = isSnapped;
@@ -141,6 +164,8 @@ export const Window = (props: WindowProps) => {
 
   const handleDrag = (_: unknown, data: DraggableData) => {
     if (window.isMaximized) return;
+
+    if (!snapEnabled) return;
 
     if (pendingSnapReleaseRef.current) {
       const hasMoved = data.x !== position.x || data.y !== position.y;
@@ -178,6 +203,8 @@ export const Window = (props: WindowProps) => {
   };
 
   const handleDragStop = (_: unknown, data: DraggableData) => {
+    if (window.isMaximized) return;
+
     const startedSnapped = wasSnappedAtDragStartRef.current;
     const releasedSnap = releasedSnapThisDragRef.current;
 
@@ -185,7 +212,10 @@ export const Window = (props: WindowProps) => {
     wasSnappedAtDragStartRef.current = false;
     releasedSnapThisDragRef.current = false;
 
-    if (window.isMaximized) return;
+    if (!snapEnabled) {
+      onPositionChange({ x: data.x, y: data.y });
+      return;
+    }
 
     onSnapPreview(null);
 
@@ -235,7 +265,7 @@ export const Window = (props: WindowProps) => {
         onSizeChange({ width: ref.offsetWidth, height: ref.offsetHeight });
         onPositionChange(positionUpdate);
       }}
-      enableResizing={!window.isMaximized && !window.snapRestore}
+      enableResizing={!window.isMaximized && (!window.snapRestore || !snapEnabled)}
       disableDragging={window.isMaximized}
       style={{ zIndex: window.zIndex, position: "absolute" }}
       minWidth={app.minSize.width}
