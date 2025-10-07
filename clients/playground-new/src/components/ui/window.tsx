@@ -1,7 +1,7 @@
 import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
 import { Box, Flex, HStack, IconButton, Text } from "@chakra-ui/react";
 import { Minimize2, Square, X } from "lucide-react";
-import { memo, useRef } from "react";
+import { memo, useRef, useState } from "react";
 import type { DraggableData } from "react-rnd";
 import { Rnd } from "react-rnd";
 
@@ -22,6 +22,7 @@ interface WindowChromeProps {
   onClose: () => void;
   onMinimize: () => void;
   onMaximize: () => void;
+  isDragging: boolean;
 }
 
 interface WindowContentProps {
@@ -40,7 +41,7 @@ const WindowContent = memo(
 );
 
 const WindowChrome = (props: WindowChromeProps) => {
-  const { window, app, isFocused, onFocus, onClose, onMaximize } = props;
+  const { window, app, isFocused, onFocus, onClose, onMaximize, isDragging } = props;
 
   return (
     <Flex
@@ -69,7 +70,7 @@ const WindowChrome = (props: WindowChromeProps) => {
           </IconButton>
         </HStack>
       </Flex>
-      <Box flex="1" overflow="hidden">
+      <Box flex="1" overflow="hidden" pointerEvents={isDragging ? "none" : "auto"}>
         <WindowContent app={app} windowId={window.id} />
       </Box>
     </Flex>
@@ -116,6 +117,7 @@ export const Window = (props: WindowProps) => {
     snapEnabled,
   } = props;
 
+  const [isDragging, setIsDragging] = useState(false);
   const pendingSnapReleaseRef = useRef(false);
   const releasedSnapThisDragRef = useRef(false);
   const wasSnappedAtDragStartRef = useRef(false);
@@ -146,7 +148,12 @@ export const Window = (props: WindowProps) => {
 
   const handleDragStart = () => {
     onFocus();
-    if (window.isMaximized) return;
+    if (window.isMaximized) {
+      setIsDragging(false);
+      return;
+    }
+
+    setIsDragging(true);
 
     wasSnappedAtDragStartRef.current = false;
     releasedSnapThisDragRef.current = false;
@@ -203,6 +210,8 @@ export const Window = (props: WindowProps) => {
   };
 
   const handleDragStop = (_: unknown, data: DraggableData) => {
+    setIsDragging(false);
+
     if (window.isMaximized) return;
 
     const startedSnapped = wasSnappedAtDragStartRef.current;
@@ -280,6 +289,7 @@ export const Window = (props: WindowProps) => {
           onClose={onClose}
           onMinimize={onMinimize}
           onMaximize={onMaximize}
+          isDragging={isDragging}
         />
       </Box>
     </Rnd>
