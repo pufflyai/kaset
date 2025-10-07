@@ -35,22 +35,22 @@ r.addEventListener("activate", (t) => {
 r.addEventListener("fetch", (t) => {
   const e = t,
     { request: a } = e;
-  d(a) &&
-    e.respondWith(
-      (async () => {
-        const s = await caches.open(l),
-          n = await f(s, a);
-        if (n) return n;
-        if (new URL(a.url).pathname === c)
-          try {
-            const i = await fetch(a);
-            return (i && i.ok && (await s.put(c, i.clone())), i);
-          } catch (i) {
-            return (console.error("SW runtime fetch failed:", i), new Response("Runtime unavailable", { status: 503 }));
-          }
-        return new Response("Not found", { status: 404 });
-      })(),
-    );
+  if (!d(a)) return;
+  e.respondWith(
+    (async () => {
+      const s = await caches.open(l),
+        n = await f(s, a);
+      if (n) return n;
+      if (new URL(a.url).pathname === c)
+        try {
+          const i = await fetch(a);
+          return (i && i.ok && (await s.put(c, i.clone())), i);
+        } catch (i) {
+          return (console.error("SW runtime fetch failed:", i), new Response("Runtime unavailable", { status: 503 }));
+        }
+      return new Response("Not found", { status: 404 });
+    })(),
+  );
 });
 r.addEventListener("error", (t) => {
   console.error("SW error:", t.message, t.filename, t.lineno, t.colno, t.error);

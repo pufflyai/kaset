@@ -120,7 +120,38 @@ export const Window = (props: WindowProps) => {
   const releasedSnapThisDragRef = useRef(false);
   const wasSnappedAtDragStartRef = useRef(false);
 
-  const size = window.isMaximized ? (containerSize ?? window.size) : window.size;
+  const resolvedMinWidth = containerSize
+    ? Math.min(app.minSize.width, containerSize.width)
+    : app.minSize.width;
+  const resolvedMinHeight = containerSize
+    ? Math.min(app.minSize.height, containerSize.height)
+    : app.minSize.height;
+
+  const constrainSize = (value: Size): Size => {
+    const nextWidth = containerSize
+      ? Math.min(Math.max(value.width, resolvedMinWidth), containerSize.width)
+      : Math.max(value.width, resolvedMinWidth);
+    const nextHeight = containerSize
+      ? Math.min(Math.max(value.height, resolvedMinHeight), containerSize.height)
+      : Math.max(value.height, resolvedMinHeight);
+
+    return { width: nextWidth, height: nextHeight };
+  };
+
+  const clampPositionToContainer = (positionValue: Position, sizeValue: Size): Position => {
+    if (!containerSize) return positionValue;
+
+    const maxAllowedX = Math.max(0, containerSize.width - sizeValue.width);
+    const maxAllowedY = Math.max(0, containerSize.height - sizeValue.height);
+
+    return {
+      x: clampBounds(positionValue.x, maxAllowedX),
+      y: clampBounds(positionValue.y, maxAllowedY),
+    };
+  };
+
+  const baseSize = window.isMaximized && containerSize ? containerSize : window.size;
+  const size = constrainSize(baseSize);
   const maxX = containerSize ? Math.max(0, containerSize.width - size.width) : undefined;
   const maxY = containerSize ? Math.max(0, containerSize.height - size.height) : undefined;
   const position = window.isMaximized
@@ -205,6 +236,8 @@ export const Window = (props: WindowProps) => {
   const handleDragStop = (_: unknown, data: DraggableData) => {
     if (window.isMaximized) return;
 
+    const constrainedPosition = clampPositionToContainer({ x: data.x, y: data.y }, size);
+
     const startedSnapped = wasSnappedAtDragStartRef.current;
     const releasedSnap = releasedSnapThisDragRef.current;
 
@@ -213,7 +246,7 @@ export const Window = (props: WindowProps) => {
     releasedSnapThisDragRef.current = false;
 
     if (!snapEnabled) {
-      onPositionChange({ x: data.x, y: data.y });
+      onPositionChange(constrainedPosition);
       return;
     }
 
@@ -249,7 +282,7 @@ export const Window = (props: WindowProps) => {
       }
     }
 
-    onPositionChange({ x: data.x, y: data.y });
+    onPositionChange(constrainedPosition);
   };
 
   return (
@@ -262,14 +295,17 @@ export const Window = (props: WindowProps) => {
       onDragStop={handleDragStop}
       onResizeStop={(_, __, ref, ___, positionUpdate) => {
         if (window.isMaximized) return;
-        onSizeChange({ width: ref.offsetWidth, height: ref.offsetHeight });
-        onPositionChange(positionUpdate);
+        const nextSize = constrainSize({ width: ref.offsetWidth, height: ref.offsetHeight });
+        onSizeChange(nextSize);
+        onPositionChange(clampPositionToContainer(positionUpdate, nextSize));
       }}
       enableResizing={!window.isMaximized && (!window.snapRestore || !snapEnabled)}
       disableDragging={window.isMaximized}
       style={{ zIndex: window.zIndex, position: "absolute" }}
-      minWidth={app.minSize.width}
-      minHeight={app.minSize.height}
+      minWidth={resolvedMinWidth}
+      minHeight={resolvedMinHeight}
+      maxWidth={containerSize?.width}
+      maxHeight={containerSize?.height}
     >
       <Box height="100%" width="100%">
         <WindowChrome
