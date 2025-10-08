@@ -20,7 +20,7 @@
       },
       "subtitle": {
         "type": "string",
-        "default": "Welcome to Kaset"
+        "default": "This is a blank plugin. Ask Kas to modify and extend it."
       }
     }
   },
@@ -55,10 +55,6 @@
       "defaultSize": {
         "width": 840,
         "height": 620
-      },
-      "minSize": {
-        "width": 420,
-        "height": 320
       },
       "window": {
         "entry": "src/window.tsx"

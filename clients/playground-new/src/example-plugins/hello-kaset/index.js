@@ -1,16 +1,6 @@
-const defaults = {
-  title: "Hello Kaset",
-  subtitle: "Welcome to Kaset",
-};
-
-async function readSettings(ctx) {
-  const stored = await ctx.settings.read();
-  return { ...defaults, ...(stored ?? {}) };
-}
-
 export const commands = {
   async "hello.sayHello"(ctx, params) {
-    const settings = await readSettings(ctx);
+    const settings = (await ctx.settings.read()) ?? {};
     const overrideTitle = typeof params?.title === "string" ? params.title : undefined;
     const overrideSubtitle = typeof params?.subtitle === "string" ? params.subtitle : undefined;
 
@@ -31,8 +21,6 @@ export const commands = {
 
 export default {
   async activate(ctx) {
-    const settings = await readSettings(ctx);
-    await ctx.settings.write(settings);
     ctx.log.info("hello-kaset plugin activated");
   },
 };
