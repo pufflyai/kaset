@@ -33,7 +33,7 @@ export { ensureDirExists, getDirectoryHandle, stripAnsi } from "./shared";
 export { runOpfsCommandLine } from "./shell/opfs-shell";
 export { createJsonFileStorage, type JsonFileStorage, type JsonFileStorageOptions } from "./state/json-storage";
 export { bindStoreToJsonFile, type BindStoreOptions, type StoreAdapter } from "./state/store-binding";
-export { deleteFile, downloadFile, moveFile, readFile, writeFile } from "./utils/opfs-crud";
+export { deleteDirectoryContents, deleteFile, downloadFile, moveFile, readFile, writeFile } from "./utils/opfs-crud";
 export { createScopedFs, type ScopedFs } from "./adapter/scoped-fs";
 export {
   DEFAULT_MAX_LINES_TEXT_FILE,

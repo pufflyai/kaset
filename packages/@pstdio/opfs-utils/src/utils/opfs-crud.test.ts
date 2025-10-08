@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { setupTestOPFS } from "../__helpers__/test-opfs";
 import { getOPFSRoot } from "../__helpers__/test-opfs";
-import { readFile, writeFile, deleteFile } from "./opfs-crud";
+import { getFs } from "../adapter/fs";
+import { deleteDirectoryContents, deleteFile, readFile, writeFile } from "./opfs-crud";
 
 describe("opfs-crud (node env)", () => {
   it("write -> read roundtrip", async () => {
@@ -57,5 +58,28 @@ describe("opfs-crud (node env)", () => {
     const fh = await dir.getFileHandle("file.txt");
     const text = await (await fh.getFile()).text();
     expect(text).toBe("ansi-ok");
+  });
+
+  it("deleteDirectoryContents removes files and subdirectories", async () => {
+    setupTestOPFS();
+
+    await writeFile("sandbox/a/b.txt", "1");
+    await writeFile("sandbox/a/c/d.txt", "2");
+    await writeFile("sandbox/.hidden/e.txt", "3");
+
+    await deleteDirectoryContents("sandbox");
+
+    await expect(readFile("sandbox/a/b.txt")).rejects.toMatchObject({ name: "NotFoundError" });
+    await expect(readFile("sandbox/.hidden/e.txt")).rejects.toMatchObject({ name: "NotFoundError" });
+
+    const fs = await getFs();
+    try {
+      const entries = await fs.promises.readdir("/sandbox");
+      expect(entries).toEqual([]);
+    } catch (error: any) {
+      const code = error?.code;
+      const name = error?.name;
+      expect(["ENOENT", "NotFoundError", "NotFound", 1]).toContain(code ?? name);
+    }
   });
 });
