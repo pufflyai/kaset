@@ -4,6 +4,22 @@ title: "Packages Overview"
 
 # 📦 Packages
 
+### [@pstdio/kas](/packages/kas)
+
+**Browser coding agent** — Complete AI-powered coding assistant that runs entirely in the browser with OPFS sandbox.
+
+Features: File operations with approval gates, shell commands, conversation adapters, streaming responses
+
+---
+
+### [@pstdio/opfs-hooks](/packages/opfs-hooks)
+
+**React hooks for OPFS** — React hooks for working with the browser's Origin Private File System with reactive updates.
+
+Includes: `useFolder`, `useFileContent`, `useOpfsStoreBinding`
+
+---
+
 ### [@pstdio/opfs-utils](/packages/opfs-utils)
 
 **OPFS helpers for modern browsers** — Advanced file system operations including listing, grep search, safe file reading, and patch utilities.
@@ -20,27 +36,11 @@ Includes: Core `OpfsSync` class, `SupabaseRemote` adapter, change detection
 
 ---
 
-### [@pstdio/tiny-plugins](/packages/tiny-plugins)
-
-**Tiny plugin runtime** — Watch OPFS-backed plugins, validate manifests, execute commands, and persist settings with the new `runPluginCommand` API.
-
-Includes: `createPluginHost`, `HOST_API_VERSION`, `mergeManifestDependencies`, Tiny AI Tasks adapter
-
----
-
 ### [@pstdio/prompt-utils](/packages/prompt-utils)
 
 **LLM workflow utilities** — Optimized tools for prompt engineering and JSON stream processing.
 
 Features: `prompt()`, `parseJSONStream()`, `getSchema()`, `safeStringify()`, UUID generation
-
----
-
-### [@pstdio/kas](/packages/kas)
-
-**Browser coding agent** — Complete AI-powered coding assistant that runs entirely in the browser with OPFS sandbox.
-
-Features: File operations with approval gates, shell commands, conversation adapters, streaming responses
 
 ---
 
@@ -52,11 +52,27 @@ Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSum
 
 ---
 
+### [@pstdio/tiny-plugins](/packages/tiny-plugins)
+
+**Tiny plugin runtime** — Watch OPFS-backed plugins, validate manifests, execute commands, and persist settings with the new `runPluginCommand` API.
+
+Includes: `createPluginHost`, `HOST_API_VERSION`, `mergeManifestDependencies`, Tiny AI Tasks adapter
+
+---
+
 ### [@pstdio/tiny-tasks](/packages/tiny-tasks)
 
 **Composable workflows** — Interrupt-friendly async generators you can pause, persist, and resume.
 
 Includes: `task`, `createRuntime`, `MemorySaver`
+
+---
+
+### [@pstdio/tiny-ui](/packages/tiny-ui)
+
+**Browser-first plugin runtime** — Compile OPFS-backed sources with esbuild-wasm, cache bundles in a service worker, and expose host capabilities to plugin iframes.
+
+Includes: `TinyUI`, `compile`, `loadSourceFiles`, `createTinyHost`, `createIframeOps`
 
 ---
 
