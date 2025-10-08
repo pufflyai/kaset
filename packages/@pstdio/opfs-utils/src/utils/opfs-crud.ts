@@ -2,6 +2,63 @@ import { getFs } from "../adapter/fs";
 import { getDirHandle, getFileHandle, readTextFileOptional, safeDelete, writeTextFile } from "../shared";
 import { basename, joinPath, normalizeRelPath, parentOf } from "./path";
 
+async function removeDirectory(path: string): Promise<void> {
+  const normalized = normalizeRelPath(path);
+  if (!normalized) return;
+
+  const fs = await getFs();
+  const absPath = "/" + normalized;
+
+  const { rm, rmdir } = fs.promises as unknown as {
+    rm?: (path: string, options?: { recursive?: boolean; force?: boolean }) => Promise<void>;
+    rmdir?: (path: string) => Promise<void>;
+  };
+
+  if (typeof rm === "function") {
+    try {
+      if (rm.length >= 2) {
+        await rm(absPath, { recursive: false });
+      } else {
+        await rm(absPath);
+      }
+      return;
+    } catch (error: any) {
+      const code = error?.code;
+      const name = error?.name;
+      if (code === "ENOENT" || code === 1 || name === "NotFoundError" || name === "NotFound") return;
+      if (code === "ENOTEMPTY" || name === "InvalidModificationError") return;
+      throw error;
+    }
+  }
+
+  if (typeof rmdir === "function") {
+    try {
+      await rmdir(absPath);
+    } catch (error: any) {
+      const code = error?.code;
+      const name = error?.name;
+      if (code === "ENOENT" || code === 1 || name === "NotFoundError" || name === "NotFound") return;
+      if (code === "ENOTEMPTY" || name === "InvalidModificationError") return;
+      throw error;
+    }
+  }
+}
+
+async function listDirectory(absPath: string): Promise<string[]> {
+  const fs = await getFs();
+
+  try {
+    const entries = await fs.promises.readdir(absPath);
+    if (Array.isArray(entries)) return entries as string[];
+    return [];
+  } catch (error: any) {
+    const code = error?.code;
+    const name = error?.name;
+    if (code === "ENOENT" || code === 1 || name === "NotFoundError" || name === "NotFound") return [];
+    throw error;
+  }
+}
+
 function notFound(path: string) {
   const Ctor: any = (globalThis as any).DOMException;
   try {
@@ -47,6 +104,45 @@ export const deleteFile = async (path: string): Promise<void> => {
   }
 
   await safeDelete(normalized);
+};
+
+async function deleteDirectoryContentsInternal(relPath: string): Promise<void> {
+  const normalized = normalizeRelPath(relPath);
+  const absPath = normalized ? `/${normalized}` : "/";
+
+  const entries = await listDirectory(absPath);
+  if (!entries.length) return;
+
+  const fs = await getFs();
+
+  for (const name of entries) {
+    const childRel = joinPath(normalized, name);
+    const childAbs = `/${normalizeRelPath(childRel)}`;
+
+    let stat: any;
+    try {
+      stat = await fs.promises.stat(childAbs);
+    } catch (error: any) {
+      const code = error?.code;
+      const errName = error?.name;
+      if (code === "ENOENT" || code === 1 || errName === "NotFoundError" || errName === "NotFound") {
+        continue;
+      }
+      throw error;
+    }
+
+    if (stat.isDirectory?.()) {
+      await deleteDirectoryContentsInternal(childRel);
+      await removeDirectory(childRel);
+      continue;
+    }
+
+    await safeDelete(childRel);
+  }
+}
+
+export const deleteDirectoryContents = async (path: string): Promise<void> => {
+  await deleteDirectoryContentsInternal(path);
 };
 
 /**

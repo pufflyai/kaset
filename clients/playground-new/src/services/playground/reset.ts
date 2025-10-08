@@ -1,5 +1,5 @@
 import { ROOT } from "@/constant";
-import { deleteFile, ls } from "@pstdio/opfs-utils";
+import { deleteDirectoryContents, ls } from "@pstdio/opfs-utils";
 
 import { setupPlayground } from "./setup";
 
@@ -14,23 +14,22 @@ export async function resetPlayground(options: ResetOptions = {}) {
   let deleted = 0;
 
   try {
-    const files = await ls(normalizedRoot, {
+    const entries = await ls(normalizedRoot, {
       maxDepth: Infinity,
-      kinds: ["file"],
+      kinds: ["file", "directory"],
       showHidden: true,
       sortBy: "path",
     });
 
-    for (const entry of files) {
-      try {
-        await deleteFile(`${normalizedRoot}/${entry.path}`);
-        deleted++;
-      } catch (error) {
-        console.warn(`Failed to delete ${entry.path} during reset`, error);
-      }
-    }
+    deleted = entries.length;
   } catch (error) {
-    console.warn(`Failed to enumerate files for reset at ${normalizedRoot}`, error);
+    console.warn(`Failed to enumerate entries for reset at ${normalizedRoot}`, error);
+  }
+
+  try {
+    await deleteDirectoryContents(normalizedRoot);
+  } catch (error) {
+    console.warn(`Failed to delete contents during reset at ${normalizedRoot}`, error);
   }
 
   const setupResult = await setupPlayground({ rootDir: normalizedRoot, overwrite: true });
