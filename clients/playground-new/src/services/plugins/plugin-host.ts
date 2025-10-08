@@ -49,7 +49,9 @@ type DesktopSurfaceManifest = {
 export type PluginFilesEvent = { pluginId: string; changes: ChangeRecord[] };
 export type PluginFilesListener = (event: PluginFilesEvent) => void;
 
-type ManifestWithUi = Manifest & { ui?: Manifest["ui"] & { desktop?: DesktopSurfaceManifest | DesktopSurfaceManifest[] } };
+type ManifestWithUi = Manifest & {
+  ui?: Manifest["ui"] & { desktop?: DesktopSurfaceManifest | DesktopSurfaceManifest[] };
+};
 
 export type PluginDesktopSurface = {
   pluginId: string;
