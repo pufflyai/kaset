@@ -16,9 +16,7 @@ export function CodeEditor(props: CodeEditorProps) {
 
   if (!filePath) {
     return (
-      <div style={{ padding: "16px", color: "#94a3b8", fontSize: "14px" }}>
-        Select a file to view its contents.
-      </div>
+      <div style={{ padding: "16px", color: "#94a3b8", fontSize: "14px" }}>Select a file to view its contents.</div>
     );
   }
 

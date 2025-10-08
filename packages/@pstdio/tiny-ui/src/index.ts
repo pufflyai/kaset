@@ -28,8 +28,4 @@ export type { TinyUiOpsRequest, TinyUiOpsHandler, WorkspaceFs } from "./runtime/
 
 export { compile } from "./esbuild/compile";
 
-export {
-  getCachedBundle,
-  setCachedCompileResult,
-  clearCachedCompileResult,
-} from "./core/cache-manifest";
+export { getCachedBundle, setCachedCompileResult, clearCachedCompileResult } from "./core/cache-manifest";

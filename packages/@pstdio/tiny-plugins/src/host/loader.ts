@@ -80,17 +80,7 @@ function compileSettingsSchema(
 }
 
 export async function loadPlugin(options: LoadPluginOptions): Promise<LoadedPlugin> {
-  const {
-    pluginId,
-    pluginsRoot,
-    registry,
-    manifestValidator,
-    ajv,
-    timeouts,
-    hostApiVersion,
-    notify,
-    warn,
-  } = options;
+  const { pluginId, pluginsRoot, registry, manifestValidator, ajv, timeouts, hostApiVersion, notify, warn } = options;
 
   const pluginRoot = joinRoot(pluginsRoot, pluginId);
   const fs = createScopedFs(pluginRoot);

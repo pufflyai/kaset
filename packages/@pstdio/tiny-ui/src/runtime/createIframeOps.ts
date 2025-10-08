@@ -76,7 +76,12 @@ function ensureParams(value: unknown, method: string): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 
-function getStringParam(record: Record<string, unknown>, key: string, method: string, required = true): string | undefined {
+function getStringParam(
+  record: Record<string, unknown>,
+  key: string,
+  method: string,
+  required = true,
+): string | undefined {
   const raw = record[key];
   if (raw == null) {
     if (required) throw new Error(`${method} requires params.${key}`);
@@ -178,7 +183,8 @@ export function createIframeOps(options: CreateIframeOpsOptions): TinyUiOpsHandl
       }
 
       case "fs.ls": {
-        const params = request.params && typeof request.params === "object" ? (request.params as Record<string, unknown>) : {};
+        const params =
+          request.params && typeof request.params === "object" ? (request.params as Record<string, unknown>) : {};
         const dir = getStringParam(params, "dir", method, false);
         return dataFs.readdir(dir ?? "");
       }

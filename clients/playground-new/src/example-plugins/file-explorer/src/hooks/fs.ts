@@ -59,7 +59,7 @@ const ensureDirectory = (
   const existing = context.nodeMap.get(relative);
   if (existing) return existing;
 
-  const name = relative ? relative.split("/").pop() ?? context.rootName : context.rootName;
+  const name = relative ? (relative.split("/").pop() ?? context.rootName) : context.rootName;
   const absoluteId = toAbsolutePath(context.rootId, relative);
 
   const dirNode: FsNode = {
