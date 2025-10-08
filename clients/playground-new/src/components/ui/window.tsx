@@ -120,10 +120,11 @@ export const Window = (props: WindowProps) => {
   const releasedSnapThisDragRef = useRef(false);
   const wasSnappedAtDragStartRef = useRef(false);
 
-  const baseWidth = window.isMaximized ? containerSize?.width ?? window.size.width : window.size.width;
-  const baseHeight = window.isMaximized ? containerSize?.height ?? window.size.height : window.size.height;
+  const baseWidth = window.isMaximized ? (containerSize?.width ?? window.size.width) : window.size.width;
+  const baseHeight = window.isMaximized ? (containerSize?.height ?? window.size.height) : window.size.height;
   const constrainedWidth = containerSize ? Math.min(baseWidth, containerSize.width) : baseWidth;
-  const size = { width: constrainedWidth, height: baseHeight };
+  const constrainedHeight = containerSize ? Math.min(baseHeight, containerSize.height) : baseHeight;
+  const size = { width: constrainedWidth, height: constrainedHeight };
   const maxX = containerSize ? Math.max(0, containerSize.width - size.width) : undefined;
   const maxY = containerSize ? Math.max(0, containerSize.height - size.height) : undefined;
   const position = window.isMaximized
@@ -136,19 +137,28 @@ export const Window = (props: WindowProps) => {
   useEffect(() => {
     if (!containerSize || window.isMaximized) return;
 
-    const { width: containerWidth } = containerSize;
+    const { width: containerWidth, height: containerHeight } = containerSize;
     const adjustedWidth = Math.min(window.size.width, containerWidth);
+    const adjustedHeight = Math.min(window.size.height, containerHeight);
     const maxAllowedX = Math.max(0, containerWidth - adjustedWidth);
+    const maxAllowedY = Math.max(0, containerHeight - adjustedHeight);
 
-    if (window.size.width > adjustedWidth) {
-      onSizeChange({ width: adjustedWidth, height: window.size.height });
+    if (window.size.width !== adjustedWidth || window.size.height !== adjustedHeight) {
+      onSizeChange({ width: adjustedWidth, height: adjustedHeight });
     }
 
-    if (window.position.x > maxAllowedX) {
-      onPositionChange({ x: maxAllowedX, y: window.position.y });
+    const boundedX = clampBounds(window.position.x, maxAllowedX);
+    const boundedY = clampBounds(window.position.y, maxAllowedY);
+
+    if (boundedX !== window.position.x || boundedY !== window.position.y) {
+      onPositionChange({
+        x: boundedX,
+        y: boundedY,
+      });
     }
   }, [
     containerSize?.width,
+    containerSize?.height,
     window.isMaximized,
     window.size.width,
     window.size.height,
@@ -298,7 +308,8 @@ export const Window = (props: WindowProps) => {
       style={{ zIndex: window.zIndex, position: "absolute" }}
       minWidth={containerSize ? Math.min(app.minSize.width, containerSize.width) : app.minSize.width}
       maxWidth={containerSize?.width}
-      minHeight={app.minSize.height}
+      minHeight={containerSize ? Math.min(app.minSize.height, containerSize.height) : app.minSize.height}
+      maxHeight={containerSize?.height}
     >
       <Box height="100%" width="100%">
         <WindowChrome
