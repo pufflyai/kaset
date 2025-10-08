@@ -20,11 +20,11 @@ Includes: Core `OpfsSync` class, `SupabaseRemote` adapter, change detection
 
 ---
 
-### [@pstdio/kaset-plugin-host](/packages/kaset-plugin-host)
+### [@pstdio/tiny-plugins](/packages/tiny-plugins)
 
-**Kaset plugin runtime** — Browser-first host that loads OPFS plugins, validates manifests, and wires commands, settings, and events.
+**Tiny plugin runtime** — Watch OPFS-backed plugins, validate manifests, execute commands, and persist settings with the new `runPluginCommand` API.
 
-Includes: `createBrowserPluginHost`, `createPluginHost`, Tiny AI Tasks adapter, OPFS watchers
+Includes: `createPluginHost`, `HOST_API_VERSION`, `mergeManifestDependencies`, Tiny AI Tasks adapter
 
 ---
 

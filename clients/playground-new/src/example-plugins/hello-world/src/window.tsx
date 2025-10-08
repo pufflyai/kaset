@@ -3,11 +3,11 @@ import { createRoot } from "react-dom/client";
 
 interface HelloWorldAppProps {
   greeting: string;
-  recipient: string;
+  subHeader: string;
 }
 
 function HelloWorldApp(props: HelloWorldAppProps) {
-  const { greeting, recipient } = props;
+  const { greeting, subHeader } = props;
 
   return (
     <div
@@ -24,8 +24,7 @@ function HelloWorldApp(props: HelloWorldAppProps) {
       }}
     >
       <strong style={{ fontSize: "1.5rem" }}>{greeting}</strong>
-      <span>{recipient}</span>
-      <span style={{ fontSize: "0.875rem", color: "#94a3b8" }}>Rendered with @pstdio/tiny-ui</span>
+      <span>{subHeader}</span>
     </div>
   );
 }
@@ -43,12 +42,13 @@ export function mount(container: Element | null, _context?: unknown, options: Mo
 
   const root = createRoot(target);
 
-  const greeting = options.greeting ?? "Hello";
-  const recipient = options.recipient ?? "Kaset";
+  const greeting = options.greeting ?? "Hello Kaset";
+
+  const subHeader = "This is a blank plugin. Ask Kas to modify and extend it.";
 
   root.render(
     <StrictMode>
-      <HelloWorldApp greeting={greeting} recipient={recipient} />
+      <HelloWorldApp greeting={greeting} subHeader={subHeader} />
     </StrictMode>,
   );
 
