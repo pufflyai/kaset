@@ -1,11 +1,12 @@
-import { PROJECTS_ROOT } from "@/constant";
-import { createConversation, selectConversation, selectProject } from "@/services/conversations";
-import { resetProject as resetProjectFiles } from "@/services/playground/reset";
-import { resetConversationsForProject } from "@/services/playground/reset-conversations";
+import { ROOT } from "@/constant";
+import { createConversation } from "@/state/actions/createConversation";
+import { deleteAllConversations as deleteAllConversationsAction } from "@/state/actions/deleteAllConversations";
+import { resetWorkspace } from "@/state/actions/resetWorkspace";
+import { selectConversation } from "@/state/actions/selectConversation";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import {
   Box,
-  Button,
+  Drawer,
   Flex,
   HStack,
   IconButton,
@@ -13,23 +14,24 @@ import {
   Portal,
   Separator,
   Spacer,
-  Text,
   useDisclosure,
 } from "@chakra-ui/react";
 import {
   CassetteTapeIcon,
   Check as CheckIcon,
-  ChevronDownIcon,
   EditIcon,
   ExternalLink as ExternalLinkIcon,
+  GitCommitVerticalIcon,
   HistoryIcon,
   RotateCcw,
   Settings as SettingsIcon,
   Trash2 as TrashIcon,
 } from "lucide-react";
-import { useId, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { SettingsModal } from "../../components/ui/settings-modal";
 import { Tooltip } from "../../components/ui/tooltip";
+import { resetPlayground } from "../../services/playground/reset";
+import { CommitHistory } from "./commit-history";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { MenuItem } from "./menu-item";
 
@@ -42,44 +44,32 @@ export function TopBar(props: TopBarProps) {
   const { open: isOpen, onOpen, onClose } = useDisclosure();
   const deleteAll = useDisclosure();
   const resetProject = useDisclosure();
+  const versionHistory = useDisclosure();
   const conversations = useWorkspaceStore((s) => s.conversations);
   const selectedId = useWorkspaceStore((s) => s.selectedConversationId);
-  const selectedProject = useWorkspaceStore((s) => s.selectedProjectId || "todo");
-  const triggerId = useId();
 
-  const PROJECTS: Array<{ id: string; label: string }> = [
-    { id: "todo", label: "Todos" },
-    { id: "slides", label: "Slides" },
-  ];
-
-  const selectedProjectLabel = PROJECTS.find((p) => p.id === selectedProject)?.label ?? selectedProject;
-
-  const ids = Object.keys(conversations).filter((id) => (conversations[id]?.projectId ?? "todo") === selectedProject);
-
-  // Conversation logic is now handled via services/conversations
-
-  const deleteAllConversations = () => {
-    resetConversationsForProject(selectedProject);
+  const handleDeleteAllConversations = () => {
+    deleteAllConversationsAction();
   };
 
   const handleResetProject = async () => {
-    const rootDir = `${PROJECTS_ROOT}/${selectedProject}`;
+    try {
+      await resetPlayground();
+    } catch (error) {
+      console.error("Failed to reset playground files", error);
+    }
 
-    await resetProjectFiles(selectedProject, { folderName: rootDir });
-
-    // If a file from this project was selected, clear the selection
-    useWorkspaceStore.setState(
-      (state) => {
-        if (state.filePath && state.filePath.startsWith(rootDir + "/")) {
-          state.filePath = undefined;
-        }
-      },
-      false,
-      "project/reset",
-    );
+    resetWorkspace();
   };
 
-  const selectedProjectName = PROJECTS.find((p) => p.id === selectedProject)?.label ?? selectedProject;
+  const handleVersionHistoryChange = (event: { open: boolean }) => {
+    if (event.open) {
+      versionHistory.onOpen();
+      return;
+    }
+
+    versionHistory.onClose();
+  };
 
   return (
     <Flex align="center" width="100%" gap="sm">
@@ -110,35 +100,6 @@ export function TopBar(props: TopBarProps) {
             </Menu.Content>
           </Menu.Positioner>
         </Menu.Root>
-        <Menu.Root ids={{ trigger: triggerId }}>
-          <Tooltip ids={{ trigger: triggerId }} content="Switch Demo Project">
-            <Menu.Trigger asChild>
-              <Button size="xs" variant="ghost" aria-label="Switch Demo Project">
-                <Text fontSize="sm">{selectedProjectName}</Text>
-                <ChevronDownIcon />
-              </Button>
-            </Menu.Trigger>
-          </Tooltip>
-          <Portal>
-            <Menu.Positioner>
-              <Menu.Content bg="background.primary">
-                <Menu.ItemGroup>
-                  <Menu.ItemGroupLabel>Projects</Menu.ItemGroupLabel>
-                  {PROJECTS.map((p) => (
-                    <MenuItem
-                      key={p.id}
-                      id={p.id}
-                      primaryLabel={p.label}
-                      isSelected={selectedProject === p.id}
-                      rightIcon={selectedProject === p.id ? <CheckIcon size={16} /> : undefined}
-                      onClick={() => selectProject(p.id as "todo" | "slides")}
-                    />
-                  ))}
-                </Menu.ItemGroup>
-              </Menu.Content>
-            </Menu.Positioner>
-          </Portal>
-        </Menu.Root>
       </HStack>
       <Spacer />
       <Flex display={{ base: mobileCenterContent ? "flex" : "none", md: "none" }}>{mobileCenterContent}</Flex>
@@ -157,7 +118,13 @@ export function TopBar(props: TopBarProps) {
           <Menu.Positioner>
             <Menu.Content bg="background.primary">
               <MenuItem
-                primaryLabel={`Reset ${selectedProjectLabel} project`}
+                primaryLabel="View version history"
+                leftIcon={<GitCommitVerticalIcon size={16} />}
+                onClick={versionHistory.onOpen}
+              />
+              <Separator marginY="sm" />
+              <MenuItem
+                primaryLabel={`Reset playground`}
                 leftIcon={<RotateCcw size={16} />}
                 onClick={resetProject.onOpen}
               />
@@ -167,15 +134,15 @@ export function TopBar(props: TopBarProps) {
                 onClick={deleteAll.onOpen}
               />
               <Separator marginY="sm" />
-              {ids.length === 0 && <MenuItem primaryLabel="No conversations" isDisabled />}
-              {ids.map((id) => (
+              {Object.values(conversations).length === 0 && <MenuItem primaryLabel="No conversations" isDisabled />}
+              {Object.values(conversations).map((conversation) => (
                 <MenuItem
-                  key={id}
-                  id={id}
-                  primaryLabel={conversations[id]?.name ?? id}
-                  isSelected={selectedId === id}
-                  rightIcon={selectedId === id ? <CheckIcon size={16} /> : undefined}
-                  onClick={() => selectConversation(id)}
+                  key={conversation.id}
+                  id={conversation.id}
+                  primaryLabel={conversation.name ?? conversation.id}
+                  isSelected={selectedId === conversation.id}
+                  rightIcon={selectedId === conversation.id ? <CheckIcon size={16} /> : undefined}
+                  onClick={() => selectConversation(conversation.id)}
                 />
               ))}
             </Menu.Content>
@@ -196,7 +163,7 @@ export function TopBar(props: TopBarProps) {
       <DeleteConfirmationModal
         open={deleteAll.open}
         onClose={deleteAll.onClose}
-        onDelete={() => deleteAllConversations()}
+        onDelete={handleDeleteAllConversations}
         headline="Delete all conversations"
         buttonText="Delete all"
       />
@@ -204,11 +171,28 @@ export function TopBar(props: TopBarProps) {
         open={resetProject.open}
         onClose={resetProject.onClose}
         onDelete={handleResetProject}
-        headline={`Reset ${selectedProjectLabel} project`}
-        notificationText={`Remove all files under "${PROJECTS_ROOT}/${selectedProject}" and restore defaults for ${selectedProjectLabel}?`}
+        headline={`Reset playground`}
+        notificationText={`Remove all files under "${ROOT}" and restore default files?`}
         buttonText="Reset project"
         closeOnInteractOutside={false}
       />
+      <Drawer.Root open={versionHistory.open} onOpenChange={handleVersionHistoryChange}>
+        <Portal>
+          <Drawer.Backdrop />
+          <Drawer.Positioner>
+            <Drawer.Content>
+              <Drawer.CloseTrigger />
+              <Drawer.Header>
+                <Drawer.Title>Versions</Drawer.Title>
+              </Drawer.Header>
+              <Drawer.Body>
+                <CommitHistory />
+              </Drawer.Body>
+              <Drawer.Footer />
+            </Drawer.Content>
+          </Drawer.Positioner>
+        </Portal>
+      </Drawer.Root>
     </Flex>
   );
 }
