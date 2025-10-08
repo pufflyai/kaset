@@ -1,28 +1,13 @@
 import { Box, Center, Flex, Heading, Text, ChakraProvider, defaultSystem } from "@chakra-ui/react";
-import { StrictMode, useMemo, useState } from "react";
+import { StrictMode, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { FileExplorer } from "./components/file-explorer";
 import { CodeEditor } from "./components/code-editor";
 
 const ROOT_DIR = "playground";
 
-const normalizePath = (path: string | null) => {
-  if (!path) return null;
-  return path
-    .split("/")
-    .filter((segment) => segment.length > 0)
-    .join("/");
-};
-
 export function FileExplorerWindow() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
-
-  const headerSubtitle = useMemo(() => {
-    if (!selectedPath) return "Pick a file to open in the editor";
-    const normalized = normalizePath(selectedPath) as string;
-    const prefix = `${ROOT_DIR}/`;
-    return normalized.startsWith(prefix) ? normalized.slice(prefix.length) : normalized;
-  }, [selectedPath]);
 
   return (
     <Flex height="100%" bg="background.dark" color="foreground.inverse">
@@ -33,15 +18,6 @@ export function FileExplorerWindow() {
         borderColor="border.secondary"
         bg="background.secondary"
       >
-        <Box padding="4" borderBottomWidth="1px" borderColor="border.secondary">
-          <Heading as="h2" size="sm" marginBottom="1" color="foreground.inverse">
-            Playground Files
-          </Heading>
-          <Text fontSize="xs" color="foreground.tertiary" lineClamp={2}>
-            {headerSubtitle}
-          </Text>
-        </Box>
-
         <Box flex="1" minHeight={0} padding="2" overflowY="auto">
           <FileExplorer
             rootDir={ROOT_DIR}

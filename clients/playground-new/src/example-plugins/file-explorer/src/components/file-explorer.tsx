@@ -1,5 +1,5 @@
-import { Box, TreeView as ChakraTreeView, createTreeCollection } from "@chakra-ui/react";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { Box, HStack, TreeView as ChakraTreeView, createTreeCollection } from "@chakra-ui/react";
+import { ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useFsTree, type FsNode } from "../hooks/fs";
 
@@ -92,7 +92,10 @@ export function FileExplorer(props: FileExplorerProps) {
                 </ChakraTreeView.BranchControl>
               ) : (
                 <ChakraTreeView.Item cursor="pointer">
-                  <ChakraTreeView.ItemText truncate>{node.name}</ChakraTreeView.ItemText>
+                  <HStack gap="2" flex="1" overflow="hidden">
+                    <FileText size={16} />
+                    <ChakraTreeView.ItemText truncate>{node.name}</ChakraTreeView.ItemText>
+                  </HStack>
                 </ChakraTreeView.Item>
               )
             }
