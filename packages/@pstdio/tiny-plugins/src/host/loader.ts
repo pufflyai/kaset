@@ -1,11 +1,11 @@
 import type { ValidateFunction } from "ajv";
 import { parse, satisfies, validRange } from "semver";
+import { createScopedFs } from "@pstdio/opfs-utils";
 import { createPluginContext } from "../runtime/context";
-import { createScopedFs } from "../runtime/fs-opfs";
 import type { Manifest, RegisteredCommand } from "../model/manifest";
 import type { Plugin, PluginModule } from "../model/plugin";
 import { CommandRegistry, type RegisterCommandOptions } from "./commands";
-import { apiIncompatible, importFailed, manifestParseError, manifestUiInvalid } from "./errors";
+import { apiIncompatible, importFailed, manifestParseError } from "./errors";
 import { createSettingsAccessor, type SettingsAccessor } from "./settings";
 import { runWithTimeout } from "./timers";
 import type { JSONSchema } from "../model/manifest";
@@ -36,7 +36,6 @@ export interface LoadPluginOptions {
   pluginsRoot: string;
   registry: CommandRegistry;
   manifestValidator: ValidateFunction;
-  uiValidator: ValidateFunction;
   ajv: AjvLike;
   timeouts: Timeouts;
   hostApiVersion: string;
@@ -86,7 +85,6 @@ export async function loadPlugin(options: LoadPluginOptions): Promise<LoadedPlug
     pluginsRoot,
     registry,
     manifestValidator,
-    uiValidator,
     ajv,
     timeouts,
     hostApiVersion,
@@ -123,37 +121,6 @@ export async function loadPlugin(options: LoadPluginOptions): Promise<LoadedPlug
 
   if (!isApiCompatible(manifest.api, hostApiVersion)) {
     throw apiIncompatible(pluginId, manifest.api, hostApiVersion);
-  }
-
-  if (manifest.ui) {
-    const validUI = uiValidator(manifest.ui);
-    if (!validUI) {
-      throw manifestUiInvalid(pluginId, uiValidator.errors);
-    }
-
-    const desktopEntry = manifest.ui.desktop?.entry;
-    if (desktopEntry) {
-      const entryExists = await fs.exists(desktopEntry);
-      if (!entryExists) {
-        throw manifestUiInvalid(pluginId, [{ message: `UI entry not found: ${desktopEntry}` }]);
-      }
-    }
-
-    const defaultSize = manifest.ui.desktop?.defaultSize;
-    const minSize = manifest.ui.desktop?.minSize;
-    if (defaultSize && minSize) {
-      const fits =
-        Number.isFinite(defaultSize.width) &&
-        Number.isFinite(defaultSize.height) &&
-        Number.isFinite(minSize.width) &&
-        Number.isFinite(minSize.height) &&
-        minSize.width <= defaultSize.width &&
-        minSize.height <= defaultSize.height;
-
-      if (!fits) {
-        throw manifestUiInvalid(pluginId, [{ message: "desktop size constraints are invalid" }]);
-      }
-    }
   }
 
   const entryBytes = await fs.readFile(manifest.entry);

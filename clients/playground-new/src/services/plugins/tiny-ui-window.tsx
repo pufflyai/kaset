@@ -1,14 +1,22 @@
 import { Box, Center, Spinner, Text } from "@chakra-ui/react";
-import { getLockfile, loadSnapshot, setLockfile, TinyUI, unregisterVirtualSnapshot } from "@pstdio/tiny-ui";
-import { useEffect, useMemo, useState } from "react";
-import { getPluginsRoot, subscribeToPluginFiles, type PluginDesktopWindowDescriptor } from "./plugin-host";
-
-const DEFAULT_LOCKFILE: Record<string, string> = {
-  react: "https://esm.sh/react@19.1.1/es2022/react.mjs",
-  "react/jsx-runtime": "https://esm.sh/react@19.1.1/es2022/jsx-runtime.mjs",
-  "react-dom/client": "https://esm.sh/react-dom@19.1.1/es2022/client.mjs",
-  "react-dom": "https://esm.sh/react-dom@19.1.1/es2022/react-dom.mjs",
-};
+import {
+  createWorkspaceFs,
+  getLockfile,
+  loadSnapshot,
+  setLockfile,
+  TinyUI,
+  unregisterVirtualSnapshot,
+} from "@pstdio/tiny-ui";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toaster } from "@/components/ui/toaster";
+import { ROOT } from "@/constant";
+import {
+  getMergedPluginDependencies,
+  getPluginsRoot,
+  subscribeToPluginDependencies,
+  subscribeToPluginFiles,
+  type PluginDesktopWindowDescriptor,
+} from "./plugin-host";
 
 type Status = "idle" | "loading" | "ready" | "error";
 
@@ -29,7 +37,6 @@ const sanitizeEntry = (entry: string) => {
 const applyLockfile = (dependencies: Record<string, string>) => {
   const current = getLockfile() ?? {};
   setLockfile({
-    ...DEFAULT_LOCKFILE,
     ...current,
     ...dependencies,
   });
@@ -47,14 +54,35 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [sourceRoot, setSourceRoot] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState(0);
+  const [globalDependencies, setGlobalDependencies] = useState<Record<string, string>>(() =>
+    getMergedPluginDependencies(),
+  );
+  const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
+  const notify = useCallback((level: "info" | "warn" | "error", message: string) => {
+    const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
+    toaster.create({ type, title: message, duration: 5000 });
+  }, []);
 
   const entryPath = useMemo(() => sanitizeEntry(window.entry ?? ""), [window.entry]);
-  const dependenciesKey = useMemo(() => JSON.stringify(window.dependencies ?? {}), [window.dependencies]);
+  useEffect(() => {
+    setGlobalDependencies(getMergedPluginDependencies());
+    const unsubscribe = subscribeToPluginDependencies((deps) => {
+      setGlobalDependencies({ ...deps });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  const dependencySnapshot = useMemo(() => {
+    const manifestDependencies = window.dependencies ?? {};
+    return { ...globalDependencies, ...manifestDependencies };
+  }, [globalDependencies, window.dependencies]);
 
   useEffect(() => {
-    const manifestDeps = window.dependencies ?? {};
-    applyLockfile(manifestDeps);
-  }, [dependenciesKey, window.dependencies]);
+    applyLockfile(dependencySnapshot);
+  }, [dependencySnapshot]);
 
   useEffect(() => {
     const unsubscribe = subscribeToPluginFiles(pluginId, () => {
@@ -130,6 +158,8 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     );
   }
 
+  const pluginsRoot = getPluginsRoot();
+
   return (
     <Box height="100%" width="100%" position="relative">
       <TinyUI
@@ -141,6 +171,12 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         onError={(tinyError) => {
           setError(tinyError.message);
           setStatus("error");
+        }}
+        bridge={{
+          pluginId,
+          pluginsRoot,
+          workspaceFs,
+          notify,
         }}
         style={{ width: "100%", height: "100%" }}
       />

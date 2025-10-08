@@ -1,15 +1,27 @@
 export type JSONSchema = Record<string, unknown>;
+export type DependenciesMap = Record<string, string>;
+
+export interface HostUIWindowConfig {
+  entry?: string;
+  dependencies?: DependenciesMap;
+}
+
+export interface HostUIDesktopConfig {
+  id?: string;
+  title?: string;
+  description?: string;
+  icon?: string;
+  singleton?: boolean;
+  defaultSize?: { width?: number; height?: number };
+  minSize?: { width?: number; height?: number };
+  defaultPosition?: { x?: number; y?: number };
+  entry?: string;
+  dependencies?: DependenciesMap;
+  window?: HostUIWindowConfig;
+}
 
 export interface HostUIConfig {
-  desktop?: {
-    title: string;
-    description?: string;
-    icon?: string;
-    singleton?: boolean;
-    defaultSize?: { width: number; height: number };
-    minSize?: { width: number; height: number };
-    entry: string;
-  };
+  desktop?: HostUIDesktopConfig | HostUIDesktopConfig[];
 }
 
 export interface CommandDefinition {
@@ -28,6 +40,8 @@ export interface Manifest {
   version: string;
   api: string;
   entry: string;
+  description?: string;
+  dependencies?: DependenciesMap;
   ui?: HostUIConfig;
   commands?: CommandDefinition[];
   settingsSchema?: JSONSchema;

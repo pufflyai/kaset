@@ -46,6 +46,13 @@ export const hashText = async (payload: string): Promise<string> => {
   return fnv1a64(payload);
 };
 
+export const computeLockfileHash = async (lockfile: Lockfile | null | undefined): Promise<string> => {
+  if (!lockfile) return "none";
+  const normalizedLockfile = sortRecord(lockfile);
+  const serialized = JSON.stringify(normalizedLockfile);
+  return hashText(serialized);
+};
+
 export const computeHash = async (input: HashInput): Promise<string> => {
   const normalizedDigests = sortRecord(input.digests);
   const normalizedLockfile = input.lockfile ? sortRecord(input.lockfile) : null;

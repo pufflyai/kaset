@@ -1,5 +1,5 @@
-import { Box, Heading, Text } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
+import { StrictMode, useMemo, useState } from "react";
+import { createRoot } from "react-dom/client";
 import { FileExplorer } from "./components/file-explorer";
 import { CodeEditor } from "./components/code-editor";
 
@@ -13,7 +13,7 @@ const normalizePath = (path: string | null) => {
     .join("/");
 };
 
-export default function FileExplorerWindow() {
+export function FileExplorerWindow() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   const headerSubtitle = useMemo(() => {
@@ -24,52 +24,119 @@ export default function FileExplorerWindow() {
   }, [selectedPath]);
 
   return (
-    <Box height="100%" display="flex" backgroundColor="background.primary" color="fg.primary">
-      <Box
-        width="260px"
-        borderRightWidth="1px"
-        borderColor="border.secondary"
-        display="flex"
-        flexDirection="column"
-        overflow="hidden"
-        backgroundColor="background.secondary"
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        background: "#020617",
+        color: "#e2e8f0",
+        fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+      }}
+    >
+      <div
+        style={{
+          width: "240px",
+          display: "flex",
+          flexDirection: "column",
+          borderRight: "1px solid #1e293b",
+          background: "#0f172a",
+        }}
       >
-        <Box padding="md" borderBottomWidth="1px" borderColor="border.secondary">
-          <Heading as="h2" fontSize="md" marginBottom="1">
+        <div
+          style={{
+            padding: "16px",
+            borderBottom: "1px solid #1e293b",
+          }}
+        >
+          <h2
+            style={{
+              fontSize: "15px",
+              fontWeight: 600,
+              margin: 0,
+              marginBottom: "4px",
+            }}
+          >
             Playground Files
-          </Heading>
-          <Text fontSize="xs" color="fg.secondary">
+          </h2>
+          <p
+            style={{
+              margin: 0,
+              fontSize: "12px",
+              color: "#94a3b8",
+            }}
+          >
             {headerSubtitle}
-          </Text>
-        </Box>
+          </p>
+        </div>
 
-        <Box flex="1" overflow="auto" padding="sm">
+        <div
+          style={{
+            flex: 1,
+            minHeight: 0,
+            padding: "8px",
+            overflowY: "auto",
+          }}
+        >
           <FileExplorer
             rootDir={ROOT_DIR}
             selectedPath={selectedPath}
             onSelect={(path) => setSelectedPath(path)}
             defaultExpanded={[ROOT_DIR]}
           />
-        </Box>
-      </Box>
+        </div>
+      </div>
 
-      <Box flex="1" display="flex" flexDirection="column" minWidth={0}>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         {selectedPath ? (
-          <Box flex="1" minHeight={0}>
-            <CodeEditor rootDir={ROOT_DIR} filePath={selectedPath} isEditable showLineNumbers />
-          </Box>
+          <div style={{ flex: 1, minHeight: 0 }}>
+            <CodeEditor filePath={selectedPath} />
+          </div>
         ) : (
-          <Box padding="lg" maxWidth="480px" margin="auto" textAlign="center" color="fg.secondary">
-            <Heading as="h3" fontSize="lg" marginBottom="2">
+          <div
+            style={{
+              margin: "auto",
+              textAlign: "center",
+              color: "#94a3b8",
+              maxWidth: "420px",
+              padding: "32px",
+            }}
+          >
+            <h3
+              style={{
+                fontSize: "18px",
+                fontWeight: 600,
+                margin: 0,
+                marginBottom: "8px",
+              }}
+            >
               Select a file to preview
-            </Heading>
-            <Text fontSize="sm">
-              Browse the playground directory on the left. When you pick a file, the contents will load here and any
-              edits are saved back to OPFS automatically.
-            </Text>
-          </Box>
+            </h3>
+            <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6 }}>
+              Browse the mock playground directory on the left. Pick any file to view its contents in the viewer panel.
+            </p>
+          </div>
         )}
-      </Box>
-    </Box>
+      </div>
+    </div>
   );
 }
+
+export function mount(container: Element | null) {
+  if (!container) throw new Error("file-explorer mount target is not available");
+
+  const target = container as HTMLElement;
+  target.innerHTML = "";
+  const root = createRoot(target);
+
+  root.render(
+    <StrictMode>
+      <FileExplorerWindow />
+    </StrictMode>,
+  );
+
+  return () => {
+    root.unmount();
+  };
+}
+
+export default FileExplorerWindow;

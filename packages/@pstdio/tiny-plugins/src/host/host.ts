@@ -1,9 +1,7 @@
-import { ls, type ChangeRecord } from "@pstdio/opfs-utils";
+import { createScopedFs, ls, type ChangeRecord } from "@pstdio/opfs-utils";
 import Ajv, { type ValidateFunction } from "ajv";
 import type { Manifest, PluginMetadata, RegisteredCommand } from "../model/manifest";
-import { createScopedFs } from "../runtime/fs-opfs";
 import manifestSchema from "../schema/manifest.schema.json" assert { type: "json" };
-import uiSchema from "../schema/ui.schema.json" assert { type: "json" };
 import { CommandRegistry } from "./commands";
 import type { PluginHostError } from "./errors";
 import { loadPlugin, unloadPlugin, type LoadedPlugin, type Timeouts } from "./loader";
@@ -66,7 +64,6 @@ export function createPluginHost(options: HostOptions = {}): PluginHost {
   const ajv = new Ajv({ allErrors: true });
 
   const manifestValidator = ajv.compile(manifestSchema) as ValidateFunction;
-  const uiValidator = ajv.compile(uiSchema) as ValidateFunction;
 
   const registry = new CommandRegistry();
 
@@ -223,7 +220,6 @@ export function createPluginHost(options: HostOptions = {}): PluginHost {
         pluginsRoot: root,
         registry,
         manifestValidator,
-        uiValidator,
         ajv,
         timeouts,
         hostApiVersion: HOST_API_VERSION,

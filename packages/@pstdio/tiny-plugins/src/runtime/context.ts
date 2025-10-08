@@ -1,4 +1,4 @@
-import type { ScopedFs } from "./fs-opfs";
+import type { ScopedFs } from "@pstdio/opfs-utils";
 import { createLogger } from "./logging";
 import { createNet } from "./net";
 import type { Manifest } from "../model/manifest";

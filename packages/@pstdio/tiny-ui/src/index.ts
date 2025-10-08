@@ -17,3 +17,19 @@ export { loadSnapshot } from "./fs/loadSnapshot";
 export { createTinyHost } from "./comms/host";
 
 export type { VirtualSnapshot } from "./core/snapshot";
+
+export { createIframeOps } from "./runtime/createIframeOps";
+
+export { createWorkspaceFs } from "./runtime/createWorkspaceFs";
+
+export type { CreateIframeOpsOptions } from "./runtime/createIframeOps";
+
+export type { TinyUiOpsRequest, TinyUiOpsHandler, WorkspaceFs } from "./runtime/types";
+
+export { compile } from "./esbuild/compile";
+
+export {
+  getCachedBundle,
+  setCachedCompileResult,
+  clearCachedCompileResult,
+} from "./core/cache-manifest";

@@ -14,7 +14,7 @@ export interface PublishBundlePayload {
   assets: PublishedAsset[];
 }
 
-const ensureCache = async () => {
+export const openBundleCache = async () => {
   if (!("caches" in globalThis)) return null;
   return caches.open(CACHE_NAME);
 };
@@ -26,7 +26,7 @@ const buildVirtualUrl = (hash: string, assetPath?: string) => {
 };
 
 export const publishBundleToSW = async ({ hash, entry, assets }: PublishBundlePayload) => {
-  const cache = await ensureCache();
+  const cache = await openBundleCache();
   if (!cache) return;
 
   console.info("[Tiny UI cache] Publishing bundle", {
@@ -48,7 +48,7 @@ export const publishBundleToSW = async ({ hash, entry, assets }: PublishBundlePa
 };
 
 export const hasBundle = async (hash: string) => {
-  const cache = await ensureCache();
+  const cache = await openBundleCache();
   if (!cache) return false;
 
   const match = await cache.match(buildVirtualUrl(hash));
@@ -56,7 +56,7 @@ export const hasBundle = async (hash: string) => {
 };
 
 export const getBundleCount = async () => {
-  const cache = await ensureCache();
+  const cache = await openBundleCache();
   if (!cache) return 0;
 
   const requests = await cache.keys();

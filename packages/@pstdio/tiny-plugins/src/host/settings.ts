@@ -1,5 +1,5 @@
+import type { ScopedFs } from "@pstdio/opfs-utils";
 import type { ValidateFunction } from "ajv";
-import type { ScopedFs } from "../runtime/fs-opfs";
 import { commandParamsInvalid } from "./errors";
 
 const SETTINGS_FILE = ".settings.json";

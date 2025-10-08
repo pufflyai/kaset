@@ -19,10 +19,6 @@ export function manifestParseError(path: string, message: string, details?: unkn
   return error;
 }
 
-export function manifestUiInvalid(pluginId: string, ajvErrors: unknown): PluginHostError {
-  return createError("E_MANIFEST_UI_INVALID", `Plugin ${pluginId} has invalid ui configuration`, pluginId, ajvErrors);
-}
-
 export function apiIncompatible(pluginId: string, pluginApi: string, hostApi: string): PluginHostError {
   return createError(
     "E_API_INCOMPATIBLE",

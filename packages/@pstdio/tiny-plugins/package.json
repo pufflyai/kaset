@@ -51,12 +51,11 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@pstdio/tiny-ai-tasks": "*",
     "@pstdio/opfs-utils": "*",
     "esbuild-wasm": "^0.25.10",
     "ajv": "^8.17.1",
-    "semver": "^7.6.3",
-    "@zenfs/core": "^2.4.0",
-    "@zenfs/dom": "^1.2.5"
+    "semver": "^7.6.3"
   },
   "peerDependencies": {
     "react": ">=18.0.0",

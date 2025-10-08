@@ -75,7 +75,52 @@
 
             const mountEl = container(init.mountSelector ?? "#root");
 
-            await entry(mountEl, null, init.runtimeOptions ?? {});
+            if (!remote || typeof remote.ops !== "function") {
+              throw new Error("Tiny UI host does not expose remote.ops");
+            }
+
+            const host = {
+              fs: {
+                readFile(path) {
+                  return remote.ops({ method: "fs.readFile", params: { path } });
+                },
+                writeFile(path, data) {
+                  return remote.ops({ method: "fs.writeFile", params: { path, data } });
+                },
+                ls(dir = "") {
+                  return remote.ops({ method: "fs.ls", params: { dir } });
+                },
+                deleteFile(path) {
+                  return remote.ops({ method: "fs.deleteFile", params: { path } });
+                },
+                downloadFile(path, filename) {
+                  return remote.ops({ method: "fs.downloadFile", params: { path, filename } });
+                },
+              },
+              workspace: {
+                read(path) {
+                  return remote.ops({ method: "workspace.read", params: { path } });
+                },
+                readFile(path) {
+                  return remote.ops({ method: "workspace.readFile", params: { path } });
+                },
+              },
+              settings: {
+                read() {
+                  return remote.ops({ method: "settings.read", params: {} });
+                },
+                write(value) {
+                  return remote.ops({ method: "settings.write", params: { value } });
+                },
+              },
+              commands: {
+                notify(level, message) {
+                  return remote.ops({ method: "commands.notify", params: { level, message } });
+                },
+              },
+            };
+
+            await entry(mountEl, host, init.runtimeOptions ?? {});
             await remote.ready({ id: init.id, meta: init.meta });
           } catch (err) {
             const e = err instanceof Error ? err : new Error("Failed to initialize module");

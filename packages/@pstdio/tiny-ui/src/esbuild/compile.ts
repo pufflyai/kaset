@@ -1,18 +1,35 @@
 import * as esbuild from "esbuild-wasm";
 
-import { hasBundle, publishBundleToSW } from "../core/cache";
-import { computeHash } from "../core/hash";
+import { publishBundleToSW } from "../core/cache";
+import { getCachedBundle, setCachedCompileResult } from "../core/cache-manifest";
+import { computeHash, computeLockfileHash } from "../core/hash";
 import { getLockfile } from "../core/idb";
 import { getSource } from "../core/sources";
 import { readSnapshot } from "../core/snapshot";
 import { ENTRY_NAME, OUTPUT_DIR } from "./constants";
 import { createLockfilePlugin } from "./plugins/lockfile-plugin";
 import { createVirtualFsPlugin } from "./plugins/virtual-fs-plugin";
-import type { BuildMetadata, BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "./types";
+import type { BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "./types";
 import { ensureLeadingSlash } from "../utils";
 
-const metadata = new Map<string, BuildMetadata>();
 let initializePromise: Promise<void> | null = null;
+
+const createCompileResult = (params: {
+  id: string;
+  hash: string;
+  lockfileHash: string;
+  fromCache: boolean;
+  bytes: number;
+  assets: string[];
+}): CompileResult => ({
+  id: params.id,
+  hash: params.hash,
+  url: `/virtual/${params.hash}.js`,
+  fromCache: params.fromCache,
+  bytes: params.bytes,
+  assets: params.assets,
+  lockfileHash: params.lockfileHash,
+});
 
 const ensureInitialized = (wasmURL: string) => {
   if (!initializePromise) {
@@ -23,18 +40,6 @@ const ensureInitialized = (wasmURL: string) => {
   }
 
   return initializePromise;
-};
-
-const createCompileResult = (id: string, hash: string, fromCache: boolean): CompileResult => {
-  const entry = metadata.get(hash);
-  return {
-    id,
-    hash,
-    url: `/virtual/${hash}.js`,
-    fromCache,
-    bytes: entry?.bytes ?? 0,
-    assets: entry?.assets ?? [],
-  } satisfies CompileResult;
 };
 
 const getContentType = (path: string) => {
@@ -49,13 +54,15 @@ const toVirtualAssetPath = (path: string) => {
 };
 
 export const compile = async (id: string, options: BuildWithEsbuildOptions): Promise<CompileResult> => {
-  await ensureInitialized(options.wasmURL);
+  const { wasmURL, define, skipCache = false } = options;
+  await ensureInitialized(wasmURL);
 
   const source = getSource(id);
   if (!source) throw new Error(`Source not registered for id: ${id}`);
 
   const snapshot = await readSnapshot(source);
   const lockfile = getLockfile();
+  const lockfileHash = await computeLockfileHash(lockfile ?? null);
 
   const hash = await computeHash({
     id,
@@ -66,8 +73,11 @@ export const compile = async (id: string, options: BuildWithEsbuildOptions): Pro
     lockfile: lockfile ?? null,
   });
 
-  if (await hasBundle(hash)) {
-    return createCompileResult(id, hash, true);
+  if (!skipCache) {
+    const cached = await getCachedBundle(id);
+    if (cached && cached.hash === hash) {
+      return cached;
+    }
   }
 
   const files: SnapshotFileMap = { ...snapshot.files };
@@ -75,6 +85,7 @@ export const compile = async (id: string, options: BuildWithEsbuildOptions): Pro
 
   const remotePlugin = createLockfilePlugin(lockfile ?? null);
   const plugins = [createVirtualFsPlugin(files, entry)];
+
   if (remotePlugin) {
     plugins.push(remotePlugin);
   }
@@ -106,7 +117,7 @@ export const compile = async (id: string, options: BuildWithEsbuildOptions): Pro
     },
     define: {
       "process.env.NODE_ENV": '"production"',
-      ...options.define,
+      ...define,
     },
   });
 
@@ -159,7 +170,17 @@ export const compile = async (id: string, options: BuildWithEsbuildOptions): Pro
 
   const totalBytes = entryBytes + publishedAssets.reduce((sum, asset) => sum + asset.bytes, 0);
   const assetPaths = publishedAssets.map((asset) => asset.path);
-  metadata.set(hash, { bytes: totalBytes, assets: assetPaths });
 
-  return createCompileResult(id, hash, false);
+  const result = createCompileResult({
+    id,
+    hash,
+    lockfileHash,
+    fromCache: false,
+    bytes: totalBytes,
+    assets: assetPaths,
+  });
+
+  await setCachedCompileResult(id, result);
+
+  return result;
 };

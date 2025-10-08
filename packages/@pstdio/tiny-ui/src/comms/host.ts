@@ -2,10 +2,12 @@ import { host } from "rimless";
 import { getLockfile } from "../core/idb";
 import { buildImportMap } from "../core/import-map";
 import type { CompileResult } from "../esbuild/types";
+import type { TinyUiOpsHandler, TinyUiOpsRequest } from "../runtime/types";
 
 export interface HostAPI {
   ready(data: { id: string; meta?: unknown }): Promise<void>;
   runtimeError(data: { id: string; message: string; stack?: string }): Promise<void>;
+  ops(request: TinyUiOpsRequest): Promise<unknown>;
 }
 
 export type TinyHost = ReturnType<typeof createTinyHost>;
@@ -18,6 +20,12 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
     async runtimeError(data) {
       internal.onError?.(data);
     },
+    async ops(request) {
+      if (!internal.opsHandler) {
+        throw new Error("Tiny UI host ops handler not registered");
+      }
+      return internal.opsHandler(request);
+    },
   };
 
   const conn = await host.connect(iframe, hostApi);
@@ -25,6 +33,7 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
   const internal: {
     onReady?: (data: { id: string; meta?: unknown }) => void;
     onError?: (data: { id: string; message: string; stack?: string }) => void;
+    opsHandler?: TinyUiOpsHandler;
   } = {};
 
   async function sendInit(result: CompileResult) {
@@ -51,9 +60,13 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
     onError(fn: (data: { id: string; message: string; stack?: string }) => void) {
       internal.onError = fn;
     },
+    onOps(fn: TinyUiOpsHandler) {
+      internal.opsHandler = fn;
+    },
     sendInit,
     disconnect() {
       conn.remote.disconnect?.();
+      internal.opsHandler = undefined;
     },
   };
 }

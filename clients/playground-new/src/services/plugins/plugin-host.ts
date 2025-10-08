@@ -4,6 +4,7 @@ import type { ChangeRecord } from "@pstdio/opfs-utils";
 import {
   createPluginHost,
   createToolsForCommands,
+  mergeManifestDependencies,
   type JSONSchema,
   type Manifest,
   type PluginHost,
@@ -89,6 +90,11 @@ const desktopSurfaceSubscribers = new Set<DesktopSurfaceListener>();
 const pluginSchemas = new Map<string, JSONSchema>();
 const pluginMetadata = new Map<string, PluginMetadata>();
 const pluginDesktopSurfaces = new Map<string, PluginDesktopSurface[]>();
+const pluginDependencies = new Map<string, Record<string, string>>();
+const dependencySubscribers = new Set<(dependencies: Record<string, string>) => void>();
+
+let cachedMergedDependencies: Record<string, string> = {};
+let dependenciesDirty = true;
 
 let hostUnsubscribers: Array<() => void> = [];
 
@@ -150,10 +156,30 @@ function getDesktopSurfaceSnapshot() {
   });
 }
 
+function getMergedDependenciesSnapshot(): Record<string, string> {
+  if (dependenciesDirty) {
+    cachedMergedDependencies = mergeManifestDependencies(
+      Array.from(pluginDependencies.entries()).map(([pluginId, dependencies]) => ({
+        id: pluginId,
+        dependencies,
+      })),
+    );
+    dependenciesDirty = false;
+  }
+
+  return { ...cachedMergedDependencies };
+}
+
 function notifyDesktopSurfaceSubscribers() {
   if (desktopSurfaceSubscribers.size === 0) return;
   const snapshot = getDesktopSurfaceSnapshot();
   desktopSurfaceSubscribers.forEach((listener) => listener(snapshot));
+}
+
+function notifyDependencySubscribers() {
+  if (dependencySubscribers.size === 0) return;
+  const snapshot = getMergedDependenciesSnapshot();
+  dependencySubscribers.forEach((listener) => listener({ ...snapshot }));
 }
 
 function rebuildTools() {
@@ -188,26 +214,38 @@ function sanitizeEntryPath(entry?: string) {
   return normalized;
 }
 
-function normalizeWindowSection(window?: DesktopSurfaceManifest["window"]): PluginDesktopWindowDescriptor | undefined {
+function normalizeWindowSection(
+  window?: DesktopSurfaceManifest["window"],
+  fallbackDependencies?: Record<string, string>,
+): PluginDesktopWindowDescriptor | undefined {
   if (!window) return undefined;
   const entry = sanitizeEntryPath(window.entry);
   if (!entry) return undefined;
-  const dependencies = window.dependencies ? { ...window.dependencies } : undefined;
+  const source = window.dependencies ?? fallbackDependencies;
+  const dependencies = source ? { ...source } : undefined;
   return { entry, dependencies };
 }
 
 function normalizeWindowFromEntry(
   entry?: string,
   dependencies?: Record<string, string>,
+  fallbackDependencies?: Record<string, string>,
 ): PluginDesktopWindowDescriptor | undefined {
   const normalizedEntry = sanitizeEntryPath(entry);
   if (!normalizedEntry) return undefined;
-  const normalizedDependencies = dependencies ? { ...dependencies } : undefined;
+  const source = dependencies ?? fallbackDependencies;
+  const normalizedDependencies = source ? { ...source } : undefined;
   return { entry: normalizedEntry, dependencies: normalizedDependencies };
 }
 
-function resolveWindowDescriptor(item: DesktopSurfaceManifest): PluginDesktopWindowDescriptor | undefined {
-  return normalizeWindowSection(item.window) ?? normalizeWindowFromEntry(item.entry, item.dependencies);
+function resolveWindowDescriptor(
+  item: DesktopSurfaceManifest,
+  manifestDependencies?: Record<string, string>,
+): PluginDesktopWindowDescriptor | undefined {
+  return (
+    normalizeWindowSection(item.window, manifestDependencies) ??
+    normalizeWindowFromEntry(item.entry, item.dependencies, manifestDependencies)
+  );
 }
 
 function normalizeDesktopSurfaces(
@@ -218,6 +256,7 @@ function normalizeDesktopSurfaces(
   const desktopConfig = manifest.ui?.desktop;
   if (!desktopConfig) return [];
 
+  const manifestDependencies = manifest.dependencies;
   const items = Array.isArray(desktopConfig) ? desktopConfig : [desktopConfig];
   const normalized: PluginDesktopSurface[] = [];
 
@@ -232,7 +271,7 @@ function normalizeDesktopSurfaces(
     const defaultSize = normalizeDimensions(item.defaultSize);
     const minSize = normalizeDimensions(item.minSize);
     const defaultPosition = normalizeCoordinates(item.defaultPosition);
-    const window = resolveWindowDescriptor(item);
+    const window = resolveWindowDescriptor(item, manifestDependencies);
 
     if (!window) return;
 
@@ -280,6 +319,14 @@ function resetPluginsState() {
   if (hadSurfaces) {
     notifyDesktopSurfaceSubscribers();
   }
+
+  const hadDependencies = pluginDependencies.size > 0;
+  pluginDependencies.clear();
+  cachedMergedDependencies = {};
+  dependenciesDirty = true;
+  if (hadDependencies) {
+    notifyDependencySubscribers();
+  }
 }
 
 function clearHostSubscriptions() {
@@ -326,6 +373,28 @@ function handleManifestUpdate(pluginId: string, manifest: Manifest | null) {
   }
 
   notifySettingsSubscribers(pluginId, manifest?.settingsSchema);
+
+  const existingDependencies = pluginDependencies.get(pluginId);
+  const nextDependencies = manifest?.dependencies ? { ...manifest.dependencies } : undefined;
+  let dependenciesChanged = false;
+
+  if (nextDependencies) {
+    const currentSignature = JSON.stringify(existingDependencies ?? {});
+    const nextSignature = JSON.stringify(nextDependencies);
+    if (!existingDependencies || currentSignature !== nextSignature) {
+      pluginDependencies.set(pluginId, nextDependencies);
+      dependenciesChanged = true;
+    }
+  } else if (existingDependencies) {
+    pluginDependencies.delete(pluginId);
+    dependenciesChanged = true;
+  }
+
+  if (dependenciesChanged) {
+    cachedMergedDependencies = {};
+    dependenciesDirty = true;
+    notifyDependencySubscribers();
+  }
 
   const manifestWithUi = (manifest ?? undefined) as ManifestWithUi | undefined;
   const fallbackTitle = manifest?.name || pluginMetadata.get(pluginId)?.name || pluginId;
@@ -542,6 +611,21 @@ export function subscribeToPluginDesktopSurfaces(listener: DesktopSurfaceListene
   });
   return () => {
     desktopSurfaceSubscribers.delete(listener);
+  };
+}
+
+export function getMergedPluginDependencies() {
+  return getMergedDependenciesSnapshot();
+}
+
+export function subscribeToPluginDependencies(listener: (dependencies: Record<string, string>) => void) {
+  dependencySubscribers.add(listener);
+  listener(getMergedDependenciesSnapshot());
+  void ensureHost().catch((error) => {
+    console.warn("[plugin-host] Failed to initialize plugin host for dependencies", error);
+  });
+  return () => {
+    dependencySubscribers.delete(listener);
   };
 }
 

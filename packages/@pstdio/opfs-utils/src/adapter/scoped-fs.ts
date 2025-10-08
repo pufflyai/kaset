@@ -1,77 +1,16 @@
-import { configureSingle, fs as zenfs } from "@zenfs/core";
-import { WebAccess } from "@zenfs/dom";
+import { parentOf } from "../utils/path";
+import { getFs } from "./fs";
 
 export interface ScopedFs {
   readFile(path: string): Promise<Uint8Array>;
   writeFile(path: string, contents: Uint8Array | string): Promise<void>;
   deleteFile(path: string): Promise<void>;
+  readdir(path?: string): Promise<string[]>;
   moveFile(from: string, to: string): Promise<void>;
   exists(path: string): Promise<boolean>;
   mkdirp(path: string): Promise<void>;
   readJSON<T = unknown>(path: string): Promise<T>;
   writeJSON(path: string, value: unknown, pretty?: boolean): Promise<void>;
-}
-
-let initPromise: Promise<void> | null = null;
-let configuredRoot: FileSystemDirectoryHandle | null = null;
-
-function getOPFSRootGetter(): (() => Promise<FileSystemDirectoryHandle>) | null {
-  if (typeof navigator === "undefined" || !navigator.storage) return null;
-
-  const anyStorage = navigator.storage as StorageManager & {
-    getDirectory?: () => Promise<FileSystemDirectoryHandle>;
-  };
-
-  return typeof anyStorage.getDirectory === "function" ? anyStorage.getDirectory.bind(navigator.storage) : null;
-}
-
-async function sameRoot(a: FileSystemDirectoryHandle | null, b: FileSystemDirectoryHandle): Promise<boolean> {
-  if (!a) return false;
-
-  const anyA = a as unknown as { isSameEntry?: (other: FileSystemDirectoryHandle) => Promise<boolean> };
-  if (typeof anyA.isSameEntry === "function") {
-    try {
-      return await anyA.isSameEntry(b);
-    } catch {
-      // Ignore errors and fall back to reference comparison.
-    }
-  }
-
-  return a === b;
-}
-
-async function ensureConfiguredFor(root: FileSystemDirectoryHandle): Promise<void> {
-  if (await sameRoot(configuredRoot, root)) {
-    if (initPromise) await initPromise;
-    return;
-  }
-
-  if (initPromise) {
-    await initPromise;
-    if (await sameRoot(configuredRoot, root)) return;
-  }
-
-  initPromise = (async () => {
-    try {
-      await configureSingle({ backend: WebAccess, handle: root });
-      configuredRoot = root;
-    } finally {
-      initPromise = null;
-    }
-  })();
-
-  await initPromise;
-}
-
-async function getFs() {
-  const getter = getOPFSRootGetter();
-  if (!getter) {
-    throw new Error("OPFS is not supported in this environment");
-  }
-
-  const root = await getter();
-  await ensureConfiguredFor(root);
-  return zenfs;
 }
 
 function normalizeSegment(segment: string): string {
@@ -119,11 +58,6 @@ function resolveRelative(base: string[], relative: string): string {
 
 function toAbsolute(posix: string) {
   return posix ? `/${posix}` : "/";
-}
-
-function parentOf(path: string) {
-  const index = path.lastIndexOf("/");
-  return index === -1 ? "" : path.slice(0, index);
 }
 
 function toUint8Array(data: Uint8Array | string): Uint8Array {
@@ -202,6 +136,23 @@ export function createScopedFs(rootPath: string): ScopedFs {
     async writeFile(path: string, contents: Uint8Array | string) {
       const abs = resolve(path);
       await writeUint8(abs, toUint8Array(contents));
+    },
+
+    async readdir(path: string = "") {
+      const rel = resolveRelativePath(path);
+      const abs = toAbsolute(rel);
+      const fs = await getFs();
+
+      try {
+        const entries = await fs.promises.readdir(abs);
+        if (Array.isArray(entries)) return entries as string[];
+        return [];
+      } catch (error: any) {
+        const code = error?.code;
+        const name = error?.name;
+        if (code === "ENOENT" || name === "NotFoundError" || name === "NotFound") return [];
+        throw error;
+      }
     },
 
     async deleteFile(path: string) {

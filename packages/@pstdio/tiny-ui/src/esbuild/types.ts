@@ -5,18 +5,15 @@ export interface CompileResult {
   fromCache: boolean;
   bytes: number;
   assets: string[];
+  lockfileHash: string;
 }
 
 export interface BuildWithEsbuildOptions {
   wasmURL: string;
   define?: Record<string, string>;
+  skipCache?: boolean;
 }
 
 export interface SnapshotFileMap {
   [path: string]: string;
-}
-
-export interface BuildMetadata {
-  bytes: number;
-  assets: string[];
 }

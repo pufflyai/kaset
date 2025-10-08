@@ -5,6 +5,12 @@
   "api": "^1.0.0",
   "entry": "index.js",
   "description": "Hello World plugin for OPFS.",
+  "dependencies": {
+    "react": "https://esm.sh/react@19.1.1/es2022/react.mjs",
+    "react/jsx-runtime": "https://esm.sh/react@19.1.1/es2022/jsx-runtime.mjs",
+    "react-dom/client": "https://esm.sh/react-dom@19.1.1/es2022/client.mjs",
+    "react-dom": "https://esm.sh/react-dom@19.1.1/es2022/react-dom.mjs"
+  },
   "settingsSchema": {
     "type": "object",
     "properties": {
@@ -55,13 +61,7 @@
         "height": 320
       },
       "window": {
-        "entry": "src/window.tsx",
-        "dependencies": {
-          "react": "https://esm.sh/react@19.1.1/es2022/react.mjs",
-          "react/jsx-runtime": "https://esm.sh/react@19.1.1/es2022/jsx-runtime.mjs",
-          "react-dom/client": "https://esm.sh/react-dom@19.1.1/es2022/client.mjs",
-          "react-dom": "https://esm.sh/react-dom@19.1.1/es2022/react-dom.mjs"
-        }
+        "entry": "src/window.tsx"
       }
     }
   }

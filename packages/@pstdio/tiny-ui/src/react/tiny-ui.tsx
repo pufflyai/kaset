@@ -1,8 +1,10 @@
 import React, { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 import { RUNTIME_HTML_PATH } from "../constant";
+import { getCachedBundle } from "../core/cache-manifest";
 import { registerSources } from "../core/sources";
 import { compile } from "../esbuild/compile";
 import type { CompileResult } from "../esbuild/types";
+import { createIframeOps, type CreateIframeOpsOptions } from "../runtime/createIframeOps";
 import { TinyUIStatus } from "./types";
 import { useComms } from "./useComms";
 import { useCompile, useServiceWorker } from "./useServiceWorker";
@@ -17,6 +19,7 @@ export interface TinyUIProps {
   onReady?(r: CompileResult): void;
   onError?(e: Error): void;
   style?: React.CSSProperties;
+  bridge?: CreateIframeOpsOptions;
 }
 
 export interface TinyUIHandle {
@@ -26,21 +29,51 @@ export interface TinyUIHandle {
 const DEFAULT_ESBUILD_WASM_URL = "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm";
 
 export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(props, ref) {
-  const { id, root, serviceWorkerUrl, runtimeUrl, autoCompile = true, onStatusChange, onReady, onError, style } = props;
+  const {
+    id,
+    root,
+    serviceWorkerUrl,
+    runtimeUrl,
+    autoCompile = true,
+    onStatusChange,
+    onReady,
+    onError,
+    style,
+    bridge,
+  } = props;
 
   const resultRef = useRef<CompileResult | null>(null);
   const { iframeRef, getHost } = useComms({ id, onReady, onError, resultRef, onStatusChange });
 
-  const doCompileAndInit = useCallback(async () => {
-    registerSources([{ id, root }]);
+  const compileAndInit = useCallback(
+    async (forceRecompile: boolean) => {
+      registerSources([{ id, root }]);
 
-    onStatusChange?.("compiling");
-    const result = await compile(id, { wasmURL: DEFAULT_ESBUILD_WASM_URL });
-    resultRef.current = result;
+      let cached: CompileResult | null = null;
+      if (!forceRecompile) {
+        cached = await getCachedBundle(id);
+      }
 
-    const host = await getHost();
-    await host.sendInit(result);
-  }, [getHost, id, root, onStatusChange]);
+      const host = await getHost();
+      if (bridge) {
+        host.onOps(createIframeOps(bridge));
+      }
+
+      if (cached) {
+        resultRef.current = cached;
+        await host.sendInit(cached);
+        return;
+      }
+
+      onStatusChange?.("compiling");
+      const result = await compile(id, { wasmURL: DEFAULT_ESBUILD_WASM_URL, skipCache: forceRecompile });
+      resultRef.current = result;
+      await host.sendInit(result);
+    },
+    [bridge, getHost, id, onStatusChange, root],
+  );
+
+  const runInitialCompile = useCallback(() => compileAndInit(false), [compileAndInit]);
 
   const serviceWorkerReady = useServiceWorker({
     serviceWorkerUrl,
@@ -51,12 +84,18 @@ export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(prop
   useCompile({
     autoCompile,
     serviceWorkerReady,
-    doCompileAndInit,
+    doCompileAndInit: runInitialCompile,
     onError,
     onStatusChange,
   });
 
-  useImperativeHandle(ref, () => ({ rebuild: doCompileAndInit }), [doCompileAndInit]);
+  useImperativeHandle(
+    ref,
+    () => ({
+      rebuild: () => compileAndInit(true),
+    }),
+    [compileAndInit],
+  );
 
   const runtimePath = runtimeUrl ?? RUNTIME_HTML_PATH;
 
