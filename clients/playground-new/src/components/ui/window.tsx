@@ -1,7 +1,7 @@
 import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
 import { Box, Flex, HStack, IconButton, Text } from "@chakra-ui/react";
 import { Minimize2, Square, X } from "lucide-react";
-import { memo, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import type { DraggableData } from "react-rnd";
 import { Rnd } from "react-rnd";
 
@@ -120,7 +120,11 @@ export const Window = (props: WindowProps) => {
   const releasedSnapThisDragRef = useRef(false);
   const wasSnappedAtDragStartRef = useRef(false);
 
-  const size = window.isMaximized ? (containerSize ?? window.size) : window.size;
+  const baseWidth = window.isMaximized ? (containerSize?.width ?? window.size.width) : window.size.width;
+  const baseHeight = window.isMaximized ? (containerSize?.height ?? window.size.height) : window.size.height;
+  const constrainedWidth = containerSize ? Math.min(baseWidth, containerSize.width) : baseWidth;
+  const constrainedHeight = containerSize ? Math.min(baseHeight, containerSize.height) : baseHeight;
+  const size = { width: constrainedWidth, height: constrainedHeight };
   const maxX = containerSize ? Math.max(0, containerSize.width - size.width) : undefined;
   const maxY = containerSize ? Math.max(0, containerSize.height - size.height) : undefined;
   const position = window.isMaximized
@@ -130,11 +134,45 @@ export const Window = (props: WindowProps) => {
         y: maxY === undefined ? window.position.y : clampBounds(window.position.y, maxY),
       };
 
+  useEffect(() => {
+    if (!containerSize || window.isMaximized) return;
+
+    const { width: containerWidth, height: containerHeight } = containerSize;
+    const adjustedWidth = Math.min(window.size.width, containerWidth);
+    const adjustedHeight = Math.min(window.size.height, containerHeight);
+    const maxAllowedX = Math.max(0, containerWidth - adjustedWidth);
+    const maxAllowedY = Math.max(0, containerHeight - adjustedHeight);
+
+    if (window.size.width !== adjustedWidth || window.size.height !== adjustedHeight) {
+      onSizeChange({ width: adjustedWidth, height: adjustedHeight });
+    }
+
+    const boundedX = clampBounds(window.position.x, maxAllowedX);
+    const boundedY = clampBounds(window.position.y, maxAllowedY);
+
+    if (boundedX !== window.position.x || boundedY !== window.position.y) {
+      onPositionChange({
+        x: boundedX,
+        y: boundedY,
+      });
+    }
+  }, [
+    containerSize?.width,
+    containerSize?.height,
+    window.isMaximized,
+    window.size.width,
+    window.size.height,
+    window.position.x,
+    window.position.y,
+    onSizeChange,
+    onPositionChange,
+  ]);
+
   const computeSnapPlacement = (side: "left" | "right") => {
     if (!containerSize) return null;
 
     const { width: containerWidth, height: containerHeight } = containerSize;
-    const snappedWidth = Math.min(containerWidth, Math.max(app.minSize.width, Math.floor(containerWidth / 2)));
+    const snappedWidth = Math.min(containerWidth, Math.floor(containerWidth / 2));
     const snappedHeight = containerHeight;
     const snappedX = side === "left" ? 0 : Math.max(0, containerWidth - snappedWidth);
 
@@ -268,8 +306,8 @@ export const Window = (props: WindowProps) => {
       enableResizing={!window.isMaximized && (!window.snapRestore || !snapEnabled)}
       disableDragging={window.isMaximized}
       style={{ zIndex: window.zIndex, position: "absolute" }}
-      minWidth={app.minSize.width}
-      minHeight={app.minSize.height}
+      maxWidth={containerSize?.width}
+      maxHeight={containerSize?.height}
     >
       <Box height="100%" width="100%">
         <WindowChrome
