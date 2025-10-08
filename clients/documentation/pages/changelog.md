@@ -6,6 +6,30 @@ title: Changelog
 
 All notable changes to Kaset are documented here. This monorepo contains multiple packages under the `@pstdio` scope.
 
+## 2025-10-08
+
+### Added
+
+- [@pstdio/tiny-ui] **NEW PACKAGE**: Browser-first plugin runtime for sandboxed micro frontends (v0.1.0).
+  - Compile OPFS-backed sources with esbuild-wasm directly in the browser
+  - Cache compiled bundles in service worker for instant loading
+  - Expose typed host capabilities to plugin iframes via RPC bridge
+  - React wrapper component with lifecycle hooks and auto-compilation
+  - Support for lockfile-based import maps for deterministic dependency resolution
+- [@pstdio/tiny-plugins] **NEW PACKAGE**: Tiny plugin runtime with manifest validation and command execution (v0.1.0).
+  - Enumerate and watch OPFS-backed plugins with a single host instance
+  - Enforce manifest compatibility via HOST_API_VERSION and JSON Schema validation
+  - Execute plugin commands with parameter validation and per-command timeouts
+  - Persist plugin-scoped settings to OPFS with optional schema validation
+  - Adapter for Tiny AI Tasks tools with `createToolsForCommands`
+- [documentation] Added package documentation for @pstdio/opfs-hooks, @pstdio/tiny-ui, and @pstdio/tiny-plugins.
+- [playground] Comprehensive plugin system rework with live UI compilation and sandboxed execution.
+
+### Changed
+
+- [@pstdio/opfs-hooks] Updated to v0.1.6 with improved store bindings and directory watching.
+- [documentation] Extended package overview with new packages in alphabetical order.
+
 ## 2025-09-30
 
 ### Added
