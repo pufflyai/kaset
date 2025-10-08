@@ -172,7 +172,7 @@ export const Window = (props: WindowProps) => {
     if (!containerSize) return null;
 
     const { width: containerWidth, height: containerHeight } = containerSize;
-    const snappedWidth = Math.min(containerWidth, Math.max(app.minSize.width, Math.floor(containerWidth / 2)));
+    const snappedWidth = Math.min(containerWidth, Math.floor(containerWidth / 2));
     const snappedHeight = containerHeight;
     const snappedX = side === "left" ? 0 : Math.max(0, containerWidth - snappedWidth);
 
@@ -306,9 +306,7 @@ export const Window = (props: WindowProps) => {
       enableResizing={!window.isMaximized && (!window.snapRestore || !snapEnabled)}
       disableDragging={window.isMaximized}
       style={{ zIndex: window.zIndex, position: "absolute" }}
-      minWidth={containerSize ? Math.min(app.minSize.width, containerSize.width) : app.minSize.width}
       maxWidth={containerSize?.width}
-      minHeight={containerSize ? Math.min(app.minSize.height, containerSize.height) : app.minSize.height}
       maxHeight={containerSize?.height}
     >
       <Box height="100%" width="100%">

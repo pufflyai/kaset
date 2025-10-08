@@ -25,7 +25,6 @@ const FALLBACK_ICON: LucideIcon =
 const ICON_CACHE = new Map<string, LucideIcon>();
 
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
-const DEFAULT_MIN_WINDOW_SIZE = { width: 420, height: 320 };
 
 const resolveIcon = (iconName?: string): LucideIcon => {
   if (!iconName) return FALLBACK_ICON!;
@@ -96,7 +95,6 @@ const renderSurfaceWindow = (surface: PluginDesktopSurface, windowId: string) =>
 const createDesktopAppFromSurface = (surface: PluginDesktopSurface): DesktopApp => {
   const icon = resolveIcon(surface.icon);
   const defaultSize = normalizeSize(surface.defaultSize, DEFAULT_WINDOW_SIZE);
-  const minSize = normalizeSize(surface.minSize, DEFAULT_MIN_WINDOW_SIZE);
   const defaultPosition = normalizePosition(surface.defaultPosition);
   const description = surface.description ?? `Surface provided by ${surface.pluginId}`;
   const singleton = surface.singleton ?? true;
@@ -107,7 +105,6 @@ const createDesktopAppFromSurface = (surface: PluginDesktopSurface): DesktopApp 
     icon,
     description,
     defaultSize,
-    minSize,
     singleton,
     render: (windowId: string) => renderSurfaceWindow(surface, windowId),
   };

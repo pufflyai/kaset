@@ -18,7 +18,6 @@ export interface DesktopApp {
   icon: LucideIcon;
   description: string;
   defaultSize: Size;
-  minSize: Size;
   singleton?: boolean;
   defaultPosition?: Position;
   render: (windowId: string) => ReactNode;
