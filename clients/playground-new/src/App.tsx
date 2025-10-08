@@ -26,13 +26,11 @@ export function App() {
     setMobilePane((current) => (current === "conversation" ? "desktop" : "conversation"));
   };
 
-  const mobileToggleButton = !isMobile
-    ? undefined
-    : (
-        <Button size="sm" variant="outline" onClick={handleMobileToggle} minWidth="140px">
-          {mobilePane === "conversation" ? "Show Desktop" : "Show Chat"}
-        </Button>
-      );
+  const mobileToggleButton = !isMobile ? undefined : (
+    <Button size="sm" variant="outline" onClick={handleMobileToggle} minWidth="140px">
+      {mobilePane === "conversation" ? "Show Desktop" : "Show Chat"}
+    </Button>
+  );
 
   const conversationPane = (
     <Flex direction="column" height="100%" padding="3" gap="3" flex="1" width="100%">
@@ -55,7 +53,11 @@ export function App() {
   );
 
   const layout = isMobile ? (
-    mobilePane === "conversation" ? conversationPane : desktopPane
+    mobilePane === "conversation" ? (
+      conversationPane
+    ) : (
+      desktopPane
+    )
   ) : (
     <Allotment>
       <Allotment.Pane minSize={260} preferredSize={420} maxSize={580}>
