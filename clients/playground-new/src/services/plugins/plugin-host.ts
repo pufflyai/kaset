@@ -37,7 +37,6 @@ type DesktopSurfaceManifest = {
   icon?: string;
   singleton?: boolean;
   defaultSize?: Partial<Dimensions>;
-  minSize?: Partial<Dimensions>;
   defaultPosition?: Partial<Coordinates>;
   entry?: string;
   dependencies?: Record<string, string>;
@@ -62,7 +61,6 @@ export type PluginDesktopSurface = {
   icon?: string;
   singleton?: boolean;
   defaultSize?: Dimensions;
-  minSize?: Dimensions;
   defaultPosition?: Coordinates;
   window?: PluginDesktopWindowDescriptor;
 };
@@ -141,7 +139,6 @@ function getDesktopSurfaceSnapshot() {
       snapshot.push({
         ...surface,
         defaultSize: cloneDimensions(surface.defaultSize),
-        minSize: cloneDimensions(surface.minSize),
         defaultPosition: cloneCoordinates(surface.defaultPosition),
         window: cloneWindowDescriptor(surface.window),
       });
@@ -269,7 +266,6 @@ function normalizeDesktopSurfaces(
     const icon = item.icon?.trim();
     const singleton = typeof item.singleton === "boolean" ? item.singleton : undefined;
     const defaultSize = normalizeDimensions(item.defaultSize);
-    const minSize = normalizeDimensions(item.minSize);
     const defaultPosition = normalizeCoordinates(item.defaultPosition);
     const window = resolveWindowDescriptor(item, manifestDependencies);
 
@@ -283,7 +279,6 @@ function normalizeDesktopSurfaces(
       icon,
       singleton,
       defaultSize,
-      minSize,
       defaultPosition,
       window,
     });
