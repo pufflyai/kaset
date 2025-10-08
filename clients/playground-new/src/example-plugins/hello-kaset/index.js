@@ -1,11 +1,6 @@
-async function readSettings(ctx) {
-  const stored = await ctx.settings.read();
-  return { ...defaults, ...(stored ?? {}) };
-}
-
 export const commands = {
   async "hello.sayHello"(ctx, params) {
-    const settings = await readSettings(ctx);
+    const settings = (await ctx.settings.read()) ?? {};
     const overrideTitle = typeof params?.title === "string" ? params.title : undefined;
     const overrideSubtitle = typeof params?.subtitle === "string" ? params.subtitle : undefined;
 
