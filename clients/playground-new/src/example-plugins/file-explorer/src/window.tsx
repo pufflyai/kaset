@@ -1,3 +1,4 @@
+import { Box, Center, Flex, Heading, Text, ChakraProvider, defaultSystem } from "@chakra-ui/react";
 import { StrictMode, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { FileExplorer } from "./components/file-explorer";
@@ -24,100 +25,53 @@ export function FileExplorerWindow() {
   }, [selectedPath]);
 
   return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        background: "#020617",
-        color: "#e2e8f0",
-        fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          width: "240px",
-          display: "flex",
-          flexDirection: "column",
-          borderRight: "1px solid #1e293b",
-          background: "#0f172a",
-        }}
+    <Flex height="100%" bg="background.dark" color="foreground.inverse">
+      <Flex
+        width="240px"
+        direction="column"
+        borderRightWidth="1px"
+        borderColor="border.secondary"
+        bg="background.secondary"
       >
-        <div
-          style={{
-            padding: "16px",
-            borderBottom: "1px solid #1e293b",
-          }}
-        >
-          <h2
-            style={{
-              fontSize: "15px",
-              fontWeight: 600,
-              margin: 0,
-              marginBottom: "4px",
-            }}
-          >
+        <Box padding="4" borderBottomWidth="1px" borderColor="border.secondary">
+          <Heading as="h2" size="sm" marginBottom="1" color="foreground.inverse">
             Playground Files
-          </h2>
-          <p
-            style={{
-              margin: 0,
-              fontSize: "12px",
-              color: "#94a3b8",
-            }}
-          >
+          </Heading>
+          <Text fontSize="xs" color="foreground.tertiary" lineClamp={2}>
             {headerSubtitle}
-          </p>
-        </div>
+          </Text>
+        </Box>
 
-        <div
-          style={{
-            flex: 1,
-            minHeight: 0,
-            padding: "8px",
-            overflowY: "auto",
-          }}
-        >
+        <Box flex="1" minHeight={0} padding="2" overflowY="auto">
           <FileExplorer
             rootDir={ROOT_DIR}
             selectedPath={selectedPath}
             onSelect={(path) => setSelectedPath(path)}
             defaultExpanded={[ROOT_DIR]}
           />
-        </div>
-      </div>
+        </Box>
+      </Flex>
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <Flex flex="1" direction="column" minWidth={0}>
         {selectedPath ? (
-          <div style={{ flex: 1, minHeight: 0 }}>
+          <Box flex="1" minHeight={0}>
             <CodeEditor filePath={selectedPath} />
-          </div>
+          </Box>
         ) : (
-          <div
-            style={{
-              margin: "auto",
-              textAlign: "center",
-              color: "#94a3b8",
-              maxWidth: "420px",
-              padding: "32px",
-            }}
-          >
-            <h3
-              style={{
-                fontSize: "18px",
-                fontWeight: 600,
-                margin: 0,
-                marginBottom: "8px",
-              }}
-            >
-              Select a file to preview
-            </h3>
-            <p style={{ margin: 0, fontSize: "14px", lineHeight: 1.6 }}>
-              Browse the mock playground directory on the left. Pick any file to view its contents in the viewer panel.
-            </p>
-          </div>
+          <Center flex="1" padding="8">
+            <Box maxW="360px" textAlign="center">
+              <Heading as="h3" size="sm" marginBottom="2">
+                Select a file to preview
+              </Heading>
+              <Text fontSize="sm" color="foreground.tertiary">
+                Browse the mock playground directory on the left. Pick any file to view its contents in the viewer
+                panel.
+              </Text>
+            </Box>
+          </Center>
         )}
-      </div>
-    </div>
+      </Flex>
+    </Flex>
   );
 }
 
@@ -130,7 +84,9 @@ export function mount(container: Element | null) {
 
   root.render(
     <StrictMode>
-      <FileExplorerWindow />
+      <ChakraProvider value={defaultSystem}>
+        <FileExplorerWindow />
+      </ChakraProvider>
     </StrictMode>,
   );
 
