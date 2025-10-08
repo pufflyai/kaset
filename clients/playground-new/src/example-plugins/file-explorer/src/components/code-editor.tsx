@@ -1,3 +1,4 @@
+import { Box, Code, Text, Textarea, VStack } from "@chakra-ui/react";
 import { useMemo } from "react";
 import { useFileContent } from "../hooks/fs";
 
@@ -16,62 +17,42 @@ export function CodeEditor(props: CodeEditorProps) {
 
   if (!filePath) {
     return (
-      <div style={{ padding: "16px", color: "#94a3b8", fontSize: "14px" }}>Select a file to view its contents.</div>
+      <Box padding="4">
+        <Text fontSize="sm" color="foreground.tertiary">
+          Select a file to view its contents.
+        </Text>
+      </Box>
     );
   }
 
   return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: "12px",
-        padding: "16px",
-      }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-        <span
-          style={{
-            fontSize: "11px",
-            textTransform: "uppercase",
-            letterSpacing: "0.08em",
-            color: "#64748b",
-          }}
-        >
+    <VStack align="stretch" height="100%" gap="3" padding="4">
+      <VStack align="stretch" gap="1">
+        <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.12em" color="foreground.tertiary">
           Viewing
-        </span>
-        <code
-          style={{
-            fontSize: "13px",
-            padding: "4px 8px",
-            borderRadius: "4px",
-            background: "#1e293b",
-            color: "#e2e8f0",
-          }}
-        >
+        </Text>
+        <Code paddingX="2" paddingY="1" borderRadius="sm" bg="background.tertiary" color="foreground.inverse">
           {displayPath}
-        </code>
-      </div>
+        </Code>
+      </VStack>
 
-      <textarea
+      <Textarea
         value={content}
         readOnly
         spellCheck={false}
-        style={{
-          flex: 1,
-          resize: "none",
-          fontFamily: "Menlo, Monaco, Consolas, monospace",
-          fontSize: "13px",
-          lineHeight: "1.45",
-          padding: "12px",
-          background: "#0f172a",
-          color: "#e2e8f0",
-          border: "1px solid #1e293b",
-          borderRadius: "6px",
-          outline: "none",
-        }}
+        flex="1"
+        resize="none"
+        fontFamily="mono"
+        fontSize="sm"
+        lineHeight="short"
+        padding="3"
+        bg="background.secondary"
+        color="foreground.inverse"
+        borderRadius="md"
+        borderWidth="1px"
+        borderColor="border.secondary"
+        _focusVisible={{ borderColor: "border.accent", boxShadow: "none" }}
       />
-    </div>
+    </VStack>
   );
 }

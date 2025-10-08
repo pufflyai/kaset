@@ -1,10 +1,10 @@
 {
-  "id": "hello-world",
-  "name": "Hello World",
+  "id": "hello-kaset",
+  "name": "Hello Kaset",
   "version": "0.1.0",
   "api": "^1.0.0",
   "entry": "index.js",
-  "description": "Hello World plugin for OPFS.",
+  "description": "Hello Kaset plugin for OPFS.",
   "dependencies": {
     "react": "https://esm.sh/react@19.1.1/es2022/react.mjs",
     "react/jsx-runtime": "https://esm.sh/react@19.1.1/es2022/jsx-runtime.mjs",
@@ -14,13 +14,13 @@
   "settingsSchema": {
     "type": "object",
     "properties": {
-      "greeting": {
+      "title": {
         "type": "string",
-        "default": "Hello"
+        "default": "Hello Kaset"
       },
-      "recipient": {
+      "subtitle": {
         "type": "string",
-        "default": "Kaset"
+        "default": "Welcome to Kaset"
       }
     }
   },
@@ -33,13 +33,13 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "greeting": {
+          "title": {
             "type": "string",
-            "description": "Override the greeting text before persisting settings."
+            "description": "Override the title before persisting settings."
           },
-          "recipient": {
+          "subtitle": {
             "type": "string",
-            "description": "Override who should receive the greeting."
+            "description": "Override the subtitle before persisting settings."
           }
         },
         "additionalProperties": false
@@ -48,8 +48,8 @@
   ],
   "ui": {
     "desktop": {
-      "title": "Hello World",
-      "description": "A simple Hello World plugin.",
+      "title": "Hello Kaset",
+      "description": "A simple Hello Kaset plugin.",
       "icon": "Plug",
       "singleton": true,
       "defaultSize": {

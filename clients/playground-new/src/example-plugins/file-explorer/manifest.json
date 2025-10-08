@@ -6,6 +6,10 @@
   "entry": "index.js",
   "description": "Browse and edit files stored in the playground workspace.",
   "dependencies": {
+    "@chakra-ui/react": "https://esm.sh/@chakra-ui/react@3.24.2?deps=react@19.1.1,react-dom@19.1.1,@emotion/react@11.14.0,@emotion/styled@11.14.0,framer-motion@12.1.0",
+    "@emotion/react": "https://esm.sh/@emotion/react@11.14.0?deps=react@19.1.1",
+    "framer-motion": "https://esm.sh/framer-motion@12.1.0?deps=react@19.1.1,react-dom@19.1.1",
+    "lucide-react": "https://esm.sh/lucide-react@0.542.0?deps=react@19.1.1",
     "react": "https://esm.sh/react@19.1.1/es2022/react.mjs",
     "react-dom": "https://esm.sh/react-dom@19.1.1/es2022/react-dom.mjs",
     "react-dom/client": "https://esm.sh/react-dom@19.1.1/es2022/client.mjs",

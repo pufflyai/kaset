@@ -8,16 +8,17 @@ interface DeleteConfirmationModalProps {
   headline?: string;
   notificationText?: string;
   buttonText?: string;
+  closeOnInteractOutside?: boolean;
 }
 
 export type { DeleteConfirmationModalProps };
 
 export const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
-  const { headline, buttonText, notificationText, onDelete, open, onClose } = props;
+  const { headline, buttonText, notificationText, onDelete, open, onClose, closeOnInteractOutside = true } = props;
 
   return (
-    <Dialog.Root open={open} onOpenChange={onClose}>
+    <Dialog.Root open={open} onOpenChange={onClose} closeOnInteractOutside={closeOnInteractOutside}>
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content>

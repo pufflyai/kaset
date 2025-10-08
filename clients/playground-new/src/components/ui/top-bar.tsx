@@ -174,6 +174,7 @@ export function TopBar(props: TopBarProps) {
         headline={`Reset playground`}
         notificationText={`Remove all files under "${ROOT}" and restore default files?`}
         buttonText="Reset project"
+        closeOnInteractOutside={false}
       />
       <Drawer.Root open={versionHistory.open} onOpenChange={handleVersionHistoryChange}>
         <Portal>

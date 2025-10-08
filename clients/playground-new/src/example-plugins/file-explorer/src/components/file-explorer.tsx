@@ -1,3 +1,5 @@
+import { Box, TreeView as ChakraTreeView, createTreeCollection } from "@chakra-ui/react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useFsTree, type FsNode } from "../hooks/fs";
 
@@ -8,15 +10,13 @@ interface FileExplorerProps {
   onSelect?: (path: string | null) => void;
 }
 
-type ExpandSet = Set<string>;
-
 const buildDefaultExpanded = (rootId: string, defaults?: string[]) => {
-  const set: ExpandSet = new Set();
-  set.add(rootId);
+  const values = new Set<string>();
+  values.add(rootId);
   defaults?.forEach((id) => {
-    if (id) set.add(id);
+    if (id) values.add(id);
   });
-  return set;
+  return Array.from(values);
 };
 
 const isDirectory = (node: FsNode) => Array.isArray(node.children);
@@ -25,100 +25,80 @@ export function FileExplorer(props: FileExplorerProps) {
   const { rootDir, defaultExpanded, selectedPath, onSelect } = props;
   const fsTree = useFsTree(rootDir);
 
+  const collection = useMemo(
+    () =>
+      createTreeCollection({
+        rootNode: fsTree,
+        nodeToValue: (node) => node.id,
+        nodeToString: (node) => node.name,
+      }),
+    [fsTree],
+  );
+
+  const nodeMap = useMemo(() => {
+    const map = new Map<string, FsNode>();
+
+    const walk = (node: FsNode) => {
+      map.set(node.id, node);
+      node.children?.forEach(walk);
+    };
+
+    walk(fsTree);
+    return map;
+  }, [fsTree]);
+
+  const [expandedValue, setExpandedValue] = useState<string[]>(() => buildDefaultExpanded(fsTree.id, defaultExpanded));
+  const [selectedValue, setSelectedValue] = useState<string[]>(selectedPath ? [selectedPath] : []);
   const defaultSignature = useMemo(() => (defaultExpanded ?? []).join("|"), [defaultExpanded]);
-  const [expanded, setExpanded] = useState<ExpandSet>(() => buildDefaultExpanded(fsTree.id, defaultExpanded));
 
   useEffect(() => {
-    setExpanded(buildDefaultExpanded(fsTree.id, defaultExpanded));
+    setExpandedValue(buildDefaultExpanded(fsTree.id, defaultExpanded));
   }, [fsTree.id, defaultSignature]);
 
-  const toggle = (node: FsNode) => {
-    if (!isDirectory(node)) return;
-    setExpanded((prev) => {
-      const next = new Set(prev);
-      if (next.has(node.id)) next.delete(node.id);
-      else next.add(node.id);
-      return next;
-    });
-  };
-
-  const handleSelect = (node: FsNode) => {
-    if (isDirectory(node)) {
-      toggle(node);
-      return;
-    }
-    onSelect?.(node.id);
-  };
-
-  const renderNode = (node: FsNode) => {
-    const expandedNode = expanded.has(node.id);
-    const dir = isDirectory(node);
-    const isSelected = selectedPath === node.id;
-
-    return (
-      <li
-        key={node.id}
-        style={{
-          listStyle: "none",
-          paddingLeft: "12px",
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => handleSelect(node)}
-          onDoubleClick={() => (dir ? toggle(node) : undefined)}
-          aria-pressed={isSelected}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "6px",
-            width: "100%",
-            padding: "4px 6px",
-            border: "none",
-            borderRadius: "4px",
-            background: isSelected ? "#213547" : "transparent",
-            color: isSelected ? "#f1f5f9" : "#e2e8f0",
-            cursor: "pointer",
-            textAlign: "left",
-            fontSize: "13px",
-            fontFamily: "inherit",
-          }}
-        >
-          <span style={{ width: "12px" }}>{dir ? (expandedNode ? "▼" : "▶") : "•"}</span>
-          <span>{node.name}</span>
-        </button>
-        {dir && expandedNode ? (
-          <ul
-            style={{
-              margin: 0,
-              paddingLeft: "12px",
-            }}
-          >
-            {node.children?.map(renderNode)}
-          </ul>
-        ) : null}
-      </li>
-    );
-  };
+  useEffect(() => {
+    setSelectedValue(selectedPath ? [selectedPath] : []);
+  }, [selectedPath]);
 
   return (
-    <div
-      style={{
-        height: "100%",
-        overflowY: "auto",
-        background: "#0f172a",
-        borderRadius: "6px",
-        padding: "4px 0",
-      }}
-    >
-      <ul
-        style={{
-          margin: 0,
-          padding: 0,
+    <Box height="100%" overflowY="auto" paddingY="2">
+      <ChakraTreeView.Root
+        collection={collection}
+        expandedValue={expandedValue}
+        selectedValue={selectedValue}
+        onExpandedChange={(event) => setExpandedValue(event.expandedValue)}
+        onSelectionChange={(event) => {
+          const next = event.selectedValue[0];
+          const node = next ? nodeMap.get(next) : undefined;
+          if (!next) {
+            setSelectedValue([]);
+            onSelect?.(null);
+            return;
+          }
+
+          if (node && !isDirectory(node)) {
+            setSelectedValue(event.selectedValue);
+            onSelect?.(node.id);
+          }
         }}
       >
-        {renderNode(fsTree)}
-      </ul>
-    </div>
+        <ChakraTreeView.Tree>
+          <ChakraTreeView.Node
+            indentGuide={<ChakraTreeView.BranchIndentGuide />}
+            render={({ node, nodeState }) =>
+              isDirectory(node) ? (
+                <ChakraTreeView.BranchControl cursor="pointer">
+                  {nodeState.expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                  <ChakraTreeView.BranchText truncate>{node.name}</ChakraTreeView.BranchText>
+                </ChakraTreeView.BranchControl>
+              ) : (
+                <ChakraTreeView.Item cursor="pointer">
+                  <ChakraTreeView.ItemText truncate>{node.name}</ChakraTreeView.ItemText>
+                </ChakraTreeView.Item>
+              )
+            }
+          />
+        </ChakraTreeView.Tree>
+      </ChakraTreeView.Root>
+    </Box>
   );
 }

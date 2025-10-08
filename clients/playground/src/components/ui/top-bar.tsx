@@ -207,6 +207,7 @@ export function TopBar(props: TopBarProps) {
         headline={`Reset ${selectedProjectLabel} project`}
         notificationText={`Remove all files under "${PROJECTS_ROOT}/${selectedProject}" and restore defaults for ${selectedProjectLabel}?`}
         buttonText="Reset project"
+        closeOnInteractOutside={false}
       />
     </Flex>
   );
