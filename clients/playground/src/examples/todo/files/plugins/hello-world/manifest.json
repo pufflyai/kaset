@@ -4,15 +4,13 @@
   "version": "0.1.0",
   "api": "^1.0.0",
   "entry": "index.js",
-  "ui": {
-    "commands": [
-      {
-        "id": "hello.sayHello",
-        "title": "Hello World",
-        "category": "Examples"
-      }
-    ]
-  },
+  "commands": [
+    {
+      "id": "hello.sayHello",
+      "title": "Hello World",
+      "category": "Examples"
+    }
+  ],
   "settingsSchema": {
     "type": "object",
     "properties": {

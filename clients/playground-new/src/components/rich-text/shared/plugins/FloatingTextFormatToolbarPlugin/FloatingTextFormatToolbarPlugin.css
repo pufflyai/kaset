@@ -1,0 +1,26 @@
+.floating-text-format-toolbar {
+  display: flex;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  opacity: 0;
+  background-color: var(--chakra-colors-background-primary);
+  border-radius: 8px;
+  border: 1px solid var(--chakra-colors-border-secondary);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.2s;
+  will-change: transform;
+  padding: 4px;
+  gap: 2px;
+}
+
+.floating-text-format-toolbar.active {
+  opacity: 1;
+}
+
+/* Style for active buttons in the floating toolbar */
+.floating-text-format-toolbar button[data-active] {
+  background-color: var(--chakra-colors-background-accent-primary-light) !important;
+  color: var(--chakra-colors-text-selectable-primary) !important;
+}

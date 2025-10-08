@@ -1,7 +1,6 @@
 import { PROJECTS_ROOT } from "@/constant";
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
-import { usePluginHost } from "@/services/plugins/usePluginHost";
 import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -37,12 +36,11 @@ export function ConversationHost() {
       : EMPTY_MESSAGES,
   );
   const { tools: mcpTools } = useMcpService();
-  const { tools: pluginTools } = usePluginHost();
   const [streaming, setStreaming] = useState(false);
   const hasCredentials = useWorkspaceStore((s) => Boolean(s.apiKey || s.baseUrl));
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
-  const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
+  const toolset = useMemo(() => [...mcpTools], [mcpTools]);
 
   useEffect(() => {
     setApprovalHandler(

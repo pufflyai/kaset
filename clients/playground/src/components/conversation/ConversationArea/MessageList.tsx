@@ -156,7 +156,7 @@ export function MessageList({ messages, streaming, onOpenFile, onUseExample }: M
         >
           <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
             Why? Check out our{" "}
-            <Link color="blue" href="https://pufflyai.github.io/kaset/">
+            <Link color="blue" href="https://kaset.dev">
               documentation
             </Link>
             .

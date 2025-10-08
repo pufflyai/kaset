@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Tiny UI Runtime</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+        background: transparent;
+      }
+      #root {
+        height: 100%;
+      }
+    </style>
+    <script type="module">
+      import { guest } from "https://esm.sh/rimless@0.6.0";
+
+      const IMPORT_MAP_ID = "tiny-importmap";
+      const STYLE_FLAG = "data-tiny-style";
+
+      const el = (sel) => document.querySelector(sel);
+      const container = (sel) => el(sel) ?? el("#root") ?? document.body;
+
+      function ensureImportMap(importMap) {
+        if (!importMap) return;
+        let s = document.getElementById(IMPORT_MAP_ID);
+        if (!s) {
+          s = document.createElement("script");
+          s.id = IMPORT_MAP_ID;
+          s.type = "importmap";
+          document.head.appendChild(s);
+        }
+        s.textContent = JSON.stringify(importMap, null, 2);
+      }
+
+      function ensureStyles(styles) {
+        if (!Array.isArray(styles) || styles.length === 0) return;
+        for (const href of styles) {
+          if (!href) continue;
+          const q = `link[rel="stylesheet"][${STYLE_FLAG}="${href}"]`;
+          if (document.head.querySelector(q)) continue;
+          const link = document.createElement("link");
+          link.rel = "stylesheet";
+          link.href = href;
+          link.setAttribute(STYLE_FLAG, href);
+          document.head.appendChild(link);
+        }
+      }
+
+      /** Runtime API exposed to the host */
+      const runtimeApi = {
+        /**
+         * Boot the runtime and mount the entry export.
+         * The host promises to provide: { id, moduleUrl, importMap?, styles?, entryExport?, mountSelector?, runtimeOptions?, meta? }
+         */
+        async init(init, remote) {
+          try {
+            ensureImportMap(init.importMap);
+            ensureStyles(init.styles);
+
+            if (typeof init.moduleUrl !== "string" || !init.moduleUrl) {
+              throw new Error("Missing or invalid moduleUrl");
+            }
+
+            const mod = await import(init.moduleUrl);
+            const exportName = init.entryExport ?? "mount";
+            const entry = typeof mod[exportName] === "function" ? mod[exportName] : mod.default;
+
+            if (typeof entry !== "function") {
+              throw new Error(`Entry export '${exportName}' is not a function`);
+            }
+
+            const mountEl = container(init.mountSelector ?? "#root");
+
+            await entry(mountEl, null, init.runtimeOptions ?? {});
+            await remote.ready({ id: init.id, meta: init.meta });
+          } catch (err) {
+            const e = err instanceof Error ? err : new Error("Failed to initialize module");
+            await remote.runtimeError({ id: init?.id, message: e.message, stack: e.stack });
+          }
+        },
+      };
+
+      await guest.connect(runtimeApi);
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

@@ -305,11 +305,10 @@ Fast FNV-1a 32-bit hash function that works in both browser and Node.js.
 ```ts
 import { hashString } from "@pstdio/prompt-utils";
 
-hashString("hello world");
-// Returns: "779a65e7" (hex string)
+await hashString("hello world");
+// Returns: "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9"
 
-hashString("different input");
-// Returns: "1a2b3c4d" (different hex string)
+await hashString("different input");
 ```
 
 **Use Cases:**
@@ -479,7 +478,7 @@ function safeParse<T = object>(str: string): T | string;
 function safeStringify(result: object): string;
 
 // Helper utilities
-function hashString(str: string): string;
+function hashString(str: string): Promise<string>;
 function shortUID(prefix?: string): string;
 ```
 

@@ -1,0 +1,1 @@
+export { FloatingTextFormatToolbarPlugin } from "./FloatingTextFormatToolbarPlugin";
