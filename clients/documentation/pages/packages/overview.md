@@ -20,6 +20,14 @@ Includes: Core `OpfsSync` class, `SupabaseRemote` adapter, change detection
 
 ---
 
+### [@pstdio/tiny-plugins](/packages/tiny-plugins)
+
+**Tiny plugin runtime** — Watch OPFS-backed plugins, validate manifests, execute commands, and persist settings with the new `runPluginCommand` API.
+
+Includes: `createPluginHost`, `HOST_API_VERSION`, `mergeManifestDependencies`, Tiny AI Tasks adapter
+
+---
+
 ### [@pstdio/prompt-utils](/packages/prompt-utils)
 
 **LLM workflow utilities** — Optimized tools for prompt engineering and JSON stream processing.
@@ -28,19 +36,19 @@ Features: `prompt()`, `parseJSONStream()`, `getSchema()`, `safeStringify()`, UUI
 
 ---
 
-### [@pstdio/tiny-ai-tasks](/packages/tiny-ai-tasks)
-
-**AI task building blocks** — Streaming LLM tasks with tool calls, tiny agent loop, history truncation/summarization, and scratchpad utilities.
-
-Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSummarizer`
-
----
-
 ### [@pstdio/kas](/packages/kas)
 
 **Browser coding agent** — Complete AI-powered coding assistant that runs entirely in the browser with OPFS sandbox.
 
 Features: File operations with approval gates, shell commands, conversation adapters, streaming responses
+
+---
+
+### [@pstdio/tiny-ai-tasks](/packages/tiny-ai-tasks)
+
+**AI task building blocks** — Streaming LLM tasks with tool calls, tiny agent loop, history truncation/summarization, and scratchpad utilities.
+
+Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSummarizer`
 
 ---
 

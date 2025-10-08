@@ -1,0 +1,33 @@
+{
+  "id": "file-explorer",
+  "name": "File Explorer",
+  "version": "0.1.0",
+  "api": "^1.0.0",
+  "entry": "index.js",
+  "description": "Browse and edit files stored in the playground workspace.",
+  "dependencies": {
+    "react": "https://esm.sh/react@19.1.1/es2022/react.mjs",
+    "react-dom": "https://esm.sh/react-dom@19.1.1/es2022/react-dom.mjs",
+    "react-dom/client": "https://esm.sh/react-dom@19.1.1/es2022/client.mjs",
+    "react/jsx-runtime": "https://esm.sh/react@19.1.1/es2022/jsx-runtime.mjs"
+  },
+  "ui": {
+    "desktop": {
+      "title": "File Explorer",
+      "description": "Inspect files beneath the playground root and edit them in place.",
+      "icon": "Folder",
+      "singleton": true,
+      "defaultSize": {
+        "width": 840,
+        "height": 620
+      },
+      "minSize": {
+        "width": 420,
+        "height": 320
+      },
+      "window": {
+        "entry": "src/window.tsx"
+      }
+    }
+  }
+}

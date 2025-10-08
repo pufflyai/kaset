@@ -64,7 +64,7 @@ If your roadmap is clogged with one-off tweaks and endless long-tail requests, a
 
 ---
 
-Check out our [playground](https://kaset.dev) for inspiration.
+Check out our [playground](https://kaset.dev/playground) for inspiration.
 
 Do you have specific questions or use cases in mind? Let us know [here](https://github.com/pufflyai/kaset/discussions/categories/ideas).
 
