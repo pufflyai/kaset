@@ -24,10 +24,6 @@
         "width": 840,
         "height": 620
       },
-      "minSize": {
-        "width": 420,
-        "height": 320
-      },
       "window": {
         "entry": "src/window.tsx"
       }

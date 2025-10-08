@@ -2,12 +2,12 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 interface HelloWorldAppProps {
-  greeting: string;
-  subHeader: string;
+  title: string;
+  subtitle: string;
 }
 
 function HelloWorldApp(props: HelloWorldAppProps) {
-  const { greeting, subHeader } = props;
+  const { title, subtitle } = props;
 
   return (
     <div
@@ -23,15 +23,15 @@ function HelloWorldApp(props: HelloWorldAppProps) {
         color: "#e2e8f0",
       }}
     >
-      <strong style={{ fontSize: "1.5rem" }}>{greeting}</strong>
-      <span>{subHeader}</span>
+      <strong style={{ fontSize: "1.5rem" }}>{title}</strong>
+      <span>{subtitle}</span>
     </div>
   );
 }
 
 interface MountOptions {
-  greeting?: string;
-  recipient?: string;
+  title?: string;
+  subtitle?: string;
 }
 
 export function mount(container: Element | null, _context?: unknown, options: MountOptions = {}) {
@@ -42,13 +42,13 @@ export function mount(container: Element | null, _context?: unknown, options: Mo
 
   const root = createRoot(target);
 
-  const greeting = options.greeting ?? "Hello Kaset";
+  const title = options.title ?? "<Hello Kaset>";
 
-  const subHeader = "This is a blank plugin. Ask Kas to modify and extend it.";
+  const subtitle = options.subtitle ?? "<This is a blank plugin. Ask Kas to modify and extend it.>";
 
   root.render(
     <StrictMode>
-      <HelloWorldApp greeting={greeting} subHeader={subHeader} />
+      <HelloWorldApp title={title} subtitle={subtitle} />
     </StrictMode>,
   );
 

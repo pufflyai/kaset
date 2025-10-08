@@ -1,8 +1,3 @@
-const defaults = {
-  title: "Hello Kaset",
-  subtitle: "Welcome to Kaset",
-};
-
 async function readSettings(ctx) {
   const stored = await ctx.settings.read();
   return { ...defaults, ...(stored ?? {}) };
@@ -31,8 +26,6 @@ export const commands = {
 
 export default {
   async activate(ctx) {
-    const settings = await readSettings(ctx);
-    await ctx.settings.write(settings);
     ctx.log.info("hello-kaset plugin activated");
   },
 };

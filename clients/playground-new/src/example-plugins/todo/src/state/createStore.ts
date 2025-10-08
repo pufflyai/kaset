@@ -1,4 +1,4 @@
-import { deleteFile, ensureDirExists, ls, readFile, writeFile } from "@pstdio/opfs-utils";
+import { deleteFile, ensureDirExists, ls, readFile, writeFile } from "../opfs";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";

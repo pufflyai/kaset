@@ -1,6 +1,6 @@
-import { watchDirectory } from "@pstdio/opfs-utils";
 import { useEffect } from "react";
 import type { StoreApi } from "zustand";
+import { watchDirectory } from "../../opfs";
 import { TODO_LISTS_DIR } from "../createStore";
 import type { TodoStore } from "../types";
 
