@@ -54,7 +54,15 @@ const WindowChrome = (props: WindowChromeProps) => {
       boxShadow={isFocused ? "high" : "low"}
       onMouseDown={onFocus}
     >
-      <Flex align="center" justify="space-between" paddingX="sm" paddingY="xs" gap="sm">
+      <Flex
+        align="center"
+        justify="space-between"
+        paddingX="sm"
+        paddingY="xs"
+        gap="sm"
+        cursor={"move"}
+        className="desktop-window__drag-handle"
+      >
         <HStack gap="xs">
           <app.icon size={16} />
           <Text fontSize="sm" fontWeight="medium">
@@ -301,6 +309,7 @@ export const Window = (props: WindowProps) => {
       size={{ width: size.width, height: size.height }}
       position={position}
       bounds="parent"
+      dragHandleClassName="desktop-window__drag-handle"
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragStop={handleDragStop}

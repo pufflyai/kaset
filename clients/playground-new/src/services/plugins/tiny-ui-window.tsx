@@ -1,3 +1,5 @@
+import { toaster } from "@/components/ui/toaster";
+import { ROOT } from "@/constant";
 import { Box, Button, Center, Spinner, Text } from "@chakra-ui/react";
 import {
   createWorkspaceFs,
@@ -8,12 +10,9 @@ import {
   unregisterVirtualSnapshot,
 } from "@pstdio/tiny-ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { toaster } from "@/components/ui/toaster";
-import { ROOT } from "@/constant";
 import {
   getMergedPluginDependencies,
   getPluginsRoot,
-  subscribeToPluginDependencies,
   subscribeToPluginFiles,
   type PluginDesktopWindowDescriptor,
 } from "./plugin-host";
@@ -22,20 +21,18 @@ type Status = "idle" | "loading" | "ready" | "error";
 
 export interface PluginTinyUiWindowProps {
   pluginId: string;
+  surfaceId: string;
   instanceId: string;
-  window: PluginDesktopWindowDescriptor;
+  pluginWindow: PluginDesktopWindowDescriptor;
 }
-
-const toPosix = (value: string) => value.replace(/\\/g, "/");
-
-const sanitizeEntry = (entry: string) => {
-  const normalized = toPosix(entry).replace(/^\/+/, "");
-  const segments = normalized.split("/").filter((segment) => segment && segment !== "..");
-  return segments.join("/");
-};
 
 const serviceWorkerUrl = `${import.meta.env.BASE_URL}sw.js`;
 const runtimeUrl = `${import.meta.env.BASE_URL}tiny-ui/runtime.html`;
+
+const buildPluginRoot = (pluginsRoot: string, pluginId: string) => {
+  const normalized = pluginsRoot.replace(/\/+$/, "");
+  return normalized ? `${normalized}/${pluginId}` : pluginId;
+};
 
 const applyLockfile = (dependencies: Record<string, string>) => {
   const current = getLockfile() ?? {};
@@ -45,73 +42,54 @@ const applyLockfile = (dependencies: Record<string, string>) => {
   });
 };
 
-const buildPluginRoot = (pluginsRoot: string, pluginId: string) => {
-  const normalized = pluginsRoot.replace(/\/+$/, "");
-  return normalized ? `${normalized}/${pluginId}` : pluginId;
+// usePluginFilesRefresh returns a counter that ticks whenever the plugin's files change on disk.
+const usePluginFilesRefresh = (pluginId: string) => {
+  const [refreshToken, setRefreshToken] = useState(0);
+
+  useEffect(() => {
+    const timerRef: { current: ReturnType<typeof setTimeout> | null } = { current: null };
+
+    const scheduleRefresh = () => {
+      if (timerRef.current) return;
+      timerRef.current = setTimeout(() => {
+        timerRef.current = null;
+        setRefreshToken((value) => value + 1);
+      }, 150);
+    };
+
+    const unsubscribe = subscribeToPluginFiles(pluginId, scheduleRefresh);
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      unsubscribe();
+    };
+  }, [pluginId]);
+
+  return refreshToken;
 };
 
 export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
-  const { pluginId, window, instanceId } = props;
+  const { pluginId, pluginWindow, surfaceId, instanceId } = props;
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [sourceRoot, setSourceRoot] = useState<string | null>(null);
-  const [refreshToken, setRefreshToken] = useState(0);
-  const [globalDependencies, setGlobalDependencies] = useState<Record<string, string>>(() =>
-    getMergedPluginDependencies(),
-  );
+  const refreshToken = usePluginFilesRefresh(pluginId);
   const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
+
   const notify = useCallback((level: "info" | "warn" | "error", message: string) => {
     const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
     toaster.create({ type, title: message, duration: 5000 });
   }, []);
 
-  const handleCopyError = useCallback(async () => {
-    if (!error) return;
-    if (typeof navigator === "undefined" || !navigator.clipboard) {
-      toaster.create({ type: "error", title: "Clipboard is not available" });
-      return;
-    }
+  const entryPath = pluginWindow.entry;
 
-    try {
-      await navigator.clipboard.writeText(error);
-      toaster.create({ type: "success", title: "Copied error message" });
-    } catch (clipboardError) {
-      console.error("[tiny-ui] Failed to copy error message", clipboardError);
-      toaster.create({ type: "error", title: "Failed to copy error message" });
-    }
-  }, [error]);
-
-  const entryPath = useMemo(() => sanitizeEntry(window.entry ?? ""), [window.entry]);
   useEffect(() => {
-    setGlobalDependencies(getMergedPluginDependencies());
-    const unsubscribe = subscribeToPluginDependencies((deps) => {
-      setGlobalDependencies({ ...deps });
-    });
-
-    return () => {
-      unsubscribe();
-    };
+    applyLockfile(getMergedPluginDependencies());
   }, []);
-
-  const dependencySnapshot = useMemo(() => {
-    const manifestDependencies = window.dependencies ?? {};
-    return { ...globalDependencies, ...manifestDependencies };
-  }, [globalDependencies, window.dependencies]);
-
-  useEffect(() => {
-    applyLockfile(dependencySnapshot);
-  }, [dependencySnapshot]);
-
-  useEffect(() => {
-    const unsubscribe = subscribeToPluginFiles(pluginId, () => {
-      setRefreshToken((value) => value + 1);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, [pluginId]);
 
   useEffect(() => {
     if (!entryPath) {
@@ -170,7 +148,14 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
           {error ? (
             <Box marginTop="3">
               <Text fontSize="xs">{error}</Text>
-              <Button marginTop="3" size="xs" onClick={handleCopyError}>
+              <Button
+                marginTop="3"
+                size="xs"
+                variant="solid"
+                onClick={() => {
+                  navigator.clipboard.writeText(error);
+                }}
+              >
                 Copy error message
               </Button>
             </Box>
@@ -181,13 +166,20 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   }
 
   const pluginsRoot = getPluginsRoot();
+  // one plugin might have bundled code for multiple surfaces
+  const sourceId = `${pluginId}:${surfaceId}`;
+  // we remount the component if the snapshotVersion changes
+  // this way if the UI changes we get a fresh iframe and TinyUI instance
+  const key = `${pluginId}:${instanceId}:${snapshotVersion}`;
 
   return (
     <Box height="100%" width="100%" position="relative">
       <TinyUI
-        key={`${pluginId}:${instanceId}:${snapshotVersion}`}
+        key={key}
+        instanceId={instanceId}
+        sourceId={sourceId}
         root={sourceRoot}
-        id={`${pluginId}:${instanceId}`}
+        skipCache={refreshToken > 0}
         autoCompile
         serviceWorkerUrl={serviceWorkerUrl}
         runtimeUrl={runtimeUrl}
