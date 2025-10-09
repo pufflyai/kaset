@@ -1,10 +1,9 @@
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { TodoList } from "./component";
 import { TodoProvider } from "./state/TodoProvider";
 
-export function TodoWindow() {
+function TodoWindow() {
   return (
     <TodoProvider>
       <TodoList />
@@ -20,16 +19,12 @@ export function mount(container: Element | null) {
   const root = createRoot(target);
 
   root.render(
-    <StrictMode>
-      <ChakraProvider value={defaultSystem}>
-        <TodoWindow />
-      </ChakraProvider>
-    </StrictMode>,
+    <ChakraProvider value={defaultSystem}>
+      <TodoWindow />
+    </ChakraProvider>,
   );
 
   return () => {
     root.unmount();
   };
 }
-
-export default TodoWindow;

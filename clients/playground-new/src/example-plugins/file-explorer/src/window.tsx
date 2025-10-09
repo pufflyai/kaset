@@ -1,12 +1,12 @@
-import { Box, Center, Flex, Heading, Text, ChakraProvider, defaultSystem } from "@chakra-ui/react";
-import { StrictMode, useState } from "react";
+import { Box, Center, ChakraProvider, defaultSystem, Flex, Heading, Text } from "@chakra-ui/react";
+import { useState } from "react";
 import { createRoot } from "react-dom/client";
-import { FileExplorer } from "./components/file-explorer";
 import { CodeEditor } from "./components/code-editor";
+import { FileExplorer } from "./components/file-explorer";
 
 const ROOT_DIR = "playground";
 
-export function FileExplorerWindow() {
+function FileExplorerWindow() {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
 
   return (
@@ -59,16 +59,12 @@ export function mount(container: Element | null) {
   const root = createRoot(target);
 
   root.render(
-    <StrictMode>
-      <ChakraProvider value={defaultSystem}>
-        <FileExplorerWindow />
-      </ChakraProvider>
-    </StrictMode>,
+    <ChakraProvider value={defaultSystem}>
+      <FileExplorerWindow />
+    </ChakraProvider>,
   );
 
   return () => {
     root.unmount();
   };
 }
-
-export default FileExplorerWindow;
