@@ -8,6 +8,7 @@ import { openDesktopApp } from "@/state/actions/desktop";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { Box, Text } from "@chakra-ui/react";
+import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DesktopIcon } from "./desktop-icon";
 import { WindowHost } from "./window-host";
@@ -63,7 +64,7 @@ const renderSurfaceWindow = (surface: PluginDesktopSurface, windowId: string) =>
 };
 
 const createDesktopAppFromSurface = (surface: PluginDesktopSurface): DesktopApp => {
-  const icon = surface.icon ?? DEFAULT_DESKTOP_APP_ICON;
+  const icon = (surface.icon as IconName | undefined) ?? DEFAULT_DESKTOP_APP_ICON;
   const defaultSize = normalizeSize(surface.defaultSize, DEFAULT_WINDOW_SIZE);
   const defaultPosition = normalizePosition(surface.defaultPosition);
   const description = surface.description ?? `Surface provided by ${surface.pluginId}`;

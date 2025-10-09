@@ -2,7 +2,6 @@ import { Box, Flex, HStack, IconButton, Text } from "@chakra-ui/react";
 import { Minimize2, Square, X, AppWindowMac } from "lucide-react";
 import { DynamicIcon } from "lucide-react/dynamic";
 import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
-import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
 import { memo, useEffect, useRef, useState } from "react";
 import type { DraggableData } from "react-rnd";
 import { Rnd } from "react-rnd";
@@ -66,11 +65,7 @@ const WindowChrome = (props: WindowChromeProps) => {
         className="desktop-window__drag-handle"
       >
         <HStack gap="xs">
-          <DynamicIcon
-            name={app.icon ?? DEFAULT_DESKTOP_APP_ICON}
-            size={16}
-            fallback={() => <AppWindowMac size={16} />}
-          />
+          <DynamicIcon name={app.icon} size={16} fallback={() => <AppWindowMac size={16} />} />
           <Text fontSize="sm" fontWeight="medium">
             {window.title}
           </Text>
