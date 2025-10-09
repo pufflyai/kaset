@@ -6,7 +6,7 @@ import { hasCredentials } from "@/state/actions/hasCredentials";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Message } from "@/types";
 import { Alert, Button, Flex, HStack, Input, Stack, Text, useDisclosure, type FlexProps } from "@chakra-ui/react";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { summarizeConversationChanges } from "../utils/diff";
 import { useEstimatedTokens } from "../hooks/useEstimatedTokens";
 import { AutoScroll } from "./AutoScroll";
@@ -23,6 +23,34 @@ interface ConversationAreaProps extends FlexProps {
   examplePrompts?: string[];
 }
 
+interface ConversationMessagesProps {
+  messages: Message[];
+  streaming: boolean;
+  onSelectFile?: (filePath: string) => void;
+  onUseExample?: (text: string) => void;
+  examplePrompts?: string[];
+}
+
+const ConversationMessages = memo(function ConversationMessages(props: ConversationMessagesProps) {
+  const { messages, streaming, onSelectFile, onUseExample, examplePrompts } = props;
+
+  return (
+    <ConversationRoot>
+      <AutoScroll userMessageCount={messages.reduce((count, m) => count + (m.role === "user" ? 1 : 0), 0)} />
+      <ConversationContent>
+        <MessageList
+          messages={messages}
+          streaming={streaming}
+          onOpenFile={onSelectFile}
+          examplePrompts={examplePrompts}
+          onUseExample={onUseExample}
+        />
+      </ConversationContent>
+      <ConversationScrollButton />
+    </ConversationRoot>
+  );
+});
+
 export const ConversationArea = (props: ConversationAreaProps) => {
   const { messages, streaming, onSendMessage, onSelectFile, canSend = true, examplePrompts = [], ...rest } = props;
   const [input, setInput] = useState("");
@@ -34,6 +62,15 @@ export const ConversationArea = (props: ConversationAreaProps) => {
   const settings = useDisclosure();
   const conversationChanges = useMemo(() => summarizeConversationChanges(messages), [messages]);
   const showChangeBubble = conversationChanges.fileCount > 0;
+  const handleUseExample = useCallback(
+    (text: string) => {
+      const trimmed = text.trim();
+      if (!trimmed || !canSend) return;
+      onSendMessage?.(trimmed);
+      setInput("");
+    },
+    [canSend, onSendMessage, setInput],
+  );
 
   // Load selected model from localStorage and resolve pricing
   // Only input tokens are known before sending; we price those
@@ -52,24 +89,13 @@ export const ConversationArea = (props: ConversationAreaProps) => {
 
   return (
     <Flex position="relative" direction="column" w="full" h="full" overflow="hidden" {...rest}>
-      <ConversationRoot>
-        <AutoScroll userMessageCount={messages.reduce((count, m) => count + (m.role === "user" ? 1 : 0), 0)} />
-        <ConversationContent>
-          <MessageList
-            messages={messages}
-            streaming={streaming}
-            onOpenFile={onSelectFile}
-            examplePrompts={examplePrompts}
-            onUseExample={(text) => {
-              const trimmed = text.trim();
-              if (!trimmed || !canSend) return;
-              onSendMessage?.(trimmed);
-              setInput("");
-            }}
-          />
-        </ConversationContent>
-        <ConversationScrollButton />
-      </ConversationRoot>
+      <ConversationMessages
+        messages={messages}
+        streaming={streaming}
+        onSelectFile={onSelectFile}
+        onUseExample={handleUseExample}
+        examplePrompts={examplePrompts}
+      />
 
       <Flex p="sm" borderTopWidth="1px" borderColor="border.secondary">
         <Stack direction="column" gap="sm" width="full">
