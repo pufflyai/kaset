@@ -35,6 +35,7 @@ const sanitizeEntry = (entry: string) => {
 };
 
 const serviceWorkerUrl = `${import.meta.env.BASE_URL}sw.js`;
+const runtimeUrl = `${import.meta.env.BASE_URL}tiny-ui/runtime.html`;
 
 const applyLockfile = (dependencies: Record<string, string>) => {
   const current = getLockfile() ?? {};
@@ -170,6 +171,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         id={`${pluginId}:${instanceId}`}
         autoCompile
         serviceWorkerUrl={serviceWorkerUrl}
+        runtimeUrl={runtimeUrl}
         onError={(tinyError) => {
           setError(tinyError.message);
           setStatus("error");
