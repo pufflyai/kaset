@@ -8,7 +8,7 @@ import { hasCredentials } from "@/state/actions/hasCredentials";
 import { setConversationMessages } from "@/state/actions/setConversationMessages";
 import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
@@ -18,12 +18,37 @@ import { ApprovalModal } from "./approval-modal";
 
 const EMPTY_MESSAGES: Message[] = [];
 
-export function ConversationHost() {
+interface ConversationAreaWithMessagesProps {
+  streaming: boolean;
+  canSend: boolean;
+  examplePrompts: string[];
+  onSendMessage: (text: string, fileNames?: string[]) => void | Promise<void>;
+  onSelectFile?: (filePath: string) => void;
+}
+
+const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
+  props: ConversationAreaWithMessagesProps,
+) {
+  const { streaming, canSend, examplePrompts, onSendMessage, onSelectFile } = props;
   const messages = useWorkspaceStore((s) =>
     s.selectedConversationId
       ? (s.conversations[s.selectedConversationId!]?.messages ?? EMPTY_MESSAGES)
       : EMPTY_MESSAGES,
   );
+
+  return (
+    <ConversationArea
+      messages={messages}
+      streaming={streaming}
+      canSend={canSend}
+      examplePrompts={examplePrompts}
+      onSendMessage={onSendMessage}
+      onSelectFile={onSelectFile}
+    />
+  );
+});
+
+export function ConversationHost() {
   const { tools: mcpTools } = useMcpService();
   const [streaming, setStreaming] = useState(false);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
@@ -46,59 +71,63 @@ export function ConversationHost() {
     };
   }, []);
 
-  const handleSendMessage = async (text: string) => {
-    const conversationId = getSelectedConversationId();
-    const conversation = getConversation(conversationId);
+  const handleSendMessage = useCallback(
+    async (text: string) => {
+      const conversationId = getSelectedConversationId();
+      const conversation = getConversation(conversationId);
 
-    if (!conversationId || !conversation) return;
+      if (!conversationId || !conversation) return;
 
-    const userMessage: Message = {
-      id: shortUID(),
-      role: "user",
-      parts: [{ type: "text", text }],
-    };
-
-    const current = getConversationMessages(conversationId);
-    const base = [...current, userMessage];
-
-    setConversationMessages(conversationId, base, "conversations/send/user");
-
-    try {
-      setStreaming(true);
-      for await (const updated of sendMessage(conversationId, base, toolset)) {
-        if (!conversationId) continue;
-        setConversationMessages(conversationId, updated, "conversations/send/assistant");
-      }
-    } catch (err) {
-      const assistantError: Message = {
+      const userMessage: Message = {
         id: shortUID(),
-        role: "assistant",
-        parts: [
-          {
-            type: "text",
-            text: `Sorry, I couldn't process that. ${err instanceof Error ? err.message : String(err)}`,
-          },
-        ],
+        role: "user",
+        parts: [{ type: "text", text }],
       };
 
-      const id = getSelectedConversationId();
-      if (id) {
-        appendConversationMessages(id, [assistantError], "conversations/send/error");
+      const current = getConversationMessages(conversationId);
+      const base = [...current, userMessage];
+
+      setConversationMessages(conversationId, base, "conversations/send/user");
+
+      try {
+        setStreaming(true);
+        for await (const updated of sendMessage(conversationId, base, toolset)) {
+          if (!conversationId) continue;
+          setConversationMessages(conversationId, updated, "conversations/send/assistant");
+        }
+      } catch (err) {
+        const assistantError: Message = {
+          id: shortUID(),
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: `Sorry, I couldn't process that. ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
+        };
+
+        const id = getSelectedConversationId();
+        if (id) {
+          appendConversationMessages(id, [assistantError], "conversations/send/error");
+        }
+      } finally {
+        setStreaming(false);
       }
-    } finally {
-      setStreaming(false);
-    }
-  };
+    },
+    [toolset],
+  );
+
+  const handleSelectFile = useCallback((_: string) => {}, []);
 
   return (
     <>
-      <ConversationArea
-        messages={messages}
+      <ConversationAreaWithMessages
         streaming={streaming}
         canSend={hasCredentials() && !streaming}
         examplePrompts={examplePrompts}
         onSendMessage={handleSendMessage}
-        onSelectFile={(_path) => {}}
+        onSelectFile={handleSelectFile}
       />
       <ApprovalModal
         request={approval}
