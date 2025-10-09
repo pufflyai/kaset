@@ -1,7 +1,7 @@
 import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
 import { Box, Flex, HStack, IconButton, Text } from "@chakra-ui/react";
 import { Minimize2, Square, X } from "lucide-react";
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import type { DraggableData } from "react-rnd";
 import { Rnd } from "react-rnd";
 
@@ -82,20 +82,23 @@ interface WindowProps {
   app: DesktopApp;
   containerSize: Size | null;
   isFocused: boolean;
-  onFocus: () => void;
-  onClose: () => void;
-  onMinimize: () => void;
-  onMaximize: () => void;
-  onPositionChange: (position: Position) => void;
-  onSizeChange: (size: Size) => void;
+  onFocus: (windowId: string) => void;
+  onClose: (windowId: string) => void;
+  onMinimize: (windowId: string) => void;
+  onMaximize: (windowId: string, containerSize: Size | null) => void;
+  onPositionChange: (windowId: string, position: Position) => void;
+  onSizeChange: (windowId: string, size: Size) => void;
   onSnapPreview: (side: "left" | "right" | null) => void;
-  onSnap: (options: {
-    side: "left" | "right";
-    position: Position;
-    size: Size;
-    restore: { position: Position; size: Size };
-  }) => void;
-  onReleaseSnap: () => void;
+  onSnap: (
+    windowId: string,
+    options: {
+      side: "left" | "right";
+      position: Position;
+      size: Size;
+      restore: { position: Position; size: Size };
+    },
+  ) => void;
+  onReleaseSnap: (windowId: string) => void;
   snapEnabled: boolean;
 }
 
@@ -136,6 +139,29 @@ const WindowComponent = (props: WindowProps) => {
         y: maxY === undefined ? window.position.y : clampBounds(window.position.y, maxY),
       };
 
+  const handleFocus = useCallback(() => onFocus(window.id), [onFocus, window.id]);
+  const handleClose = useCallback(() => onClose(window.id), [onClose, window.id]);
+  const handleMinimize = useCallback(() => onMinimize(window.id), [onMinimize, window.id]);
+  const handleMaximize = useCallback(
+    () => onMaximize(window.id, containerSize),
+    [onMaximize, window.id, containerSize],
+  );
+  const handlePositionChange = useCallback(
+    (position: Position) => onPositionChange(window.id, position),
+    [onPositionChange, window.id],
+  );
+  const handleSizeChange = useCallback((size: Size) => onSizeChange(window.id, size), [onSizeChange, window.id]);
+  const handleSnap = useCallback(
+    (options: {
+      side: "left" | "right";
+      position: Position;
+      size: Size;
+      restore: { position: Position; size: Size };
+    }) => onSnap(window.id, options),
+    [onSnap, window.id],
+  );
+  const handleReleaseSnap = useCallback(() => onReleaseSnap(window.id), [onReleaseSnap, window.id]);
+
   useEffect(() => {
     if (!containerSize || window.isMaximized) return;
 
@@ -146,14 +172,14 @@ const WindowComponent = (props: WindowProps) => {
     const maxAllowedY = Math.max(0, containerHeight - adjustedHeight);
 
     if (window.size.width !== adjustedWidth || window.size.height !== adjustedHeight) {
-      onSizeChange({ width: adjustedWidth, height: adjustedHeight });
+      handleSizeChange({ width: adjustedWidth, height: adjustedHeight });
     }
 
     const boundedX = clampBounds(window.position.x, maxAllowedX);
     const boundedY = clampBounds(window.position.y, maxAllowedY);
 
     if (boundedX !== window.position.x || boundedY !== window.position.y) {
-      onPositionChange({
+      handlePositionChange({
         x: boundedX,
         y: boundedY,
       });
@@ -166,8 +192,8 @@ const WindowComponent = (props: WindowProps) => {
     window.size.height,
     window.position.x,
     window.position.y,
-    onSizeChange,
-    onPositionChange,
+    handleSizeChange,
+    handlePositionChange,
   ]);
 
   const computeSnapPlacement = (side: "left" | "right") => {
@@ -185,7 +211,7 @@ const WindowComponent = (props: WindowProps) => {
   };
 
   const handleDragStart = () => {
-    onFocus();
+    handleFocus();
     if (window.isMaximized) return;
 
     setIsDragging(true);
@@ -216,7 +242,7 @@ const WindowComponent = (props: WindowProps) => {
         pendingSnapReleaseRef.current = false;
         releasedSnapThisDragRef.current = true;
         onSnapPreview(null);
-        onReleaseSnap();
+        handleReleaseSnap();
         return;
       }
     }
@@ -257,7 +283,7 @@ const WindowComponent = (props: WindowProps) => {
     releasedSnapThisDragRef.current = false;
 
     if (!snapEnabled) {
-      onPositionChange({ x: data.x, y: data.y });
+      handlePositionChange({ x: data.x, y: data.y });
       return;
     }
 
@@ -278,7 +304,7 @@ const WindowComponent = (props: WindowProps) => {
         const placement = computeSnapPlacement(side);
 
         if (placement) {
-          onSnap({
+          handleSnap({
             side,
             position: placement.position,
             size: placement.size,
@@ -293,7 +319,7 @@ const WindowComponent = (props: WindowProps) => {
       }
     }
 
-    onPositionChange({ x: data.x, y: data.y });
+    handlePositionChange({ x: data.x, y: data.y });
   };
 
   return (
@@ -306,8 +332,8 @@ const WindowComponent = (props: WindowProps) => {
       onDragStop={handleDragStop}
       onResizeStop={(_, __, ref, ___, positionUpdate) => {
         if (window.isMaximized) return;
-        onSizeChange({ width: ref.offsetWidth, height: ref.offsetHeight });
-        onPositionChange(positionUpdate);
+        handleSizeChange({ width: ref.offsetWidth, height: ref.offsetHeight });
+        handlePositionChange(positionUpdate);
       }}
       enableResizing={!window.isMaximized && (!window.snapRestore || !snapEnabled)}
       disableDragging={window.isMaximized}
@@ -320,10 +346,10 @@ const WindowComponent = (props: WindowProps) => {
           window={window}
           app={app}
           isFocused={isFocused}
-          onFocus={onFocus}
-          onClose={onClose}
-          onMinimize={onMinimize}
-          onMaximize={onMaximize}
+          onFocus={handleFocus}
+          onClose={handleClose}
+          onMinimize={handleMinimize}
+          onMaximize={handleMaximize}
           isDragging={isDragging}
         />
       </Box>
@@ -331,23 +357,20 @@ const WindowComponent = (props: WindowProps) => {
   );
 };
 
-export const Window = memo(
-  WindowComponent,
-  (prev, next) => {
-    if (prev.window !== next.window) return false;
-    if (prev.app !== next.app) return false;
-    if (prev.isFocused !== next.isFocused) return false;
-    if (prev.snapEnabled !== next.snapEnabled) return false;
-    if (prev.containerSize !== next.containerSize) {
-      if (!prev.containerSize || !next.containerSize) return false;
-      if (
-        prev.containerSize.width !== next.containerSize.width ||
-        prev.containerSize.height !== next.containerSize.height
-      ) {
-        return false;
-      }
+export const Window = memo(WindowComponent, (prev, next) => {
+  if (prev.window !== next.window) return false;
+  if (prev.app !== next.app) return false;
+  if (prev.isFocused !== next.isFocused) return false;
+  if (prev.snapEnabled !== next.snapEnabled) return false;
+  if (prev.containerSize !== next.containerSize) {
+    if (!prev.containerSize || !next.containerSize) return false;
+    if (
+      prev.containerSize.width !== next.containerSize.width ||
+      prev.containerSize.height !== next.containerSize.height
+    ) {
+      return false;
     }
+  }
 
-    return true;
-  },
-);
+  return true;
+});

@@ -1,5 +1,5 @@
 import { Box } from "@chakra-ui/react";
-import { memo, useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   applyDesktopWindowSnap,
   closeDesktopWindow,
@@ -12,125 +12,41 @@ import {
 } from "@/state/actions/desktop";
 import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
 import { Window } from "./window";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 
 const SNAP_FEATURE_ENABLED = false;
 
 export interface WindowHostProps {
   windows: DesktopWindow[];
+  focusedWindowId: string | null;
   containerSize: Size | null;
   getAppById: (appId: string) => DesktopApp | undefined;
 }
-
-interface WindowEntryProps {
-  windowId: string;
-  containerSize: Size | null;
-  getAppById: (appId: string) => DesktopApp | undefined;
-  snapEnabled: boolean;
-  onSnapPreview: (side: "left" | "right" | null) => void;
-  onSnap: (
-    windowId: string,
-    options: {
-      side: "left" | "right";
-      position: Position;
-      size: Size;
-      restore: { position: Position; size: Size };
-    },
-  ) => void;
-  onReleaseSnap: (windowId: string) => void;
-}
-
-const WindowEntryComponent = (props: WindowEntryProps) => {
-  const { windowId, containerSize, getAppById, snapEnabled, onSnapPreview, onSnap, onReleaseSnap } = props;
-
-  const window = useWorkspaceStore(
-    useCallback(
-      (state) => state.desktop.windows.find((candidate) => candidate.id === windowId),
-      [windowId],
-    ),
-  );
-  const isFocused = useWorkspaceStore(
-    useCallback((state) => state.desktop.focusedWindowId === windowId, [windowId]),
-  );
-
-  const app = window ? getAppById(window.appId) : undefined;
-
-  const handleFocus = useCallback(() => focusDesktopWindow(windowId), [windowId]);
-  const handleClose = useCallback(() => closeDesktopWindow(windowId), [windowId]);
-  const handleMinimize = useCallback(() => minimizeDesktopWindow(windowId), [windowId]);
-  const handleMaximize = useCallback(
-    () => toggleDesktopWindowMaximize(windowId, containerSize ?? undefined),
-    [windowId, containerSize],
-  );
-  const handlePositionChange = useCallback((position: Position) => setDesktopWindowPosition(windowId, position), [windowId]);
-  const handleSizeChange = useCallback((size: Size) => setDesktopWindowSize(windowId, size), [windowId]);
-  const handleSnapPreview = useCallback(
-    (side: "left" | "right" | null) => {
-      if (!snapEnabled) return;
-      onSnapPreview(side);
-    },
-    [onSnapPreview, snapEnabled],
-  );
-  const handleSnap = useCallback(
-    (options: { side: "left" | "right"; position: Position; size: Size; restore: { position: Position; size: Size } }) => {
-      if (!snapEnabled) return;
-      onSnap(windowId, options);
-    },
-    [onSnap, snapEnabled, windowId],
-  );
-  const handleReleaseSnap = useCallback(() => {
-    if (!snapEnabled) return;
-    onReleaseSnap(windowId);
-  }, [onReleaseSnap, snapEnabled, windowId]);
-
-  if (!window || !app) {
-    return null;
-  }
-
-  return (
-    <Window
-      window={window}
-      app={app}
-      snapEnabled={snapEnabled}
-      containerSize={containerSize}
-      isFocused={isFocused}
-      onFocus={handleFocus}
-      onClose={handleClose}
-      onMinimize={handleMinimize}
-      onMaximize={handleMaximize}
-      onPositionChange={handlePositionChange}
-      onSizeChange={handleSizeChange}
-      onSnapPreview={handleSnapPreview}
-      onSnap={handleSnap}
-      onReleaseSnap={handleReleaseSnap}
-    />
-  );
-};
-
-const WindowEntry = memo(WindowEntryComponent);
-
-export const WindowHost = ({ windows, containerSize, getAppById }: WindowHostProps) => {
+export const WindowHost = ({ windows, focusedWindowId, containerSize, getAppById }: WindowHostProps) => {
   const [snapPreviewSide, setSnapPreviewSide] = useState<"left" | "right" | null>(null);
 
-  const orderedWindowIds = useMemo(
-    () =>
-      [...windows]
-        .sort((a, b) => a.zIndex - b.zIndex)
-        .map((window) => window.id),
-    [windows],
-  );
+  const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.zIndex - b.zIndex), [windows]);
 
-  const handleSnapPreview = useCallback(
-    (side: "left" | "right" | null) => {
-      if (!SNAP_FEATURE_ENABLED) return;
-      setSnapPreviewSide((current) => (current === side ? current : side));
-    },
-    [setSnapPreviewSide],
+  const handleFocus = useCallback((windowId: string) => focusDesktopWindow(windowId), []);
+  const handleClose = useCallback((windowId: string) => closeDesktopWindow(windowId), []);
+  const handleMinimize = useCallback((windowId: string) => minimizeDesktopWindow(windowId), []);
+  const handleMaximize = useCallback(
+    (windowId: string, size: Size | null) => toggleDesktopWindowMaximize(windowId, size ?? undefined),
+    [],
   );
+  const handlePositionChange = useCallback(
+    (windowId: string, position: Position) => setDesktopWindowPosition(windowId, position),
+    [],
+  );
+  const handleSizeChange = useCallback((windowId: string, size: Size) => setDesktopWindowSize(windowId, size), []);
+
+  const handleSnapPreview = useCallback((side: "left" | "right" | null) => {
+    if (!SNAP_FEATURE_ENABLED) return;
+    setSnapPreviewSide((current) => (current === side ? current : side));
+  }, []);
 
   const handleSnap = useCallback(
     (
-      id: string,
+      windowId: string,
       options: {
         side: "left" | "right";
         position: Position;
@@ -139,20 +55,17 @@ export const WindowHost = ({ windows, containerSize, getAppById }: WindowHostPro
       },
     ) => {
       if (!SNAP_FEATURE_ENABLED) return;
-      applyDesktopWindowSnap(id, options);
+      applyDesktopWindowSnap(windowId, options);
       setSnapPreviewSide(null);
     },
-    [setSnapPreviewSide],
+    [],
   );
 
-  const handleReleaseSnap = useCallback(
-    (id: string) => {
-      if (!SNAP_FEATURE_ENABLED) return;
-      releaseDesktopWindowSnap(id);
-      setSnapPreviewSide(null);
-    },
-    [setSnapPreviewSide],
-  );
+  const handleReleaseSnap = useCallback((windowId: string) => {
+    if (!SNAP_FEATURE_ENABLED) return;
+    releaseDesktopWindowSnap(windowId);
+    setSnapPreviewSide(null);
+  }, []);
 
   const snapPreviewStyle = useMemo(() => {
     if (!SNAP_FEATURE_ENABLED || !snapPreviewSide) return null;
@@ -191,18 +104,30 @@ export const WindowHost = ({ windows, containerSize, getAppById }: WindowHostPro
           zIndex={2}
         />
       ) : null}
-      {orderedWindowIds.map((windowId) => (
-        <WindowEntry
-          key={windowId}
-          windowId={windowId}
-          containerSize={containerSize}
-          getAppById={getAppById}
-          snapEnabled={SNAP_FEATURE_ENABLED}
-          onSnapPreview={handleSnapPreview}
-          onSnap={handleSnap}
-          onReleaseSnap={handleReleaseSnap}
-        />
-      ))}
+      {orderedWindows.map((window) => {
+        const app = getAppById(window.appId);
+        if (!app) return null;
+
+        return (
+          <Window
+            key={window.id}
+            window={window}
+            app={app}
+            snapEnabled={SNAP_FEATURE_ENABLED}
+            containerSize={containerSize}
+            isFocused={focusedWindowId === window.id}
+            onFocus={handleFocus}
+            onClose={handleClose}
+            onMinimize={handleMinimize}
+            onMaximize={handleMaximize}
+            onPositionChange={handlePositionChange}
+            onSizeChange={handleSizeChange}
+            onSnapPreview={handleSnapPreview}
+            onSnap={handleSnap}
+            onReleaseSnap={handleReleaseSnap}
+          />
+        );
+      })}
     </>
   );
 };

@@ -124,6 +124,7 @@ export const Desktop = () => {
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
 
   const windows = useWorkspaceStore((state) => state.desktop.windows);
+  const focusedWindowId = useWorkspaceStore((state) => state.desktop.focusedWindowId);
 
   useEffect(() => {
     const unsubscribe = subscribeToPluginDesktopSurfaces((surfaces) => {
@@ -229,7 +230,12 @@ export const Desktop = () => {
           />
         ))}
       </Box>
-      <WindowHost windows={windows} containerSize={containerSize} getAppById={getAppById} />
+      <WindowHost
+        windows={windows}
+        focusedWindowId={focusedWindowId}
+        containerSize={containerSize}
+        getAppById={getAppById}
+      />
     </Box>
   );
 };
