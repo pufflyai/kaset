@@ -14,13 +14,13 @@ Essential commands (from repo root):
 2. Build: `npm run build`
 3. Test: `npm run test`
 
-Validation sequence (matches CI intent):
+**AFTER ANY CHANGES YOU MUST** follow this validation sequence:
 
 ```bash
-npm run format:check
+npm run format
 npm run lint
-npx lerna run build
-npx lerna run test
+npm run build
+npm run test
 ```
 
 Utilities:
@@ -58,13 +58,27 @@ Key configuration:
 
 ## Packages
 
+### @pstdio/kas
+
+Browser-ready coding agent runtime that composes the Tiny task libraries with OpenAI tooling and OPFS helpers.
+
+- Includes entrypoints, OPFS wiring, and prompt execution helpers for the Kaset agent
+- Scripts: `build`, `dev`, `lint`, `test` (runs `typecheck`), `typecheck`, `visualize-bundle`
+
+Run (from root):
+
+```bash
+npm run build --workspace @pstdio/kas
+npm run test --workspace @pstdio/kas
+```
+
 ### @pstdio/opfs-utils
 
 OPFS utilities targeting modern browsers.
 
 - Notable APIs: `ls(...)`, `grep(...)`, `processSingleFileContent(...)`, `patch(...)`
 - Storybook available for dev/visual checks
-- Scripts: `build`, `test`, `storybook`, `test-storybook`
+- Scripts: `build`, `lint`, `test`, `storybook`, `test-storybook`
 
 Run (from root):
 
@@ -78,7 +92,7 @@ npm run test --workspace @pstdio/opfs-utils
 React hooks for working with the browser's OPFS.
 
 - Depends on `@pstdio/opfs-utils` for core operations
-- Scripts: `build`, `test`
+- Scripts: `build`, `lint`, `test`
 
 Run (from root):
 
@@ -93,7 +107,7 @@ Two‑way synchronization between an OPFS directory and a remote provider.
 
 - Core class: `OpfsSync`
 - Remote: `SupabaseRemote` (Supabase Storage)
-- Scripts: `build`, `test`, `test:ui`, `test:coverage`
+- Scripts: `build`, `lint`, `test`, `test:ui`, `test:coverage`
 
 Run (from root):
 
@@ -107,7 +121,7 @@ npm run test --workspace @pstdio/opfs-sync
 Prompt and JSON helpers for LLM workflows.
 
 - APIs: `prompt`, `getSchema`, `parseJSONStream`, `safeStringify`, `safeParse`, `shortUID`, `hashString`
-- Scripts: `build`, `test`
+- Scripts: `build`, `lint`, `test`
 
 Run (from root):
 
@@ -121,13 +135,27 @@ npm run test --workspace @pstdio/prompt-utils
 AI workflows and tool-using agents for building streaming LLM tasks, minimal agents, and history summarization/truncation.
 
 - APIs: `createLLMTask`, `createAgent`, `Tool`, `createToolTask`, `toOpenAITools`, `truncateToBudget`, `createSummarizer`
-- Scripts: `build`, `test`
+- Scripts: `build`, `lint`, `test` (includes `typecheck`), `typecheck`, `visualize-bundle`
 
 Run (from root):
 
 ```bash
 npm run build --workspace @pstdio/tiny-ai-tasks
-npm run test  --workspace @pstdio/tiny-ai-tasks
+npm run test --workspace @pstdio/tiny-ai-tasks
+```
+
+### @pstdio/tiny-plugins
+
+Plugin host that loads OPFS-backed plugins, validates manifests, and routes commands to plugin sandboxes.
+
+- Provides manifest parsing, settings storage, and Storybook examples for plugin UIs
+- Scripts: `build`, `lint`, `test`, `storybook`, `visualize-bundle`
+
+Run (from root):
+
+```bash
+npm run build --workspace @pstdio/tiny-plugins
+npm run test --workspace @pstdio/tiny-plugins
 ```
 
 ### @pstdio/tiny-tasks
@@ -135,7 +163,7 @@ npm run test  --workspace @pstdio/tiny-ai-tasks
 Composable, interrupt-friendly workflows for TypeScript/JavaScript. Turn async functions into checkpoint-able generators that can pause, persist, and resume.
 
 - APIs: `task`, `createRuntime`, `MemorySaver`
-- Scripts: `build`, `test`
+- Scripts: `build`, `lint`, `test` (includes `typecheck`), `typecheck`, `visualize-bundle`
 
 Run (from root):
 
@@ -144,13 +172,28 @@ npm run build --workspace @pstdio/tiny-tasks
 npm run test --workspace @pstdio/tiny-tasks
 ```
 
+### @pstdio/tiny-ui
+
+Browser micro-frontend runtime that builds plugin UIs with `esbuild-wasm` and serves them via service worker + iframe bridge.
+
+- Ships the Tiny UI runtime, sandbox service worker, and Storybook reference implementations
+- Scripts: `build`, `lint`, `test`, `storybook`, `visualize-bundle`
+
+Run (from root):
+
+```bash
+npm run build --workspace @pstdio/tiny-ui
+npm run test --workspace @pstdio/tiny-ui
+```
+
 ### describe-context
 
 Analyze a folder and produce an LLM‑friendly markdown context (directory tree + selected file content).
 
 - Library: `generateContext(path)`
 - CLI (after building): `node packages/@pstdio/describe-context/dist/generate-context.js <folder> [output-file]`
-- Scripts: `build`
+- Location: `packages/@pstdio/describe-context`
+- Scripts: `build`, `lint`
 
 Run (from root):
 
