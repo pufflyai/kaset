@@ -8,19 +8,20 @@ export function calculateConversationTokens(messages: Message[], input: string) 
   const counter = roughCounter();
 
   let total = 0;
-  const runningHistory: BaseMessage[] = [];
+  let runningTokenTotal = 0;
 
   for (const message of history) {
-    runningHistory.push(message);
+    runningTokenTotal += counter.count([message]);
     if (message.role === "user") {
-      total += counter.count(runningHistory);
+      total += runningTokenTotal;
     }
   }
 
   const trimmed = input.trim();
   if (trimmed) {
-    const nextHistory: BaseMessage[] = [...runningHistory, { role: "user", content: trimmed } as BaseMessage];
-    total += counter.count(nextHistory);
+    const nextMessage = { role: "user", content: trimmed } as BaseMessage;
+    runningTokenTotal += counter.count([nextMessage]);
+    total += runningTokenTotal;
   }
 
   return total;
