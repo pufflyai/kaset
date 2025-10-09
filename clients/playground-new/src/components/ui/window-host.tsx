@@ -13,7 +13,6 @@ import {
 import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
 import { Window } from "./window";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { shallow } from "zustand/shallow";
 
 const SNAP_FEATURE_ENABLED = false;
 
@@ -44,18 +43,14 @@ interface WindowEntryProps {
 const WindowEntryComponent = (props: WindowEntryProps) => {
   const { windowId, containerSize, getAppById, snapEnabled, onSnapPreview, onSnap, onReleaseSnap } = props;
 
-  const { window, isFocused } = useWorkspaceStore(
+  const window = useWorkspaceStore(
     useCallback(
-      (state) => {
-        const target = state.desktop.windows.find((candidate) => candidate.id === windowId);
-        return {
-          window: target,
-          isFocused: state.desktop.focusedWindowId === windowId,
-        };
-      },
+      (state) => state.desktop.windows.find((candidate) => candidate.id === windowId),
       [windowId],
     ),
-    shallow,
+  );
+  const isFocused = useWorkspaceStore(
+    useCallback((state) => state.desktop.focusedWindowId === windowId, [windowId]),
   );
 
   const app = window ? getAppById(window.appId) : undefined;
@@ -125,6 +120,40 @@ export const WindowHost = ({ windows, containerSize, getAppById }: WindowHostPro
     [windows],
   );
 
+  const handleSnapPreview = useCallback(
+    (side: "left" | "right" | null) => {
+      if (!SNAP_FEATURE_ENABLED) return;
+      setSnapPreviewSide((current) => (current === side ? current : side));
+    },
+    [setSnapPreviewSide],
+  );
+
+  const handleSnap = useCallback(
+    (
+      id: string,
+      options: {
+        side: "left" | "right";
+        position: Position;
+        size: Size;
+        restore: { position: Position; size: Size };
+      },
+    ) => {
+      if (!SNAP_FEATURE_ENABLED) return;
+      applyDesktopWindowSnap(id, options);
+      setSnapPreviewSide(null);
+    },
+    [setSnapPreviewSide],
+  );
+
+  const handleReleaseSnap = useCallback(
+    (id: string) => {
+      if (!SNAP_FEATURE_ENABLED) return;
+      releaseDesktopWindowSnap(id);
+      setSnapPreviewSide(null);
+    },
+    [setSnapPreviewSide],
+  );
+
   const snapPreviewStyle = useMemo(() => {
     if (!SNAP_FEATURE_ENABLED || !snapPreviewSide) return null;
 
@@ -169,20 +198,9 @@ export const WindowHost = ({ windows, containerSize, getAppById }: WindowHostPro
           containerSize={containerSize}
           getAppById={getAppById}
           snapEnabled={SNAP_FEATURE_ENABLED}
-          onSnapPreview={(side) => {
-            if (!SNAP_FEATURE_ENABLED) return;
-            setSnapPreviewSide((current) => (current === side ? current : side));
-          }}
-          onSnap={(id, options) => {
-            if (!SNAP_FEATURE_ENABLED) return;
-            applyDesktopWindowSnap(id, options);
-            setSnapPreviewSide(null);
-          }}
-          onReleaseSnap={(id) => {
-            if (!SNAP_FEATURE_ENABLED) return;
-            releaseDesktopWindowSnap(id);
-            setSnapPreviewSide(null);
-          }}
+          onSnapPreview={handleSnapPreview}
+          onSnap={handleSnap}
+          onReleaseSnap={handleReleaseSnap}
         />
       ))}
     </>
