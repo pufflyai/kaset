@@ -151,6 +151,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
               <Button
                 marginTop="3"
                 size="xs"
+                variant="solid"
                 onClick={() => {
                   navigator.clipboard.writeText(error);
                 }}
