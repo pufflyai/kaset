@@ -10,6 +10,25 @@ function canUseObjectUrls() {
   );
 }
 
+function toArrayBuffer(bytes: Uint8Array) {
+  const { buffer, byteOffset, byteLength } = bytes;
+
+  if (buffer instanceof ArrayBuffer) {
+    const start = byteOffset;
+    const end = byteOffset + byteLength;
+
+    if (start === 0 && end === buffer.byteLength) {
+      return buffer;
+    }
+
+    return buffer.slice(start, end);
+  }
+
+  const copy = new Uint8Array(byteLength);
+  copy.set(bytes);
+  return copy.buffer as ArrayBuffer;
+}
+
 export const useFileObjectUrl = (path?: string) => {
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
 
@@ -39,7 +58,7 @@ export const useFileObjectUrl = (path?: string) => {
 
       try {
         const bytes = await readFile(path, { encoding: null });
-        const blob = new Blob([bytes]);
+        const blob = new Blob([toArrayBuffer(bytes)]);
         const nextUrl = URL.createObjectURL(blob);
 
         if (cancelled) {
