@@ -1,4 +1,4 @@
-import { Box, Center, Spinner, Text } from "@chakra-ui/react";
+import { Box, Button, Center, Spinner, Text } from "@chakra-ui/react";
 import {
   createWorkspaceFs,
   getLockfile,
@@ -62,6 +62,22 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
     toaster.create({ type, title: message, duration: 5000 });
   }, []);
+
+  const handleCopyError = useCallback(async () => {
+    if (!error) return;
+    if (typeof navigator === "undefined" || !navigator.clipboard) {
+      toaster.create({ type: "error", title: "Clipboard is not available" });
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(error);
+      toaster.create({ type: "success", title: "Copied error message" });
+    } catch (clipboardError) {
+      console.error("[tiny-ui] Failed to copy error message", clipboardError);
+      toaster.create({ type: "error", title: "Failed to copy error message" });
+    }
+  }, [error]);
 
   const entryPath = useMemo(() => sanitizeEntry(window.entry ?? ""), [window.entry]);
   useEffect(() => {
@@ -146,14 +162,17 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   if (status === "error" || !sourceRoot) {
     return (
       <Center height="100%" width="100%" padding="md">
-        <Text fontSize="sm" textAlign="center">
-          Failed to load plugin window
-        </Text>
-        {error ? (
-          <Text fontSize="xs" marginTop="2" textAlign="center">
-            {error}
-          </Text>
-        ) : null}
+        <Box display="flex" flexDirection="column" alignItems="center" textAlign="center">
+          <Text fontSize="sm">Failed to load plugin window:</Text>
+          {error ? (
+            <Box marginTop="3">
+              <Text fontSize="xs">{error}</Text>
+              <Button marginTop="3" size="xs" onClick={handleCopyError}>
+                Copy error message
+              </Button>
+            </Box>
+          ) : null}
+        </Box>
       </Center>
     );
   }

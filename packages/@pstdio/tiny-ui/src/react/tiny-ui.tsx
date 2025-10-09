@@ -107,6 +107,7 @@ export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(prop
         src={runtimePath}
         style={{ flex: 1, width: "100%", height: "100%", border: 0, borderRadius: 8 }}
         sandbox="allow-scripts allow-same-origin"
+        allow="clipboard-read; clipboard-write"
       />
     </div>
   );
