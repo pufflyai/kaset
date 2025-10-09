@@ -7,7 +7,8 @@ interface ConversationTokenCache {
   counter: TokenCounter;
   historySignatures: string[];
   runningTotals: number[];
-  userContributionTotals: number[];
+  promptUsageTotals: number[];
+  completionUsageTotals: number[];
   singleMessageBuffer: BaseMessage[];
 }
 
@@ -16,7 +17,8 @@ function createTokenCache(): ConversationTokenCache {
     counter: roughCounter(),
     historySignatures: [],
     runningTotals: [],
-    userContributionTotals: [],
+    promptUsageTotals: [],
+    completionUsageTotals: [],
     singleMessageBuffer: new Array<BaseMessage>(1),
   };
 }
@@ -39,7 +41,8 @@ export function calculateConversationTokens(
 ) {
   const history = toMessageHistory(messages);
 
-  const { counter, historySignatures, runningTotals, userContributionTotals, singleMessageBuffer } = cache;
+  const { counter, historySignatures, runningTotals, promptUsageTotals, completionUsageTotals, singleMessageBuffer } =
+    cache;
 
   const historyLength = history.length;
 
@@ -52,7 +55,8 @@ export function calculateConversationTokens(
   }
 
   let runningTokenTotal = prefixLength > 0 ? runningTotals[prefixLength - 1] : 0;
-  let total = prefixLength > 0 ? userContributionTotals[prefixLength - 1] : 0;
+  let promptTotal = prefixLength > 0 ? promptUsageTotals[prefixLength - 1] : 0;
+  let completionTotal = prefixLength > 0 ? completionUsageTotals[prefixLength - 1] : 0;
 
   for (let index = prefixLength; index < historyLength; index += 1) {
     const message = history[index];
@@ -64,21 +68,28 @@ export function calculateConversationTokens(
     runningTokenTotal += messageTokens;
     runningTotals[index] = runningTokenTotal;
 
-    if (message.role === "user") {
-      total += runningTokenTotal;
+    if (message.role === "assistant") {
+      completionTotal += messageTokens;
+    } else {
+      promptTotal += runningTokenTotal;
     }
 
-    userContributionTotals[index] = total;
+    promptUsageTotals[index] = promptTotal;
+    completionUsageTotals[index] = completionTotal;
   }
 
   historySignatures.length = historyLength;
   runningTotals.length = historyLength;
-  userContributionTotals.length = historyLength;
+  promptUsageTotals.length = historyLength;
+  completionUsageTotals.length = historyLength;
 
   const trimmed = input.trim();
 
-  let finalTotal = historyLength > 0 ? userContributionTotals[historyLength - 1] : 0;
+  const historyPromptTotal = historyLength > 0 ? promptUsageTotals[historyLength - 1] : 0;
+  const historyCompletionTotal = historyLength > 0 ? completionUsageTotals[historyLength - 1] : 0;
   const baseRunningTotal = historyLength > 0 ? runningTotals[historyLength - 1] : 0;
+
+  let finalTotal = historyPromptTotal + historyCompletionTotal;
 
   if (trimmed) {
     const nextMessage = { role: "user", content: trimmed } as BaseMessage;
