@@ -21,19 +21,13 @@ export const DesktopIcon = (props: DesktopIconProps) => {
   const labelStyles = {
     color: { base: "foreground.primary", _dark: "foreground.inverse" },
     bg: { base: "rgba(255, 255, 255, 0.86)", _dark: "rgba(17, 17, 27, 0.72)" },
-    boxShadow: {
-      base: "0 0 0 1px rgba(17, 24, 39, 0.05), 0 6px 12px rgba(15, 23, 42, 0.12)",
-      _dark: "0 0 0 1px rgba(255, 255, 255, 0.16), 0 6px 14px rgba(2, 6, 23, 0.6)",
-    },
+    textShadow: "var(--shadow-desktop-icon-label)",
   } as const;
 
   const selectedLabelStyles = {
     color: { base: "blue.700", _dark: "blue.100" },
     bg: { base: "rgba(59, 130, 246, 0.2)", _dark: "rgba(59, 130, 246, 0.42)" },
-    boxShadow: {
-      base: "0 0 0 1px rgba(37, 99, 235, 0.24), 0 8px 18px rgba(37, 99, 235, 0.24)",
-      _dark: "0 0 0 1px rgba(96, 165, 250, 0.4), 0 10px 22px rgba(8, 15, 35, 0.7)",
-    },
+    textShadow: "var(--shadow-desktop-icon-label-selected)",
   } as const;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -88,7 +82,7 @@ export const DesktopIcon = (props: DesktopIconProps) => {
         py="2xs"
         borderRadius="sm"
         bg={isSelected ? selectedLabelStyles.bg : labelStyles.bg}
-        boxShadow={isSelected ? selectedLabelStyles.boxShadow : labelStyles.boxShadow}
+        textShadow={isSelected ? selectedLabelStyles.textShadow : labelStyles.textShadow}
         maxWidth="100%"
         width="fit-content"
         mx="auto"
