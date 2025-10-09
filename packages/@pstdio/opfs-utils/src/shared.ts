@@ -1,12 +1,7 @@
 import { getFs } from "./adapter/fs";
 import { normalizeSegments, parentOf } from "./utils/path";
 
-export type BinaryLike =
-  | ArrayBuffer
-  | SharedArrayBuffer
-  | ArrayBufferView
-  | Blob
-  | Uint8Array;
+export type BinaryLike = ArrayBuffer | SharedArrayBuffer | ArrayBufferView | Blob | Uint8Array;
 
 function isSharedArrayBuffer(value: unknown): value is SharedArrayBuffer {
   return typeof SharedArrayBuffer !== "undefined" && value instanceof SharedArrayBuffer;

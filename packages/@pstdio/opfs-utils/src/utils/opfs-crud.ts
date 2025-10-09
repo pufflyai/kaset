@@ -130,34 +130,29 @@ export async function readFile(path: string, options?: ReadFileOptions): Promise
  * Overwrites if the file already exists.
  */
 export function writeFile(path: string, contents: string, options?: WriteFileOptions): Promise<void>;
-export function writeFile(path: string, contents: BinaryLike, options?: WriteFileOptions & { encoding: null }): Promise<void>;
 export function writeFile(
   path: string,
-  contents: string | BinaryLike,
-  options?: WriteFileOptions
+  contents: BinaryLike,
+  options?: WriteFileOptions & { encoding: null },
 ): Promise<void>;
+export function writeFile(path: string, contents: string | BinaryLike, options?: WriteFileOptions): Promise<void>;
 export async function writeFile(
   path: string,
   contents: string | BinaryLike,
-  options?: WriteFileOptions
+  options?: WriteFileOptions,
 ): Promise<void> {
   const normalized = normalizeRelPath(path);
   const encoding = options?.encoding ?? (typeof contents === "string" ? "utf8" : null);
 
   if (encoding === null) {
-    const bytes =
-      typeof contents === "string"
-        ? new TextEncoder().encode(contents)
-        : await ensureUint8Array(contents);
+    const bytes = typeof contents === "string" ? new TextEncoder().encode(contents) : await ensureUint8Array(contents);
     await writeBinaryFile(normalized, bytes);
     return;
   }
 
   if (isTextEncoding(encoding)) {
     const text =
-      typeof contents === "string"
-        ? contents
-        : new TextDecoder("utf-8").decode(await ensureUint8Array(contents));
+      typeof contents === "string" ? contents : new TextDecoder("utf-8").decode(await ensureUint8Array(contents));
     await writeTextFile(normalized, text);
     return;
   }
