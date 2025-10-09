@@ -26,8 +26,15 @@ export interface PluginTinyUiWindowProps {
   pluginWindow: PluginDesktopWindowDescriptor;
 }
 
-const serviceWorkerUrl = `${import.meta.env.BASE_URL}sw.js`;
-const runtimeUrl = `${import.meta.env.BASE_URL}tiny-ui/runtime.html`;
+const buildAssetUrl = (path: string) => {
+  const baseUrl = import.meta.env.BASE_URL || "/";
+  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
+  const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
+  return `${normalizedBase}${normalizedPath}`;
+};
+
+const serviceWorkerUrl = buildAssetUrl("sw.js");
+const runtimeUrl = buildAssetUrl("tiny-ui/runtime.html");
 
 const buildPluginRoot = (pluginsRoot: string, pluginId: string) => {
   const normalized = pluginsRoot.replace(/\/+$/, "");
