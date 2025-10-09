@@ -1,6 +1,6 @@
 import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
 import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
-import type { McpServerConfig } from "@/state/types";
+import type { McpServerConfig, ThemePreference } from "@/state/types";
 import {
   Alert,
   Box,
@@ -16,13 +16,13 @@ import {
   VStack,
   chakra,
   useBreakpointValue,
-  useColorMode,
 } from "@chakra-ui/react";
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useState } from "react";
 import { McpServerCard } from "./mcp-server-card";
 import { PluginSettings } from "./plugin-settings";
+import { applyThemePreference } from "@/theme/applyThemePreference";
 
 const TOOL_LABELS: Record<string, string> = {
   opfs_write_file: "Write file",
@@ -57,8 +57,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [showServerTokens, setShowServerTokens] = useState<Record<string, boolean>>({});
   const [savingSettings, setSavingSettings] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("kas");
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const { setColorMode } = useColorMode();
+  const [theme, setTheme] = useState<ThemePreference>("light");
+  const [initialTheme, setInitialTheme] = useState<ThemePreference>("light");
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
   useEffect(() => {
@@ -69,7 +69,10 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setBaseUrl(settings.baseUrl ?? "");
     setModel(settings.modelId || "gpt-5-mini");
     setApprovalTools(settings.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
-    setTheme(settings.theme ?? "light");
+
+    const nextTheme = settings.theme ?? "light";
+    setTheme(nextTheme);
+    setInitialTheme(nextTheme);
 
     const storedServers = settings.mcpServers;
     const effectiveServers = storedServers ?? [];
@@ -101,8 +104,26 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     });
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    applyThemePreference(theme);
+  }, [isOpen, theme]);
+
   const handleSectionChange = (sectionId: SettingsSectionId) => {
     setActiveSection(sectionId);
+  };
+
+  const handleThemeSelect = (nextTheme: ThemePreference) => {
+    if (nextTheme === theme) return;
+
+    setTheme(nextTheme);
+  };
+
+  const handleClose = () => {
+    setTheme(initialTheme);
+    applyThemePreference(initialTheme);
+    onClose();
   };
 
   const renderActiveSection = () => {
@@ -142,10 +163,20 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
             <Field.Root>
               <Field.Label>Theme</Field.Label>
               <HStack>
-                <Button variant={theme === "light" ? "solid" : "ghost"} size="sm" onClick={() => setTheme("light")}>
+                <Button
+                  variant={theme === "light" ? "solid" : "ghost"}
+                  size="sm"
+                  onClick={() => handleThemeSelect("light")}
+                  aria-pressed={theme === "light"}
+                >
                   Light
                 </Button>
-                <Button variant={theme === "dark" ? "solid" : "ghost"} size="sm" onClick={() => setTheme("dark")}>
+                <Button
+                  variant={theme === "dark" ? "solid" : "ghost"}
+                  size="sm"
+                  onClick={() => handleThemeSelect("dark")}
+                  aria-pressed={theme === "dark"}
+                >
                   Dark
                 </Button>
               </HStack>
@@ -301,14 +332,14 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         theme,
       });
 
-      setColorMode(theme);
+      setInitialTheme(theme);
     } finally {
       setSavingSettings(false);
     }
   };
 
   return (
-    <Dialog.Root size="lg" open={isOpen} onOpenChange={(e) => !e.open && onClose()} closeOnInteractOutside={false}>
+    <Dialog.Root size="lg" open={isOpen} onOpenChange={(e) => !e.open && handleClose()} closeOnInteractOutside={false}>
       <Dialog.Backdrop />
       <Dialog.Positioner>
         <Dialog.Content>

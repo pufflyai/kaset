@@ -1,5 +1,5 @@
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
-import type { WorkspaceState } from "./types";
+import type { ThemePreference, WorkspaceState } from "./types";
 
 export const DEFAULT_STATE: WorkspaceState = {
   version: "1.0",
@@ -22,6 +22,6 @@ export const DEFAULT_STATE: WorkspaceState = {
     approvalGatedTools: [...DEFAULT_APPROVAL_GATED_TOOLS],
     mcpServers: [],
     activeMcpServerIds: [],
-    theme: "light",
+    theme: "light" satisfies ThemePreference,
   },
 };

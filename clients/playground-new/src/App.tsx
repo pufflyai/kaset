@@ -1,4 +1,4 @@
-import { Box, Button, Flex, useBreakpointValue, useColorMode } from "@chakra-ui/react";
+import { Box, Button, Flex, useBreakpointValue } from "@chakra-ui/react";
 import { Allotment } from "allotment";
 import { useEffect, useState } from "react";
 import { ConversationHost } from "./components/ui/conversation-host";
@@ -8,11 +8,11 @@ import { Toaster } from "./components/ui/toaster";
 import { TopBar } from "./components/ui/top-bar";
 import { setupPlayground } from "./services/playground/setup";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
+import { applyThemePreference } from "./theme/applyThemePreference";
 
 export function App() {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
   const [mobilePane, setMobilePane] = useState<"conversation" | "desktop">("conversation");
-  const { colorMode, setColorMode } = useColorMode();
   const themePreference = useWorkspaceStore((state) => state.settings.theme ?? "light");
 
   useEffect(() => {
@@ -20,10 +20,8 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (colorMode !== themePreference) {
-      setColorMode(themePreference);
-    }
-  }, [colorMode, setColorMode, themePreference]);
+    applyThemePreference(themePreference);
+  }, [themePreference]);
 
   useEffect(() => {
     if (!isMobile) {
