@@ -1,6 +1,16 @@
 export const ROOT = "playground";
 export const PLUGIN_ROOT = `${ROOT}/plugins`;
 
+export const WALLPAPER_ROOT = `${ROOT}/wallpaper`;
+export const DESKTOP_WALLPAPER_FILE = `${WALLPAPER_ROOT}/desktop.txt`;
+
+const envDesktopBackgroundImage = import.meta.env.VITE_DESKTOP_BACKGROUND_IMAGE?.trim();
+
+export const DESKTOP_BACKGROUND_IMAGE_OVERRIDE =
+  envDesktopBackgroundImage && envDesktopBackgroundImage.length > 0
+    ? envDesktopBackgroundImage
+    : null;
+
 export const examplePrompts = [
   "What can you do?",
   "Add a button to the hello world plugin that makes confetti",

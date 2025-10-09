@@ -2,6 +2,11 @@ import { Box, Text } from "@chakra-ui/react";
 import * as LucideIcons from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFileContent } from "@pstdio/opfs-hooks";
+import {
+  DESKTOP_BACKGROUND_IMAGE_OVERRIDE,
+  DESKTOP_WALLPAPER_FILE,
+} from "@/constant";
 import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import { openDesktopApp } from "@/state/actions/desktop";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
@@ -124,6 +129,21 @@ export const Desktop = () => {
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
 
   const windows = useWorkspaceStore((state) => state.desktop.windows);
+  const { content: wallpaperContent } = useFileContent(DESKTOP_WALLPAPER_FILE);
+
+  const backgroundImage = useMemo(() => {
+    const override = DESKTOP_BACKGROUND_IMAGE_OVERRIDE?.trim();
+    if (override) return override;
+
+    const fromWallpaper = wallpaperContent.trim();
+    if (fromWallpaper.length === 0) return undefined;
+
+    if (fromWallpaper.startsWith("url(") || fromWallpaper.startsWith("URL(")) {
+      return fromWallpaper;
+    }
+
+    return `url(${fromWallpaper})`;
+  }, [wallpaperContent]);
 
   useEffect(() => {
     const unsubscribe = subscribeToPluginDesktopSurfaces((surfaces) => {
@@ -205,7 +225,17 @@ export const Desktop = () => {
   }, [containerSize]);
 
   return (
-    <Box ref={containerRef} position="relative" height="100%" width="100%" overflow="hidden">
+    <Box
+      ref={containerRef}
+      position="relative"
+      height="100%"
+      width="100%"
+      overflow="hidden"
+      backgroundImage={backgroundImage}
+      backgroundSize={backgroundImage ? "cover" : undefined}
+      backgroundPosition={backgroundImage ? "center" : undefined}
+      backgroundRepeat={backgroundImage ? "no-repeat" : undefined}
+    >
       <Box
         position="absolute"
         inset="0"
