@@ -71,49 +71,52 @@ export function ConversationHost() {
     };
   }, []);
 
-  const handleSendMessage = useCallback(async (text: string) => {
-    const conversationId = getSelectedConversationId();
-    const conversation = getConversation(conversationId);
+  const handleSendMessage = useCallback(
+    async (text: string) => {
+      const conversationId = getSelectedConversationId();
+      const conversation = getConversation(conversationId);
 
-    if (!conversationId || !conversation) return;
+      if (!conversationId || !conversation) return;
 
-    const userMessage: Message = {
-      id: shortUID(),
-      role: "user",
-      parts: [{ type: "text", text }],
-    };
-
-    const current = getConversationMessages(conversationId);
-    const base = [...current, userMessage];
-
-    setConversationMessages(conversationId, base, "conversations/send/user");
-
-    try {
-      setStreaming(true);
-      for await (const updated of sendMessage(conversationId, base, toolset)) {
-        if (!conversationId) continue;
-        setConversationMessages(conversationId, updated, "conversations/send/assistant");
-      }
-    } catch (err) {
-      const assistantError: Message = {
+      const userMessage: Message = {
         id: shortUID(),
-        role: "assistant",
-        parts: [
-          {
-            type: "text",
-            text: `Sorry, I couldn't process that. ${err instanceof Error ? err.message : String(err)}`,
-          },
-        ],
+        role: "user",
+        parts: [{ type: "text", text }],
       };
 
-      const id = getSelectedConversationId();
-      if (id) {
-        appendConversationMessages(id, [assistantError], "conversations/send/error");
+      const current = getConversationMessages(conversationId);
+      const base = [...current, userMessage];
+
+      setConversationMessages(conversationId, base, "conversations/send/user");
+
+      try {
+        setStreaming(true);
+        for await (const updated of sendMessage(conversationId, base, toolset)) {
+          if (!conversationId) continue;
+          setConversationMessages(conversationId, updated, "conversations/send/assistant");
+        }
+      } catch (err) {
+        const assistantError: Message = {
+          id: shortUID(),
+          role: "assistant",
+          parts: [
+            {
+              type: "text",
+              text: `Sorry, I couldn't process that. ${err instanceof Error ? err.message : String(err)}`,
+            },
+          ],
+        };
+
+        const id = getSelectedConversationId();
+        if (id) {
+          appendConversationMessages(id, [assistantError], "conversations/send/error");
+        }
+      } finally {
+        setStreaming(false);
       }
-    } finally {
-      setStreaming(false);
-    }
-  }, [toolset]);
+    },
+    [toolset],
+  );
 
   const handleSelectFile = useCallback((_: string) => {}, []);
 
