@@ -1,6 +1,6 @@
 import { Box, Text, chakra } from "@chakra-ui/react";
 import { AppWindowMac } from "lucide-react";
-import DynamicIcon from "lucide-react/dist/esm/DynamicIcon";
+import { DynamicIcon } from "lucide-react/dynamic";
 import type { KeyboardEvent, MouseEvent } from "react";
 import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
 

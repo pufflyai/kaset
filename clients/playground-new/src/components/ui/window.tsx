@@ -1,6 +1,6 @@
 import { Box, Flex, HStack, IconButton, Text } from "@chakra-ui/react";
 import { Minimize2, Square, X, AppWindowMac } from "lucide-react";
-import DynamicIcon from "lucide-react/dist/esm/DynamicIcon";
+import { DynamicIcon } from "lucide-react/dynamic";
 import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
 import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
 import { memo, useEffect, useRef, useState } from "react";
