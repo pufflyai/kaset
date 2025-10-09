@@ -1,4 +1,3 @@
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 interface HelloWorldAppProps {
@@ -46,15 +45,9 @@ export function mount(container: Element | null, _context?: unknown, options: Mo
 
   const subtitle = options.subtitle ?? "<This is a blank plugin. Ask Kas to modify and extend it.>";
 
-  root.render(
-    <StrictMode>
-      <HelloWorldApp title={title} subtitle={subtitle} />
-    </StrictMode>,
-  );
+  root.render(<HelloWorldApp title={title} subtitle={subtitle} />);
 
   return () => {
     root.unmount();
   };
 }
-
-export default HelloWorldApp;
