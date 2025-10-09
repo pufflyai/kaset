@@ -69,6 +69,7 @@ export interface WorkspaceSettings {
   approvalGatedTools?: string[];
   mcpServers: McpServerConfig[];
   activeMcpServerIds?: string[];
+  theme: "light" | "dark";
 }
 
 export interface WorkspaceState {

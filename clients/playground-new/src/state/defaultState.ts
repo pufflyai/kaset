@@ -22,5 +22,6 @@ export const DEFAULT_STATE: WorkspaceState = {
     approvalGatedTools: [...DEFAULT_APPROVAL_GATED_TOOLS],
     mcpServers: [],
     activeMcpServerIds: [],
+    theme: "light",
   },
 };

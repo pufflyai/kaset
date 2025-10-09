@@ -16,6 +16,7 @@ import {
   VStack,
   chakra,
   useBreakpointValue,
+  useColorMode,
 } from "@chakra-ui/react";
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
@@ -31,10 +32,11 @@ const TOOL_LABELS: Record<string, string> = {
   opfs_move_file: "Move file",
 };
 
-type SettingsSectionId = "kas" | "permissions" | "mcp" | "plugins";
+type SettingsSectionId = "kas" | "display" | "permissions" | "mcp" | "plugins";
 
 const SETTINGS_SECTIONS: Array<{ id: SettingsSectionId; label: string }> = [
   { id: "kas", label: "Kas" },
+  { id: "display", label: "Display" },
   { id: "permissions", label: "Permissions" },
   { id: "mcp", label: "MCP" },
   { id: "plugins", label: "Plugins" },
@@ -55,6 +57,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [showServerTokens, setShowServerTokens] = useState<Record<string, boolean>>({});
   const [savingSettings, setSavingSettings] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("kas");
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const { setColorMode } = useColorMode();
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
   useEffect(() => {
@@ -65,6 +69,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setBaseUrl(settings.baseUrl ?? "");
     setModel(settings.modelId || "gpt-5-mini");
     setApprovalTools(settings.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
+    setTheme(settings.theme ?? "light");
 
     const storedServers = settings.mcpServers;
     const effectiveServers = storedServers ?? [];
@@ -128,6 +133,22 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                 value={baseUrl}
                 onChange={(e) => setBaseUrl(e.target.value)}
               />
+            </Field.Root>
+          </VStack>
+        );
+      case "display":
+        return (
+          <VStack align="stretch" gap="md">
+            <Field.Root>
+              <Field.Label>Theme</Field.Label>
+              <HStack>
+                <Button variant={theme === "light" ? "solid" : "ghost"} size="sm" onClick={() => setTheme("light")}>
+                  Light
+                </Button>
+                <Button variant={theme === "dark" ? "solid" : "ghost"} size="sm" onClick={() => setTheme("dark")}>
+                  Dark
+                </Button>
+              </HStack>
             </Field.Root>
           </VStack>
         );
@@ -277,7 +298,10 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         approvalGatedTools: [...approvalTools],
         mcpServers: sanitizedServers.map((server) => ({ ...server })),
         activeMcpServerIds: nextActiveIds,
+        theme,
       });
+
+      setColorMode(theme);
     } finally {
       setSavingSettings(false);
     }
