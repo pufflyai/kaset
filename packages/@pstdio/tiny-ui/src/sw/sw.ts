@@ -3,11 +3,15 @@
 // KEEP IN SYNC with packages/@pstdio/tiny-ui/vite.config.ts
 const CACHE_NAME_PREFIX = "tiny-ui-";
 const CACHE_NAME = "tiny-ui-bundles-v1";
-const RUNTIME_HTML_PATH = "/tiny-ui/runtime.html";
-const VIRTUAL_PREFIX = "/virtual/";
-// -----------------------------
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
+
+const scopePath = new URL(sw.registration.scope).pathname;
+const basePath = scopePath.endsWith("/") ? scopePath : `${scopePath}/`;
+
+const RUNTIME_HTML_PATH = `${basePath}tiny-ui/runtime.html`;
+const VIRTUAL_PREFIX = `${basePath}virtual/`;
+// -----------------------------
 
 const shouldHandleFetch = (request: Request) => {
   if (request.method !== "GET") return false;
