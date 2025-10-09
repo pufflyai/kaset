@@ -1,16 +1,16 @@
-import { Box, Text } from "@chakra-ui/react";
-import * as LucideIcons from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
-import { openDesktopApp } from "@/state/actions/desktop";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import type { DesktopApp, Size } from "@/state/types";
 import {
   ensurePluginHost,
   subscribeToPluginDesktopSurfaces,
   type PluginDesktopSurface,
 } from "@/services/plugins/plugin-host";
+import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
+import { openDesktopApp } from "@/state/actions/desktop";
+import type { DesktopApp, Size } from "@/state/types";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import { Box, Text } from "@chakra-ui/react";
+import type { LucideIcon } from "lucide-react";
+import * as LucideIcons from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DesktopIcon } from "./desktop-icon";
 import { WindowHost } from "./window-host";
 
@@ -89,7 +89,14 @@ const renderSurfaceWindow = (surface: PluginDesktopSurface, windowId: string) =>
     );
   }
 
-  return <PluginTinyUiWindow pluginId={surface.pluginId} instanceId={windowId} window={descriptor} />;
+  return (
+    <PluginTinyUiWindow
+      pluginId={surface.pluginId}
+      pluginWindow={descriptor}
+      surfaceId={surface.surfaceId}
+      instanceId={windowId}
+    />
+  );
 };
 
 const createDesktopAppFromSurface = (surface: PluginDesktopSurface): DesktopApp => {
@@ -214,8 +221,8 @@ export const Desktop = () => {
         gap="xl"
         alignContent="start"
         justifyContent="start"
-        justifyItems="start"
-        gridTemplateColumns="repeat(auto-fit, minmax(8rem, max-content))"
+        justifyItems="center"
+        gridTemplateColumns="repeat(auto-fit, minmax(5rem, max-content))"
       >
         {apps.map((app) => (
           <DesktopIcon

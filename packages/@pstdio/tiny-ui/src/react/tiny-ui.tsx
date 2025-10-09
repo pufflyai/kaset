@@ -1,16 +1,21 @@
 import React, { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
 import { RUNTIME_HTML_PATH } from "../constant";
-import { getCachedBundle } from "../core/cache-manifest";
 import { registerSources } from "../core/sources";
 import { compile } from "../esbuild/compile";
 import type { CompileResult } from "../esbuild/types";
 import { createIframeOps, type CreateIframeOpsOptions } from "../runtime/createIframeOps";
+import { createTinyUITimer } from "./createTinyUITimer";
 import { TinyUIStatus } from "./types";
 import { useComms } from "./useComms";
 import { useCompile, useServiceWorker } from "./useServiceWorker";
 
+const DEFAULT_ESBUILD_WASM_URL = "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm";
+
 export interface TinyUIProps {
-  id: string;
+  title?: string;
+  instanceId: string;
+  sourceId?: string;
+  skipCache?: boolean;
   root: string;
   serviceWorkerUrl: string;
   autoCompile?: boolean;
@@ -26,11 +31,12 @@ export interface TinyUIHandle {
   rebuild(): Promise<void>;
 }
 
-const DEFAULT_ESBUILD_WASM_URL = "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm";
-
 export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(props, ref) {
   const {
-    id,
+    instanceId,
+    title = "TinyUI",
+    sourceId = instanceId,
+    skipCache = false,
     root,
     serviceWorkerUrl,
     runtimeUrl,
@@ -43,34 +49,50 @@ export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(prop
   } = props;
 
   const resultRef = useRef<CompileResult | null>(null);
-  const { iframeRef, getHost } = useComms({ id, onReady, onError, resultRef, onStatusChange });
+  const { iframeRef, getHost } = useComms({ id: instanceId, onReady, onError, resultRef, onStatusChange });
 
   const compileAndInit = useCallback(
     async (forceRecompile: boolean) => {
-      registerSources([{ id, root }]);
+      const timing = createTinyUITimer(`${sourceId}:${forceRecompile ? "rebuild" : "init"}`);
 
-      let cached: CompileResult | null = null;
-      if (!forceRecompile) {
-        cached = await getCachedBundle(id);
+      try {
+        await timing.withTiming("registerSources", () => {
+          registerSources([{ id: sourceId, root }]);
+        });
+
+        const host = await timing.withTiming("getHost", () => getHost());
+
+        if (bridge) {
+          await timing.withTiming("registerBridgeOps", () => {
+            host.onOps(createIframeOps(bridge));
+          });
+        }
+
+        let statusSet = false;
+        const shouldSkipCache = forceRecompile || skipCache;
+
+        if (shouldSkipCache) {
+          onStatusChange?.("compiling");
+          statusSet = true;
+        }
+
+        const result = await timing.withTiming("compile", () =>
+          compile(sourceId, { wasmURL: DEFAULT_ESBUILD_WASM_URL, skipCache: shouldSkipCache }),
+        );
+
+        if (!result.fromCache && !statusSet) {
+          onStatusChange?.("compiling");
+          statusSet = true;
+        }
+
+        resultRef.current = result;
+
+        await timing.withTiming("sendInit", () => host.sendInit(result));
+      } finally {
+        timing.mark?.("total");
       }
-
-      const host = await getHost();
-      if (bridge) {
-        host.onOps(createIframeOps(bridge));
-      }
-
-      if (cached) {
-        resultRef.current = cached;
-        await host.sendInit(cached);
-        return;
-      }
-
-      onStatusChange?.("compiling");
-      const result = await compile(id, { wasmURL: DEFAULT_ESBUILD_WASM_URL, skipCache: forceRecompile });
-      resultRef.current = result;
-      await host.sendInit(result);
     },
-    [bridge, getHost, id, onStatusChange, root],
+    [bridge, sourceId, getHost, onStatusChange, root, skipCache],
   );
 
   const runInitialCompile = useCallback(() => compileAndInit(false), [compileAndInit]);
@@ -103,11 +125,9 @@ export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(prop
     <div style={style}>
       <iframe
         ref={iframeRef}
-        title={`${id}-runtime`}
+        title={title}
         src={runtimePath}
         style={{ flex: 1, width: "100%", height: "100%", border: 0, borderRadius: 8 }}
-        sandbox="allow-scripts allow-same-origin"
-        allow="clipboard-read; clipboard-write"
       />
     </div>
   );
