@@ -34,6 +34,8 @@ const sanitizeEntry = (entry: string) => {
   return segments.join("/");
 };
 
+const serviceWorkerUrl = `${import.meta.env.BASE_URL}sw.js`;
+
 const applyLockfile = (dependencies: Record<string, string>) => {
   const current = getLockfile() ?? {};
   setLockfile({
@@ -167,7 +169,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         root={sourceRoot}
         id={`${pluginId}:${instanceId}`}
         autoCompile
-        serviceWorkerUrl={"/sw.js"}
+        serviceWorkerUrl={serviceWorkerUrl}
         onError={(tinyError) => {
           setError(tinyError.message);
           setStatus("error");

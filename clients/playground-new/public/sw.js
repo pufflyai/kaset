@@ -1,8 +1,10 @@
 const u = "tiny-ui-",
   l = "tiny-ui-bundles-v1",
-  c = "/tiny-ui/runtime.html",
-  h = "/virtual/",
   r = self,
+  scopePath = new URL(r.registration.scope).pathname,
+  basePath = scopePath.endsWith("/") ? scopePath : `${scopePath}/`,
+  c = `${basePath}tiny-ui/runtime.html`,
+  h = `${basePath}virtual/`,
   d = (t) => {
     if (t.method !== "GET") return !1;
     const e = new URL(t.url);
