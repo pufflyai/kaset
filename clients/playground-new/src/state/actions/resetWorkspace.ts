@@ -1,4 +1,3 @@
-import { DEFAULT_STATE } from "../defaultState";
 import { useWorkspaceStore } from "../WorkspaceProvider";
 import { getDefaultConversationState } from "./getDefaultConversationState";
 
@@ -14,7 +13,6 @@ export const resetWorkspace = () => {
       }
 
       state.desktop.windows = [];
-      state.desktop.nextZIndex = DEFAULT_STATE.desktop.nextZIndex;
     },
     false,
     "workspace/reset",
