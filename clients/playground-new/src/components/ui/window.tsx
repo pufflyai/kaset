@@ -99,7 +99,7 @@ interface WindowProps {
   snapEnabled: boolean;
 }
 
-export const Window = (props: WindowProps) => {
+const WindowComponent = (props: WindowProps) => {
   const {
     window,
     app,
@@ -330,3 +330,24 @@ export const Window = (props: WindowProps) => {
     </Rnd>
   );
 };
+
+export const Window = memo(
+  WindowComponent,
+  (prev, next) => {
+    if (prev.window !== next.window) return false;
+    if (prev.app !== next.app) return false;
+    if (prev.isFocused !== next.isFocused) return false;
+    if (prev.snapEnabled !== next.snapEnabled) return false;
+    if (prev.containerSize !== next.containerSize) {
+      if (!prev.containerSize || !next.containerSize) return false;
+      if (
+        prev.containerSize.width !== next.containerSize.width ||
+        prev.containerSize.height !== next.containerSize.height
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  },
+);
