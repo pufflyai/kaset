@@ -47,6 +47,7 @@ export interface DesktopWindow {
 export interface DesktopState {
   windows: DesktopWindow[];
   nextZIndex: number;
+  focusedWindowId: string | null;
 }
 
 export interface Conversation {

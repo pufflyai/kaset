@@ -14,6 +14,7 @@ export const DEFAULT_STATE: WorkspaceState = {
   desktop: {
     windows: [],
     nextZIndex: 1,
+    focusedWindowId: null,
   },
   settings: {
     modelId: "gpt-5-mini",

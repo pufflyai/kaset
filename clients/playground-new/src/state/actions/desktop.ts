@@ -13,6 +13,19 @@ const bringToFront = (window: DesktopWindow, nextZIndex: number) => {
   window.zIndex = nextZIndex;
 };
 
+const selectTopWindowId = (windows: DesktopWindow[]) => {
+  let candidate: DesktopWindow | undefined;
+
+  windows.forEach((window) => {
+    if (window.isMinimized) return;
+    if (!candidate || window.zIndex > candidate.zIndex) {
+      candidate = window;
+    }
+  });
+
+  return candidate?.id ?? null;
+};
+
 const cloneBounds = (position: Position, size: Size) => ({
   position: clonePosition(position),
   size: cloneSize(size),
@@ -28,6 +41,7 @@ export const openDesktopApp = (app: DesktopApp) => {
       if (existing) {
         bringToFront(existing, desktop.nextZIndex);
         desktop.nextZIndex += 1;
+        desktop.focusedWindowId = existing.id;
         return;
       }
 
@@ -50,6 +64,7 @@ export const openDesktopApp = (app: DesktopApp) => {
       });
 
       desktop.nextZIndex += 1;
+      desktop.focusedWindowId = windowId;
     },
     false,
     "desktop/open-app",
@@ -64,6 +79,7 @@ export const focusDesktopWindow = (windowId: string) => {
 
       bringToFront(target, state.desktop.nextZIndex);
       state.desktop.nextZIndex += 1;
+      state.desktop.focusedWindowId = windowId;
     },
     false,
     "desktop/focus-window",
@@ -81,6 +97,7 @@ export const closeDesktopWindow = (windowId: string) => {
 
       const highestZ = windows.reduce((max, window) => (window.zIndex > max ? window.zIndex : max), 0);
       state.desktop.nextZIndex = Math.max(1, highestZ + 1);
+      state.desktop.focusedWindowId = selectTopWindowId(windows);
     },
     false,
     "desktop/close-window",
@@ -94,6 +111,9 @@ export const minimizeDesktopWindow = (windowId: string) => {
       if (!target) return;
 
       target.isMinimized = true;
+      if (state.desktop.focusedWindowId === windowId) {
+        state.desktop.focusedWindowId = selectTopWindowId(state.desktop.windows);
+      }
     },
     false,
     "desktop/minimize-window",
@@ -121,6 +141,7 @@ export const toggleDesktopWindowMaximize = (windowId: string, container?: Size) 
         }
         target.zIndex = nextZIndex;
         state.desktop.nextZIndex += 1;
+        state.desktop.focusedWindowId = windowId;
         return;
       }
 
@@ -134,6 +155,7 @@ export const toggleDesktopWindowMaximize = (windowId: string, container?: Size) 
       }
       target.zIndex = nextZIndex;
       state.desktop.nextZIndex += 1;
+      state.desktop.focusedWindowId = windowId;
     },
     false,
     "desktop/toggle-maximize",
@@ -186,6 +208,7 @@ export const applyDesktopWindowSnap = (
       target.size = cloneSize(options.size);
       target.snapRestore = cloneBounds(options.restore.position, options.restore.size);
       target.snapSide = options.side;
+      state.desktop.focusedWindowId = windowId;
     },
     false,
     "desktop/apply-snap",
@@ -203,6 +226,7 @@ export const releaseDesktopWindowSnap = (windowId: string) => {
       target.size = cloneSize(restore.size);
       target.snapRestore = undefined;
       target.snapSide = undefined;
+      state.desktop.focusedWindowId = windowId;
     },
     false,
     "desktop/release-snap",
@@ -215,6 +239,7 @@ export const showDesktopWindows = () => {
       state.desktop.windows.forEach((window) => {
         window.isMinimized = true;
       });
+      state.desktop.focusedWindowId = selectTopWindowId(state.desktop.windows);
     },
     false,
     "desktop/show",
@@ -231,6 +256,7 @@ export const restoreAllDesktopWindows = () => {
         window.snapRestore = undefined;
         window.snapSide = undefined;
       });
+      state.desktop.focusedWindowId = selectTopWindowId(state.desktop.windows);
     },
     false,
     "desktop/restore-all",
