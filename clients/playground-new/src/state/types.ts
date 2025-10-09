@@ -62,6 +62,8 @@ export interface McpServerConfig {
   accessToken?: string;
 }
 
+export type ThemePreference = "light" | "dark";
+
 export interface WorkspaceSettings {
   modelId: string;
   apiKey?: string;
@@ -69,6 +71,7 @@ export interface WorkspaceSettings {
   approvalGatedTools?: string[];
   mcpServers: McpServerConfig[];
   activeMcpServerIds?: string[];
+  theme?: ThemePreference;
 }
 
 export interface WorkspaceState {
