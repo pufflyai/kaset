@@ -107,7 +107,7 @@ export function readFile(path: string, options: ReadFileOptions & { encoding: nu
 export function readFile(path: string, options?: ReadFileOptions): Promise<string | Uint8Array>;
 export async function readFile(path: string, options?: ReadFileOptions): Promise<string | Uint8Array> {
   const normalized = normalizeRelPath(path);
-  const encoding = options?.encoding ?? "utf8";
+  const encoding = options?.encoding === undefined ? "utf8" : options.encoding;
 
   if (encoding === null) {
     const bytes = await readBinaryFileOptional(normalized);
@@ -142,7 +142,8 @@ export async function writeFile(
   options?: WriteFileOptions,
 ): Promise<void> {
   const normalized = normalizeRelPath(path);
-  const encoding = options?.encoding ?? (typeof contents === "string" ? "utf8" : null);
+  const encoding =
+    options?.encoding === undefined ? (typeof contents === "string" ? "utf8" : null) : options.encoding;
 
   if (encoding === null) {
     const bytes = typeof contents === "string" ? new TextEncoder().encode(contents) : await ensureUint8Array(contents);
