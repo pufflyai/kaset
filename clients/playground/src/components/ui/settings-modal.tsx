@@ -32,7 +32,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
 
   const [apiKey, setApiKey] = useState<string>("");
   const [baseUrl, setBaseUrl] = useState<string>("");
-  const [model, setModel] = useState<string>("gpt-5-mini");
+  const [model, setModel] = useState<string>("gpt-5");
   const [showKey, setShowKey] = useState<boolean>(false);
   const [approvalTools, setApprovalTools] = useState<string[]>([...DEFAULT_APPROVAL_GATED_TOOLS]);
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
@@ -45,7 +45,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     const snapshot = useWorkspaceStore.getState();
     setApiKey(snapshot.apiKey ?? "");
     setBaseUrl(snapshot.baseUrl ?? "");
-    setModel(snapshot.modelId || "gpt-5-mini");
+    setModel(snapshot.modelId || "gpt-5");
     setApprovalTools(snapshot.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
 
     const storedServers = Array.isArray(snapshot.mcpServers) ? snapshot.mcpServers : undefined;
@@ -148,7 +148,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
       (state) => {
         state.apiKey = apiKey || undefined;
         state.baseUrl = baseUrl || undefined;
-        state.modelId = model || "gpt-5-mini";
+        state.modelId = model || "gpt-5";
         state.approvalGatedTools = [...approvalTools];
         state.mcpServers = sanitizedServers.map((server) => ({ ...server }));
         state.activeMcpServerIds = nextActiveIds.length > 0 ? [...nextActiveIds] : [];
@@ -189,7 +189,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
               </Alert.Root>
               <Field.Root>
                 <Field.Label>Model</Field.Label>
-                <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
+                <Input placeholder="gpt-5" value={model} onChange={(e) => setModel(e.target.value)} />
               </Field.Root>
               <Field.Root>
                 <Field.Label>API Key</Field.Label>
