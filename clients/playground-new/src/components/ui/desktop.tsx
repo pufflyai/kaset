@@ -5,51 +5,15 @@ import {
 } from "@/services/plugins/plugin-host";
 import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import { openDesktopApp } from "@/state/actions/desktop";
-import type { DesktopApp, Size } from "@/state/types";
+import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { Box, Text } from "@chakra-ui/react";
-import type { LucideIcon } from "lucide-react";
-import * as LucideIcons from "lucide-react";
+import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DesktopIcon } from "./desktop-icon";
 import { WindowHost } from "./window-host";
 
-const FALLBACK_ICON: LucideIcon =
-  (LucideIcons.ListTodoIcon as LucideIcon | undefined) ??
-  (LucideIcons.AppWindow as LucideIcon | undefined) ??
-  (LucideIcons.Square as LucideIcon | undefined) ??
-  (LucideIcons.Box as LucideIcon | undefined) ??
-  (LucideIcons.Circle as LucideIcon | undefined) ??
-  ((() => null) as unknown as LucideIcon);
-
-const ICON_CACHE = new Map<string, LucideIcon>();
-
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
-
-const resolveIcon = (iconName?: string): LucideIcon => {
-  if (!iconName) return FALLBACK_ICON!;
-
-  const cached = ICON_CACHE.get(iconName);
-  if (cached) return cached;
-
-  const source = (LucideIcons as Record<string, unknown>)[iconName];
-  if (typeof source === "function") {
-    const icon = source as LucideIcon;
-    ICON_CACHE.set(iconName, icon);
-    return icon;
-  }
-
-  const alternativeName = `${iconName}Icon`;
-  const altSource = (LucideIcons as Record<string, unknown>)[alternativeName];
-  if (typeof altSource === "function") {
-    const icon = altSource as LucideIcon;
-    ICON_CACHE.set(iconName, icon);
-    return icon;
-  }
-
-  ICON_CACHE.set(iconName, FALLBACK_ICON!);
-  return FALLBACK_ICON!;
-};
 
 const normalizeSize = (
   value: { width: number; height: number } | undefined,
@@ -100,7 +64,7 @@ const renderSurfaceWindow = (surface: PluginDesktopSurface, windowId: string) =>
 };
 
 const createDesktopAppFromSurface = (surface: PluginDesktopSurface): DesktopApp => {
-  const icon = resolveIcon(surface.icon);
+  const icon = (surface.icon as IconName | undefined) ?? DEFAULT_DESKTOP_APP_ICON;
   const defaultSize = normalizeSize(surface.defaultSize, DEFAULT_WINDOW_SIZE);
   const defaultPosition = normalizePosition(surface.defaultPosition);
   const description = surface.description ?? `Surface provided by ${surface.pluginId}`;
