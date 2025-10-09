@@ -21,7 +21,7 @@
     "desktop": {
       "title": "Todo",
       "description": "Manage todo lists stored in OPFS.",
-      "icon": "ListTodo",
+      "icon": "list-todo",
       "singleton": true,
       "defaultSize": {
         "width": 840,

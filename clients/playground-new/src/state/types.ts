@@ -1,5 +1,4 @@
 import type { Message } from "@/types";
-import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 export interface Size {
@@ -12,10 +11,12 @@ export interface Position {
   y: number;
 }
 
+export const DEFAULT_DESKTOP_APP_ICON = "app-window-mac";
+
 export interface DesktopApp {
   id: string;
   title: string;
-  icon: LucideIcon;
+  icon: string;
   description: string;
   defaultSize: Size;
   singleton?: boolean;

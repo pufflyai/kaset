@@ -50,7 +50,7 @@
     "desktop": {
       "title": "Hello Kaset",
       "description": "A simple Hello Kaset plugin.",
-      "icon": "Plug",
+      "icon": "plug",
       "singleton": true,
       "defaultSize": {
         "width": 840,

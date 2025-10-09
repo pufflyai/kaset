@@ -1,9 +1,11 @@
 import { Box, Text, chakra } from "@chakra-ui/react";
-import type { LucideIcon } from "lucide-react";
+import { AppWindowMac } from "lucide-react";
+import DynamicIcon from "lucide-react/dist/esm/DynamicIcon";
 import type { KeyboardEvent, MouseEvent } from "react";
+import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
 
 interface DesktopIconProps {
-  icon: LucideIcon;
+  icon?: string;
   label: string;
   isSelected?: boolean;
   tabIndex?: number;
@@ -16,7 +18,7 @@ interface DesktopIconProps {
 const DesktopIconRoot = chakra.button;
 
 export const DesktopIcon = (props: DesktopIconProps) => {
-  const { icon: IconComponent, label, isSelected, tabIndex = 0, onSelect, onOpen, onFocus, onContextMenu } = props;
+  const { icon: iconName, label, isSelected, tabIndex = 0, onSelect, onOpen, onFocus, onContextMenu } = props;
 
   const labelStyles = {
     color: { base: "foreground.primary", _dark: "foreground.inverse" },
@@ -65,7 +67,11 @@ export const DesktopIcon = (props: DesktopIconProps) => {
         height="3rem"
         borderRadius="md"
       >
-        <IconComponent size={24} />
+        <DynamicIcon
+          name={iconName ?? DEFAULT_DESKTOP_APP_ICON}
+          size={24}
+          fallback={() => <AppWindowMac size={24} />}
+        />
       </Box>
       <Text
         textStyle="label/S/medium"
