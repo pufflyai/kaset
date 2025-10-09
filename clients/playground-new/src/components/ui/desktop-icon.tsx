@@ -21,13 +21,6 @@ export const DesktopIcon = (props: DesktopIconProps) => {
   const labelStyles = {
     color: { base: "foreground.primary", _dark: "foreground.inverse" },
     bg: { base: "rgba(255, 255, 255, 0.86)", _dark: "rgba(17, 17, 27, 0.72)" },
-    textShadow: "var(--shadow-desktop-icon-label)",
-  } as const;
-
-  const selectedLabelStyles = {
-    color: { base: "blue.700", _dark: "blue.100" },
-    bg: { base: "rgba(59, 130, 246, 0.2)", _dark: "rgba(59, 130, 246, 0.42)" },
-    textShadow: "var(--shadow-desktop-icon-label-selected)",
   } as const;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
@@ -40,16 +33,17 @@ export const DesktopIcon = (props: DesktopIconProps) => {
 
   return (
     <DesktopIconRoot
+      className="group"
       type="button"
       display="flex"
       flexDirection="column"
       alignItems="center"
-      gap="xs"
-      width="8rem"
+      gap="2xs"
+      maxWidth="5rem"
       cursor="pointer"
       position="relative"
       transition="transform 120ms ease, filter 120ms ease"
-      _hover={{ transform: "translateY(-2px)", filter: "brightness(1.05)" }}
+      _hover={{ transform: "translateY(-2px)" }}
       _focusVisible={{ boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.6)" }}
       data-selected={isSelected ? "true" : undefined}
       tabIndex={tabIndex}
@@ -63,8 +57,7 @@ export const DesktopIcon = (props: DesktopIconProps) => {
       onContextMenu={onContextMenu}
     >
       <Box
-        background="background.secondary"
-        border="1px solid"
+        _groupHover={{ background: "background.secondary" }}
         display="flex"
         alignItems="center"
         justifyContent="center"
@@ -72,17 +65,16 @@ export const DesktopIcon = (props: DesktopIconProps) => {
         height="3rem"
         borderRadius="md"
       >
-        <IconComponent size={18} />
+        <IconComponent size={24} />
       </Box>
       <Text
-        textStyle="label/M/medium"
-        color={isSelected ? selectedLabelStyles.color : labelStyles.color}
+        textStyle="label/S/medium"
+        color={labelStyles.color}
         textAlign="center"
-        px="xs"
-        py="2xs"
-        borderRadius="sm"
-        bg={isSelected ? selectedLabelStyles.bg : labelStyles.bg}
-        textShadow={isSelected ? selectedLabelStyles.textShadow : labelStyles.textShadow}
+        px="2xs"
+        paddingTop="1px"
+        _groupHover={{ textDecoration: "underline" }}
+        bg={labelStyles.bg}
         maxWidth="100%"
         width="fit-content"
         mx="auto"
