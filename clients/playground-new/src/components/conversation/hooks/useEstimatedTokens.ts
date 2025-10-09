@@ -8,6 +8,7 @@ interface ConversationTokenCache {
   historySignatures: string[];
   runningTotals: number[];
   userContributionTotals: number[];
+  singleMessageBuffer: BaseMessage[];
 }
 
 function createTokenCache(): ConversationTokenCache {
@@ -16,11 +17,19 @@ function createTokenCache(): ConversationTokenCache {
     historySignatures: [],
     runningTotals: [],
     userContributionTotals: [],
+    singleMessageBuffer: new Array<BaseMessage>(1),
   };
 }
 
 function getMessageSignature(message: BaseMessage) {
   return JSON.stringify(message);
+}
+
+function countTokensForMessage(counter: TokenCounter, buffer: BaseMessage[], message: BaseMessage) {
+  buffer[0] = message;
+  const total = counter.count(buffer);
+  buffer.length = 0;
+  return total;
 }
 
 export function calculateConversationTokens(
@@ -30,7 +39,7 @@ export function calculateConversationTokens(
 ) {
   const history = toMessageHistory(messages);
 
-  const { counter, historySignatures, runningTotals, userContributionTotals } = cache;
+  const { counter, historySignatures, runningTotals, userContributionTotals, singleMessageBuffer } = cache;
 
   const historyLength = history.length;
 
@@ -39,7 +48,6 @@ export function calculateConversationTokens(
   while (prefixLength < maxPrefix) {
     const signature = getMessageSignature(history[prefixLength]);
     if (historySignatures[prefixLength] !== signature) break;
-    historySignatures[prefixLength] = signature;
     prefixLength += 1;
   }
 
@@ -51,7 +59,7 @@ export function calculateConversationTokens(
     const signature = getMessageSignature(message);
     historySignatures[index] = signature;
 
-    const messageTokens = counter.count([message]);
+    const messageTokens = countTokensForMessage(counter, singleMessageBuffer, message);
 
     runningTokenTotal += messageTokens;
     runningTotals[index] = runningTokenTotal;
@@ -74,7 +82,7 @@ export function calculateConversationTokens(
 
   if (trimmed) {
     const nextMessage = { role: "user", content: trimmed } as BaseMessage;
-    const nextTokens = counter.count([nextMessage]);
+    const nextTokens = countTokensForMessage(counter, singleMessageBuffer, nextMessage);
     finalTotal += baseRunningTotal + nextTokens;
   }
 
@@ -82,11 +90,11 @@ export function calculateConversationTokens(
 }
 
 export function useEstimatedTokens(messages: Message[], input: string) {
-  const cacheRef = useRef<ConversationTokenCache>();
+  const cacheRef = useRef<ConversationTokenCache | null>(null);
 
   if (!cacheRef.current) {
     cacheRef.current = createTokenCache();
   }
 
-  return useMemo(() => calculateConversationTokens(messages, input, cacheRef.current), [messages, input]);
+  return useMemo(() => calculateConversationTokens(messages, input, cacheRef.current!), [messages, input]);
 }
