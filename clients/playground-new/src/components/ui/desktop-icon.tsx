@@ -1,4 +1,4 @@
-import { Box, Text, chakra, useColorModeValue } from "@chakra-ui/react";
+import { Box, Text, chakra } from "@chakra-ui/react";
 import type { LucideIcon } from "lucide-react";
 import type { KeyboardEvent, MouseEvent } from "react";
 
@@ -16,14 +16,25 @@ interface DesktopIconProps {
 const DesktopIconRoot = chakra.button;
 
 export const DesktopIcon = (props: DesktopIconProps) => {
-  const { icon: IconComponent, label, tabIndex = 0, onSelect, onOpen, onFocus, onContextMenu } = props;
+  const { icon: IconComponent, label, isSelected, tabIndex = 0, onSelect, onOpen, onFocus, onContextMenu } = props;
 
-  const labelBackground = useColorModeValue("rgba(255, 255, 255, 0.85)", "rgba(0, 0, 0, 0.65)");
-  const labelColor = useColorModeValue("foreground.primary", "foreground.inverse");
-  const labelShadow = useColorModeValue(
-    "0 0 0 1px rgba(15, 15, 30, 0.1), 0 4px 8px rgba(15, 15, 30, 0.08)",
-    "0 0 0 1px rgba(255, 255, 255, 0.18), 0 4px 10px rgba(0, 0, 0, 0.35)"
-  );
+  const labelStyles = {
+    color: { base: "foreground.primary", _dark: "foreground.inverse" },
+    bg: { base: "rgba(255, 255, 255, 0.86)", _dark: "rgba(17, 17, 27, 0.72)" },
+    boxShadow: {
+      base: "0 0 0 1px rgba(17, 24, 39, 0.05), 0 6px 12px rgba(15, 23, 42, 0.12)",
+      _dark: "0 0 0 1px rgba(255, 255, 255, 0.16), 0 6px 14px rgba(2, 6, 23, 0.6)",
+    },
+  } as const;
+
+  const selectedLabelStyles = {
+    color: { base: "blue.700", _dark: "blue.100" },
+    bg: { base: "rgba(59, 130, 246, 0.2)", _dark: "rgba(59, 130, 246, 0.42)" },
+    boxShadow: {
+      base: "0 0 0 1px rgba(37, 99, 235, 0.24), 0 8px 18px rgba(37, 99, 235, 0.24)",
+      _dark: "0 0 0 1px rgba(96, 165, 250, 0.4), 0 10px 22px rgba(8, 15, 35, 0.7)",
+    },
+  } as const;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -42,6 +53,11 @@ export const DesktopIcon = (props: DesktopIconProps) => {
       gap="xs"
       width="8rem"
       cursor="pointer"
+      position="relative"
+      transition="transform 120ms ease, filter 120ms ease"
+      _hover={{ transform: "translateY(-2px)", filter: "brightness(1.05)" }}
+      _focusVisible={{ boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.6)" }}
+      data-selected={isSelected ? "true" : undefined}
       tabIndex={tabIndex}
       onClick={(event) => {
         event.preventDefault();
@@ -66,17 +82,19 @@ export const DesktopIcon = (props: DesktopIconProps) => {
       </Box>
       <Text
         textStyle="label/M/medium"
-        color={labelColor}
+        color={isSelected ? selectedLabelStyles.color : labelStyles.color}
         textAlign="center"
         px="xs"
         py="2xs"
         borderRadius="sm"
-        bg={labelBackground}
-        boxShadow={labelShadow}
+        bg={isSelected ? selectedLabelStyles.bg : labelStyles.bg}
+        boxShadow={isSelected ? selectedLabelStyles.boxShadow : labelStyles.boxShadow}
         maxWidth="100%"
         width="fit-content"
         mx="auto"
         wordBreak="break-word"
+        backdropFilter="blur(6px)"
+        transition="all 120ms ease"
       >
         {label}
       </Text>
