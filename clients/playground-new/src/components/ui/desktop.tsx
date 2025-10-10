@@ -12,6 +12,7 @@ import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DesktopIcon } from "./desktop-icon";
 import { WindowHost } from "./window-host";
+import { readFile } from "@pstdio/opfs-utils";
 
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
 
@@ -93,8 +94,10 @@ export const Desktop = () => {
   const [containerSize, setContainerSize] = useState<Size | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
 
   const windows = useWorkspaceStore((state) => state.desktop.windows);
+  const wallpaper = useWorkspaceStore((state) => state.settings.wallpaper);
 
   useEffect(() => {
     const unsubscribe = subscribeToPluginDesktopSurfaces((surfaces) => {
@@ -175,8 +178,48 @@ export const Desktop = () => {
     containerSizeRef.current = containerSize;
   }, [containerSize]);
 
+  useEffect(() => {
+    let objectUrl: string | null = null;
+
+    const loadWallpaper = async () => {
+      if (!wallpaper) {
+        setBackgroundImageUrl(null);
+        return;
+      }
+
+      try {
+        const fileData = await readFile(wallpaper, { encoding: null });
+
+        const blob = new Blob([fileData], { type: "image/png" });
+        objectUrl = URL.createObjectURL(blob);
+        setBackgroundImageUrl(objectUrl);
+      } catch (error) {
+        console.error("Failed to load wallpaper:", error);
+        setBackgroundImageUrl(null);
+      }
+    };
+
+    loadWallpaper();
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [wallpaper]);
+
   return (
-    <Box ref={containerRef} position="relative" height="100%" width="100%" overflow="hidden">
+    <Box
+      ref={containerRef}
+      position="relative"
+      height="100%"
+      width="100%"
+      overflow="hidden"
+      backgroundImage={backgroundImageUrl ? `url(${backgroundImageUrl})` : undefined}
+      backgroundSize="cover"
+      backgroundPosition="center"
+      backgroundRepeat="no-repeat"
+    >
       <Box
         position="absolute"
         inset="0"

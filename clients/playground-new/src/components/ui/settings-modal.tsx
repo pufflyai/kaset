@@ -23,6 +23,8 @@ import { useEffect, useState } from "react";
 import { McpServerCard } from "./mcp-server-card";
 import { PluginSettings } from "./plugin-settings";
 import { applyThemePreference } from "@/theme/applyThemePreference";
+import { ls } from "@pstdio/opfs-utils";
+import { ROOT } from "@/constant";
 
 const TOOL_LABELS: Record<string, string> = {
   opfs_write_file: "Write file",
@@ -59,6 +61,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("kas");
   const [theme, setTheme] = useState<ThemePreference>("light");
   const [initialTheme, setInitialTheme] = useState<ThemePreference>("light");
+  const [wallpapers, setWallpapers] = useState<string[]>([]);
+  const [selectedWallpaper, setSelectedWallpaper] = useState<string>("");
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
   useEffect(() => {
@@ -73,6 +77,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     const nextTheme = settings.theme ?? "light";
     setTheme(nextTheme);
     setInitialTheme(nextTheme);
+
+    setSelectedWallpaper(settings.wallpaper ?? "");
 
     const storedServers = settings.mcpServers;
     const effectiveServers = storedServers ?? [];
@@ -103,6 +109,29 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
       return next;
     });
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || activeSection !== "display") return;
+
+    const loadWallpapers = async () => {
+      try {
+        const wallpaperPath = `${ROOT}/wallpaper`;
+        const entries = await ls(wallpaperPath);
+
+        const imageFiles = entries
+          .filter((entry) => entry.type === "file")
+          .filter((entry) => /\.(png|jpe?g|gif|webp)$/i.test(entry.name))
+          .map((entry) => `${wallpaperPath}/${entry.name}`);
+
+        setWallpapers(imageFiles);
+      } catch (error) {
+        console.error("Failed to load wallpapers:", error);
+        setWallpapers([]);
+      }
+    };
+
+    loadWallpapers();
+  }, [isOpen, activeSection]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -180,6 +209,30 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                   Dark
                 </Button>
               </HStack>
+            </Field.Root>
+            <Field.Root>
+              <Field.Label>Desktop Wallpaper</Field.Label>
+              <chakra.select
+                value={selectedWallpaper}
+                onChange={(event) => setSelectedWallpaper(event.target.value)}
+                paddingY="xs"
+                paddingX="sm"
+                borderRadius="md"
+                borderWidth="1px"
+                width="100%"
+                color="foreground.primary"
+                bg="background.primary"
+              >
+                <option value="">None</option>
+                {wallpapers.map((wallpaper) => (
+                  <option key={wallpaper} value={wallpaper}>
+                    {wallpaper.split("/").pop()}
+                  </option>
+                ))}
+              </chakra.select>
+              <Text fontSize="sm" color="fg.muted">
+                Select a background image from the wallpaper folder
+              </Text>
             </Field.Root>
           </VStack>
         );
@@ -330,6 +383,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         mcpServers: sanitizedServers.map((server) => ({ ...server })),
         activeMcpServerIds: nextActiveIds,
         theme,
+        wallpaper: selectedWallpaper || undefined,
       });
 
       setInitialTheme(theme);
