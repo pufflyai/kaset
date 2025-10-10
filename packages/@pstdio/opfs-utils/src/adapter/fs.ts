@@ -1,3 +1,4 @@
+import "../polyfills/array-from-async";
 import { configureSingle, fs } from "@zenfs/core";
 import { WebAccess } from "@zenfs/dom";
 

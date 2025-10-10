@@ -142,8 +142,7 @@ export async function writeFile(
   options?: WriteFileOptions,
 ): Promise<void> {
   const normalized = normalizeRelPath(path);
-  const encoding =
-    options?.encoding === undefined ? (typeof contents === "string" ? "utf8" : null) : options.encoding;
+  const encoding = options?.encoding === undefined ? (typeof contents === "string" ? "utf8" : null) : options.encoding;
 
   if (encoding === null) {
     const bytes = typeof contents === "string" ? new TextEncoder().encode(contents) : await ensureUint8Array(contents);
