@@ -33,6 +33,12 @@ const EXAMPLE_PLUGIN_BUNDLE = import.meta.glob("/src/example-plugins/**", {
   eager: true,
 }) as Record<string, string>;
 
+const WALLPAPER_BUNDLE = import.meta.glob("/src/example-files/wallpaper/*.{png,jpg,jpeg,gif,webp}", {
+  query: "?url",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
 async function ensureDirectory(path: string) {
   const normalized = path.replace(/\\/g, "/").replace(/^\/+/, "");
 
@@ -92,21 +98,49 @@ async function applyBundle(options: ApplyBundleOptions) {
   return written;
 }
 
-async function copyDefaultWallpaper(targetPath: string) {
-  try {
-    const response = await fetch("/kaset.png");
-    if (!response.ok) {
-      console.warn("Failed to fetch default wallpaper:", response.status);
-      return;
+async function applyWallpaperBundle(options: {
+  wallpaperRoot: string;
+  files: Record<string, string>;
+  overwrite: boolean;
+}) {
+  const { wallpaperRoot, files, overwrite } = options;
+  let written = 0;
+
+  for (const [absoluteKey, url] of Object.entries(files)) {
+    const normalizedKey = absoluteKey.replace(/\\/g, "/");
+    const filename = normalizedKey.split("/").pop();
+
+    if (!filename) continue;
+
+    const target = normalizeOpfsPath(`${wallpaperRoot}/${filename}`);
+
+    if (!overwrite) {
+      try {
+        await readFile(target);
+        continue;
+      } catch {
+        // file missing — we'll create it below
+      }
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(arrayBuffer);
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.warn(`Failed to fetch wallpaper ${filename}:`, response.status);
+        continue;
+      }
 
-    await writeFile(targetPath, uint8Array);
-  } catch (error) {
-    console.error("Failed to copy default wallpaper:", error);
+      const arrayBuffer = await response.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      await writeFile(target, uint8Array);
+      written++;
+    } catch (error) {
+      console.error(`Failed to copy wallpaper ${filename}:`, error);
+    }
   }
+
+  return written;
 }
 
 export async function setupPlayground(options: SetupOptions = {}) {
@@ -135,16 +169,11 @@ export async function setupPlayground(options: SetupOptions = {}) {
     overwrite,
   });
 
-  const wallpaperPath = `${wallpaperRoot}/kaset.png`;
-  if (!overwrite) {
-    try {
-      await readFile(wallpaperPath);
-    } catch {
-      await copyDefaultWallpaper(wallpaperPath);
-    }
-  } else {
-    await copyDefaultWallpaper(wallpaperPath);
-  }
+  const wallpaperFilesWritten = await applyWallpaperBundle({
+    wallpaperRoot,
+    files: WALLPAPER_BUNDLE,
+    overwrite,
+  });
 
   try {
     const dir = await getDirectoryHandle(normalizedRoot);
@@ -177,8 +206,9 @@ export async function setupPlayground(options: SetupOptions = {}) {
 
   return {
     rootDir: normalizedRoot,
-    written: rootFilesWritten + pluginFilesWritten,
+    written: rootFilesWritten + pluginFilesWritten + wallpaperFilesWritten,
     rootFiles: rootFilesWritten,
     pluginFiles: pluginFilesWritten,
+    wallpaperFiles: wallpaperFilesWritten,
   };
 }
