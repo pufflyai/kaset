@@ -1,4 +1,11 @@
-import { readFile, watchDirectory, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import {
+  basename,
+  normalizeRelPath,
+  parentOf,
+  readFile,
+  watchDirectory,
+  type DirectoryWatcherCleanup,
+} from "@pstdio/opfs-utils";
 import { useEffect, useState } from "react";
 
 function canUseObjectUrls() {
@@ -80,12 +87,11 @@ export const useFileObjectUrl = (path?: string) => {
       if (!path) return;
 
       try {
-        const normalized = path.replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-        const parts = normalized.split("/").filter(Boolean);
-        const dirParts = parts.slice(0, -1);
-        const relTarget = parts.slice(dirParts.length).join("/");
+        const normalized = normalizeRelPath(path);
+        if (!normalized) return;
 
-        const dirPath = dirParts.join("/");
+        const dirPath = parentOf(normalized);
+        const relTarget = basename(normalized);
 
         stopWatch = await watchDirectory(dirPath, (changes) => {
           for (const ch of changes) {

@@ -75,6 +75,7 @@ export {
   joinPath,
   joinUnderWorkspace,
   normalizeSegments,
+  normalizeRelPath,
   normalizeSlashes,
   parentOf,
 } from "./utils/path";
