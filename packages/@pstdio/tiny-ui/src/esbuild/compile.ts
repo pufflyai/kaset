@@ -1,5 +1,6 @@
 import * as esbuild from "esbuild-wasm";
 
+import { getVirtualPrefix } from "../constant";
 import { publishBundleToSW } from "../core/cache";
 import { getCachedBundle, setCachedCompileResult } from "../core/cache-manifest";
 import { computeHash, computeLockfileHash } from "../core/hash";
@@ -24,7 +25,7 @@ const createCompileResult = (params: {
 }): CompileResult => ({
   id: params.id,
   hash: params.hash,
-  url: `/virtual/${params.hash}.js`,
+  url: `${getVirtualPrefix()}${params.hash}.js`,
   fromCache: params.fromCache,
   bytes: params.bytes,
   assets: params.assets,
@@ -177,6 +178,14 @@ export const compile = async (id: string, options: BuildWithEsbuildOptions): Pro
     lockfileHash,
     fromCache: false,
     bytes: totalBytes,
+    assets: assetPaths,
+  });
+
+  console.info("[Tiny UI compile] result", {
+    id,
+    hash,
+    virtualPrefix: getVirtualPrefix(),
+    url: result.url,
     assets: assetPaths,
   });
 

@@ -1,4 +1,5 @@
 import { host } from "rimless";
+import { getVirtualPrefix } from "../constant";
 import { getLockfile } from "../core/idb";
 import { buildImportMap } from "../core/import-map";
 import type { CompileResult } from "../esbuild/types";
@@ -39,7 +40,15 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
   async function sendInit(result: CompileResult) {
     const lockfile = getLockfile() ?? null;
     const importMap = lockfile ? buildImportMap(lockfile) : undefined;
-    const styles = (result.assets || []).map((p) => `/virtual/${result.hash}/${p}`);
+    const virtualPrefix = getVirtualPrefix();
+    const styles = (result.assets || []).map((p) => `${virtualPrefix}${result.hash}/${p}`);
+
+    console.info("[Tiny UI host] init result", {
+      url: result.url,
+      virtualPrefix,
+      hash: result.hash,
+      assets: result.assets,
+    });
 
     await conn.remote.init({
       id,
