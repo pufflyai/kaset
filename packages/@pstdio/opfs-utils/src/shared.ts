@@ -1,9 +1,46 @@
 import { getFs } from "./adapter/fs";
 import { normalizeSegments, parentOf } from "./utils/path";
 
+export type BinaryLike = ArrayBuffer | SharedArrayBuffer | ArrayBufferView | Blob | Uint8Array;
+
+function isSharedArrayBuffer(value: unknown): value is SharedArrayBuffer {
+  return typeof SharedArrayBuffer !== "undefined" && value instanceof SharedArrayBuffer;
+}
+
+function isBlob(value: unknown): value is Blob {
+  return typeof Blob !== "undefined" && value instanceof Blob;
+}
+
+export async function ensureUint8Array(content: BinaryLike): Promise<Uint8Array> {
+  if (content instanceof Uint8Array) return content;
+  if (isSharedArrayBuffer(content)) return new Uint8Array(content);
+  if (content instanceof ArrayBuffer) return new Uint8Array(content);
+  if (ArrayBuffer.isView(content)) {
+    return new Uint8Array(content.buffer, content.byteOffset, content.byteLength);
+  }
+  if (isBlob(content)) {
+    const buffer = await content.arrayBuffer();
+    return new Uint8Array(buffer);
+  }
+  throw new TypeError("Unsupported binary content type");
+}
+
 function toAbsolutePath(p: string) {
   const norm = normalizeSegments(p.replace(/\\/g, "/")).join("/");
   return "/" + norm;
+}
+
+async function ensureParentDirectories(fs: typeof import("@zenfs/core").fs, path: string) {
+  const dir = toAbsolutePath(parentOf(path));
+  if (dir === "/") return dir;
+  try {
+    await fs.promises.mkdir?.(dir, { recursive: true });
+  } catch (error: any) {
+    if (error && error.code !== "EEXIST" && error.name !== "InvalidModificationError") {
+      throw error;
+    }
+  }
+  return dir;
 }
 
 export async function ensureDirExists(targetDir: string, create: boolean) {
@@ -101,21 +138,32 @@ export async function readTextFileOptional(path: string): Promise<string | null>
   }
 }
 
+export async function readBinaryFileOptional(path: string): Promise<Uint8Array | null> {
+  const fs = await getFs();
+  const absPath = toAbsolutePath(path);
+  try {
+    const result = await fs.promises.readFile(absPath);
+    return result instanceof Uint8Array ? result : new Uint8Array(result);
+  } catch (e: any) {
+    if (e && (e.code === "ENOENT" || e.name === "NotFoundError" || e.code === 1)) return null;
+    throw e;
+  }
+}
+
 /** Write text file (mkdir -p as needed). */
 export async function writeTextFile(path: string, content: string) {
   const fs = await getFs();
   const absPath = toAbsolutePath(path);
-  const dir = toAbsolutePath(parentOf(path));
-  if (dir !== "/") {
-    try {
-      await fs.promises.mkdir?.(dir, { recursive: true });
-    } catch (error: any) {
-      if (error && error.code !== "EEXIST" && error.name !== "InvalidModificationError") {
-        throw error;
-      }
-    }
-  }
+  await ensureParentDirectories(fs, path);
   await fs.promises.writeFile(absPath, content, "utf8");
+}
+
+export async function writeBinaryFile(path: string, content: BinaryLike) {
+  const fs = await getFs();
+  const absPath = toAbsolutePath(path);
+  await ensureParentDirectories(fs, path);
+  const bytes = await ensureUint8Array(content);
+  await fs.promises.writeFile(absPath, bytes);
 }
 
 /** Delete a file if present (no-op when missing). */

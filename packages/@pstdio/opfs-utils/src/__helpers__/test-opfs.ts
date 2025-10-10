@@ -1,73 +1,98 @@
+import { ensureUint8Array, type BinaryLike } from "../shared";
+
 class MemFileHandle {
   kind = "file" as const;
   name: string;
-  private content: string;
+  private content: Uint8Array;
 
-  constructor(name: string, content = "") {
+  constructor(name: string, content: Uint8Array = new Uint8Array(0)) {
     this.name = name;
     this.content = content;
   }
 
   async getFile(): Promise<File> {
-    return new File([this.content], this.name);
+    return new File([this.content.slice()], this.name);
   }
 
   async createWritable(opts: { keepExistingData?: boolean } = {}) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const handle = this;
-    let pos = 0;
+    let position = 0;
 
     if (!opts.keepExistingData) {
-      handle.content = "";
+      handle.content = new Uint8Array(0);
     }
 
-    function decodeToString(input: unknown): string {
-      if (typeof input === "string") return input;
-      if (input instanceof ArrayBuffer) return new TextDecoder().decode(new Uint8Array(input));
-      if (typeof SharedArrayBuffer !== "undefined" && input instanceof SharedArrayBuffer)
-        return new TextDecoder().decode(new Uint8Array(input as SharedArrayBuffer));
-      if (ArrayBuffer.isView(input as any)) {
-        const v = input as ArrayBufferView;
-        return new TextDecoder().decode(new Uint8Array(v.buffer, v.byteOffset, v.byteLength));
+    async function toUint8Array(input: unknown): Promise<Uint8Array> {
+      if (typeof input === "string") {
+        return new TextEncoder().encode(input);
       }
-      throw new TypeError("Unsupported data type for write");
+
+      if (input == null) {
+        return new Uint8Array(0);
+      }
+
+      return ensureUint8Array(input as BinaryLike);
+    }
+
+    function truncateContent(content: Uint8Array, size: number) {
+      if (size < content.length) {
+        return content.slice(0, size);
+      }
+
+      if (size === content.length) {
+        return content;
+      }
+
+      const next = new Uint8Array(size);
+      next.set(content);
+      return next;
+    }
+
+    function writeInto(content: Uint8Array, chunk: Uint8Array, offset: number) {
+      const end = offset + chunk.length;
+      const nextLength = Math.max(content.length, end);
+      const next = new Uint8Array(nextLength);
+      next.set(content);
+      next.set(chunk, offset);
+      return next;
     }
 
     return {
       async write(data: unknown) {
-        // Handle FileSystemWritableFileStream-like param objects
-        if (data && typeof data === "object" && (data as any).type) {
-          const p = data as any;
-          if (p.type === "seek") {
-            pos = Math.max(0, Number(p.position) || 0);
+        if (data && typeof data === "object" && "type" in (data as any)) {
+          const payload = data as { type: string; position?: number; size?: number; data?: unknown };
+
+          if (payload.type === "seek") {
+            position = Math.max(0, Number(payload.position) || 0);
             return;
           }
-          if (p.type === "truncate") {
-            const size = Math.max(0, Number(p.size) || 0);
-            handle.content = handle.content.slice(0, size);
-            pos = Math.min(pos, size);
+
+          if (payload.type === "truncate") {
+            const size = Math.max(0, Number(payload.size) || 0);
+            handle.content = truncateContent(handle.content, size);
+            position = Math.min(position, handle.content.length);
             return;
           }
-          if (p.type === "write") {
-            const payload = p.data;
-            const chunk = decodeToString(payload);
-            const before = handle.content.slice(0, pos);
-            const after = handle.content.slice(pos + chunk.length);
-            handle.content = before + chunk + after;
-            pos += chunk.length;
+
+          if (payload.type === "write") {
+            if (typeof payload.position === "number") {
+              position = Math.max(0, Number(payload.position) || 0);
+            }
+
+            const chunk = await toUint8Array(payload.data);
+            handle.content = writeInto(handle.content, chunk, position);
+            position += chunk.length;
             return;
           }
         }
 
-        const text = decodeToString(data);
-        // Default semantics: overwrite from current position
-        const before = handle.content.slice(0, pos);
-        const after = handle.content.slice(pos + text.length);
-        handle.content = before + text + after;
-        pos += text.length;
+        const chunk = await toUint8Array(data);
+        handle.content = writeInto(handle.content, chunk, position);
+        position += chunk.length;
       },
-      async seek(position: number) {
-        pos = Math.max(0, Number(position) || 0);
+      async seek(nextPosition: number) {
+        position = Math.max(0, Number(nextPosition) || 0);
       },
       async close() {},
     };

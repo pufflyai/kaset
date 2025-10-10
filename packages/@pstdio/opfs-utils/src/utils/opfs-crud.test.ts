@@ -12,6 +12,17 @@ describe("opfs-crud (node env)", () => {
     await expect(readFile("alpha/beta/hello.txt")).resolves.toBe("hi");
   });
 
+  it("supports binary write -> read roundtrip", async () => {
+    setupTestOPFS();
+
+    const bytes = new Uint8Array([0, 1, 2, 255]);
+    await writeFile("alpha/data.bin", bytes);
+    const result = await readFile("alpha/data.bin", { encoding: null });
+
+    expect(result).toBeInstanceOf(Uint8Array);
+    expect(Array.from(result)).toEqual(Array.from(bytes));
+  });
+
   it("delete removes the file", async () => {
     setupTestOPFS();
 

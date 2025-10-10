@@ -1,6 +1,33 @@
 import { getFs } from "../adapter/fs";
-import { getDirHandle, getFileHandle, readTextFileOptional, safeDelete, writeTextFile } from "../shared";
+import {
+  ensureUint8Array,
+  getDirHandle,
+  getFileHandle,
+  readBinaryFileOptional,
+  readTextFileOptional,
+  safeDelete,
+  writeBinaryFile,
+  writeTextFile,
+} from "../shared";
 import { basename, joinPath, normalizeRelPath, parentOf } from "./path";
+
+import type { BinaryLike } from "../shared";
+
+type TextEncoding = "utf8" | "utf-8";
+
+export interface ReadFileOptions {
+  encoding?: TextEncoding | null;
+}
+
+export interface WriteFileOptions {
+  encoding?: TextEncoding | null;
+}
+
+function isTextEncoding(encoding: string | null | undefined): encoding is TextEncoding {
+  return encoding === "utf8" || encoding === "utf-8";
+}
+
+export type { BinaryLike };
 
 async function removeDirectory(path: string): Promise<void> {
   const normalized = normalizeRelPath(path);
@@ -71,24 +98,67 @@ function notFound(path: string) {
 }
 
 /**
- * Read a file from OPFS and return its text content.
+ * Read a file from OPFS.
+ * Returns text by default, or Uint8Array when encoding is null.
  * Throws DOMException(NotFoundError) if path is missing.
  */
-export const readFile = async (path: string) => {
+export function readFile(path: string): Promise<string>;
+export function readFile(path: string, options: ReadFileOptions & { encoding: null }): Promise<Uint8Array>;
+export function readFile(path: string, options?: ReadFileOptions): Promise<string | Uint8Array>;
+export async function readFile(path: string, options?: ReadFileOptions): Promise<string | Uint8Array> {
   const normalized = normalizeRelPath(path);
-  const text = await readTextFileOptional(normalized);
-  if (text === null) throw notFound(normalized);
-  return text;
-};
+  const encoding = options?.encoding === undefined ? "utf8" : options.encoding;
+
+  if (encoding === null) {
+    const bytes = await readBinaryFileOptional(normalized);
+    if (bytes === null) throw notFound(normalized);
+    return bytes;
+  }
+
+  if (isTextEncoding(encoding)) {
+    const text = await readTextFileOptional(normalized);
+    if (text === null) throw notFound(normalized);
+    return text;
+  }
+
+  throw new Error(`readFile: Unsupported encoding '${encoding}'`);
+}
 
 /**
- * Write a text file to OPFS, creating parent directories as needed.
+ * Write a file to OPFS, creating parent directories as needed.
+ * Text is written by default; pass encoding null (or binary data) for raw bytes.
  * Overwrites if the file already exists.
  */
-export const writeFile = async (path: string, contents: string) => {
+export function writeFile(path: string, contents: string, options?: WriteFileOptions): Promise<void>;
+export function writeFile(
+  path: string,
+  contents: BinaryLike,
+  options?: WriteFileOptions & { encoding: null },
+): Promise<void>;
+export function writeFile(path: string, contents: string | BinaryLike, options?: WriteFileOptions): Promise<void>;
+export async function writeFile(
+  path: string,
+  contents: string | BinaryLike,
+  options?: WriteFileOptions,
+): Promise<void> {
   const normalized = normalizeRelPath(path);
-  await writeTextFile(normalized, contents);
-};
+  const encoding = options?.encoding === undefined ? (typeof contents === "string" ? "utf8" : null) : options.encoding;
+
+  if (encoding === null) {
+    const bytes = typeof contents === "string" ? new TextEncoder().encode(contents) : await ensureUint8Array(contents);
+    await writeBinaryFile(normalized, bytes);
+    return;
+  }
+
+  if (isTextEncoding(encoding)) {
+    const text =
+      typeof contents === "string" ? contents : new TextDecoder("utf-8").decode(await ensureUint8Array(contents));
+    await writeTextFile(normalized, text);
+    return;
+  }
+
+  throw new Error(`writeFile: Unsupported encoding '${encoding}'`);
+}
 
 /**
  * Delete a file from OPFS.
