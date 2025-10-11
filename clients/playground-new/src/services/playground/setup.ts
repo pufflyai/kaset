@@ -33,6 +33,12 @@ const EXAMPLE_PLUGIN_BUNDLE = import.meta.glob("/src/example-plugins/**", {
   eager: true,
 }) as Record<string, string>;
 
+const WALLPAPER_BUNDLE = import.meta.glob("/src/example-files/wallpaper/*.{png,jpg,jpeg,gif,webp}", {
+  query: "?url",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
 async function ensureDirectory(path: string) {
   const normalized = path.replace(/\\/g, "/").replace(/^\/+/, "");
 
@@ -92,15 +98,62 @@ async function applyBundle(options: ApplyBundleOptions) {
   return written;
 }
 
+async function applyWallpaperBundle(options: {
+  wallpaperRoot: string;
+  files: Record<string, string>;
+  overwrite: boolean;
+}) {
+  const { wallpaperRoot, files, overwrite } = options;
+  let written = 0;
+
+  for (const [absoluteKey, url] of Object.entries(files)) {
+    const normalizedKey = absoluteKey.replace(/\\/g, "/");
+    const filename = normalizedKey.split("/").pop();
+
+    if (!filename) continue;
+
+    const target = normalizeOpfsPath(`${wallpaperRoot}/${filename}`);
+
+    if (!overwrite) {
+      try {
+        await readFile(target);
+        continue;
+      } catch {
+        // file missing — we'll create it below
+      }
+    }
+
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        console.warn(`Failed to fetch wallpaper ${filename}:`, response.status);
+        continue;
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      await writeFile(target, uint8Array);
+      written++;
+    } catch (error) {
+      console.error(`Failed to copy wallpaper ${filename}:`, error);
+    }
+  }
+
+  return written;
+}
+
 export async function setupPlayground(options: SetupOptions = {}) {
   const rootDir = options.rootDir?.trim() || ROOT;
   const overwrite = options.overwrite ?? false;
 
   const normalizedRoot = normalizeOpfsPath(rootDir);
   const pluginsRoot = `${normalizedRoot}/plugins`;
+  const wallpaperRoot = `${normalizedRoot}/wallpaper`;
 
   await ensureDirectory(normalizedRoot);
   await ensureDirectory(pluginsRoot);
+  await ensureDirectory(wallpaperRoot);
 
   const rootFilesWritten = await applyBundle({
     bundleRoot: normalizedRoot,
@@ -113,6 +166,12 @@ export async function setupPlayground(options: SetupOptions = {}) {
     bundleRoot: pluginsRoot,
     files: EXAMPLE_PLUGIN_BUNDLE,
     baseDir: "/src/example-plugins",
+    overwrite,
+  });
+
+  const wallpaperFilesWritten = await applyWallpaperBundle({
+    wallpaperRoot,
+    files: WALLPAPER_BUNDLE,
     overwrite,
   });
 
@@ -147,8 +206,9 @@ export async function setupPlayground(options: SetupOptions = {}) {
 
   return {
     rootDir: normalizedRoot,
-    written: rootFilesWritten + pluginFilesWritten,
+    written: rootFilesWritten + pluginFilesWritten + wallpaperFilesWritten,
     rootFiles: rootFilesWritten,
     pluginFiles: pluginFilesWritten,
+    wallpaperFiles: wallpaperFilesWritten,
   };
 }

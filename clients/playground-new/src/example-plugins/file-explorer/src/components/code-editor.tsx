@@ -1,5 +1,4 @@
-import { Box, Code, Text, Textarea, VStack } from "@chakra-ui/react";
-import { useMemo } from "react";
+import { Box, Text, Textarea, VStack } from "@chakra-ui/react";
 import { useFileContent } from "../hooks/fs";
 
 interface CodeEditorProps {
@@ -9,11 +8,6 @@ interface CodeEditorProps {
 export function CodeEditor(props: CodeEditorProps) {
   const { filePath } = props;
   const { content } = useFileContent(filePath);
-
-  const displayPath = useMemo(() => {
-    if (!filePath) return "";
-    return filePath.split("/").filter(Boolean).join("/");
-  }, [filePath]);
 
   if (!filePath) {
     return (
@@ -27,15 +21,6 @@ export function CodeEditor(props: CodeEditorProps) {
 
   return (
     <VStack align="stretch" height="100%" gap="3" padding="4">
-      <VStack align="stretch" gap="1">
-        <Text fontSize="xs" textTransform="uppercase" letterSpacing="0.12em" color="foreground.tertiary">
-          Viewing
-        </Text>
-        <Code paddingX="2" paddingY="1" borderRadius="sm" bg="background.tertiary" color="foreground.inverse">
-          {displayPath}
-        </Code>
-      </VStack>
-
       <Textarea
         value={content}
         readOnly

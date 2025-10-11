@@ -74,6 +74,7 @@ export interface WorkspaceSettings {
   mcpServers: McpServerConfig[];
   activeMcpServerIds?: string[];
   theme?: ThemePreference;
+  wallpaper?: string;
 }
 
 export interface WorkspaceState {

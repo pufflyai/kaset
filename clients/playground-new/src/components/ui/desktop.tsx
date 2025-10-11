@@ -1,4 +1,9 @@
 import {
+  buildAdaptiveResultFromColor,
+  defaultAdaptiveResult,
+  type AdaptiveWallpaperResult,
+} from "@/hooks/useAdaptiveWallpaperSample";
+import {
   ensurePluginHost,
   subscribeToPluginDesktopSurfaces,
   type PluginDesktopSurface,
@@ -7,13 +12,25 @@ import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import { openDesktopApp } from "@/state/actions/desktop";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Box, Text } from "@chakra-ui/react";
+import { Box, Text, chakra } from "@chakra-ui/react";
+import { readFile } from "@pstdio/opfs-utils";
+import { FastAverageColor } from "fast-average-color";
 import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DesktopIcon } from "./desktop-icon";
 import { WindowHost } from "./window-host";
 
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
+
+const toBlobPart = (bytes: Uint8Array) => {
+  if (bytes.buffer instanceof ArrayBuffer) {
+    const { buffer, byteOffset, byteLength } = bytes;
+    return buffer.slice(byteOffset, byteOffset + byteLength);
+  }
+
+  const clone = new Uint8Array(bytes);
+  return clone.buffer;
+};
 
 const normalizeSize = (
   value: { width: number; height: number } | undefined,
@@ -93,8 +110,20 @@ export const Desktop = () => {
   const [containerSize, setContainerSize] = useState<Size | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
+  const [wallpaperElement, setWallpaperElement] = useState<HTMLImageElement | null>(null);
+  const [averageColor, setAverageColor] = useState<string | null>(null);
+  const iconPalette = useMemo<AdaptiveWallpaperResult>(() => {
+    if (!averageColor) {
+      return defaultAdaptiveResult;
+    }
+
+    return buildAdaptiveResultFromColor(averageColor, 3, 0.4, defaultAdaptiveResult);
+  }, [averageColor]);
+  const averageColorFacRef = useRef<FastAverageColor | null>(null);
 
   const windows = useWorkspaceStore((state) => state.desktop.windows);
+  const wallpaper = useWorkspaceStore((state) => state.settings.wallpaper);
 
   useEffect(() => {
     const unsubscribe = subscribeToPluginDesktopSurfaces((surfaces) => {
@@ -175,8 +204,129 @@ export const Desktop = () => {
     containerSizeRef.current = containerSize;
   }, [containerSize]);
 
+  useEffect(() => {
+    return () => {
+      averageColorFacRef.current?.destroy();
+      averageColorFacRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!wallpaperElement || !backgroundImageUrl) {
+      setAverageColor(null);
+      return;
+    }
+
+    if (!averageColorFacRef.current && typeof window !== "undefined") {
+      averageColorFacRef.current = new FastAverageColor();
+    }
+
+    const fac = averageColorFacRef.current;
+    if (!fac) {
+      setAverageColor(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const computeAverage = () => {
+      fac
+        .getColorAsync(wallpaperElement, { algorithm: "sqrt" })
+        .then((result) => {
+          if (cancelled) return;
+
+          setAverageColor((current) => (current === result.hex ? current : result.hex));
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setAverageColor(null);
+          }
+        });
+    };
+
+    const handleLoad = () => {
+      computeAverage();
+    };
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => {
+            computeAverage();
+          })
+        : null;
+
+    if (resizeObserver) {
+      resizeObserver.observe(wallpaperElement);
+    }
+
+    if ("complete" in wallpaperElement) {
+      wallpaperElement.addEventListener("load", handleLoad);
+    }
+
+    computeAverage();
+
+    return () => {
+      cancelled = true;
+      resizeObserver?.disconnect();
+      if ("complete" in wallpaperElement) {
+        wallpaperElement.removeEventListener("load", handleLoad);
+      }
+    };
+  }, [wallpaperElement, backgroundImageUrl]);
+
+  useEffect(() => {
+    let objectUrl: string | null = null;
+
+    const loadWallpaper = async () => {
+      if (!wallpaper) {
+        setBackgroundImageUrl(null);
+        setWallpaperElement(null);
+        return;
+      }
+
+      try {
+        const fileData = await readFile(wallpaper, { encoding: null });
+
+        const blob = new Blob([toBlobPart(fileData)], { type: "image/png" });
+        objectUrl = URL.createObjectURL(blob);
+        setBackgroundImageUrl(objectUrl);
+      } catch (error) {
+        console.error("Failed to load wallpaper:", error);
+        setBackgroundImageUrl(null);
+        setWallpaperElement(null);
+      }
+    };
+
+    loadWallpaper();
+
+    return () => {
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+      }
+    };
+  }, [wallpaper]);
+
+  const handleWallpaperRef = useCallback((node: HTMLImageElement | null) => {
+    setWallpaperElement(node);
+  }, []);
+
   return (
     <Box ref={containerRef} position="relative" height="100%" width="100%" overflow="hidden">
+      {backgroundImageUrl ? (
+        <chakra.img
+          ref={handleWallpaperRef}
+          src={backgroundImageUrl}
+          alt=""
+          crossOrigin="anonymous"
+          pointerEvents="none"
+          position="absolute"
+          inset="0"
+          width="100%"
+          height="100%"
+          objectFit="cover"
+          zIndex={0}
+        />
+      ) : null}
       <Box
         position="absolute"
         inset="0"
@@ -187,6 +337,7 @@ export const Desktop = () => {
         justifyContent="start"
         justifyItems="center"
         gridTemplateColumns="repeat(auto-fit, minmax(5rem, max-content))"
+        zIndex={1}
       >
         {apps.map((app) => (
           <DesktopIcon
@@ -197,6 +348,7 @@ export const Desktop = () => {
             onSelect={() => handleSelectApp(app.id)}
             onFocus={() => handleSelectApp(app.id)}
             onOpen={() => handleOpenApp(app.id)}
+            palette={iconPalette}
           />
         ))}
       </Box>

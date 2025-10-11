@@ -40,7 +40,7 @@ export function App() {
   );
 
   const conversationPane = (
-    <Flex direction="column" height="100%" padding="3" gap="3" flex="1" width="100%">
+    <Flex direction="column" height="100%" padding={["1", "3"]} gap="3" flex="1" width="100%">
       <TopBar mobileCenterContent={mobileToggleButton} />
       <Box flex="1" overflow="hidden" borderWidth="1px" borderRadius="md">
         <ConversationHost />
@@ -49,7 +49,7 @@ export function App() {
   );
 
   const desktopPane = isMobile ? (
-    <Flex direction="column" height="100%" padding="3" gap="3" flex="1" width="100%">
+    <Flex direction="column" height="100%" padding={["1", "3"]} gap="3" flex="1" width="100%">
       <TopBar mobileCenterContent={mobileToggleButton} />
       <Box flex="1" overflow="hidden" borderWidth="1px" borderRadius="md" height="100%">
         <Desktop />

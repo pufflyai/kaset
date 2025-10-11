@@ -1,3 +1,5 @@
+// TEMPORARY: OPFS WILL BE ACCESSIBLE THROUGH THE HOST API
+
 type OpfsDirectoryHandle = FileSystemDirectoryHandle & {
   entries?: () => AsyncIterableIterator<[string, FileSystemHandle]>;
 };

@@ -1,8 +1,9 @@
-import { Box, Text, chakra } from "@chakra-ui/react";
+import { rgbaFromHex, type AdaptiveWallpaperResult } from "@/hooks/useAdaptiveWallpaperSample";
+import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
+import { Box, chakra } from "@chakra-ui/react";
 import { AppWindowMac } from "lucide-react";
 import { DynamicIcon, type IconName } from "lucide-react/dynamic";
-import type { KeyboardEvent, MouseEvent } from "react";
-import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
+import { type KeyboardEvent, type MouseEvent } from "react";
 
 interface DesktopIconProps {
   icon?: IconName;
@@ -13,18 +14,18 @@ interface DesktopIconProps {
   onOpen?: () => void;
   onFocus?: () => void;
   onContextMenu?: (event: MouseEvent<HTMLButtonElement>) => void;
+  palette: AdaptiveWallpaperResult;
 }
 
 const DesktopIconRoot = chakra.button;
 
 export const DesktopIcon = (props: DesktopIconProps) => {
-  const { icon: iconName, label, isSelected, tabIndex = 0, onSelect, onOpen, onFocus, onContextMenu } = props;
+  const { icon: iconName, label, isSelected, tabIndex = 0, onSelect, onOpen, onFocus, onContextMenu, palette } = props;
   const icon = iconName ?? DEFAULT_DESKTOP_APP_ICON;
-
-  const labelStyles = {
-    color: { base: "foreground.primary", _dark: "foreground.inverse" },
-    bg: { base: "rgba(255, 255, 255, 0.86)", _dark: "rgba(17, 17, 27, 0.72)" },
-  } as const;
+  const baseAlpha = palette.overlayAlpha > 0 ? palette.overlayAlpha : 0.05;
+  const hoverAlpha = clamp(baseAlpha, 0.14, 0.28);
+  const iconPadBaseBackground = rgbaFromHex(palette.overlayBase, clamp(baseAlpha, 0.16, 0.32));
+  const iconPadHoverBackground = rgbaFromHex(palette.overlayBase, clamp(hoverAlpha + 0.04, 0.16, 0.32));
 
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key !== "Enter" && event.key !== " ") return;
@@ -45,9 +46,10 @@ export const DesktopIcon = (props: DesktopIconProps) => {
       maxWidth="5rem"
       cursor="pointer"
       position="relative"
-      transition="transform 120ms ease, filter 120ms ease"
+      color={palette.textColor}
+      background="transparent"
+      transition="transform 120ms ease, background 120ms ease, color 120ms ease"
       _hover={{ transform: "translateY(-2px)" }}
-      _focusVisible={{ boxShadow: "0 0 0 2px rgba(59, 130, 246, 0.6)" }}
       data-selected={isSelected ? "true" : undefined}
       tabIndex={tabIndex}
       onClick={(event) => {
@@ -60,7 +62,9 @@ export const DesktopIcon = (props: DesktopIconProps) => {
       onContextMenu={onContextMenu}
     >
       <Box
-        _groupHover={{ background: "background.secondary" }}
+        _groupHover={{ background: iconPadHoverBackground }}
+        transition="background 120ms ease, backdrop-filter 120ms ease"
+        backdropFilter={"blur(8px)"}
         display="flex"
         alignItems="center"
         justifyContent="center"
@@ -70,23 +74,26 @@ export const DesktopIcon = (props: DesktopIconProps) => {
       >
         <DynamicIcon name={icon} size={24} fallback={() => <AppWindowMac size={24} />} />
       </Box>
-      <Text
-        textStyle="label/S/medium"
-        color={labelStyles.color}
-        textAlign="center"
+      <Box
         px="2xs"
-        paddingTop="1px"
-        _groupHover={{ textDecoration: "underline" }}
-        bg={labelStyles.bg}
-        maxWidth="100%"
+        pt="1px"
+        textAlign="center"
         width="fit-content"
+        maxWidth="100%"
         mx="auto"
+        backdropFilter={"blur(8px)"}
+        color={palette.textColor}
+        background={iconPadBaseBackground}
+        textShadow="0 1px 2px rgb(0 0 0 / 0.25)"
+        transition="background 120ms ease, color 120ms ease, filter 120ms ease"
+        textStyle="label/S/medium"
+        _groupHover={{ textDecoration: "underline" }}
         wordBreak="break-word"
-        backdropFilter="blur(6px)"
-        transition="all 120ms ease"
       >
         {label}
-      </Text>
+      </Box>
     </DesktopIconRoot>
   );
 };
+
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));

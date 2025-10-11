@@ -12,6 +12,7 @@ export const saveWorkspaceSettings = (settings: WorkspaceSettings, actionName = 
       state.settings.activeMcpServerIds =
         settings.activeMcpServerIds && settings.activeMcpServerIds.length > 0 ? [...settings.activeMcpServerIds] : [];
       state.settings.theme = settings.theme ?? "light";
+      state.settings.wallpaper = settings.wallpaper || undefined;
 
       if ((state as Record<string, unknown>).selectedMcpServerId) {
         delete (state as Record<string, unknown>).selectedMcpServerId;
