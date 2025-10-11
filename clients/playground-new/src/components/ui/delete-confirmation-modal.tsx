@@ -37,9 +37,14 @@ export const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => 
                 variant="solid"
                 onClick={async (e) => {
                   setIsDeleting(true);
-                  await onDelete(e);
-                  onClose();
-                  setIsDeleting(false);
+                  try {
+                    await onDelete(e);
+                    onClose();
+                  } catch (error) {
+                    console.error("DeleteConfirmationModal: delete action failed", error);
+                  } finally {
+                    setIsDeleting(false);
+                  }
                 }}
               >
                 {buttonText}

@@ -35,6 +35,7 @@ export { createJsonFileStorage, type JsonFileStorage, type JsonFileStorageOption
 export { bindStoreToJsonFile, type BindStoreOptions, type StoreAdapter } from "./state/store-binding";
 export {
   deleteDirectoryContents,
+  deleteDirectory,
   deleteFile,
   downloadFile,
   moveFile,
