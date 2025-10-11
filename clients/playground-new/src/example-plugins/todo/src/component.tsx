@@ -5,6 +5,7 @@ import {
   Checkbox,
   CloseButton,
   Drawer,
+  EmptyState,
   HStack,
   IconButton,
   Input,
@@ -61,14 +62,7 @@ export function TodoList() {
 
   const listNavigationContent = (
     <>
-      <HStack
-        gap="sm"
-        marginBottom="3"
-        borderBottom="1px solid"
-        borderColor="border.secondary"
-        paddingBottom="sm"
-        flexWrap="wrap"
-      >
+      <HStack gap="1" marginBottom="3" flexWrap="wrap">
         <Input
           value={newListName}
           onChange={(event) => setNewListName(event.currentTarget.value)}
@@ -77,15 +71,18 @@ export function TodoList() {
           flex="1"
           minW="0"
         />
-        <Button size="sm" onClick={() => addList()} flexShrink={0}>
+        <Button variant="outline" size="sm" onClick={() => addList()} flexShrink={0}>
           Add List
         </Button>
       </HStack>
 
       {lists.length === 0 && (
-        <Text fontSize="sm" color="fg.secondary">
-          No todo lists. Create one above.
-        </Text>
+        <EmptyState.Root size="sm">
+          <EmptyState.Content>
+            <EmptyState.Title>No todo lists yet</EmptyState.Title>
+            <EmptyState.Description>Create your first list above.</EmptyState.Description>
+          </EmptyState.Content>
+        </EmptyState.Root>
       )}
 
       {lists.length > 0 && (
@@ -96,11 +93,11 @@ export function TodoList() {
               <HStack
                 justify="space-between"
                 align="center"
-                paddingX="sm"
+                paddingX="2"
                 paddingY="1.5"
                 borderRadius="md"
                 cursor="pointer"
-                _hover={{ bg: "background.secondary" }}
+                _hover={{ bg: "bg.subtle" }}
                 onClick={() => selectList(name)}
                 textDecoration={isSelected ? "underline" : "none"}
               >
@@ -152,7 +149,7 @@ export function TodoList() {
               </Drawer.CloseTrigger>
             </Drawer.Header>
             <Drawer.Body>
-              <Box maxHeight="75vh" overflowY="auto" paddingRight="sm">
+              <Box maxHeight="75vh" overflowY="auto" paddingRight="1">
                 {listNavigationContent}
               </Box>
             </Drawer.Body>
@@ -164,10 +161,10 @@ export function TodoList() {
 
   return (
     <>
-      <Box height="100%" display="flex" flexDirection="column">
+      <Box height="100%" display="flex" flexDirection="column" borderTopWidth="1px">
         <Box flex="1" overflow="hidden" display="flex" flexDirection={isMobile ? "column" : "row"}>
           {!isMobile && (
-            <Box width="240px" borderRightWidth="1px" overflowY="auto" padding="sm">
+            <Box width="280px" borderRightWidth="1px" overflowY="auto" padding="2">
               {listNavigationContent}
             </Box>
           )}

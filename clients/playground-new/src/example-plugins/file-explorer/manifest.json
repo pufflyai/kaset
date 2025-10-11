@@ -18,7 +18,7 @@
     "desktop": {
       "title": "File Explorer",
       "description": "Inspect files beneath the playground root and edit them in place.",
-      "icon": "folder",
+      "icon": "folder-closed",
       "singleton": true,
       "defaultSize": {
         "width": 840,

@@ -22,16 +22,19 @@ export const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => 
       <Dialog.Positioner>
         <Dialog.Content>
           <Dialog.Header>
-            <Text textStyle="heading/M">{headline}</Text>
+            <Text textStyle="3xl">{headline}</Text>
             <Dialog.CloseTrigger asChild>
               <CloseButton size="sm" />
             </Dialog.CloseTrigger>
           </Dialog.Header>
           <Dialog.Body>{notificationText}</Dialog.Body>
           <Dialog.Footer>
-            <Stack direction="row" gap="xs">
-              <Button onClick={onClose}>Close</Button>
+            <Stack direction="row" gap="1">
+              <Button onClick={onClose} variant="outline">
+                Close
+              </Button>
               <Button
+                colorScheme="red"
                 loading={isDeleting}
                 variant="solid"
                 onClick={async (e) => {

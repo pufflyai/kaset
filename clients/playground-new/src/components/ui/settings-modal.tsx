@@ -119,7 +119,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         const entries = await ls(wallpaperPath);
 
         const imageFiles = entries
-          .filter((entry) => entry.type === "file")
+          .filter((entry) => entry.kind === "file")
           .filter((entry) => /\.(png|jpe?g|gif|webp)$/i.test(entry.name))
           .map((entry) => `${wallpaperPath}/${entry.name}`);
 
