@@ -348,30 +348,36 @@ async function walkFs(
     return; // unreadable directory
   }
 
-  for (const name of names) {
+  const entries = await Promise.all(
+    names.map(async (name) => {
+      const rel = prefix ? `${prefix}/${name}` : name;
+      const abs = "/" + joinPath(rootAbs, rel);
+
+      try {
+        const stat = await fs.promises.stat(abs);
+        return { name, rel, stat };
+      } catch {
+        return { name, rel, stat: undefined };
+      }
+    }),
+  );
+
+  for (const { name, rel, stat } of entries) {
     if (opts.signal?.aborted) return;
+
+    if (!stat) continue;
 
     // Prune hidden directories early when showHidden=false
     const hidden = name.startsWith(".");
 
-    const rel = prefix ? `${prefix}/${name}` : name;
-    const abs = "/" + joinPath(rootAbs, rel);
-
-    let st: any;
-    try {
-      st = await fs.promises.stat(abs);
-    } catch {
-      continue;
-    }
-
     const nextDepth = depth + 1;
-    if (st.isDirectory?.()) {
+    if (stat.isDirectory?.()) {
       if (hidden && !opts.showHidden) continue;
       if (opts.excludeREs.some((r) => r.test(rel))) continue; // prune excluded dirs entirely
 
       await opts.onDir(name, prefix, nextDepth);
       await walkFs(fs, rootAbs, rel, nextDepth, opts);
-    } else if (st.isFile?.()) {
+    } else if (stat.isFile?.()) {
       await opts.onFile(name, prefix, nextDepth);
     }
   }
