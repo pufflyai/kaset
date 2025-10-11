@@ -1,4 +1,9 @@
 import {
+  buildAdaptiveResultFromColor,
+  defaultAdaptiveResult,
+  type AdaptiveWallpaperResult,
+} from "@/hooks/useAdaptiveWallpaperSample";
+import {
   ensurePluginHost,
   subscribeToPluginDesktopSurfaces,
   type PluginDesktopSurface,
@@ -7,11 +12,6 @@ import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import { openDesktopApp } from "@/state/actions/desktop";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import {
-  buildAdaptiveResultFromColor,
-  defaultAdaptiveResult,
-  type AdaptiveWallpaperResult,
-} from "@/hooks/useAdaptiveWallpaperSample";
 import { Box, Text, chakra } from "@chakra-ui/react";
 import { readFile } from "@pstdio/opfs-utils";
 import { FastAverageColor } from "fast-average-color";
@@ -348,7 +348,6 @@ export const Desktop = () => {
             onSelect={() => handleSelectApp(app.id)}
             onFocus={() => handleSelectApp(app.id)}
             onOpen={() => handleOpenApp(app.id)}
-            sampleEl={wallpaperElement}
             palette={iconPalette}
           />
         ))}

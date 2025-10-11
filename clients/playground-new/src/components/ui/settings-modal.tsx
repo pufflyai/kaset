@@ -1,6 +1,8 @@
+import { ROOT } from "@/constant";
 import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
 import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
 import type { McpServerConfig, ThemePreference } from "@/state/types";
+import { applyThemePreference } from "@/theme/applyThemePreference";
 import {
   Alert,
   Box,
@@ -12,19 +14,18 @@ import {
   Flex,
   HStack,
   Input,
+  SimpleGrid,
   Text,
   VStack,
   chakra,
   useBreakpointValue,
 } from "@chakra-ui/react";
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
+import { ls, readFile } from "@pstdio/opfs-utils";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useState } from "react";
 import { McpServerCard } from "./mcp-server-card";
 import { PluginSettings } from "./plugin-settings";
-import { applyThemePreference } from "@/theme/applyThemePreference";
-import { ls } from "@pstdio/opfs-utils";
-import { ROOT } from "@/constant";
 
 const TOOL_LABELS: Record<string, string> = {
   opfs_write_file: "Write file",
@@ -45,6 +46,25 @@ const SETTINGS_SECTIONS: Array<{ id: SettingsSectionId; label: string }> = [
 ];
 
 const MobileSectionSelect = chakra("select");
+const DEFAULT_WALLPAPER = `${ROOT}/wallpaper/kaset.png`;
+
+const toBlobPart = (bytes: Uint8Array) => {
+  if (bytes.buffer instanceof ArrayBuffer) {
+    const { buffer, byteOffset, byteLength } = bytes;
+    return buffer.slice(byteOffset, byteOffset + byteLength);
+  }
+
+  const clone = new Uint8Array(bytes);
+  return clone.buffer;
+};
+
+const getWallpaperMimeType = (path: string) => {
+  if (/\.png$/i.test(path)) return "image/png";
+  if (/\.jpe?g$/i.test(path)) return "image/jpeg";
+  if (/\.gif$/i.test(path)) return "image/gif";
+  if (/\.webp$/i.test(path)) return "image/webp";
+  return "application/octet-stream";
+};
 
 export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const { isOpen, onClose } = props;
@@ -63,6 +83,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [initialTheme, setInitialTheme] = useState<ThemePreference>("light");
   const [wallpapers, setWallpapers] = useState<string[]>([]);
   const [selectedWallpaper, setSelectedWallpaper] = useState<string>("");
+  const [wallpaperPreviews, setWallpaperPreviews] = useState<Record<string, string>>({});
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
   useEffect(() => {
@@ -78,7 +99,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setTheme(nextTheme);
     setInitialTheme(nextTheme);
 
-    setSelectedWallpaper(settings.wallpaper ?? "");
+    setSelectedWallpaper(settings.wallpaper ?? DEFAULT_WALLPAPER);
 
     const storedServers = settings.mcpServers;
     const effectiveServers = storedServers ?? [];
@@ -132,6 +153,52 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
 
     loadWallpapers();
   }, [isOpen, activeSection]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (wallpapers.length === 0) {
+      setWallpaperPreviews({});
+      return;
+    }
+
+    let cancelled = false;
+    const urls: string[] = [];
+
+    const loadPreviews = async () => {
+      const entries = await Promise.all(
+        wallpapers.map(async (wallpaper) => {
+          try {
+            const fileData = await readFile(wallpaper, { encoding: null });
+            const blob = new Blob([toBlobPart(fileData)], { type: getWallpaperMimeType(wallpaper) });
+            const objectUrl = URL.createObjectURL(blob);
+            urls.push(objectUrl);
+            return { wallpaper, url: objectUrl };
+          } catch (error) {
+            console.error(`Failed to load wallpaper preview for ${wallpaper}:`, error);
+            return null;
+          }
+        }),
+      );
+
+      if (cancelled) {
+        urls.forEach((url) => URL.revokeObjectURL(url));
+        return;
+      }
+
+      const next: Record<string, string> = {};
+      entries.forEach((entry) => {
+        if (entry) next[entry.wallpaper] = entry.url;
+      });
+      setWallpaperPreviews(next);
+    };
+
+    loadPreviews();
+
+    return () => {
+      cancelled = true;
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [isOpen, wallpapers]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -212,27 +279,58 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
             </Field.Root>
             <Field.Root>
               <Field.Label>Desktop Wallpaper</Field.Label>
-              <chakra.select
-                value={selectedWallpaper}
-                onChange={(event) => setSelectedWallpaper(event.target.value)}
-                paddingY="xs"
-                paddingX="sm"
-                borderRadius="md"
-                borderWidth="1px"
-                width="100%"
-                color="foreground.primary"
-                bg="background.primary"
-              >
-                <option value="">None</option>
-                {wallpapers.map((wallpaper) => (
-                  <option key={wallpaper} value={wallpaper}>
-                    {wallpaper.split("/").pop()}
-                  </option>
-                ))}
-              </chakra.select>
-              <Text fontSize="sm" color="fg.muted">
-                Select a background image from the wallpaper folder
-              </Text>
+              <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap="sm">
+                {wallpapers.map((wallpaper) => {
+                  const name = wallpaper.split("/").pop() ?? wallpaper;
+                  const previewUrl = wallpaperPreviews[wallpaper];
+                  const isSelected = selectedWallpaper === wallpaper;
+                  return (
+                    <Box
+                      key={wallpaper}
+                      as="button"
+                      onClick={() => setSelectedWallpaper(wallpaper)}
+                      borderWidth="1px"
+                      borderColor="border.primary"
+                      borderRadius="md"
+                      padding="sm"
+                      bg={isSelected ? "background.secondary" : "background.primary"}
+                      textAlign="center"
+                      display="flex"
+                      flexDirection="column"
+                      gap="xs"
+                      cursor="pointer"
+                      transition="background-color 0.2s ease, border-color 0.2s ease"
+                      _hover={{ bg: "background.secondary" }}
+                      _focusVisible={{ outline: "none", boxShadow: "0 0 0 2px var(--chakra-colors-blue-500)" }}
+                    >
+                      <Box
+                        borderRadius="sm"
+                        overflow="hidden"
+                        height="100px"
+                        bg="background.subtle"
+                        display="flex"
+                        alignItems="center"
+                        justifyContent="center"
+                      >
+                        {previewUrl ? (
+                          <chakra.img
+                            src={previewUrl}
+                            alt={`${name} wallpaper preview`}
+                            width="100%"
+                            height="100%"
+                            objectFit="cover"
+                          />
+                        ) : (
+                          <Text fontSize="sm" color="fg.muted">
+                            Preview unavailable
+                          </Text>
+                        )}
+                      </Box>
+                      <Text fontWeight="medium">{name}</Text>
+                    </Box>
+                  );
+                })}
+              </SimpleGrid>
             </Field.Root>
           </VStack>
         );
