@@ -10,7 +10,7 @@ export { getLockfile, getStats, resetStats, setLockfile } from "./core/idb";
 
 export { buildImportMap, type ImportMap, type Lockfile } from "./core/import-map";
 
-export { CACHE_NAME } from "./constant";
+export { CACHE_NAME, getManifestUrl, getRuntimeHtmlPath, getVirtualPrefix } from "./constant";
 
 export { loadSnapshot } from "./fs/loadSnapshot";
 

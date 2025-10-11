@@ -1,9 +1,8 @@
 import type { CompileResult } from "../esbuild/types";
+import { getManifestUrl, getVirtualPrefix } from "../constant";
 import { openBundleCache } from "./cache";
 import { computeLockfileHash } from "./hash";
 import { getLockfile } from "./idb";
-
-const MANIFEST_URL = "/tiny-ui/manifest.json";
 const JSON_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
 };
@@ -22,11 +21,11 @@ type Manifest = Record<string, ManifestEntry>;
 
 const toAssetUrl = (hash: string, asset: string) => {
   const normalized = asset.startsWith("/") ? asset.slice(1) : asset;
-  return `/virtual/${hash}/${normalized}`;
+  return `${getVirtualPrefix()}${hash}/${normalized}`;
 };
 
 const readManifest = async (cache: Cache): Promise<Manifest> => {
-  const response = await cache.match(MANIFEST_URL);
+  const response = await cache.match(getManifestUrl());
   if (!response) return {};
 
   try {
@@ -41,12 +40,12 @@ const readManifest = async (cache: Cache): Promise<Manifest> => {
 
 const persistManifest = async (cache: Cache, manifest: Manifest) => {
   if (Object.keys(manifest).length === 0) {
-    await cache.delete(MANIFEST_URL);
+    await cache.delete(getManifestUrl());
     return;
   }
 
   const payload = JSON.stringify(manifest);
-  await cache.put(MANIFEST_URL, new Response(payload, { headers: JSON_HEADERS }));
+  await cache.put(getManifestUrl(), new Response(payload, { headers: JSON_HEADERS }));
 };
 
 const deleteCacheEntries = async (cache: Cache, entry: ManifestEntry) => {
@@ -132,6 +131,12 @@ export const getCachedBundle = async (id: string): Promise<CompileResult | null>
   const entry = manifest[id];
   if (!entry) return null;
 
+  const virtualPrefix = getVirtualPrefix();
+  if (!entry.url.startsWith(virtualPrefix)) {
+    await removeEntry(id);
+    return null;
+  }
+
   const lockfileHash = await computeLockfileHash(getLockfile() ?? null);
   if (entry.lockfileHash !== lockfileHash) return null;
 
@@ -153,7 +158,7 @@ export const getCachedBundle = async (id: string): Promise<CompileResult | null>
   const result: CompileResult = {
     id,
     hash: entry.hash,
-    url: entry.url as CompileResult["url"],
+    url: entry.url,
     fromCache: true,
     bytes: entry.bytes,
     assets: [...entry.assets],

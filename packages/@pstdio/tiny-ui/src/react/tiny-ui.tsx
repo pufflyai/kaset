@@ -1,5 +1,5 @@
 import React, { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
-import { RUNTIME_HTML_PATH } from "../constant";
+import { getRuntimeHtmlPath } from "../constant";
 import { registerSources } from "../core/sources";
 import { compile } from "../esbuild/compile";
 import type { CompileResult } from "../esbuild/types";
@@ -119,7 +119,7 @@ export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(prop
     [compileAndInit],
   );
 
-  const runtimePath = runtimeUrl ?? RUNTIME_HTML_PATH;
+  const runtimePath = runtimeUrl ?? getRuntimeHtmlPath();
 
   return (
     <div style={style}>

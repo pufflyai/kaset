@@ -1,7 +1,7 @@
 export interface CompileResult {
   id: string;
   hash: string;
-  url: `/virtual/${string}.js`;
+  url: string;
   fromCache: boolean;
   bytes: number;
   assets: string[];

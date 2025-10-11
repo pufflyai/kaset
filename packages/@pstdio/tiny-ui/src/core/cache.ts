@@ -1,4 +1,4 @@
-import { CACHE_NAME } from "../constant";
+import { CACHE_NAME, getVirtualPrefix } from "../constant";
 
 export const getBundleCacheName = () => CACHE_NAME;
 
@@ -20,9 +20,10 @@ export const openBundleCache = async () => {
 };
 
 const buildVirtualUrl = (hash: string, assetPath?: string) => {
-  if (!assetPath) return `/virtual/${hash}.js`;
+  const prefix = getVirtualPrefix();
+  if (!assetPath) return `${prefix}${hash}.js`;
   const normalized = assetPath.startsWith("/") ? assetPath.slice(1) : assetPath;
-  return `/virtual/${hash}/${normalized}`;
+  return `${prefix}${hash}/${normalized}`;
 };
 
 export const publishBundleToSW = async ({ hash, entry, assets }: PublishBundlePayload) => {
@@ -60,6 +61,15 @@ export const getBundleCount = async () => {
   if (!cache) return 0;
 
   const requests = await cache.keys();
-  const bundles = requests.filter((request) => request.url.includes("/virtual/"));
+  const virtualPrefix = getVirtualPrefix();
+  const bundles = requests.filter((request) => {
+    try {
+      const { pathname } = new URL(request.url);
+      return pathname.startsWith(virtualPrefix);
+    } catch (error) {
+      console.warn("[Tiny UI cache] Failed to parse request URL", error);
+      return false;
+    }
+  });
   return bundles.length;
 };

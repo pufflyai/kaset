@@ -249,4 +249,4 @@ async function invalidateBundles() {
 - `createTinyHost(iframe, id)` – low-level host connector exposing `sendInit`, `onReady`, `onError`, `onOps`, and `disconnect`.
 - `createIframeOps(options)` – build a typed `remote.ops` handler that wires scoped plugin storage, workspace reads, settings, and notifications.
 - `createWorkspaceFs(root)` – wrap OPFS access for workspace reads.
-- `CACHE_NAME`, `RUNTIME_HTML_PATH`, `VIRTUAL_PREFIX` – constants that mirror the service worker config.
+- `CACHE_NAME`, `getRuntimeHtmlPath()`, `getVirtualPrefix()`, `getManifestUrl()` – helpers that mirror the service worker config.
