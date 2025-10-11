@@ -93,6 +93,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   }, []);
 
   const entryPath = pluginWindow.entry;
+  const pluginsRoot = useMemo(() => getPluginsRoot(), []);
 
   useEffect(() => {
     applyLockfile(getMergedPluginDependencies());
@@ -105,7 +106,6 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       return undefined;
     }
 
-    const pluginsRoot = getPluginsRoot();
     const pluginRoot = buildPluginRoot(pluginsRoot, pluginId);
     const snapshotRoot = `/${pluginRoot}`;
 
@@ -137,7 +137,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       cancelled = true;
       unregisterVirtualSnapshot(snapshotRoot);
     };
-  }, [pluginId, entryPath, refreshToken]);
+  }, [pluginId, entryPath, refreshToken, pluginsRoot]);
 
   if (status === "loading" || status === "idle") {
     return (
@@ -172,12 +172,21 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     );
   }
 
-  const pluginsRoot = getPluginsRoot();
   // one plugin might have bundled code for multiple surfaces
   const sourceId = `${pluginId}:${surfaceId}`;
   // we remount the component if the snapshotVersion changes
   // this way if the UI changes we get a fresh iframe and TinyUI instance
   const key = `${pluginId}:${instanceId}:${snapshotVersion}`;
+
+  const bridge = useMemo(
+    () => ({
+      pluginId,
+      pluginsRoot,
+      workspaceFs,
+      notify,
+    }),
+    [pluginId, pluginsRoot, workspaceFs, notify],
+  );
 
   return (
     <Box height="100%" width="100%" position="relative">
@@ -194,12 +203,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
           setError(tinyError.message);
           setStatus("error");
         }}
-        bridge={{
-          pluginId,
-          pluginsRoot,
-          workspaceFs,
-          notify,
-        }}
+        bridge={bridge}
         style={{ width: "100%", height: "100%" }}
       />
     </Box>
