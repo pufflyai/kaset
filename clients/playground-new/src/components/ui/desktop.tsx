@@ -7,10 +7,16 @@ import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import { openDesktopApp } from "@/state/actions/desktop";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Box, Text } from "@chakra-ui/react";
+import { Box, Menu, Portal, Text } from "@chakra-ui/react";
 import type { IconName } from "lucide-react/dynamic";
+import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toaster } from "@/components/ui/toaster";
+import { downloadPluginFolder, deletePlugin } from "@/services/plugins/manage";
+import { getPluginDisplayName } from "@/services/plugins/plugin-host";
 import { DesktopIcon } from "./desktop-icon";
+import { DeleteConfirmationModal } from "./delete-confirmation-modal";
+import { MenuItem } from "./menu-item";
 import { WindowHost } from "./window-host";
 
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
@@ -93,6 +99,7 @@ export const Desktop = () => {
   const [containerSize, setContainerSize] = useState<Size | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<{ pluginId: string; pluginName: string } | null>(null);
 
   const windows = useWorkspaceStore((state) => state.desktop.windows);
 
@@ -148,6 +155,53 @@ export const Desktop = () => {
     [setSelectedAppId, openDesktopApp, getAppById],
   );
 
+  const getPluginIdFromAppId = useCallback((appId: string) => {
+    const [pluginId] = appId.split("/");
+    return pluginId ?? appId;
+  }, []);
+
+  const handleDownloadPlugin = useCallback(
+    async (appId: string) => {
+      const pluginId = getPluginIdFromAppId(appId);
+      const pluginName = getPluginDisplayName(pluginId);
+
+      try {
+        await downloadPluginFolder(pluginId);
+        toaster.create({ type: "info", title: `Downloading ${pluginName} plugin files` });
+      } catch (error) {
+        console.error(`[desktop] Failed to download plugin folder for ${pluginId}`, error);
+        toaster.create({ type: "error", title: `Failed to download ${pluginName} plugin files` });
+      }
+    },
+    [getPluginIdFromAppId],
+  );
+
+  const handleDeletePlugin = useCallback(
+    (appId: string) => {
+      const pluginId = getPluginIdFromAppId(appId);
+      const pluginName = getPluginDisplayName(pluginId);
+      setDeleteTarget({ pluginId, pluginName });
+    },
+    [getPluginIdFromAppId],
+  );
+
+  const handleConfirmDeletePlugin = useCallback(async () => {
+    if (!deleteTarget) return;
+
+    try {
+      await deletePlugin(deleteTarget.pluginId);
+      toaster.create({ type: "success", title: `Deleted ${deleteTarget.pluginName} plugin` });
+    } catch (error) {
+      console.error(`[desktop] Failed to delete plugin ${deleteTarget.pluginId}`, error);
+      toaster.create({ type: "error", title: `Failed to delete ${deleteTarget.pluginName} plugin` });
+      throw error;
+    }
+  }, [deleteTarget]);
+
+  const handleCloseDeleteModal = useCallback(() => {
+    setDeleteTarget(null);
+  }, []);
+
   useEffect(() => {
     if (typeof window === "undefined" || !containerRef.current || typeof ResizeObserver === "undefined") return;
 
@@ -189,18 +243,56 @@ export const Desktop = () => {
         gridTemplateColumns="repeat(auto-fit, minmax(5rem, max-content))"
       >
         {apps.map((app) => (
-          <DesktopIcon
+          <Menu.Root
             key={app.id}
-            icon={app.icon}
-            label={app.title}
-            isSelected={selectedAppId === app.id}
-            onSelect={() => handleSelectApp(app.id)}
-            onFocus={() => handleSelectApp(app.id)}
-            onOpen={() => handleOpenApp(app.id)}
-          />
+            onOpenChange={({ open }) => {
+              if (open) {
+                handleSelectApp(app.id);
+              }
+            }}
+          >
+            <Menu.ContextTrigger asChild>
+              <DesktopIcon
+                icon={app.icon}
+                label={app.title}
+                isSelected={selectedAppId === app.id}
+                onSelect={() => handleSelectApp(app.id)}
+                onFocus={() => handleSelectApp(app.id)}
+                onOpen={() => handleOpenApp(app.id)}
+              />
+            </Menu.ContextTrigger>
+            <Portal>
+              <Menu.Positioner>
+                <Menu.Content bg="background.primary" paddingY="xxs">
+                  <MenuItem
+                    leftIcon={<Download size={16} />}
+                    primaryLabel="Download plugin folder"
+                    onClick={() => handleDownloadPlugin(app.id)}
+                  />
+                  <MenuItem
+                    leftIcon={<Trash2 size={16} />}
+                    primaryLabel="Delete plugin"
+                    onClick={() => handleDeletePlugin(app.id)}
+                  />
+                </Menu.Content>
+              </Menu.Positioner>
+            </Portal>
+          </Menu.Root>
         ))}
       </Box>
       <WindowHost windows={windows} containerSize={containerSize} getAppById={getAppById} />
+      <DeleteConfirmationModal
+        open={deleteTarget !== null}
+        onClose={handleCloseDeleteModal}
+        onDelete={handleConfirmDeletePlugin}
+        headline="Delete Plugin"
+        notificationText={
+          deleteTarget
+            ? `Are you sure you want to delete the "${deleteTarget.pluginName}" plugin? This action cannot be undone.`
+            : undefined
+        }
+        buttonText="Delete plugin"
+      />
     </Box>
   );
 };
