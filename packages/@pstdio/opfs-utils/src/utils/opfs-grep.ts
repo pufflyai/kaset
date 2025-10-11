@@ -3,6 +3,8 @@ import { getFs } from "../adapter/fs";
 import { resolveSubdir } from "../shared";
 import { joinPath, normalizeSlashes } from "./path";
 
+type Zenfs = Awaited<ReturnType<typeof getFs>>;
+
 /**
  * Shape of a single match.
  */
@@ -73,17 +75,17 @@ export async function grep(dirPath: string, options: GrepOptions): Promise<GrepM
 
   // Resolve absolute search root (OPFS path starting with "/")
   const rootAbs = await resolveSubdir(dirPath || "", false);
+  const fs = await getFs();
 
   // Collect files first (so we can pool-process them)
   const files: FileEntry[] = [];
-  for await (const rel of walkFilesFs(rootAbs, "", { signal })) {
+  for await (const rel of walkFilesFs(fs, rootAbs, "", { signal })) {
     if (shouldSkip(rel, includeREs, excludeREs)) continue;
     const abs = joinPath(rootAbs, rel);
     files.push({ path: rel, abs });
   }
 
   const results: GrepMatch[] = [];
-  const fs = await getFs();
 
   await runPool<FileEntry>(files, Math.max(1, concurrency), async (fileEntry: FileEntry) => {
     if (signal?.aborted) return;
@@ -129,13 +131,13 @@ export async function grep(dirPath: string, options: GrepOptions): Promise<GrepM
  * Recursively walk a directory, yielding files with their POSIX-like paths.
  */
 async function* walkFilesFs(
+  fs: Zenfs,
   rootAbs: string,
   prefix = "",
   { signal }: { signal?: AbortSignal } = {},
 ): AsyncGenerator<string, void, unknown> {
   if (signal?.aborted) return;
 
-  const fs = await getFs();
   const hereAbs = "/" + (prefix ? joinPath(rootAbs, prefix) : normalizeSlashes(rootAbs));
 
   let names: string[] = [];
@@ -163,7 +165,7 @@ async function* walkFilesFs(
     }
 
     if (st.isDirectory?.()) {
-      yield* walkFilesFs(rootAbs, rel, { signal });
+      yield* walkFilesFs(fs, rootAbs, rel, { signal });
     }
   }
 }
