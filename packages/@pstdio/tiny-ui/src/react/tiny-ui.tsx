@@ -127,6 +127,7 @@ export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(prop
         ref={iframeRef}
         title={title}
         src={runtimePath}
+        allowTransparency
         style={{ flex: 1, width: "100%", height: "100%", border: 0 }}
       />
     </div>
