@@ -84,6 +84,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [wallpapers, setWallpapers] = useState<string[]>([]);
   const [selectedWallpaper, setSelectedWallpaper] = useState<string>("");
   const [wallpaperPreviews, setWallpaperPreviews] = useState<Record<string, string>>({});
+  const [hideReactScan, setHideReactScan] = useState(false);
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
   useEffect(() => {
@@ -100,6 +101,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setInitialTheme(nextTheme);
 
     setSelectedWallpaper(settings.wallpaper ?? DEFAULT_WALLPAPER);
+    setHideReactScan(settings.hideReactScan ?? false);
 
     const storedServers = settings.mcpServers;
     const effectiveServers = storedServers ?? [];
@@ -332,6 +334,22 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                 })}
               </SimpleGrid>
             </Field.Root>
+            <Field.Root>
+              <Field.Label>Developer Tools</Field.Label>
+              <VStack align="stretch" gap="xs">
+                <Checkbox.Root
+                  checked={hideReactScan}
+                  onCheckedChange={(event) => setHideReactScan(event.checked === true)}
+                >
+                  <Checkbox.HiddenInput />
+                  <Checkbox.Control />
+                  <Checkbox.Label>Hide React Scan overlay</Checkbox.Label>
+                </Checkbox.Root>
+                <Text fontSize="sm" color="fg.muted">
+                  Disable the React Scan developer overlay for a distraction-free workspace.
+                </Text>
+              </VStack>
+            </Field.Root>
           </VStack>
         );
       case "permissions":
@@ -482,6 +500,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         activeMcpServerIds: nextActiveIds,
         theme,
         wallpaper: selectedWallpaper || undefined,
+        hideReactScan,
       });
 
       setInitialTheme(theme);

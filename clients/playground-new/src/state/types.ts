@@ -75,6 +75,7 @@ export interface WorkspaceSettings {
   activeMcpServerIds?: string[];
   theme?: ThemePreference;
   wallpaper?: string;
+  hideReactScan?: boolean;
 }
 
 export interface WorkspaceState {
