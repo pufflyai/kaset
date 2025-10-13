@@ -29,6 +29,7 @@ interface CodeEditorProps {
   disableScroll?: boolean;
   autoSave?: boolean;
   rootDir?: string;
+  wrapLines?: boolean;
 }
 
 export const CodeEditor = (props: CodeEditorProps) => {
@@ -43,6 +44,7 @@ export const CodeEditor = (props: CodeEditorProps) => {
     disableScroll,
     autoSave = true,
     rootDir,
+    wrapLines = false,
   } = props;
 
   const usingFilePath = Boolean(filePath);
@@ -166,6 +168,7 @@ export const CodeEditor = (props: CodeEditorProps) => {
     minimap: {
       enabled: false,
     },
+    wordWrap: wrapLines ? "on" : "off",
     fontSize: 12,
     readOnly: !isEditable,
     lineNumbers: showLineNumbers ? "on" : "off",

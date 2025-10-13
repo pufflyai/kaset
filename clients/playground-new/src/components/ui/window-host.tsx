@@ -24,8 +24,6 @@ export interface WindowHostProps {
 export const WindowHost = ({ windows, containerSize, getAppById }: WindowHostProps) => {
   const [snapPreviewSide, setSnapPreviewSide] = useState<"left" | "right" | null>(null);
 
-  const orderedWindows = useMemo(() => [...windows].sort((a, b) => a.zIndex - b.zIndex), [windows]);
-
   const focusedId = useMemo(() => {
     let current: DesktopWindow | undefined;
 
@@ -74,7 +72,7 @@ export const WindowHost = ({ windows, containerSize, getAppById }: WindowHostPro
           zIndex={2}
         />
       ) : null}
-      {orderedWindows.map((window) => {
+      {windows.map((window) => {
         const app = getAppById(window.appId);
         if (!app) return null;
 

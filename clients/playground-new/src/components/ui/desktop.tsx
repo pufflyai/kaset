@@ -1,3 +1,4 @@
+import { ROOT } from "@/constant";
 import {
   buildAdaptiveResultFromColor,
   defaultAdaptiveResult,
@@ -15,18 +16,132 @@ import { openDesktopApp } from "@/state/actions/desktop";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { Box, Menu, Portal, Text, chakra } from "@chakra-ui/react";
-import { readFile } from "@pstdio/opfs-utils";
+import type { DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import { ls, readFile, watchDirectory } from "@pstdio/opfs-utils";
 import { FastAverageColor } from "fast-average-color";
-import { Download, Trash2 } from "lucide-react";
+import { Download, ExternalLink, Trash2 } from "lucide-react";
 import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { DesktopIcon } from "./desktop-icon";
+import { ImagePreview } from "./image-preview";
 import { MenuItem } from "./menu-item";
+import { TextEditor } from "./text-editor";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
 
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
+const TEXT_EDITOR_WINDOW_SIZE = { width: 720, height: 560 };
+const IMAGE_PREVIEW_WINDOW_SIZE = { width: 640, height: 520 };
+const ROOT_FILE_PREFIX = "root-file:";
+
+type LsEntryResult = Awaited<ReturnType<typeof ls>>[number];
+
+const joinRootPath = (relative: string) => {
+  const trimmed = relative.replace(/^\/+/, "");
+  return trimmed ? `${ROOT}/${trimmed}` : ROOT;
+};
+
+const getRootFilePathFromAppId = (appId: string) => {
+  if (!appId.startsWith(ROOT_FILE_PREFIX)) return null;
+  return appId.slice(ROOT_FILE_PREFIX.length);
+};
+
+const isNotFoundError = (error: unknown) => {
+  if (!error) return false;
+  const info = error as { name?: string; code?: string | number };
+  return info?.name === "NotFoundError" || info?.code === "ENOENT" || info?.code === 1;
+};
+
+const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico"] as const;
+
+const isImageFile = (fileName: string) => {
+  const lower = fileName.toLowerCase();
+  return imageExtensions.some((ext) => lower.endsWith(ext));
+};
+
+const getIconForRootFile = (fileName: string): IconName => {
+  const lower = fileName.toLowerCase();
+
+  if (lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".txt")) {
+    return "file-text";
+  }
+
+  if (lower.endsWith(".json") || lower.endsWith(".jsonl") || lower.endsWith(".ndjson")) {
+    return "file-json";
+  }
+
+  if (
+    lower.endsWith(".yaml") ||
+    lower.endsWith(".yml") ||
+    lower.endsWith(".toml") ||
+    lower.endsWith(".ini") ||
+    lower.endsWith(".conf") ||
+    lower.endsWith(".config")
+  ) {
+    return "file-cog";
+  }
+
+  if (isImageFile(fileName)) {
+    return "file-image";
+  }
+
+  const codeExtensions = [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".py",
+    ".rb",
+    ".go",
+    ".rs",
+    ".java",
+    ".kt",
+    ".swift",
+    ".php",
+    ".c",
+    ".h",
+    ".hpp",
+    ".cpp",
+    ".css",
+    ".scss",
+    ".sass",
+    ".less",
+    ".html",
+    ".htm",
+  ];
+
+  if (codeExtensions.some((ext) => lower.endsWith(ext))) {
+    return "file-code";
+  }
+
+  return "file";
+};
+
+const createRootFileApps = (entries: LsEntryResult[]): DesktopApp[] =>
+  entries
+    .filter((entry) => entry.kind === "file")
+    .map((entry) => {
+      const absolutePath = joinRootPath(entry.path);
+      const imageFile = isImageFile(entry.name);
+      return {
+        id: `root-file:${absolutePath}`,
+        title: entry.name,
+        icon: getIconForRootFile(entry.name),
+        description: `View ${entry.name} from ${ROOT}/`,
+        defaultSize: imageFile ? IMAGE_PREVIEW_WINDOW_SIZE : TEXT_EDITOR_WINDOW_SIZE,
+        singleton: true,
+        render: () =>
+          imageFile ? (
+            <ImagePreview filePath={absolutePath} displayName={entry.name} />
+          ) : (
+            <TextEditor filePath={absolutePath} />
+          ),
+      } satisfies DesktopApp;
+    })
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
 
 const toBlobPart = (bytes: Uint8Array) => {
   if (bytes.buffer instanceof ArrayBuffer) {
@@ -36,6 +151,26 @@ const toBlobPart = (bytes: Uint8Array) => {
 
   const clone = new Uint8Array(bytes);
   return clone.buffer;
+};
+
+const triggerBlobDownload = (blob: Blob, filename: string) => {
+  if (typeof document === "undefined") {
+    throw new Error("Downloads are only supported in browser environments.");
+  }
+
+  const url = URL.createObjectURL(blob);
+
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.rel = "noopener";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 };
 
 const normalizeSize = (
@@ -115,6 +250,7 @@ export const Desktop = () => {
   const containerSizeRef = useRef<Size | null>(null);
   const [containerSize, setContainerSize] = useState<Size | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [rootFileApps, setRootFileApps] = useState<DesktopApp[]>([]);
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
   const [wallpaperElement, setWallpaperElement] = useState<HTMLImageElement | null>(null);
@@ -133,6 +269,76 @@ export const Desktop = () => {
   const wallpaper = useWorkspaceStore((state) => state.settings.wallpaper);
 
   useEffect(() => {
+    let cancelled = false;
+    let watcher: DirectoryWatcherCleanup | null = null;
+    let loading = false;
+    let refreshQueued = false;
+
+    const refresh = async () => {
+      if (cancelled) return;
+      if (loading) {
+        refreshQueued = true;
+        return;
+      }
+
+      loading = true;
+      try {
+        const entries = await ls(ROOT, { maxDepth: 1, dirsFirst: false });
+        if (!cancelled) {
+          setRootFileApps(createRootFileApps(entries));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          if (!isNotFoundError(error)) {
+            console.error("[desktop] Failed to load playground root files", error);
+          }
+          setRootFileApps([]);
+          if (isNotFoundError(error)) {
+            setTimeout(() => {
+              if (!cancelled) void refresh();
+            }, 1000);
+          }
+        }
+      } finally {
+        loading = false;
+        if (refreshQueued && !cancelled) {
+          refreshQueued = false;
+          void refresh();
+        }
+      }
+    };
+
+    const startWatcher = async () => {
+      try {
+        watcher = await watchDirectory(
+          ROOT,
+          () => {
+            void refresh();
+          },
+          { recursive: false },
+        );
+      } catch (error) {
+        if (!isNotFoundError(error)) {
+          console.warn("[desktop] Failed to watch playground root directory", error);
+        }
+        if (isNotFoundError(error)) {
+          setTimeout(() => {
+            if (!cancelled) void startWatcher();
+          }, 1500);
+        }
+      }
+    };
+
+    void refresh();
+    void startWatcher();
+
+    return () => {
+      cancelled = true;
+      watcher?.();
+    };
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = subscribeToPluginDesktopSurfaces((surfaces) => {
       const apps = surfaces
         .map((surface) => createDesktopAppFromSurface(surface))
@@ -147,7 +353,7 @@ export const Desktop = () => {
     return unsubscribe;
   }, []);
 
-  const apps = useMemo(() => pluginApps, [pluginApps]);
+  const apps = useMemo(() => [...rootFileApps, ...pluginApps], [rootFileApps, pluginApps]);
 
   const appsById = useMemo(() => {
     const map = new Map<string, DesktopApp>();
@@ -185,6 +391,30 @@ export const Desktop = () => {
   );
 
   const getPluginIdFromAppId = useCallback((appId: string) => appId.split("/")[0] ?? appId, []);
+
+  const handleDownloadFile = useCallback(async (appId: string, label: string) => {
+    const filePath = getRootFilePathFromAppId(appId);
+    if (!filePath) return;
+
+    try {
+      const fileData = await readFile(filePath, { encoding: null });
+
+      if (!(fileData instanceof Uint8Array)) {
+        throw new Error("Received unexpected data type when reading file.");
+      }
+
+      const blob = new Blob([toBlobPart(fileData)], { type: "application/octet-stream" });
+      triggerBlobDownload(blob, label);
+      toaster.create({ type: "success", title: `Preparing download for ${label}` });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toaster.create({
+        type: "error",
+        title: `Failed to download ${label}`,
+        description: message,
+      });
+    }
+  }, []);
 
   const handleDownloadPlugin = useCallback(async (pluginId: string, label: string) => {
     try {
@@ -385,8 +615,44 @@ export const Desktop = () => {
         zIndex={1}
       >
         {apps.map((app) => {
-          const pluginId = getPluginIdFromAppId(app.id);
-          const pluginLabel = getPluginDisplayName(pluginId) || pluginId;
+          const isRootFileApp = app.id.startsWith(ROOT_FILE_PREFIX);
+
+          const renderContextMenu = () => {
+            if (isRootFileApp) {
+              return (
+                <>
+                  <MenuItem
+                    leftIcon={<ExternalLink size={16} />}
+                    primaryLabel="Open file"
+                    onClick={() => handleOpenApp(app.id)}
+                  />
+                  <MenuItem
+                    leftIcon={<Download size={16} />}
+                    primaryLabel="Download file"
+                    onClick={() => handleDownloadFile(app.id, app.title)}
+                  />
+                </>
+              );
+            }
+
+            const pluginId = getPluginIdFromAppId(app.id);
+            const pluginLabel = getPluginDisplayName(pluginId) || pluginId;
+
+            return (
+              <>
+                <MenuItem
+                  leftIcon={<Download size={16} />}
+                  primaryLabel="Download plugin"
+                  onClick={() => handleDownloadPlugin(pluginId, pluginLabel)}
+                />
+                <MenuItem
+                  leftIcon={<Trash2 size={16} />}
+                  primaryLabel="Delete plugin"
+                  onClick={() => handleRequestDelete(pluginId, pluginLabel)}
+                />
+              </>
+            );
+          };
 
           return (
             <Menu.Root key={app.id}>
@@ -403,18 +669,7 @@ export const Desktop = () => {
               </Menu.ContextTrigger>
               <Portal>
                 <Menu.Positioner>
-                  <Menu.Content bg="background.primary">
-                    <MenuItem
-                      leftIcon={<Download size={16} />}
-                      primaryLabel="Download plugin"
-                      onClick={() => handleDownloadPlugin(pluginId, pluginLabel)}
-                    />
-                    <MenuItem
-                      leftIcon={<Trash2 size={16} />}
-                      primaryLabel="Delete plugin"
-                      onClick={() => handleRequestDelete(pluginId, pluginLabel)}
-                    />
-                  </Menu.Content>
+                  <Menu.Content bg="background.primary">{renderContextMenu()}</Menu.Content>
                 </Menu.Positioner>
               </Portal>
             </Menu.Root>
