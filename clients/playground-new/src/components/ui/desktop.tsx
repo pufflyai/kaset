@@ -9,11 +9,7 @@ import {
   subscribeToPluginDesktopSurfaces,
   type PluginDesktopSurface,
 } from "@/services/plugins/plugin-host";
-import {
-  deletePluginDirectories,
-  downloadPluginData,
-  downloadPluginSource,
-} from "@/services/plugins/plugin-management";
+import { deletePluginDirectories, downloadPluginBundle } from "@/services/plugins/plugin-management";
 import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import { openDesktopApp } from "@/state/actions/desktop";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
@@ -21,11 +17,11 @@ import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { Box, Menu, Portal, Text, chakra } from "@chakra-ui/react";
 import { readFile } from "@pstdio/opfs-utils";
 import { FastAverageColor } from "fast-average-color";
-import { Download, FolderDown, Trash2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { DesktopIcon } from "./desktop-icon";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
+import { DesktopIcon } from "./desktop-icon";
 import { MenuItem } from "./menu-item";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
@@ -192,23 +188,13 @@ export const Desktop = () => {
 
   const handleDownloadPlugin = useCallback(async (pluginId: string, label: string) => {
     try {
-      await downloadPluginSource({ pluginId, label });
+      await downloadPluginBundle({ pluginId, label });
       toaster.create({ type: "success", title: `Preparing download for ${label}` });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      toaster.create({ type: "error", title: `Failed to download ${label}`, description: message });
-    }
-  }, []);
-
-  const handleDownloadPluginData = useCallback(async (pluginId: string, label: string) => {
-    try {
-      await downloadPluginData({ pluginId, label });
-      toaster.create({ type: "success", title: `Preparing ${label} plugin-data download` });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       toaster.create({
         type: "error",
-        title: `Failed to download ${label} plugin-data`,
+        title: `Failed to download ${label}`,
         description: message,
       });
     }
@@ -404,7 +390,7 @@ export const Desktop = () => {
 
           return (
             <Menu.Root key={app.id}>
-              <Menu.ContextTrigger asChild>
+              <Menu.ContextTrigger>
                 <DesktopIcon
                   icon={app.icon}
                   label={app.title}
@@ -420,13 +406,8 @@ export const Desktop = () => {
                   <Menu.Content bg="background.primary">
                     <MenuItem
                       leftIcon={<Download size={16} />}
-                      primaryLabel="Download plugin folder"
+                      primaryLabel="Download plugin"
                       onClick={() => handleDownloadPlugin(pluginId, pluginLabel)}
-                    />
-                    <MenuItem
-                      leftIcon={<FolderDown size={16} />}
-                      primaryLabel="Download plugin-data folder"
-                      onClick={() => handleDownloadPluginData(pluginId, pluginLabel)}
                     />
                     <MenuItem
                       leftIcon={<Trash2 size={16} />}

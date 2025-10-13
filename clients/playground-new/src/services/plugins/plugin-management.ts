@@ -24,14 +24,41 @@ const buildRelativePath = (...segments: Array<string | null | undefined>) =>
     .filter((segment) => segment.length > 0)
     .join("/");
 
+const joinZipPath = (...segments: Array<string | undefined>) =>
+  segments
+    .filter((segment): segment is string => Boolean(segment && segment.length > 0))
+    .map((segment) => segment.replace(/^\/+|\/+$/g, ""))
+    .join("/");
+
 const createZipBlob = async (options: {
   rootDir: string;
   entries: Awaited<ReturnType<typeof ls>>;
   rootFolder: string;
 }) => {
   const { rootDir, entries, rootFolder } = options;
+  return createZipFromDirectories({
+    rootFolder,
+    directories: [
+      {
+        directoryPath: rootDir,
+        entries,
+      },
+    ],
+  });
+};
+
+const createZipFromDirectories = async (options: {
+  rootFolder?: string;
+  directories: Array<{
+    directoryPath: string;
+    entries: Awaited<ReturnType<typeof ls>> | null;
+    folderLabel?: string;
+  }>;
+}) => {
+  const { rootFolder, directories } = options;
   const zip = new Zip();
-  const chunks: Uint8Array[] = [];
+  const blobParts: BlobPart[] = [];
+  const addedDirectories = new Set<string>();
 
   const zipCompletion = new Promise<void>((resolve, reject) => {
     zip.ondata = (error, chunk, final) => {
@@ -40,35 +67,69 @@ const createZipBlob = async (options: {
         return;
       }
 
-      chunks.push(chunk);
+      let part: ArrayBuffer;
+      if (chunk.buffer instanceof ArrayBuffer) {
+        if (chunk.byteOffset === 0 && chunk.byteLength === chunk.buffer.byteLength) {
+          part = chunk.buffer;
+        } else {
+          part = chunk.buffer.slice(chunk.byteOffset, chunk.byteOffset + chunk.byteLength);
+        }
+      } else {
+        part = new Uint8Array(chunk).buffer;
+      }
+
+      blobParts.push(part);
       if (final) {
         resolve();
       }
     };
   });
 
-  const rootEntry = new ZipPassThrough(`${rootFolder}/`);
-  zip.add(rootEntry);
-  rootEntry.push(new Uint8Array(), true);
+  const addDirectoryEntry = (path: string | undefined) => {
+    if (!path || path.length === 0) return;
+    const normalizedPath = path.replace(/\/+$/g, "");
+    if (addedDirectories.has(normalizedPath)) return;
+    addedDirectories.add(normalizedPath);
 
-  for (const entry of entries.filter((item) => item.kind === "directory")) {
-    const dirEntry = new ZipPassThrough(`${rootFolder}/${entry.path.replace(/\/+$/g, "")}/`);
-    zip.add(dirEntry);
-    dirEntry.push(new Uint8Array(), true);
-  }
+    const entry = new ZipPassThrough(`${normalizedPath}/`);
+    zip.add(entry);
+    entry.push(new Uint8Array(), true);
+  };
 
-  for (const entry of entries.filter((item) => item.kind === "file")) {
-    const fullPath = buildRelativePath(rootDir, entry.path);
-    const data = (await readFile(fullPath, { encoding: null })) as Uint8Array;
-    const fileEntry = new ZipPassThrough(`${rootFolder}/${entry.path}`);
-    zip.add(fileEntry);
-    fileEntry.push(data, true);
+  addDirectoryEntry(rootFolder);
+
+  for (const directory of directories) {
+    const { directoryPath, entries, folderLabel } = directory;
+    const normalizedFolderLabel = folderLabel ? folderLabel.replace(/^\/+|\/+$/g, "") : "";
+    const basePath = joinZipPath(rootFolder, normalizedFolderLabel);
+
+    addDirectoryEntry(basePath);
+
+    if (!entries) {
+      continue;
+    }
+
+    const subdirectories = entries.filter((item) => item.kind === "directory");
+    for (const entry of subdirectories) {
+      const directoryZipPath = joinZipPath(basePath, entry.path.replace(/\/+$/g, ""));
+      addDirectoryEntry(directoryZipPath);
+    }
+
+    const fileEntries = entries.filter((item) => item.kind === "file");
+    for (const entry of fileEntries) {
+      const fullPath = buildRelativePath(directoryPath, entry.path);
+      const data = (await readFile(fullPath, { encoding: null })) as Uint8Array;
+      const fileZipPath = joinZipPath(basePath, entry.path);
+      const fileEntry = new ZipPassThrough(fileZipPath);
+      zip.add(fileEntry);
+      fileEntry.push(data, true);
+    }
   }
 
   zip.end();
   await zipCompletion;
 
-  return new Blob(chunks, { type: "application/zip" });
+  return new Blob(blobParts, { type: "application/zip" });
 };
 
 const triggerBlobDownload = (blob: Blob, filename: string) => {
@@ -132,6 +193,38 @@ export const downloadPluginData = async ({ pluginId, label }: DownloadOptions) =
   const pluginDataDir = buildRelativePath(PLUGIN_DATA_ROOT, pluginId);
   const displayName = `${label ?? pluginId}-plugin-data`;
   await downloadDirectory(pluginDataDir, displayName);
+};
+
+export const downloadPluginBundle = async ({ pluginId, label }: DownloadOptions) => {
+  const pluginsRoot = getPluginsRoot();
+  const pluginDir = buildRelativePath(pluginsRoot, pluginId);
+  const pluginDataDir = buildRelativePath(PLUGIN_DATA_ROOT, pluginId);
+  const displayName = label ?? pluginId;
+  const fileBaseName = sanitizeFileSegment(displayName);
+
+  const pluginEntries = await listDirectoryEntries(pluginDir);
+  if (!pluginEntries) {
+    throw new Error(`Directory not found: ${pluginDir}`);
+  }
+
+  const pluginDataEntries = await listDirectoryEntries(pluginDataDir);
+
+  const blob = await createZipFromDirectories({
+    directories: [
+      {
+        directoryPath: pluginDir,
+        entries: pluginEntries,
+        folderLabel: "plugin",
+      },
+      {
+        directoryPath: pluginDataDir,
+        entries: pluginDataEntries,
+        folderLabel: "plugin-data",
+      },
+    ],
+  });
+
+  triggerBlobDownload(blob, `${fileBaseName}.zip`);
 };
 
 export const deletePluginDirectories = async (pluginId: string) => {
