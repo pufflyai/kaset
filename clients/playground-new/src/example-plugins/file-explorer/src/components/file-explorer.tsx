@@ -5,6 +5,7 @@ import { useFsTree, type FsNode } from "../hooks/fs";
 
 interface FileExplorerProps {
   rootDir: string;
+  onOpenFile?: (path: string, options?: { displayName?: string }) => Promise<void> | void;
 }
 
 const isDirectory = (node: FsNode) => Array.isArray(node.children);
@@ -38,7 +39,7 @@ const createBreadcrumbs = (currentId: string, maps: ReturnType<typeof buildMaps>
 };
 
 export function FileExplorer(props: FileExplorerProps) {
-  const { rootDir } = props;
+  const { rootDir, onOpenFile } = props;
   const fsTree = useFsTree(rootDir);
 
   const maps = useMemo(() => buildMaps(fsTree), [fsTree]);
@@ -120,7 +121,17 @@ export function FileExplorer(props: FileExplorerProps) {
                 background: "gray.100",
               }}
               onClick={() => {
-                if (directory) setCurrentPath(node.id);
+                if (directory) {
+                  setCurrentPath(node.id);
+                  return;
+                }
+
+                const result = onOpenFile?.(node.id, { displayName: node.name });
+                if (result instanceof Promise) {
+                  result.catch((error) => {
+                    console.error("[file-explorer] Failed to open file", error);
+                  });
+                }
               }}
             >
               <Box

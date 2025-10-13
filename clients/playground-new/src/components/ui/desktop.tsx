@@ -10,6 +10,14 @@ import {
   subscribeToPluginDesktopSurfaces,
   type PluginDesktopSurface,
 } from "@/services/plugins/plugin-host";
+import {
+  createDesktopFileApp,
+  getRootFilePathFromAppId,
+  OPEN_DESKTOP_FILE_EVENT,
+  ROOT_FILE_PREFIX,
+  normalizeDesktopFilePath,
+  type DesktopOpenFileDetail,
+} from "@/services/desktop/fileApps";
 import { deletePluginDirectories, downloadPluginBundle } from "@/services/plugins/plugin-management";
 import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import { openDesktopApp } from "@/state/actions/desktop";
@@ -24,16 +32,11 @@ import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { DesktopIcon } from "./desktop-icon";
-import { ImagePreview } from "./image-preview";
 import { MenuItem } from "./menu-item";
-import { TextEditor } from "./text-editor";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
 
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
-const TEXT_EDITOR_WINDOW_SIZE = { width: 720, height: 560 };
-const IMAGE_PREVIEW_WINDOW_SIZE = { width: 640, height: 520 };
-const ROOT_FILE_PREFIX = "root-file:";
 
 type LsEntryResult = Awaited<ReturnType<typeof ls>>[number];
 
@@ -42,105 +45,21 @@ const joinRootPath = (relative: string) => {
   return trimmed ? `${ROOT}/${trimmed}` : ROOT;
 };
 
-const getRootFilePathFromAppId = (appId: string) => {
-  if (!appId.startsWith(ROOT_FILE_PREFIX)) return null;
-  return appId.slice(ROOT_FILE_PREFIX.length);
-};
-
 const isNotFoundError = (error: unknown) => {
   if (!error) return false;
   const info = error as { name?: string; code?: string | number };
   return info?.name === "NotFoundError" || info?.code === "ENOENT" || info?.code === 1;
 };
 
-const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico"] as const;
-
-const isImageFile = (fileName: string) => {
-  const lower = fileName.toLowerCase();
-  return imageExtensions.some((ext) => lower.endsWith(ext));
-};
-
-const getIconForRootFile = (fileName: string): IconName => {
-  const lower = fileName.toLowerCase();
-
-  if (lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".txt")) {
-    return "file-text";
-  }
-
-  if (lower.endsWith(".json") || lower.endsWith(".jsonl") || lower.endsWith(".ndjson")) {
-    return "file-json";
-  }
-
-  if (
-    lower.endsWith(".yaml") ||
-    lower.endsWith(".yml") ||
-    lower.endsWith(".toml") ||
-    lower.endsWith(".ini") ||
-    lower.endsWith(".conf") ||
-    lower.endsWith(".config")
-  ) {
-    return "file-cog";
-  }
-
-  if (isImageFile(fileName)) {
-    return "file-image";
-  }
-
-  const codeExtensions = [
-    ".ts",
-    ".tsx",
-    ".js",
-    ".jsx",
-    ".mjs",
-    ".cjs",
-    ".py",
-    ".rb",
-    ".go",
-    ".rs",
-    ".java",
-    ".kt",
-    ".swift",
-    ".php",
-    ".c",
-    ".h",
-    ".hpp",
-    ".cpp",
-    ".css",
-    ".scss",
-    ".sass",
-    ".less",
-    ".html",
-    ".htm",
-  ];
-
-  if (codeExtensions.some((ext) => lower.endsWith(ext))) {
-    return "file-code";
-  }
-
-  return "file";
-};
-
 const createRootFileApps = (entries: LsEntryResult[]): DesktopApp[] =>
   entries
     .filter((entry) => entry.kind === "file")
-    .map((entry) => {
-      const absolutePath = joinRootPath(entry.path);
-      const imageFile = isImageFile(entry.name);
-      return {
-        id: `root-file:${absolutePath}`,
-        title: entry.name,
-        icon: getIconForRootFile(entry.name),
-        description: `View ${entry.name} from ${ROOT}/`,
-        defaultSize: imageFile ? IMAGE_PREVIEW_WINDOW_SIZE : TEXT_EDITOR_WINDOW_SIZE,
-        singleton: true,
-        render: () =>
-          imageFile ? (
-            <ImagePreview filePath={absolutePath} displayName={entry.name} />
-          ) : (
-            <TextEditor filePath={absolutePath} />
-          ),
-      } satisfies DesktopApp;
-    })
+    .map((entry) =>
+      createDesktopFileApp({
+        path: joinRootPath(entry.path),
+        name: entry.name,
+      }),
+    )
     .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
 
 const toBlobPart = (bytes: Uint8Array) => {
@@ -363,12 +282,53 @@ export const Desktop = () => {
     return map;
   }, [apps]);
 
+  const appsByIdRef = useRef(appsById);
+
+  useEffect(() => {
+    appsByIdRef.current = appsById;
+  }, [appsById]);
+
   useEffect(() => {
     if (!selectedAppId) return;
     if (!appsById.has(selectedAppId)) {
       setSelectedAppId(null);
     }
   }, [appsById, selectedAppId]);
+
+  useEffect(() => {
+    const handleOpenFile = (event: Event) => {
+      const detail = (event as CustomEvent<DesktopOpenFileDetail>).detail;
+      const rawPath = detail?.path;
+      if (typeof rawPath !== "string" || !rawPath.trim()) return;
+
+      const normalizedPath = normalizeDesktopFilePath(rawPath);
+      const displayName = typeof detail?.displayName === "string" ? detail.displayName : undefined;
+
+      let targetApp = appsByIdRef.current.get(`${ROOT_FILE_PREFIX}${normalizedPath}`);
+
+      if (!targetApp) {
+        const nextApp = createDesktopFileApp({ path: normalizedPath, name: displayName });
+        targetApp = nextApp;
+
+        setRootFileApps((current) => {
+          if (current.some((existing) => existing.id === nextApp.id)) return current;
+          const next = [...current, nextApp];
+          next.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+          return next;
+        });
+      }
+
+      if (!targetApp) return;
+
+      setSelectedAppId(targetApp.id);
+      openDesktopApp(targetApp);
+    };
+
+    window.addEventListener(OPEN_DESKTOP_FILE_EVENT, handleOpenFile as EventListener);
+    return () => {
+      window.removeEventListener(OPEN_DESKTOP_FILE_EVENT, handleOpenFile as EventListener);
+    };
+  }, [setRootFileApps, setSelectedAppId]);
 
   const getAppById = useCallback((appId: string) => appsById.get(appId), [appsById]);
 

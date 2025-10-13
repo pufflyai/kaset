@@ -13,6 +13,7 @@ export interface CreateIframeOpsOptions {
   notify?(level: "info" | "warn" | "error", message: string): void;
   workspaceFs?: WorkspaceFs;
   settingsValidator?: SettingsValidator;
+  forwardRequest?(request: TinyUiOpsRequest): Promise<unknown>;
 }
 
 function normalizeSegment(value: string) {
@@ -242,6 +243,9 @@ export function createIframeOps(options: CreateIframeOpsOptions): TinyUiOpsHandl
       }
 
       default:
+        if (options.forwardRequest) {
+          return options.forwardRequest(request);
+        }
         throw new Error(`Unknown Tiny-UI ops method: ${method}`);
     }
   };

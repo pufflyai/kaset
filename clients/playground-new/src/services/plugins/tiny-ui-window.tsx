@@ -1,4 +1,5 @@
 import { toaster } from "@/components/ui/toaster";
+import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
 import { ROOT } from "@/constant";
 import { Box, Button, Center, Spinner, Text } from "@chakra-ui/react";
 import {
@@ -8,6 +9,7 @@ import {
   setLockfile,
   TinyUI,
   unregisterVirtualSnapshot,
+  type TinyUiOpsRequest,
 } from "@pstdio/tiny-ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -91,6 +93,28 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
     toaster.create({ type, title: message, duration: 5000 });
   }, []);
+
+  const handleOpenFile = useCallback(async (path: string, options?: { displayName?: string }) => {
+    requestOpenDesktopFile(path, options);
+  }, []);
+
+  const forwardRequest = useCallback(
+    async (request: TinyUiOpsRequest) => {
+      if (request.method === "actions.openFile") {
+        const params = (request.params ?? {}) as Record<string, unknown>;
+        const path = typeof params.path === "string" ? params.path : "";
+        if (!path.trim()) {
+          throw new Error("actions.openFile requires params.path");
+        }
+        const displayName = typeof params.displayName === "string" ? params.displayName : undefined;
+        await handleOpenFile(path, displayName ? { displayName } : undefined);
+        return { ok: true };
+      }
+
+      throw new Error(`Unknown Tiny UI host request: ${request.method}`);
+    },
+    [handleOpenFile],
+  );
 
   const entryPath = pluginWindow.entry;
 
@@ -199,6 +223,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
           pluginsRoot,
           workspaceFs,
           notify,
+          forwardRequest,
         }}
         style={{ width: "100%", height: "100%" }}
       />
