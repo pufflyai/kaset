@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { createTwoFilesPatch } from "diff";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { scan, setOptions } from "react-scan";
 import type { ApplyPatchOptions, FileOperationResult } from "../src/git/patch";
 import { applyPatchInOPFS } from "../src/git/patch";
 import { getFs } from "../src/adapter/fs";
@@ -55,6 +56,12 @@ const meta: Meta = {
 export default meta;
 
 type Story = StoryObj;
+
+declare global {
+  interface Window {
+    __opfsBenchmarkScanInitialized?: boolean;
+  }
+}
 
 const SYNTHETIC_PARAGRAPH =
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius enim in eros elementum tristique. " +
@@ -190,6 +197,25 @@ function PatchPerformanceStory() {
   const [status, setStatus] = useState<string>("Idle");
   const [running, setRunning] = useState(false);
   const [results, setResults] = useState<ScenarioRunResult[]>([]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const options = {
+      allowInIframe: true,
+      enabled: true,
+      showFPS: true,
+      showToolbar: true,
+    };
+
+    if (!window.__opfsBenchmarkScanInitialized) {
+      window.__opfsBenchmarkScanInitialized = true;
+      scan(options);
+      return;
+    }
+
+    setOptions(options);
+  }, []);
 
   useEffect(() => {
     let mounted = true;

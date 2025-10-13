@@ -9,6 +9,7 @@ import { setConversationMessages } from "@/state/actions/setConversationMessages
 import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import debounce from "lodash/debounce";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
@@ -87,15 +88,26 @@ export function ConversationHost() {
       const current = getConversationMessages(conversationId);
       const base = [...current, userMessage];
 
+      const applyConversationUpdate = debounce(
+        (nextMessages: Message[]) => {
+          setConversationMessages(conversationId, nextMessages, "conversations/send/assistant");
+        },
+        500,
+        { leading: true, trailing: true },
+      );
+
       setConversationMessages(conversationId, base, "conversations/send/user");
 
       try {
         setStreaming(true);
         for await (const updated of sendMessage(conversationId, base, toolset)) {
-          if (!conversationId) continue;
-          setConversationMessages(conversationId, updated, "conversations/send/assistant");
+          applyConversationUpdate(updated);
         }
+
+        applyConversationUpdate.flush();
       } catch (err) {
+        applyConversationUpdate.flush();
+
         const assistantError: Message = {
           id: shortUID(),
           role: "assistant",
@@ -112,6 +124,7 @@ export function ConversationHost() {
           appendConversationMessages(id, [assistantError], "conversations/send/error");
         }
       } finally {
+        applyConversationUpdate.cancel();
         setStreaming(false);
       }
     },

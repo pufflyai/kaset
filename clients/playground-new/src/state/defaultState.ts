@@ -23,5 +23,6 @@ export const DEFAULT_STATE: WorkspaceState = {
     mcpServers: [],
     activeMcpServerIds: [],
     theme: "light" satisfies ThemePreference,
+    wallpaper: "kaset.png",
   },
 };

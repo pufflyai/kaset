@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
-import { FastAverageColor } from "fast-average-color";
 import { colord } from "colord";
+import { FastAverageColor } from "fast-average-color";
+import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
 
 export type SampleSource = HTMLImageElement | HTMLCanvasElement | null | undefined;
 
@@ -60,8 +60,12 @@ export function useAdaptiveWallpaperSample<TElement extends HTMLElement>(
   }, []);
 
   useEffect(() => {
-    const element = targetRef.current;
-    if (!element) {
+    if (!targetRef.current) {
+      setResult(fallbackResult);
+      return;
+    }
+
+    if (!sampleEl) {
       setResult(fallbackResult);
       return;
     }
@@ -69,44 +73,12 @@ export function useAdaptiveWallpaperSample<TElement extends HTMLElement>(
     const fac = facRef.current;
     if (!fac) return;
 
-    let raf = 0;
+    let cancelled = false;
+    let loadHandler: (() => void) | null = null;
 
-    const measureAndCompute = () => {
-      if (!sampleEl) {
-        setResult(fallbackResult);
-        return;
-      }
-
+    const computeAverage = () => {
       try {
-        const panelBox = element.getBoundingClientRect();
-        const sampleBox = sampleEl.getBoundingClientRect();
-
-        if (panelBox.width === 0 || panelBox.height === 0 || sampleBox.width === 0 || sampleBox.height === 0) {
-          return;
-        }
-
-        const intrinsicWidth = "naturalWidth" in sampleEl ? sampleEl.naturalWidth : sampleEl.width;
-        const intrinsicHeight = "naturalHeight" in sampleEl ? sampleEl.naturalHeight : sampleEl.height;
-
-        if (intrinsicWidth === 0 || intrinsicHeight === 0) {
-          return;
-        }
-
-        const scaleX = intrinsicWidth / sampleBox.width;
-        const scaleY = intrinsicHeight / sampleBox.height;
-
-        const left = Math.max(0, (panelBox.left - sampleBox.left) * scaleX);
-        const top = Math.max(0, (panelBox.top - sampleBox.top) * scaleY);
-        const width = Math.max(1, panelBox.width * scaleX);
-        const height = Math.max(1, panelBox.height * scaleY);
-
-        const { hex: backgroundHex } = fac.getColor(sampleEl, {
-          left,
-          top,
-          width,
-          height,
-          algorithm: "sqrt",
-        });
+        const { hex: backgroundHex } = fac.getColor(sampleEl, { algorithm: "sqrt" });
 
         const contrastWithBlack = contrast(backgroundHex, "#000");
         const contrastWithWhite = contrast(backgroundHex, "#fff");
@@ -142,45 +114,32 @@ export function useAdaptiveWallpaperSample<TElement extends HTMLElement>(
           isFallback: false,
         });
       } catch {
-        setResult(fallbackResult);
+        if (!cancelled) {
+          setResult(fallbackResult);
+        }
       }
     };
 
-    const scheduleMeasure = () => {
-      cancelAnimationFrame(raf);
-      raf = requestAnimationFrame(measureAndCompute);
-    };
-
-    const elementObserver = new ResizeObserver(scheduleMeasure);
-    elementObserver.observe(element);
-
-    window.addEventListener("resize", scheduleMeasure);
-
-    let sampleObserver: ResizeObserver | null = null;
-    let loadHandler: (() => void) | null = null;
-
-    if (sampleEl) {
-      sampleObserver = new ResizeObserver(scheduleMeasure);
-      sampleObserver.observe(sampleEl);
-
-      if ("complete" in sampleEl) {
-        loadHandler = () => scheduleMeasure();
+    if ("complete" in sampleEl) {
+      if (sampleEl.complete) {
+        computeAverage();
+      } else {
+        loadHandler = () => {
+          if (!cancelled) {
+            computeAverage();
+          }
+        };
         sampleEl.addEventListener("load", loadHandler);
       }
+    } else {
+      computeAverage();
     }
 
-    raf = requestAnimationFrame(measureAndCompute);
-
     return () => {
-      elementObserver.disconnect();
-      sampleObserver?.disconnect();
-
-      if (loadHandler && sampleEl) {
+      cancelled = true;
+      if (loadHandler) {
         sampleEl.removeEventListener("load", loadHandler);
       }
-
-      window.removeEventListener("resize", scheduleMeasure);
-      cancelAnimationFrame(raf);
     };
   }, [targetRef, sampleEl, targetContrast, maxAlpha, fallbackResult]);
 

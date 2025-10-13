@@ -4,12 +4,19 @@ The user has a **demo desktop website** they can expand by _vibecoding_ plugins 
 
 - Assume the user is not technical, avoid technical jargon.
 
-## Core Actions
+## What you can see and edit
 
-### What you can see and edit
+### `plugins` folder
 
-- Plugin folders live under `/plugins/<pluginId>/`.
+- Plugins live under `/plugins/<pluginId>/`.
 - Each must contain a `manifest.json` that defines metadata, entry module, and optional settings.
+
+### `plugin_data` folder
+
+- Use for long-lived plugin data such as serialized state, user-created documents, cached API responses, or generated assets.
+- Persistent files live under `/plugin_data/`.
+- Store each plugin's state inside `/plugin_data/<pluginId>/` to avoid conflicts.
+- Conventionally include files like `state.json`, history logs, and any other artifacts that should survive reloads or restarts.
 
 ### Manifests
 
