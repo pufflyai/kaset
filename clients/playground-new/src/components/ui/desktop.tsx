@@ -1,3 +1,4 @@
+import { ROOT } from "@/constant";
 import {
   buildAdaptiveResultFromColor,
   defaultAdaptiveResult,
@@ -15,7 +16,8 @@ import { openDesktopApp } from "@/state/actions/desktop";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { Box, Menu, Portal, Text, chakra } from "@chakra-ui/react";
-import { readFile } from "@pstdio/opfs-utils";
+import type { DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import { ls, readFile, watchDirectory } from "@pstdio/opfs-utils";
 import { FastAverageColor } from "fast-average-color";
 import { Download, Trash2 } from "lucide-react";
 import type { IconName } from "lucide-react/dynamic";
@@ -23,10 +25,110 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { DesktopIcon } from "./desktop-icon";
 import { MenuItem } from "./menu-item";
+import { RootFileWindow } from "./root-file-window";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
 
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
+const ROOT_FILE_WINDOW_SIZE = { width: 720, height: 560 };
+
+type LsEntryResult = Awaited<ReturnType<typeof ls>>[number];
+
+const joinRootPath = (relative: string) => {
+  const trimmed = relative.replace(/^\/+/, "");
+  return trimmed ? `${ROOT}/${trimmed}` : ROOT;
+};
+
+const isNotFoundError = (error: unknown) => {
+  if (!error) return false;
+  const info = error as { name?: string; code?: string | number };
+  return info?.name === "NotFoundError" || info?.code === "ENOENT" || info?.code === 1;
+};
+
+const getIconForRootFile = (fileName: string): IconName => {
+  const lower = fileName.toLowerCase();
+
+  if (lower.endsWith(".md") || lower.endsWith(".markdown") || lower.endsWith(".txt")) {
+    return "file-text";
+  }
+
+  if (lower.endsWith(".json") || lower.endsWith(".jsonl") || lower.endsWith(".ndjson")) {
+    return "file-json";
+  }
+
+  if (
+    lower.endsWith(".yaml") ||
+    lower.endsWith(".yml") ||
+    lower.endsWith(".toml") ||
+    lower.endsWith(".ini") ||
+    lower.endsWith(".conf") ||
+    lower.endsWith(".config")
+  ) {
+    return "file-cog";
+  }
+
+  if (
+    lower.endsWith(".png") ||
+    lower.endsWith(".jpg") ||
+    lower.endsWith(".jpeg") ||
+    lower.endsWith(".gif") ||
+    lower.endsWith(".svg") ||
+    lower.endsWith(".webp") ||
+    lower.endsWith(".ico")
+  ) {
+    return "file-image";
+  }
+
+  const codeExtensions = [
+    ".ts",
+    ".tsx",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".py",
+    ".rb",
+    ".go",
+    ".rs",
+    ".java",
+    ".kt",
+    ".swift",
+    ".php",
+    ".c",
+    ".h",
+    ".hpp",
+    ".cpp",
+    ".css",
+    ".scss",
+    ".sass",
+    ".less",
+    ".html",
+    ".htm",
+  ];
+
+  if (codeExtensions.some((ext) => lower.endsWith(ext))) {
+    return "file-code";
+  }
+
+  return "file";
+};
+
+const createRootFileApps = (entries: LsEntryResult[]): DesktopApp[] =>
+  entries
+    .filter((entry) => entry.kind === "file")
+    .map((entry) => {
+      const absolutePath = joinRootPath(entry.path);
+      return {
+        id: `root-file:${absolutePath}`,
+        title: entry.name,
+        icon: getIconForRootFile(entry.name),
+        description: `View ${entry.name} from ${ROOT}/`,
+        defaultSize: ROOT_FILE_WINDOW_SIZE,
+        singleton: true,
+        render: () => <RootFileWindow filePath={absolutePath} displayName={entry.name} />,
+      } satisfies DesktopApp;
+    })
+    .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
 
 const toBlobPart = (bytes: Uint8Array) => {
   if (bytes.buffer instanceof ArrayBuffer) {
@@ -115,6 +217,7 @@ export const Desktop = () => {
   const containerSizeRef = useRef<Size | null>(null);
   const [containerSize, setContainerSize] = useState<Size | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [rootFileApps, setRootFileApps] = useState<DesktopApp[]>([]);
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
   const [wallpaperElement, setWallpaperElement] = useState<HTMLImageElement | null>(null);
@@ -133,6 +236,76 @@ export const Desktop = () => {
   const wallpaper = useWorkspaceStore((state) => state.settings.wallpaper);
 
   useEffect(() => {
+    let cancelled = false;
+    let watcher: DirectoryWatcherCleanup | null = null;
+    let loading = false;
+    let refreshQueued = false;
+
+    const refresh = async () => {
+      if (cancelled) return;
+      if (loading) {
+        refreshQueued = true;
+        return;
+      }
+
+      loading = true;
+      try {
+        const entries = await ls(ROOT, { maxDepth: 1, dirsFirst: false });
+        if (!cancelled) {
+          setRootFileApps(createRootFileApps(entries));
+        }
+      } catch (error) {
+        if (!cancelled) {
+          if (!isNotFoundError(error)) {
+            console.error("[desktop] Failed to load playground root files", error);
+          }
+          setRootFileApps([]);
+          if (isNotFoundError(error)) {
+            setTimeout(() => {
+              if (!cancelled) void refresh();
+            }, 1000);
+          }
+        }
+      } finally {
+        loading = false;
+        if (refreshQueued && !cancelled) {
+          refreshQueued = false;
+          void refresh();
+        }
+      }
+    };
+
+    const startWatcher = async () => {
+      try {
+        watcher = await watchDirectory(
+          ROOT,
+          () => {
+            void refresh();
+          },
+          { recursive: false },
+        );
+      } catch (error) {
+        if (!isNotFoundError(error)) {
+          console.warn("[desktop] Failed to watch playground root directory", error);
+        }
+        if (isNotFoundError(error)) {
+          setTimeout(() => {
+            if (!cancelled) void startWatcher();
+          }, 1500);
+        }
+      }
+    };
+
+    void refresh();
+    void startWatcher();
+
+    return () => {
+      cancelled = true;
+      watcher?.();
+    };
+  }, []);
+
+  useEffect(() => {
     const unsubscribe = subscribeToPluginDesktopSurfaces((surfaces) => {
       const apps = surfaces
         .map((surface) => createDesktopAppFromSurface(surface))
@@ -147,7 +320,7 @@ export const Desktop = () => {
     return unsubscribe;
   }, []);
 
-  const apps = useMemo(() => pluginApps, [pluginApps]);
+  const apps = useMemo(() => [...rootFileApps, ...pluginApps], [rootFileApps, pluginApps]);
 
   const appsById = useMemo(() => {
     const map = new Map<string, DesktopApp>();
