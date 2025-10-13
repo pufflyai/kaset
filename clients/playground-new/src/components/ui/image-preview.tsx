@@ -96,7 +96,7 @@ export const ImagePreview = (props: ImagePreviewProps) => {
           setError(null);
           assignImage(result);
         }
-      } catch (err) {
+      } catch {
         if (!cancelled) {
           resetImage();
           setError("Unable to load image preview.");
