@@ -1,7 +1,7 @@
 import { ConversationContent, ConversationRoot, ConversationScrollButton } from "@/components/ui/ai-conversation";
 import { ChangeBubble } from "@/components/ui/change-bubble";
 import { SettingsModal } from "@/components/ui/settings-modal";
-import { formatUSD, getModelPricing, type ModelPricing } from "@/models";
+import { estimateInputCost, estimateOutputCost, formatUSD, getModelPricing, type ModelPricing } from "@/models";
 import { hasCredentials } from "@/state/actions/hasCredentials";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Message } from "@/types";
@@ -55,7 +55,8 @@ export const ConversationArea = (props: ConversationAreaProps) => {
   const { messages, streaming, onSendMessage, onSelectFile, canSend = true, examplePrompts = [], ...rest } = props;
   const [input, setInput] = useState("");
 
-  const estimatedTokens = useEstimatedTokens(messages, input);
+  const tokenUsage = useEstimatedTokens(messages, input);
+  const totalTokens = tokenUsage.totalTokens;
 
   const [modelPricing, setModelPricing] = useState<ModelPricing | undefined>(undefined);
   const modelId = useWorkspaceStore((s) => s.settings.modelId);
@@ -101,9 +102,16 @@ export const ConversationArea = (props: ConversationAreaProps) => {
         <Stack direction="column" gap="sm" width="full">
           <Flex w="full" justify="flex-end">
             <Text textStyle="label/XS" color="foreground.secondary">
-              {estimatedTokens} tokens
+              {totalTokens} tokens
               {modelPricing && (
-                <> · {formatUSD((estimatedTokens / modelPricing.perTokens) * modelPricing.inputTokenCost)}</>
+                <>
+                  {" "}
+                  ·{" "}
+                  {formatUSD(
+                    estimateInputCost(tokenUsage.promptTokens, modelPricing) +
+                      estimateOutputCost(tokenUsage.completionTokens, modelPricing),
+                  )}
+                </>
               )}
             </Text>
           </Flex>
