@@ -25,7 +25,7 @@ export function GithubCorner(props: GithubCornerProps) {
         height="80"
         viewBox="0 0 250 250"
         aria-hidden="true"
-        style={{ fill: "#151513", color: "#fff", border: 0 }}
+        style={{ fill: "#0a0d15", color: "#fff", border: 0 }}
       >
         <path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path>
         <path
