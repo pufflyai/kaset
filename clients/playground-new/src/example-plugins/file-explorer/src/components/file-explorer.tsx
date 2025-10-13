@@ -1,5 +1,5 @@
 import { Box, Breadcrumb, Flex, Text } from "@chakra-ui/react";
-import { FileText, Folder } from "lucide-react";
+import { FileText, FolderClosed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useFsTree, type FsNode } from "../hooks/fs";
 
@@ -112,7 +112,7 @@ export function FileExplorer(props: FileExplorerProps) {
               key={node.id}
               direction="column"
               align="center"
-              gap="2"
+              gap="1"
               padding="4"
               borderRadius="md"
               cursor={"pointer"}
@@ -132,9 +132,16 @@ export function FileExplorer(props: FileExplorerProps) {
                 height="3rem"
                 borderRadius="md"
               >
-                {directory ? <Folder size={32} /> : <FileText size={32} />}
+                {directory ? <FolderClosed size={32} /> : <FileText size={32} />}
               </Box>
-              <Text textAlign="center" fontSize="sm" width="100%" whiteSpace="normal" wordBreak="break-word">
+              <Text
+                lineClamp={2}
+                textAlign="center"
+                fontSize="sm"
+                width="100%"
+                whiteSpace="normal"
+                wordBreak="break-word"
+              >
                 {node.name}
               </Text>
             </Flex>

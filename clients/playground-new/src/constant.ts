@@ -7,4 +7,5 @@ export const examplePrompts = [
   "Add a button to the hello-kaset plugin that makes confetti",
   "Make a todo list for surviving Monday",
   "Make a heroic quest todo-list for surviving a trip to IKEA",
+  "Add a search bar to the file explorer",
 ];

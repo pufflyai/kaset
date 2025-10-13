@@ -10,6 +10,7 @@ import { dividerRecipe } from "./recipes/divider";
 import { drawerSlotRecipe } from "./recipes/drawer";
 import { editableSlotRecipe } from "./recipes/editable";
 import { fieldsetSlotRecipe } from "./recipes/form";
+import { dialogSlotRecipe } from "./recipes/dialog";
 import { inputRecipe } from "./recipes/input";
 import { menuSlotRecipe } from "./recipes/menu";
 import { popoverRecipe } from "./recipes/popover";
@@ -56,6 +57,7 @@ const config = defineConfig({
       menu: menuSlotRecipe,
       editable: editableSlotRecipe,
       form: fieldsetSlotRecipe,
+      dialog: dialogSlotRecipe,
     },
   },
 });
