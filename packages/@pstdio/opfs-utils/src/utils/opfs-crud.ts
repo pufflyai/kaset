@@ -215,6 +215,14 @@ export const deleteDirectoryContents = async (path: string): Promise<void> => {
   await deleteDirectoryContentsInternal(path);
 };
 
+export const deleteDirectory = async (path: string): Promise<void> => {
+  const normalized = normalizeRelPath(path);
+  if (!normalized) return;
+
+  await deleteDirectoryContentsInternal(normalized);
+  await removeDirectory(normalized);
+};
+
 /**
  * Trigger a browser download of a file stored in OPFS.
  * Requires a DOM environment (window/document).

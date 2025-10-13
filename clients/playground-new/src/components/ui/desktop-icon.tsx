@@ -3,7 +3,7 @@ import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
 import { Box, chakra } from "@chakra-ui/react";
 import { AppWindowMac } from "lucide-react";
 import { DynamicIcon, type IconName } from "lucide-react/dynamic";
-import { type KeyboardEvent, type MouseEvent } from "react";
+import { forwardRef, type KeyboardEvent, type MouseEvent } from "react";
 
 interface DesktopIconProps {
   icon?: IconName;
@@ -19,7 +19,7 @@ interface DesktopIconProps {
 
 const DesktopIconRoot = chakra.button;
 
-export const DesktopIcon = (props: DesktopIconProps) => {
+export const DesktopIcon = forwardRef<HTMLButtonElement, DesktopIconProps>((props, ref) => {
   const { icon: iconName, label, isSelected, tabIndex = 0, onSelect, onOpen, onFocus, onContextMenu, palette } = props;
   const icon = iconName ?? DEFAULT_DESKTOP_APP_ICON;
   const baseAlpha = palette.overlayAlpha > 0 ? palette.overlayAlpha : 0.05;
@@ -37,6 +37,7 @@ export const DesktopIcon = (props: DesktopIconProps) => {
 
   return (
     <DesktopIconRoot
+      ref={ref}
       className="group"
       type="button"
       display="flex"
@@ -94,6 +95,8 @@ export const DesktopIcon = (props: DesktopIconProps) => {
       </Box>
     </DesktopIconRoot>
   );
-};
+});
+
+DesktopIcon.displayName = "DesktopIcon";
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));

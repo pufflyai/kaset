@@ -21,7 +21,7 @@ export const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => 
     <Dialog.Root open={open} onOpenChange={onClose} closeOnInteractOutside={closeOnInteractOutside}>
       <Dialog.Backdrop />
       <Dialog.Positioner>
-        <Dialog.Content>
+        <Dialog.Content background="background.primary">
           <Dialog.Header>
             <Text textStyle="heading/M">{headline}</Text>
             <Dialog.CloseTrigger asChild>
@@ -35,11 +35,17 @@ export const DeleteConfirmationModal = (props: DeleteConfirmationModalProps) => 
               <Button
                 loading={isDeleting}
                 variant="solid"
+                colorPalette="red"
                 onClick={async (e) => {
                   setIsDeleting(true);
-                  await onDelete(e);
-                  onClose();
-                  setIsDeleting(false);
+                  try {
+                    await onDelete(e);
+                    onClose();
+                  } catch (error) {
+                    console.error("DeleteConfirmationModal: delete action failed", error);
+                  } finally {
+                    setIsDeleting(false);
+                  }
                 }}
               >
                 {buttonText}

@@ -1,5 +1,6 @@
 export const ROOT = "playground";
 export const PLUGIN_ROOT = `${ROOT}/plugins`;
+export const PLUGIN_DATA_ROOT = `${ROOT}/plugin_data`;
 
 export const examplePrompts = [
   "What can you do?",

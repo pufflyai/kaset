@@ -5,19 +5,25 @@ import {
 } from "@/hooks/useAdaptiveWallpaperSample";
 import {
   ensurePluginHost,
+  getPluginDisplayName,
   subscribeToPluginDesktopSurfaces,
   type PluginDesktopSurface,
 } from "@/services/plugins/plugin-host";
+import { deletePluginDirectories, downloadPluginBundle } from "@/services/plugins/plugin-management";
 import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import { openDesktopApp } from "@/state/actions/desktop";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Box, Text, chakra } from "@chakra-ui/react";
+import { Box, Menu, Portal, Text, chakra } from "@chakra-ui/react";
 import { readFile } from "@pstdio/opfs-utils";
 import { FastAverageColor } from "fast-average-color";
+import { Download, Trash2 } from "lucide-react";
 import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { DesktopIcon } from "./desktop-icon";
+import { MenuItem } from "./menu-item";
+import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
 
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
@@ -113,6 +119,7 @@ export const Desktop = () => {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
   const [wallpaperElement, setWallpaperElement] = useState<HTMLImageElement | null>(null);
   const [averageColor, setAverageColor] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ pluginId: string; label: string } | null>(null);
   const iconPalette = useMemo<AdaptiveWallpaperResult>(() => {
     if (!averageColor) {
       return defaultAdaptiveResult;
@@ -176,6 +183,44 @@ export const Desktop = () => {
     },
     [setSelectedAppId, openDesktopApp, getAppById],
   );
+
+  const getPluginIdFromAppId = useCallback((appId: string) => appId.split("/")[0] ?? appId, []);
+
+  const handleDownloadPlugin = useCallback(async (pluginId: string, label: string) => {
+    try {
+      await downloadPluginBundle({ pluginId, label });
+      toaster.create({ type: "success", title: `Preparing download for ${label}` });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toaster.create({
+        type: "error",
+        title: `Failed to download ${label}`,
+        description: message,
+      });
+    }
+  }, []);
+
+  const handleRequestDelete = useCallback((pluginId: string, label: string) => {
+    setPendingDelete({ pluginId, label });
+  }, []);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!pendingDelete) return;
+
+    try {
+      await deletePluginDirectories(pendingDelete.pluginId);
+      toaster.create({ type: "success", title: `Deleted ${pendingDelete.label}` });
+      setPendingDelete(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      toaster.create({ type: "error", title: `Failed to delete ${pendingDelete.label}`, description: message });
+      throw error;
+    }
+  }, [pendingDelete]);
+
+  const handleCancelDelete = useCallback(() => {
+    setPendingDelete(null);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined" || !containerRef.current || typeof ResizeObserver === "undefined") return;
@@ -339,20 +384,57 @@ export const Desktop = () => {
         gridTemplateColumns="repeat(auto-fit, minmax(5rem, max-content))"
         zIndex={1}
       >
-        {apps.map((app) => (
-          <DesktopIcon
-            key={app.id}
-            icon={app.icon}
-            label={app.title}
-            isSelected={selectedAppId === app.id}
-            onSelect={() => handleSelectApp(app.id)}
-            onFocus={() => handleSelectApp(app.id)}
-            onOpen={() => handleOpenApp(app.id)}
-            palette={iconPalette}
-          />
-        ))}
+        {apps.map((app) => {
+          const pluginId = getPluginIdFromAppId(app.id);
+          const pluginLabel = getPluginDisplayName(pluginId) || pluginId;
+
+          return (
+            <Menu.Root key={app.id}>
+              <Menu.ContextTrigger>
+                <DesktopIcon
+                  icon={app.icon}
+                  label={app.title}
+                  isSelected={selectedAppId === app.id}
+                  onSelect={() => handleSelectApp(app.id)}
+                  onFocus={() => handleSelectApp(app.id)}
+                  onOpen={() => handleOpenApp(app.id)}
+                  palette={iconPalette}
+                />
+              </Menu.ContextTrigger>
+              <Portal>
+                <Menu.Positioner>
+                  <Menu.Content bg="background.primary">
+                    <MenuItem
+                      leftIcon={<Download size={16} />}
+                      primaryLabel="Download plugin"
+                      onClick={() => handleDownloadPlugin(pluginId, pluginLabel)}
+                    />
+                    <MenuItem
+                      leftIcon={<Trash2 size={16} />}
+                      primaryLabel="Delete plugin"
+                      onClick={() => handleRequestDelete(pluginId, pluginLabel)}
+                    />
+                  </Menu.Content>
+                </Menu.Positioner>
+              </Portal>
+            </Menu.Root>
+          );
+        })}
       </Box>
       <WindowHost windows={windows} containerSize={containerSize} getAppById={getAppById} />
+      <DeleteConfirmationModal
+        open={Boolean(pendingDelete)}
+        onClose={handleCancelDelete}
+        onDelete={async () => handleConfirmDelete()}
+        headline="Delete Plugin"
+        notificationText={
+          pendingDelete
+            ? `Are you sure you want to delete "${pendingDelete.label}"? This action cannot be undone.`
+            : undefined
+        }
+        buttonText="Delete"
+        closeOnInteractOutside={false}
+      />
     </Box>
   );
 };
