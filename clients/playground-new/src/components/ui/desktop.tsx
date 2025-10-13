@@ -19,7 +19,7 @@ import { Box, Menu, Portal, Text, chakra } from "@chakra-ui/react";
 import type { DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
 import { ls, readFile, watchDirectory } from "@pstdio/opfs-utils";
 import { FastAverageColor } from "fast-average-color";
-import { Download, ExternalLink, Trash2 } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
@@ -620,18 +620,11 @@ export const Desktop = () => {
           const renderContextMenu = () => {
             if (isRootFileApp) {
               return (
-                <>
-                  <MenuItem
-                    leftIcon={<ExternalLink size={16} />}
-                    primaryLabel="Open file"
-                    onClick={() => handleOpenApp(app.id)}
-                  />
-                  <MenuItem
-                    leftIcon={<Download size={16} />}
-                    primaryLabel="Download file"
-                    onClick={() => handleDownloadFile(app.id, app.title)}
-                  />
-                </>
+                <MenuItem
+                  leftIcon={<Download size={16} />}
+                  primaryLabel="Download file"
+                  onClick={() => handleDownloadFile(app.id, app.title)}
+                />
               );
             }
 
