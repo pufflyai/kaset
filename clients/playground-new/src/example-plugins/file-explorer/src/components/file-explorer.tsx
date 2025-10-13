@@ -1,4 +1,4 @@
-import { Box, Breadcrumb, Flex, SimpleGrid, Text } from "@chakra-ui/react";
+import { Box, Breadcrumb, Flex, Text } from "@chakra-ui/react";
 import { FileText, Folder } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useFsTree, type FsNode } from "../hooks/fs";
@@ -54,45 +54,57 @@ export function FileExplorer(props: FileExplorerProps) {
   const entries = currentNode.children ?? [];
 
   return (
-    <Flex direction="column" height="100%" gap="4" padding="4">
-      <Breadcrumb.Root textStyle="body/S/medium" color="foreground.tertiary">
+    <Flex direction="column" width="100%" height="100%" gap="4" padding="4">
+      <Breadcrumb.Root>
         <Breadcrumb.List>
           {breadcrumbs.map((crumb, index) => (
-            <Breadcrumb.Item key={crumb.id}>
-              <Breadcrumb.Link
-                onClick={(event) => {
-                  event.preventDefault();
-                  if (index === breadcrumbs.length - 1) return;
-                  setCurrentPath(crumb.id);
-                }}
-                color={index === breadcrumbs.length - 1 ? "foreground.secondary" : undefined}
-                _hover={{ textDecoration: index === breadcrumbs.length - 1 ? "none" : "underline" }}
-                cursor={index === breadcrumbs.length - 1 ? "default" : "pointer"}
-              >
-                {crumb.label}
-              </Breadcrumb.Link>
-            </Breadcrumb.Item>
+            <>
+              {index > 0 && <Breadcrumb.Separator />}
+              <Breadcrumb.Item key={crumb.id}>
+                <Breadcrumb.Link
+                  onClick={(event) => {
+                    event.preventDefault();
+                    if (index === breadcrumbs.length - 1) return;
+                    setCurrentPath(crumb.id);
+                  }}
+                  color={index === breadcrumbs.length - 1 ? "foreground.subtle" : undefined}
+                  _hover={{ textDecoration: index === breadcrumbs.length - 1 ? "none" : "underline" }}
+                  cursor={index === breadcrumbs.length - 1 ? "default" : "pointer"}
+                >
+                  {crumb.label}
+                </Breadcrumb.Link>
+              </Breadcrumb.Item>
+            </>
           ))}
         </Breadcrumb.List>
       </Breadcrumb.Root>
 
-      <SimpleGrid columns={{ base: 2, sm: 3, md: 4, lg: 5 }} gap="4" flex="1" alignContent="flex-start">
-        {entries.length === 0 && (
-          <Flex
-            align="center"
-            justify="center"
-            borderRadius="md"
-            borderWidth="1px"
-            borderStyle="dashed"
-            borderColor="border.secondary"
-            padding="6"
-            gridColumn={{ base: "1 / span 2", sm: "1 / span 3", md: "1 / span 4", lg: "1 / span 5" }}
-          >
-            <Text color="foreground.tertiary" textAlign="center">
-              This folder is empty
-            </Text>
-          </Flex>
-        )}
+      {entries.length === 0 && (
+        <Flex
+          flex="1"
+          align="center"
+          justify="center"
+          borderRadius="md"
+          borderWidth="1px"
+          borderStyle="dashed"
+          borderColor="border.subtle"
+          padding="6"
+          gridColumn={{ base: "1 / span 2", sm: "1 / span 3", md: "1 / span 4", lg: "1 / span 5" }}
+        >
+          <Text color="foreground.subtle" textAlign="center">
+            This folder is empty
+          </Text>
+        </Flex>
+      )}
+
+      <Box
+        display="grid"
+        gap="1"
+        alignContent="start"
+        justifyContent="start"
+        justifyItems="center"
+        gridTemplateColumns="repeat(auto-fit, minmax(5rem, max-content))"
+      >
         {entries.map((node) => {
           const directory = isDirectory(node);
           return (
@@ -103,15 +115,23 @@ export function FileExplorer(props: FileExplorerProps) {
               gap="2"
               padding="4"
               borderRadius="md"
-              bg="background.secondary"
-              borderWidth="1px"
-              borderColor="border.secondary"
-              cursor={directory ? "pointer" : "default"}
+              cursor={"pointer"}
+              _hover={{
+                background: "gray.100",
+              }}
               onClick={() => {
                 if (directory) setCurrentPath(node.id);
               }}
             >
-              <Box color={directory ? "blue.300" : "foreground.secondary"}>
+              <Box
+                transition="background 120ms ease"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+                width="3rem"
+                height="3rem"
+                borderRadius="md"
+              >
                 {directory ? <Folder size={32} /> : <FileText size={32} />}
               </Box>
               <Text textAlign="center" fontSize="sm" width="100%" whiteSpace="normal" wordBreak="break-word">
@@ -120,7 +140,7 @@ export function FileExplorer(props: FileExplorerProps) {
             </Flex>
           );
         })}
-      </SimpleGrid>
+      </Box>
     </Flex>
   );
 }

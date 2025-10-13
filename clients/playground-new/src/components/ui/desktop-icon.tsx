@@ -90,6 +90,7 @@ export const DesktopIcon = forwardRef<HTMLButtonElement, DesktopIconProps>((prop
         textStyle="label/S/medium"
         _groupHover={{ textDecoration: "underline" }}
         wordBreak="break-word"
+        lineClamp={2}
       >
         {label}
       </Box>
