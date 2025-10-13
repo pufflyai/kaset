@@ -14,6 +14,8 @@ const clampBounds = (value: number, max: number) => {
 };
 
 const SNAP_THRESHOLD = 12;
+const MIN_WINDOW_WIDTH = 200;
+const MIN_WINDOW_HEIGHT = 120;
 
 interface WindowChromeProps {
   window: DesktopWindow;
@@ -131,8 +133,10 @@ export const Window = (props: WindowProps) => {
   const wasSnappedAtDragStartRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
 
-  const baseWidth = window.isMaximized ? (containerSize?.width ?? window.size.width) : window.size.width;
-  const baseHeight = window.isMaximized ? (containerSize?.height ?? window.size.height) : window.size.height;
+  const desiredWidth = Math.max(window.size.width, MIN_WINDOW_WIDTH);
+  const desiredHeight = Math.max(window.size.height, MIN_WINDOW_HEIGHT);
+  const baseWidth = window.isMaximized ? (containerSize?.width ?? desiredWidth) : desiredWidth;
+  const baseHeight = window.isMaximized ? (containerSize?.height ?? desiredHeight) : desiredHeight;
   const constrainedWidth = containerSize ? Math.min(baseWidth, containerSize.width) : baseWidth;
   const constrainedHeight = containerSize ? Math.min(baseHeight, containerSize.height) : baseHeight;
   const size = { width: constrainedWidth, height: constrainedHeight };
@@ -149,8 +153,8 @@ export const Window = (props: WindowProps) => {
     if (!containerSize || window.isMaximized) return;
 
     const { width: containerWidth, height: containerHeight } = containerSize;
-    const adjustedWidth = Math.min(window.size.width, containerWidth);
-    const adjustedHeight = Math.min(window.size.height, containerHeight);
+    const adjustedWidth = Math.min(Math.max(window.size.width, MIN_WINDOW_WIDTH), containerWidth);
+    const adjustedHeight = Math.min(Math.max(window.size.height, MIN_WINDOW_HEIGHT), containerHeight);
     const maxAllowedX = Math.max(0, containerWidth - adjustedWidth);
     const maxAllowedY = Math.max(0, containerHeight - adjustedHeight);
 
@@ -305,6 +309,9 @@ export const Window = (props: WindowProps) => {
     onPositionChange({ x: data.x, y: data.y });
   };
 
+  const minWidth = containerSize ? Math.min(MIN_WINDOW_WIDTH, containerSize.width) : MIN_WINDOW_WIDTH;
+  const minHeight = containerSize ? Math.min(MIN_WINDOW_HEIGHT, containerSize.height) : MIN_WINDOW_HEIGHT;
+
   return (
     <Rnd
       size={{ width: size.width, height: size.height }}
@@ -324,6 +331,8 @@ export const Window = (props: WindowProps) => {
       style={{ zIndex: window.zIndex, position: "absolute" }}
       maxWidth={containerSize?.width}
       maxHeight={containerSize?.height}
+      minWidth={minWidth}
+      minHeight={minHeight}
     >
       <Box height="100%" width="100%">
         <WindowChrome
