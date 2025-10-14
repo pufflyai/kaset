@@ -649,7 +649,7 @@ export const Desktop = () => {
 
           return (
             <Menu.Root key={app.id}>
-              <Menu.ContextTrigger>
+              <Menu.ContextTrigger asChild>
                 <DesktopIcon
                   icon={app.icon}
                   label={app.title}
