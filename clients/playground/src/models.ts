@@ -14,7 +14,7 @@ export const MODELS: Record<string, ModelPricing> = {
     inputTokenCost: 1.25,
     outputTokenCost: 10,
     perTokens: 1_000_000,
-    contextWindow: 128_000,
+    contextWindow: 400_000,
   },
   "gpt-5-mini": {
     id: "gpt-5-mini",
@@ -22,7 +22,7 @@ export const MODELS: Record<string, ModelPricing> = {
     inputTokenCost: 0.25,
     outputTokenCost: 2,
     perTokens: 1_000_000,
-    contextWindow: 128_000,
+    contextWindow: 400_000,
   },
 };
 

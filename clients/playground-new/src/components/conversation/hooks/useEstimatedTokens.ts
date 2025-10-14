@@ -7,57 +7,118 @@ export interface TokenUsageSummary {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+  conversationPromptTokens: number;
+  conversationTotalTokens: number;
 }
+
+type RunUsage = {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens?: number;
+};
+
+const ensureRun = (run: RunUsage | null): RunUsage => {
+  if (run) return run;
+  return { promptTokens: 0, completionTokens: 0 };
+};
+
+const getRunTotal = (run: RunUsage): number => {
+  const prompt = run.promptTokens;
+  const completion = run.completionTokens;
+  if (run.totalTokens !== undefined) {
+    return run.totalTokens;
+  }
+  return prompt + completion;
+};
 
 export function useEstimatedTokens(messages: Message[], input: string): TokenUsageSummary {
   return useMemo(() => {
-    const aggregate = messages.reduce(
-      (acc, message) => {
-        const usage = message.meta?.usage;
-        if (!usage) return acc;
+    const runs: RunUsage[] = [];
+    let currentRun: RunUsage | null = null;
 
-        if (message.role === "assistant") {
-          acc.completionTokens += usage.completionTokens ?? 0;
-          if (usage.totalTokens !== undefined) {
-            acc.assistantTotalTokens += usage.totalTokens;
-          }
+    for (const message of messages) {
+      const usage = message.meta?.usage;
+      if (!usage) continue;
+
+      if (message.role === "user" || message.role === "developer") {
+        currentRun = ensureRun(currentRun);
+        if (usage.promptTokens !== undefined) {
+          currentRun.promptTokens = Math.max(currentRun.promptTokens, usage.promptTokens);
+        }
+        if (usage.totalTokens !== undefined) {
+          currentRun.totalTokens = Math.max(currentRun.totalTokens ?? 0, usage.totalTokens);
+        }
+      }
+
+      if (message.role === "assistant") {
+        currentRun = ensureRun(currentRun);
+        if (usage.promptTokens !== undefined) {
+          currentRun.promptTokens = Math.max(currentRun.promptTokens, usage.promptTokens);
+        }
+        if (usage.completionTokens !== undefined) {
+          currentRun.completionTokens = Math.max(currentRun.completionTokens, usage.completionTokens);
+        }
+        if (usage.totalTokens !== undefined) {
+          currentRun.totalTokens = Math.max(currentRun.totalTokens ?? 0, usage.totalTokens);
         }
 
-        if (message.role === "user" || message.role === "developer") {
-          acc.promptTokens += usage.promptTokens ?? 0;
-        }
+        runs.push(currentRun);
+        currentRun = null;
+      }
+    }
 
-        return acc;
-      },
-      { promptTokens: 0, completionTokens: 0, assistantTotalTokens: 0 },
-    );
+    if (runs.length > 0) {
+      const promptTokens = runs.reduce((sum, run) => sum + run.promptTokens, 0);
+      const completionTokens = runs.reduce((sum, run) => sum + run.completionTokens, 0);
+      const totalTokens = runs.reduce((sum, run) => sum + getRunTotal(run), 0);
+      const lastRun = runs[runs.length - 1];
 
-    const aggregateTotal = aggregate.promptTokens + aggregate.completionTokens;
-    const totalTokens = Math.max(aggregate.assistantTotalTokens, aggregateTotal);
+      let conversationPromptTokens = lastRun.promptTokens;
+      let conversationTotalTokens = getRunTotal(lastRun);
 
-    if (totalTokens > 0 || aggregate.promptTokens > 0 || aggregate.completionTokens > 0) {
+      const trimmed = input.trim();
+      if (trimmed) {
+        const history = toMessageHistory(messages);
+        const withCurrent: BaseMessage[] = [...history, { role: "user", content: trimmed } as BaseMessage];
+
+        const counter = roughCounter();
+        const estimatedPromptTokens = counter.count(withCurrent);
+        conversationPromptTokens = estimatedPromptTokens;
+        conversationTotalTokens = estimatedPromptTokens;
+      }
+
       return {
-        promptTokens: aggregate.promptTokens,
-        completionTokens: aggregate.completionTokens,
+        promptTokens,
+        completionTokens,
         totalTokens,
+        conversationPromptTokens,
+        conversationTotalTokens,
       } satisfies TokenUsageSummary;
     }
 
     const trimmed = input.trim();
     if (!trimmed) {
-      return { promptTokens: 0, completionTokens: 0, totalTokens: 0 } satisfies TokenUsageSummary;
+      return {
+        promptTokens: 0,
+        completionTokens: 0,
+        totalTokens: 0,
+        conversationPromptTokens: 0,
+        conversationTotalTokens: 0,
+      } satisfies TokenUsageSummary;
     }
 
     const history = toMessageHistory(messages);
     const withCurrent: BaseMessage[] = [...history, { role: "user", content: trimmed } as BaseMessage];
 
     const counter = roughCounter();
-    const estimatedTotal = counter.count(withCurrent);
+    const estimatedPromptTokens = counter.count(withCurrent);
 
     return {
-      promptTokens: estimatedTotal,
+      promptTokens: 0,
       completionTokens: 0,
-      totalTokens: estimatedTotal,
+      totalTokens: 0,
+      conversationPromptTokens: estimatedPromptTokens,
+      conversationTotalTokens: estimatedPromptTokens,
     } satisfies TokenUsageSummary;
   }, [messages, input]);
 }
