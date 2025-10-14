@@ -212,9 +212,6 @@ export const PluginSettings = forwardRef<PluginSettingsHandle, PluginSettingsPro
     <Flex direction="column" gap="lg" width="100%">
       <Flex direction="column" gap="xs">
         <Text>Plugin settings</Text>
-        <Text fontSize="sm" color="fg.muted">
-          Edit saved settings for installed plugins. Values must be valid JSON objects.
-        </Text>
         {pluginSettings.length === 0 && (
           <Text fontSize="sm" color="fg.muted">
             No plugin settings available.
@@ -227,20 +224,20 @@ export const PluginSettings = forwardRef<PluginSettingsHandle, PluginSettingsPro
               const form = pluginForms[entry.pluginId];
               return (
                 <Field.Root key={entry.pluginId} gap="xs">
-                  <Field.Label>{getDisplayName(entry.pluginId)}</Field.Label>
+                  <Field.Label color="foreground.secondary">{getDisplayName(entry.pluginId)}</Field.Label>
                   <Box
                     borderWidth="1px"
                     borderRadius="md"
                     overflow="hidden"
                     borderColor="border.primary"
                     height="240px"
+                    width="100%"
                   >
                     <CodeEditor
                       language="json"
                       code={form?.text ?? "{}"}
                       isEditable
                       wrapLines
-                      showLineNumbers
                       onChange={(value) => handlePluginInputChange(entry.pluginId, value)}
                     />
                   </Box>

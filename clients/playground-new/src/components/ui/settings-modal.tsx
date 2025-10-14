@@ -72,7 +72,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
 
   const [apiKey, setApiKey] = useState<string>("");
   const [baseUrl, setBaseUrl] = useState<string>("");
-  const [model, setModel] = useState<string>("gpt-5-mini");
+  const [model, setModel] = useState<string>("gpt-5");
   const [showKey, setShowKey] = useState<boolean>(false);
   const [approvalTools, setApprovalTools] = useState<string[]>([...DEFAULT_APPROVAL_GATED_TOOLS]);
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
@@ -94,7 +94,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     const settings = getWorkspaceSettings();
     setApiKey(settings.apiKey ?? "");
     setBaseUrl(settings.baseUrl ?? "");
-    setModel(settings.modelId || "gpt-5-mini");
+    setModel(settings.modelId || "gpt-5");
     setApprovalTools(settings.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
 
     const nextTheme = settings.theme ?? "light";
