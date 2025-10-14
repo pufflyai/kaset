@@ -1,5 +1,6 @@
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
+import { usePluginHost } from "@/services/plugins/usePluginHost";
 import { appendConversationMessages } from "@/state/actions/appendConversationMessages";
 import { getConversation } from "@/state/actions/getConversation";
 import { getConversationMessages } from "@/state/actions/getConversationMessages";
@@ -51,10 +52,11 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
 
 export function ConversationHost() {
   const { tools: mcpTools } = useMcpService();
+  const { tools: pluginTools } = usePluginHost();
   const [streaming, setStreaming] = useState(false);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
-  const toolset = useMemo(() => [...mcpTools], [mcpTools]);
+  const toolset = useMemo(() => [...mcpTools, ...pluginTools], [mcpTools, pluginTools]);
 
   useEffect(() => {
     setApprovalHandler(

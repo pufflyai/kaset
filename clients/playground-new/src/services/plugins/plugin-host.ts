@@ -13,6 +13,20 @@ import {
 } from "@pstdio/tiny-plugins";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 
+import {
+  getPluginStatusSnapshot,
+  markPluginReload,
+  markPluginRemoved,
+  recordPluginNotification,
+  resetPluginStatusStore,
+  waitForPluginReload as waitForPluginReloadInternal,
+  type PluginReloadWaitOptions,
+  type PluginStatusSnapshot,
+} from "./plugin-status-store";
+import { createPluginTools } from "./tools/createPluginTools";
+
+export type { PluginStatusSnapshot, PluginReloadWaitOptions } from "./plugin-status-store";
+
 type HostCommand = RegisteredCommand & { pluginId: string };
 
 type Dimensions = {
@@ -71,6 +85,34 @@ type CommandsListener = (commands: PluginCommand[]) => void;
 type SettingsListener = (pluginId: string, schema?: JSONSchema) => void;
 type DesktopSurfaceListener = (surfaces: PluginDesktopSurface[]) => void;
 
+export interface PluginVerificationOptions {
+  waitForReload?: boolean;
+  reloadTimeoutMs?: number;
+  afterReloadAt?: number;
+  selftestCommandId?: string;
+}
+
+type PluginVerificationFailurePhase = "reload" | "exists" | "manifest" | "commands" | "selftest";
+type PluginVerificationSuccessPhase = "loaded" | "selftest";
+
+export type PluginVerificationResult =
+  | {
+      pluginId: string;
+      ok: true;
+      phase: PluginVerificationSuccessPhase;
+      reloadAt?: number;
+      commands: string[];
+      result?: unknown;
+    }
+  | {
+      pluginId: string;
+      ok: false;
+      phase: PluginVerificationFailurePhase;
+      reloadAt?: number;
+      commands: string[];
+      error: string;
+    };
+
 let pluginsRoot = normalizePluginsRoot(PLUGIN_ROOT);
 let hostGeneration = 0;
 
@@ -80,6 +122,9 @@ let hostReady = false;
 
 let rawCommands: HostCommand[] = [];
 let pluginTools: Tool[] = [];
+let builtinPluginTools: Tool[] | null = null;
+
+pluginTools = [...ensureBuiltinPluginTools()];
 
 const commandSubscribers = new Set<CommandsListener>();
 const settingsSubscribers = new Set<SettingsListener>();
@@ -105,6 +150,10 @@ function buildPluginCommand(command: HostCommand): PluginCommand {
 
 function collectPluginCommands() {
   return rawCommands.map(buildPluginCommand);
+}
+
+function listPluginCommandIds(pluginId: string) {
+  return rawCommands.filter((command) => command.pluginId === pluginId).map((command) => command.command.id);
 }
 
 function notifyCommandSubscribers() {
@@ -180,11 +229,12 @@ function notifyDependencySubscribers() {
 }
 
 function rebuildTools() {
-  pluginTools = createToolsForCommands(rawCommands, async (pluginId, commandId, params) => {
+  const generatedTools = createToolsForCommands(rawCommands, async (pluginId, commandId, params) => {
     const instance = await ensureHost();
     const execute = instance.runPluginCommand(pluginId, commandId);
     await execute(params);
   });
+  pluginTools = [...ensureBuiltinPluginTools(), ...generatedTools];
 }
 
 function normalizeDimensions(value?: Partial<Dimensions>): Dimensions | undefined {
@@ -300,8 +350,10 @@ function areSurfacesEqual(left: PluginDesktopSurface[], right: PluginDesktopSurf
 
 function resetPluginsState() {
   rawCommands = [];
-  pluginTools = [];
+  pluginTools = [...ensureBuiltinPluginTools()];
   notifyCommandSubscribers();
+
+  resetPluginStatusStore();
 
   const schemaIds = Array.from(pluginSchemas.keys());
   pluginSchemas.clear();
@@ -347,12 +399,14 @@ function syncPluginMetadata(entries: PluginMetadata[]) {
       pluginMetadata.set(entry.id, { ...entry });
       changed = true;
     }
+    markPluginReload(entry.id);
   });
 
   pluginMetadata.forEach((_, pluginId) => {
     if (seen.has(pluginId)) return;
     pluginMetadata.delete(pluginId);
     changed = true;
+    markPluginRemoved(pluginId);
   });
 
   if (changed) {
@@ -439,6 +493,7 @@ function createHostInstance(): PluginHost {
     root: pluginsRoot,
     watch: true,
     notify(level, message) {
+      recordPluginNotification(level, message);
       const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
       toaster.create({ type, title: message, duration: 5000 });
     },
@@ -519,6 +574,151 @@ async function ensureHost(): Promise<PluginHost> {
   const instance = await startPromise;
   if (!instance) throw new Error("Plugin host failed to initialize.");
   return instance;
+}
+
+export async function verifyPluginUpdate(
+  pluginId: string,
+  options: PluginVerificationOptions = {},
+): Promise<PluginVerificationResult> {
+  const { waitForReload = true, reloadTimeoutMs = 15000, afterReloadAt, selftestCommandId = "selftest" } = options;
+
+  const initialStatus = getPluginStatusSnapshot(pluginId);
+  let reloadAt = initialStatus?.lastReloadAt;
+
+  if (waitForReload) {
+    try {
+      const waitResult = await waitForPluginReloadInternal(pluginId, { timeoutMs: reloadTimeoutMs, afterReloadAt });
+      reloadAt = waitResult.timestamp;
+    } catch (error) {
+      return {
+        pluginId,
+        ok: false,
+        phase: "reload",
+        reloadAt,
+        commands: [],
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  let instance: PluginHost;
+  try {
+    instance = await ensureHost();
+  } catch (error) {
+    return {
+      pluginId,
+      ok: false,
+      phase: "exists",
+      reloadAt,
+      commands: [],
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  if (!instance.doesPluginExist(pluginId)) {
+    return {
+      pluginId,
+      ok: false,
+      phase: "exists",
+      reloadAt,
+      commands: [],
+      error: "Plugin not found",
+    };
+  }
+
+  const commands = instance.listPluginCommands(pluginId);
+  const commandIds = commands.map((command) => command.command.id);
+
+  let manifest: Manifest | null;
+  try {
+    manifest = await instance.readPluginManifest(pluginId);
+  } catch (error) {
+    return {
+      pluginId,
+      ok: false,
+      phase: "manifest",
+      reloadAt,
+      commands: commandIds,
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+
+  if (!manifest) {
+    return {
+      pluginId,
+      ok: false,
+      phase: "manifest",
+      reloadAt,
+      commands: commandIds,
+      error: "Plugin manifest unavailable after reload",
+    };
+  }
+
+  if (commandIds.length === 0) {
+    return {
+      pluginId,
+      ok: false,
+      phase: "commands",
+      reloadAt,
+      commands: commandIds,
+      error: "No commands registered for the plugin",
+    };
+  }
+
+  const finalReloadAt = reloadAt ?? getPluginStatusSnapshot(pluginId)?.lastReloadAt;
+  const normalizedSelftest = selftestCommandId?.trim();
+
+  if (normalizedSelftest && commandIds.includes(normalizedSelftest)) {
+    try {
+      const execute = instance.runPluginCommand(pluginId, normalizedSelftest);
+      const result = await execute({});
+      return {
+        pluginId,
+        ok: true,
+        phase: "selftest",
+        reloadAt: finalReloadAt,
+        commands: commandIds,
+        result,
+      };
+    } catch (error) {
+      return {
+        pluginId,
+        ok: false,
+        phase: "selftest",
+        reloadAt: finalReloadAt,
+        commands: commandIds,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+
+  return {
+    pluginId,
+    ok: true,
+    phase: "loaded",
+    reloadAt: finalReloadAt,
+    commands: commandIds,
+  };
+}
+
+function ensureBuiltinPluginTools(): Tool[] {
+  if (!builtinPluginTools) {
+    builtinPluginTools = createPluginTools({
+      getStatus: getPluginStatusSnapshot,
+      listCommands: listPluginCommandIds,
+      verify: verifyPluginUpdate,
+    });
+  }
+
+  return builtinPluginTools!;
+}
+
+export function waitForPluginReload(pluginId: string, options?: PluginReloadWaitOptions) {
+  return waitForPluginReloadInternal(pluginId, options);
+}
+
+export function getPluginStatus(pluginId: string): PluginStatusSnapshot | undefined {
+  return getPluginStatusSnapshot(pluginId);
 }
 
 function normalizePluginsRoot(root: string) {
