@@ -144,21 +144,12 @@ export const ImagePreview = (props: ImagePreviewProps) => {
 
   return (
     <Box height="100%" display="flex" flexDirection="column" bg="background.primary">
-      <Box
-        paddingX="lg"
-        paddingY="md"
-        borderBottomWidth="1px"
-        borderColor="border.secondary"
-        background="background.secondary"
-      >
-        <Heading as="h2" size="sm" color="foreground.inverse">
-          {displayName}
-        </Heading>
+      <Box paddingX="md">
         <Text fontSize="xs" color="foreground.tertiary" marginTop="1">
           {pathLabel}
         </Text>
       </Box>
-      <Box flex="1" padding="lg" background="background.primary">
+      <Box flex="1" padding="xs" background="background.primary">
         {loading ? (
           <Center height="100%">
             <Spinner color="foreground.tertiary" />

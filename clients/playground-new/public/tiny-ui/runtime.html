@@ -58,6 +58,8 @@
          */
         async init(init, remote) {
           try {
+            console.log("[tiny-ui-runtime] init", init, remote);
+
             ensureImportMap(init.importMap);
             ensureStyles(init.styles);
 
@@ -68,6 +70,8 @@
             const mod = await import(init.moduleUrl);
             const exportName = init.entryExport ?? "mount";
             const entry = typeof mod[exportName] === "function" ? mod[exportName] : mod.default;
+
+            console.log("[tiny-ui-runtime] imported module", mod, "using export", exportName, entry);
 
             if (typeof entry !== "function") {
               throw new Error(`Entry export '${exportName}' is not a function`);
@@ -156,6 +160,8 @@
             };
 
             host.actions = createNamespaceProxy("actions");
+
+            console.log("[tiny-ui-runtime] mounting entry", host);
 
             await entry(mountEl, host, init.runtimeOptions ?? {});
             await remote.ready({ id: init.id, meta: init.meta });

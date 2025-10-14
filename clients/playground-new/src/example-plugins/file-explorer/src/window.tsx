@@ -38,7 +38,7 @@ const isMissingError = (error: unknown) => {
 
 function FileExplorerWindow(props: FileExplorerWindowProps) {
   const { host, onOpenFile } = props;
-  const [requestedPath, setRequestedPath] = useState<string | null>(null);
+  const [_, setRequestedPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
@@ -97,7 +97,7 @@ function FileExplorerWindow(props: FileExplorerWindowProps) {
 
   return (
     <Flex height="100%" bg="background.dark" color="foreground.inverse" direction="column">
-      <FileExplorer rootDir={ROOT_DIR} onOpenFile={onOpenFile} requestedPath={requestedPath ?? undefined} />
+      <FileExplorer rootDir={ROOT_DIR} onOpenFile={onOpenFile} />
     </Flex>
   );
 }
