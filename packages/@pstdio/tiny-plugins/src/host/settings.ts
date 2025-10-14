@@ -21,14 +21,28 @@ export interface SettingsAccessor {
 export function createSettingsAccessor(fs: ScopedFs, pluginId: string, validator?: ValidateFunction): SettingsAccessor {
   return {
     async read<T = UnknownRecord>() {
-      try {
-        return (await fs.readJSON<T>(SETTINGS_FILE)) as T;
-      } catch (error) {
-        if (isMissingError(error)) return {} as T;
+      let value: T | undefined;
 
-        if (error instanceof SyntaxError) return {} as T;
-        return {} as T;
+      try {
+        value = (await fs.readJSON<T>(SETTINGS_FILE)) as T;
+      } catch (error) {
+        if (!isMissingError(error) && !(error instanceof SyntaxError)) {
+          console.warn(`[@pstdio/tiny-plugins] Failed to read settings for ${pluginId}`, error);
+        }
+
+        value = {} as T;
       }
+
+      const data = value && typeof value === "object" ? value : ({} as T);
+
+      if (!validator) return data;
+
+      const valid = validator(data);
+      if (!valid) {
+        throw commandParamsInvalid(pluginId, "settings", validator.errors);
+      }
+
+      return data;
     },
     async write<T = UnknownRecord>(value: T) {
       if (validator) {

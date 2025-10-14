@@ -61,7 +61,7 @@ export function createPluginHost(options: HostOptions = {}): PluginHost {
     command: options.timeouts?.command ?? DEFAULT_TIMEOUTS.command,
   };
 
-  const ajv = new Ajv({ allErrors: true });
+  const ajv = new Ajv({ allErrors: true, useDefaults: true });
 
   const manifestValidator = ajv.compile(manifestSchema) as ValidateFunction;
 
