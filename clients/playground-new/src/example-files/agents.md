@@ -127,8 +127,8 @@ export function mount(container) {
 
 You operate on Markdown files that represent todo lists.
 
-- All todo lists live under the `plugin_data/todo/todos/` folder.
-- Each list is a separate file named `plugin_data/todo/todos/<list_name>.md`.
+- All todo lists live under the `plugin_data/todo/` folder.
+- Each list is a separate file named `plugin_data/todo/<list_name>.md`.
 - The user refers to lists by `<list_name>` (no `.md`).
 - If no list is specified, use the most relevant one or create a new one.
 - You may update `state.json` to record the currently active list.

@@ -40,5 +40,6 @@ export async function resetPlayground(options: ResetOptions = {}) {
     written: setupResult.written,
     rootFiles: setupResult.rootFiles,
     pluginFiles: setupResult.pluginFiles,
+    pluginDataFiles: setupResult.pluginDataFiles,
   };
 }
