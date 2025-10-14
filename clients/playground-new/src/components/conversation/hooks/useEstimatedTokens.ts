@@ -13,20 +13,31 @@ export function useEstimatedTokens(messages: Message[], input: string): TokenUsa
   return useMemo(() => {
     const summary = messages.reduce<TokenUsageSummary>(
       (acc, message) => {
-        if (message.role !== "assistant") return acc;
-
         const usage = message.meta?.usage;
         if (!usage) return acc;
 
-        acc.promptTokens += usage.promptTokens ?? 0;
-        acc.completionTokens += usage.completionTokens ?? 0;
-        acc.totalTokens += usage.totalTokens ?? 0;
+        if (message.role === "assistant") {
+          acc.completionTokens += usage.completionTokens ?? 0;
+          acc.totalTokens += usage.totalTokens ?? 0;
+        }
+
+        if (message.role === "user" || message.role === "developer") {
+          acc.promptTokens += usage.promptTokens ?? 0;
+        }
+
         return acc;
       },
       { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
     );
 
-    if (summary.totalTokens > 0) {
+    if (summary.totalTokens === 0) {
+      const computedTotal = summary.promptTokens + summary.completionTokens;
+      if (computedTotal > 0) {
+        summary.totalTokens = computedTotal;
+      }
+    }
+
+    if (summary.totalTokens > 0 || summary.promptTokens > 0 || summary.completionTokens > 0) {
       return summary;
     }
 

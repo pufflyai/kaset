@@ -32,15 +32,46 @@ export async function* toConversation(agentStream: AgentStream, { boot, devNote 
 
   const applyCurrentAssistantUsage = () => {
     if (!currentAssistantUsage) return;
-    const targetId = currentAssistantId ?? lastAssistantMessageId;
-    if (!targetId) return;
 
-    const usage = { ...currentAssistantUsage };
+    const targetAssistantId = currentAssistantId ?? lastAssistantMessageId;
+    const targetUserId = (() => {
+      for (let i = uiMessages.length - 1; i >= 0; i -= 1) {
+        const candidate = uiMessages[i];
+        if (candidate.role === "user") {
+          return candidate.id;
+        }
+      }
+      return null;
+    })();
+
+    const { promptTokens, completionTokens, totalTokens } = currentAssistantUsage;
+
     uiMessages = uiMessages.map((m) => {
-      if (m.id !== targetId) return m;
+      if (targetAssistantId && m.id === targetAssistantId) {
+        const priorUsage = { ...(m.meta?.usage ?? {}) };
+        if (promptTokens !== undefined) {
+          priorUsage.promptTokens = promptTokens;
+        }
+        if (completionTokens !== undefined) {
+          priorUsage.completionTokens = completionTokens;
+        }
+        if (totalTokens !== undefined) {
+          priorUsage.totalTokens = totalTokens;
+        }
 
-      const meta = { ...(m.meta ?? {}), usage };
-      return { ...m, meta } as Message;
+        const meta = { ...(m.meta ?? {}), usage: priorUsage };
+        return { ...m, meta } as Message;
+      }
+
+      if (targetUserId && m.id === targetUserId && promptTokens !== undefined) {
+        const priorUsage = { ...(m.meta?.usage ?? {}) };
+        priorUsage.promptTokens = promptTokens;
+
+        const meta = { ...(m.meta ?? {}), usage: priorUsage };
+        return { ...m, meta } as Message;
+      }
+
+      return m;
     });
   };
 
@@ -65,28 +96,22 @@ export async function* toConversation(agentStream: AgentStream, { boot, devNote 
         role: "assistant",
         parts: [{ type: "text", text, state: done ? "done" : "streaming" }],
       };
-      if (currentAssistantUsage) {
-        msg.meta = { ...(msg.meta ?? {}), usage: { ...currentAssistantUsage } };
-      }
       uiMessages = [...uiMessages, msg];
-      return;
+    } else {
+      uiMessages = uiMessages.map((m) => {
+        if (m.id !== currentAssistantId) return m;
+        return {
+          ...m,
+          parts: [{ type: "text", text, state: done ? "done" : "streaming" }],
+        } as Message;
+      });
+
+      lastAssistantMessageId = currentAssistantId;
     }
 
-    uiMessages = uiMessages.map((m) => {
-      if (m.id !== currentAssistantId) return m;
-      const next: Message = {
-        ...m,
-        parts: [{ type: "text", text, state: done ? "done" : "streaming" }],
-      } as Message;
-      if (currentAssistantUsage) {
-        next.meta = { ...(next.meta ?? {}), usage: { ...currentAssistantUsage } };
-      }
-      return next;
-    });
-
-    lastAssistantMessageId = currentAssistantId;
-
-    applyCurrentAssistantUsage();
+    if (currentAssistantUsage) {
+      applyCurrentAssistantUsage();
+    }
   };
 
   const upsertToolInvocation = (inv: ToolInvocation) => {
