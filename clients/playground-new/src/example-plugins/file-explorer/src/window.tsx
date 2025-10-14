@@ -5,8 +5,6 @@ import { FileExplorer } from "./components/file-explorer";
 
 const ROOT_DIR = "playground";
 const CHANNEL_NAME = "file-explorer:open-folder";
-const STATE_FILE = "state.json";
-const textDecoder = new TextDecoder();
 
 type OpenFileAction = (path: string, options?: { displayName?: string }) => Promise<void> | void;
 
@@ -16,6 +14,9 @@ interface DesktopHost {
   };
   fs?: {
     readFile?(path: string): Promise<Uint8Array>;
+  };
+  settings?: {
+    read?(): Promise<unknown>;
   };
 }
 
@@ -30,15 +31,9 @@ declare global {
   }
 }
 
-const isMissingError = (error: unknown) => {
-  if (!error || typeof error !== "object") return false;
-  const candidate = error as { code?: string; name?: string };
-  return candidate.code === "ENOENT" || candidate.name === "NotFoundError" || candidate.name === "NotFound";
-};
-
 function FileExplorerWindow(props: FileExplorerWindowProps) {
   const { host, onOpenFile } = props;
-  const [_, setRequestedPath] = useState<string | null>(null);
+  const [requestedPath, setRequestedPath] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof BroadcastChannel === "undefined") return;
@@ -50,9 +45,7 @@ function FileExplorerWindow(props: FileExplorerWindowProps) {
       if ((data as { type?: string }).type !== "open-folder") return;
 
       const path = (data as { path?: unknown }).path;
-      if (typeof path === "string") {
-        setRequestedPath(path);
-      }
+      if (typeof path === "string") setRequestedPath(path);
     };
 
     return () => {
@@ -62,32 +55,24 @@ function FileExplorerWindow(props: FileExplorerWindowProps) {
   }, []);
 
   useEffect(() => {
-    const readFile = host?.fs?.readFile;
-    if (typeof readFile !== "function") return;
+    const readSettings = host?.settings?.read;
+    if (typeof readSettings !== "function") return;
 
     let active = true;
 
     const loadLastPath = async () => {
       try {
-        const bytes = await readFile(STATE_FILE);
+        const record = (await readSettings()) as { lastOpenedFolder?: unknown } | null | undefined;
         if (!active) return;
 
-        const text = textDecoder.decode(bytes);
-        const record = JSON.parse(text) as { lastOpenedFolder?: unknown };
-        if (typeof record?.lastOpenedFolder === "string") {
-          setRequestedPath(record.lastOpenedFolder);
-        }
+        if (typeof record?.lastOpenedFolder === "string") setRequestedPath(record.lastOpenedFolder);
       } catch (error) {
-        if (!isMissingError(error)) {
-          console.warn("[file-explorer] Failed to read last opened folder", error);
-        }
+        console.warn("[file-explorer] Failed to read last opened folder", error);
       }
     };
 
     loadLastPath().catch((error) => {
-      if (!isMissingError(error)) {
-        console.warn("[file-explorer] Failed to initialize last opened folder", error);
-      }
+      console.warn("[file-explorer] Failed to initialize last opened folder", error);
     });
 
     return () => {
@@ -97,7 +82,7 @@ function FileExplorerWindow(props: FileExplorerWindowProps) {
 
   return (
     <Flex height="100%" bg="background.dark" color="foreground.inverse" direction="column">
-      <FileExplorer rootDir={ROOT_DIR} onOpenFile={onOpenFile} />
+      <FileExplorer rootDir={ROOT_DIR} requestedPath={requestedPath} onOpenFile={onOpenFile} />
     </Flex>
   );
 }
