@@ -1,6 +1,7 @@
 import { ConversationContent, ConversationRoot, ConversationScrollButton } from "@/components/ui/ai-conversation";
 import { ChangeBubble } from "@/components/ui/change-bubble";
 import { SettingsModal } from "@/components/ui/settings-modal";
+import { Tooltip } from "@/components/ui/tooltip";
 import { estimateInputCost, estimateOutputCost, formatUSD, getModelPricing, type ModelPricing } from "@/models";
 import { hasCredentials } from "@/state/actions/hasCredentials";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
@@ -88,6 +89,32 @@ export const ConversationArea = (props: ConversationAreaProps) => {
     setInput("");
   };
 
+  const totalTokensDisplay = totalTokens.toLocaleString();
+
+  const totalCost = modelPricing
+    ? estimateInputCost(tokenUsage.promptTokens, modelPricing) +
+      estimateOutputCost(tokenUsage.completionTokens, modelPricing)
+    : undefined;
+
+  const contextWindowTokens = modelPricing?.contextWindow;
+  const contextUsagePercent =
+    contextWindowTokens && contextWindowTokens > 0
+      ? Math.min((totalTokens / contextWindowTokens) * 100, 100)
+      : undefined;
+
+  const contextPercentLabel = (() => {
+    if (contextUsagePercent === undefined) return undefined;
+    if (contextUsagePercent === 0) return "0%";
+    if (contextUsagePercent >= 10) return `${Math.round(contextUsagePercent)}%`;
+    if (contextUsagePercent >= 1) return `${contextUsagePercent.toFixed(1)}%`;
+    return `${contextUsagePercent.toFixed(2)}%`;
+  })();
+
+  const contextTooltipLabel =
+    contextWindowTokens !== undefined
+      ? `${totalTokensDisplay} / ${contextWindowTokens.toLocaleString()} tokens`
+      : undefined;
+
   return (
     <Flex position="relative" direction="column" w="full" h="full" overflow="hidden" {...rest}>
       <ConversationMessages
@@ -101,19 +128,23 @@ export const ConversationArea = (props: ConversationAreaProps) => {
       <Flex p="sm" borderTopWidth="1px" borderColor="border.secondary">
         <Stack direction="column" gap="sm" width="full">
           <Flex w="full" justify="flex-end">
-            <Text textStyle="label/XS" color="foreground.secondary">
-              {totalTokens} tokens
-              {modelPricing && (
-                <>
-                  {" "}
-                  ·{" "}
-                  {formatUSD(
-                    estimateInputCost(tokenUsage.promptTokens, modelPricing) +
-                      estimateOutputCost(tokenUsage.completionTokens, modelPricing),
-                  )}
-                </>
+            <HStack gap="xs" align="center">
+              {contextPercentLabel && contextTooltipLabel && (
+                <Tooltip content={`Context usage: ${contextTooltipLabel}`}>
+                  <Text textStyle="label/XS" color="foreground.secondary">
+                    Context {contextPercentLabel}
+                  </Text>
+                </Tooltip>
               )}
-            </Text>
+              <Text textStyle="label/XS" color="foreground.secondary">
+                Tokens {totalTokensDisplay}
+              </Text>
+              {totalCost !== undefined && (
+                <Text textStyle="label/XS" color="foreground.secondary">
+                  Cost {formatUSD(totalCost)}
+                </Text>
+              )}
+            </HStack>
           </Flex>
           {!hasCredentials() && (
             <Alert.Root status="warning">

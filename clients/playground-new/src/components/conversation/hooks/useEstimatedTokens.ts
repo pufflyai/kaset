@@ -11,14 +11,16 @@ export interface TokenUsageSummary {
 
 export function useEstimatedTokens(messages: Message[], input: string): TokenUsageSummary {
   return useMemo(() => {
-    const summary = messages.reduce<TokenUsageSummary>(
+    const aggregate = messages.reduce(
       (acc, message) => {
         const usage = message.meta?.usage;
         if (!usage) return acc;
 
         if (message.role === "assistant") {
           acc.completionTokens += usage.completionTokens ?? 0;
-          acc.totalTokens += usage.totalTokens ?? 0;
+          if (usage.totalTokens !== undefined) {
+            acc.assistantTotalTokens += usage.totalTokens;
+          }
         }
 
         if (message.role === "user" || message.role === "developer") {
@@ -27,22 +29,24 @@ export function useEstimatedTokens(messages: Message[], input: string): TokenUsa
 
         return acc;
       },
-      { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+      { promptTokens: 0, completionTokens: 0, assistantTotalTokens: 0 },
     );
 
-    if (summary.totalTokens === 0) {
-      const computedTotal = summary.promptTokens + summary.completionTokens;
-      if (computedTotal > 0) {
-        summary.totalTokens = computedTotal;
-      }
-    }
+    const aggregateTotal = aggregate.promptTokens + aggregate.completionTokens;
+    const totalTokens = Math.max(aggregate.assistantTotalTokens, aggregateTotal);
 
-    if (summary.totalTokens > 0 || summary.promptTokens > 0 || summary.completionTokens > 0) {
-      return summary;
+    if (totalTokens > 0 || aggregate.promptTokens > 0 || aggregate.completionTokens > 0) {
+      return {
+        promptTokens: aggregate.promptTokens,
+        completionTokens: aggregate.completionTokens,
+        totalTokens,
+      } satisfies TokenUsageSummary;
     }
 
     const trimmed = input.trim();
-    if (!trimmed) return summary;
+    if (!trimmed) {
+      return { promptTokens: 0, completionTokens: 0, totalTokens: 0 } satisfies TokenUsageSummary;
+    }
 
     const history = toMessageHistory(messages);
     const withCurrent: BaseMessage[] = [...history, { role: "user", content: trimmed } as BaseMessage];
