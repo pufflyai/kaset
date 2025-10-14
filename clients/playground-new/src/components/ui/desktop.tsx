@@ -299,16 +299,21 @@ export const Desktop = () => {
     const handleOpenFile = (event: Event) => {
       const detail = (event as CustomEvent<DesktopOpenFileDetail>).detail;
       const rawPath = detail?.path;
-      if (typeof rawPath !== "string" || !rawPath.trim()) return;
+      if (typeof rawPath !== "string" || !rawPath.trim()) {
+        console.warn("[desktop] Ignoring open file event with invalid path", detail);
+        return;
+      }
 
       const normalizedPath = normalizeDesktopFilePath(rawPath);
       const displayName = typeof detail?.displayName === "string" ? detail.displayName : undefined;
+      console.info("[desktop] Received open file event", { normalizedPath, displayName });
 
       let targetApp = appsByIdRef.current.get(`${ROOT_FILE_PREFIX}${normalizedPath}`);
 
       if (!targetApp) {
         const nextApp = createDesktopFileApp({ path: normalizedPath, name: displayName });
         targetApp = nextApp;
+        console.info("[desktop] Creating new desktop app for file", { appId: nextApp.id });
 
         setRootFileApps((current) => {
           if (current.some((existing) => existing.id === nextApp.id)) return current;
@@ -316,10 +321,13 @@ export const Desktop = () => {
           next.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
           return next;
         });
+      } else {
+        console.info("[desktop] Reusing existing desktop app for file", { appId: targetApp.id });
       }
 
       if (!targetApp) return;
 
+      console.info("[desktop] Opening desktop window", { appId: targetApp.id });
       setSelectedAppId(targetApp.id);
       openDesktopApp(targetApp);
     };

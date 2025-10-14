@@ -86,13 +86,27 @@
               return remote.ops({ method, params });
             };
 
+            const toParams = (args) => {
+              if (!args || args.length === 0) return {};
+              if (args.length === 1) {
+                const single = args[0];
+                if (single && typeof single === "object") return single;
+                return { value: single };
+              }
+              const [first, second, ...rest] = args;
+              if (typeof first === "string" && second && typeof second === "object") {
+                return { path: first, ...second, rest };
+              }
+              return { args };
+            };
+
             const createNamespaceProxy = (prefix) =>
               new Proxy(
                 {},
                 {
                   get(_target, prop) {
                     if (typeof prop !== "string") return undefined;
-                    return (params) => invoke(prefix ? `${prefix}.${prop}` : prop, params);
+                    return (...args) => invoke(prefix ? `${prefix}.${prop}` : prop, toParams(args));
                   },
                 },
               );

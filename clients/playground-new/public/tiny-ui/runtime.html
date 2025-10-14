@@ -75,7 +75,89 @@
 
             const mountEl = container(init.mountSelector ?? "#root");
 
-            await entry(mountEl, null, init.runtimeOptions ?? {});
+            if (!remote || typeof remote.ops !== "function") {
+              throw new Error("Tiny UI host does not expose remote.ops");
+            }
+
+            const invoke = (method, params) => {
+              if (typeof method !== "string" || !method.trim()) {
+                throw new Error("Tiny UI host call requires a method string");
+              }
+              return remote.ops({ method, params });
+            };
+
+            const toParams = (args) => {
+              if (!args || args.length === 0) return {};
+              if (args.length === 1) {
+                const single = args[0];
+                if (single && typeof single === "object") return single;
+                return { value: single };
+              }
+              const [first, second, ...rest] = args;
+              if (typeof first === "string" && second && typeof second === "object") {
+                return { path: first, ...second, rest };
+              }
+              return { args };
+            };
+
+            const createNamespaceProxy = (prefix) =>
+              new Proxy(
+                {},
+                {
+                  get(_target, prop) {
+                    if (typeof prop !== "string") return undefined;
+                    return (...args) => invoke(prefix ? `${prefix}.${prop}` : prop, toParams(args));
+                  },
+                },
+              );
+
+            const host = {
+              fs: {
+                readFile(path) {
+                  return invoke("fs.readFile", { path });
+                },
+                writeFile(path, data) {
+                  return invoke("fs.writeFile", { path, data });
+                },
+                ls(dir = "") {
+                  return invoke("fs.ls", { dir });
+                },
+                deleteFile(path) {
+                  return invoke("fs.deleteFile", { path });
+                },
+                downloadFile(path, filename) {
+                  return invoke("fs.downloadFile", { path, filename });
+                },
+              },
+              workspace: {
+                read(path) {
+                  return invoke("workspace.read", { path });
+                },
+                readFile(path) {
+                  return invoke("workspace.readFile", { path });
+                },
+              },
+              settings: {
+                read() {
+                  return invoke("settings.read", {});
+                },
+                write(value) {
+                  return invoke("settings.write", { value });
+                },
+              },
+              commands: {
+                notify(level, message) {
+                  return invoke("commands.notify", { level, message });
+                },
+              },
+              call(method, params) {
+                return invoke(method, params);
+              },
+            };
+
+            host.actions = createNamespaceProxy("actions");
+
+            await entry(mountEl, host, init.runtimeOptions ?? {});
             await remote.ready({ id: init.id, meta: init.meta });
           } catch (err) {
             const e = err instanceof Error ? err : new Error("Failed to initialize module");

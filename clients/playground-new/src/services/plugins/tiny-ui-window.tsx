@@ -94,26 +94,57 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     toaster.create({ type, title: message, duration: 5000 });
   }, []);
 
-  const handleOpenFile = useCallback(async (path: string, options?: { displayName?: string }) => {
-    requestOpenDesktopFile(path, options);
-  }, []);
+  const handleOpenFile = useCallback(
+    async (path: string, options?: { displayName?: string }) => {
+      console.info("[tiny-ui-window] Forwarding open file request to desktop", { pluginId, path, options });
+      requestOpenDesktopFile(path, options);
+    },
+    [pluginId],
+  );
 
   const forwardRequest = useCallback(
     async (request: TinyUiOpsRequest) => {
+      console.info("[tiny-ui-window] Received Tiny UI request", {
+        pluginId,
+        method: request.method,
+        params: request.params,
+      });
       if (request.method === "actions.openFile") {
-        const params = (request.params ?? {}) as Record<string, unknown>;
-        const path = typeof params.path === "string" ? params.path : "";
-        if (!path.trim()) {
+        const rawParams = request.params;
+        let path: string | undefined;
+        let displayName: string | undefined;
+
+        if (typeof rawParams === "string") {
+          path = rawParams;
+        } else if (rawParams && typeof rawParams === "object") {
+          const record = rawParams as Record<string, unknown>;
+          if (typeof record.path === "string") {
+            path = record.path;
+          } else if (Array.isArray(record.args) && typeof record.args[0] === "string") {
+            path = record.args[0];
+            const maybeDisplayName = record.args[1];
+            if (maybeDisplayName && typeof maybeDisplayName.displayName === "string") {
+              displayName = maybeDisplayName.displayName;
+            }
+          } else if (typeof record.value === "string") {
+            path = record.value;
+          }
+
+          if (typeof record.displayName === "string") {
+            displayName = record.displayName;
+          }
+        }
+
+        if (!path || !path.trim()) {
           throw new Error("actions.openFile requires params.path");
         }
-        const displayName = typeof params.displayName === "string" ? params.displayName : undefined;
         await handleOpenFile(path, displayName ? { displayName } : undefined);
         return { ok: true };
       }
 
       throw new Error(`Unknown Tiny UI host request: ${request.method}`);
     },
-    [handleOpenFile],
+    [handleOpenFile, pluginId],
   );
 
   const entryPath = pluginWindow.entry;

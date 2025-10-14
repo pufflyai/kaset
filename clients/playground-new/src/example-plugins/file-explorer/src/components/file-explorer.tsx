@@ -122,10 +122,12 @@ export function FileExplorer(props: FileExplorerProps) {
               }}
               onClick={() => {
                 if (directory) {
+                  console.info("[file-explorer] Navigating into directory", { id: node.id });
                   setCurrentPath(node.id);
                   return;
                 }
 
+                console.info("[file-explorer] Requesting host to open file", { id: node.id, name: node.name });
                 const result = onOpenFile?.(node.id, { displayName: node.name });
                 if (result instanceof Promise) {
                   result.catch((error) => {
