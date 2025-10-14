@@ -5,7 +5,7 @@ import { immer } from "zustand/middleware/immer";
 import type { TodoItem, TodoStore } from "./types";
 
 export const ROOT = "playground";
-export const TODO_LISTS_DIR = `${ROOT}/plugin_data/todo/todos`;
+export const TODO_LISTS_DIR = `${ROOT}/plugin_data/todo`;
 
 function parseMarkdownTodos(md: string): TodoItem[] {
   const lines = md.split("\n");

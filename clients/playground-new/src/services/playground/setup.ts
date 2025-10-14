@@ -33,6 +33,12 @@ const EXAMPLE_PLUGIN_BUNDLE = import.meta.glob("/src/example-plugins/**", {
   eager: true,
 }) as Record<string, string>;
 
+const EXAMPLE_PLUGIN_DATA_BUNDLE = import.meta.glob("/src/example-plugin-data/**", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
 const WALLPAPER_BUNDLE = import.meta.glob("/src/example-files/wallpaper/*.{png,jpg,jpeg,gif,webp}", {
   query: "?url",
   import: "default",
@@ -149,10 +155,12 @@ export async function setupPlayground(options: SetupOptions = {}) {
 
   const normalizedRoot = normalizeOpfsPath(rootDir);
   const pluginsRoot = `${normalizedRoot}/plugins`;
+  const pluginDataRoot = `${normalizedRoot}/plugin_data`;
   const wallpaperRoot = `${normalizedRoot}/wallpaper`;
 
   await ensureDirectory(normalizedRoot);
   await ensureDirectory(pluginsRoot);
+  await ensureDirectory(pluginDataRoot);
   await ensureDirectory(wallpaperRoot);
 
   const rootFilesWritten = await applyBundle({
@@ -166,6 +174,13 @@ export async function setupPlayground(options: SetupOptions = {}) {
     bundleRoot: pluginsRoot,
     files: EXAMPLE_PLUGIN_BUNDLE,
     baseDir: "/src/example-plugins",
+    overwrite,
+  });
+
+  const pluginDataFilesWritten = await applyBundle({
+    bundleRoot: pluginDataRoot,
+    files: EXAMPLE_PLUGIN_DATA_BUNDLE,
+    baseDir: "/src/example-plugin-data",
     overwrite,
   });
 
@@ -206,9 +221,10 @@ export async function setupPlayground(options: SetupOptions = {}) {
 
   return {
     rootDir: normalizedRoot,
-    written: rootFilesWritten + pluginFilesWritten + wallpaperFilesWritten,
+    written: rootFilesWritten + pluginFilesWritten + pluginDataFilesWritten + wallpaperFilesWritten,
     rootFiles: rootFilesWritten,
     pluginFiles: pluginFilesWritten,
+    pluginDataFiles: pluginDataFilesWritten,
     wallpaperFiles: wallpaperFilesWritten,
   };
 }
