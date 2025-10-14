@@ -17,6 +17,7 @@ import { popoverRecipe } from "./recipes/popover";
 import { skeletonRecipe } from "./recipes/skeleton";
 import { textareaRecipe } from "./recipes/textarea";
 import { tooltipRecipe } from "./recipes/tooltip";
+import { progressCircleSlotRecipe } from "./recipes/progress-circle";
 import { borders } from "./tokens/borders";
 import { semanticColors } from "./tokens/colors";
 import { layerStyles } from "./tokens/layer-styles";
@@ -58,6 +59,7 @@ const config = defineConfig({
       editable: editableSlotRecipe,
       form: fieldsetSlotRecipe,
       dialog: dialogSlotRecipe,
+      progressCircle: progressCircleSlotRecipe,
     },
   },
 });
