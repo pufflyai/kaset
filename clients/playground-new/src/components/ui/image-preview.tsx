@@ -1,4 +1,4 @@
-import { Box, Center, Heading, Spinner, Text, chakra } from "@chakra-ui/react";
+import { Box, Center, Spinner, Text, chakra } from "@chakra-ui/react";
 import { readFile, watchDirectory, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 

@@ -5,19 +5,19 @@ import {
   type AdaptiveWallpaperResult,
 } from "@/hooks/useAdaptiveWallpaperSample";
 import {
+  OPEN_DESKTOP_FILE_EVENT,
+  ROOT_FILE_PREFIX,
+  createDesktopFileApp,
+  getRootFilePathFromAppId,
+  normalizeDesktopFilePath,
+  type DesktopOpenFileDetail,
+} from "@/services/desktop/fileApps";
+import {
   ensurePluginHost,
   getPluginDisplayName,
   subscribeToPluginDesktopSurfaces,
   type PluginDesktopSurface,
 } from "@/services/plugins/plugin-host";
-import {
-  createDesktopFileApp,
-  getRootFilePathFromAppId,
-  OPEN_DESKTOP_FILE_EVENT,
-  ROOT_FILE_PREFIX,
-  normalizeDesktopFilePath,
-  type DesktopOpenFileDetail,
-} from "@/services/desktop/fileApps";
 import { deletePluginDirectories, downloadPluginBundle } from "@/services/plugins/plugin-management";
 import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
 import { openDesktopApp } from "@/state/actions/desktop";
@@ -35,6 +35,8 @@ import { DesktopIcon } from "./desktop-icon";
 import { MenuItem } from "./menu-item";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
+
+// WILL FIX: vibe-coded mess
 
 const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
 
@@ -171,6 +173,8 @@ export const Desktop = () => {
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [rootFileApps, setRootFileApps] = useState<DesktopApp[]>([]);
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
+  const ephemeralFileAppsRef = useRef<Map<string, DesktopApp>>(new Map());
+  const [ephemeralFileAppsVersion, setEphemeralFileAppsVersion] = useState(0);
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
   const [wallpaperElement, setWallpaperElement] = useState<HTMLImageElement | null>(null);
   const [averageColor, setAverageColor] = useState<string | null>(null);
@@ -272,21 +276,43 @@ export const Desktop = () => {
     return unsubscribe;
   }, []);
 
-  const apps = useMemo(() => [...rootFileApps, ...pluginApps], [rootFileApps, pluginApps]);
+  const visibleApps = useMemo(() => [...rootFileApps, ...pluginApps], [rootFileApps, pluginApps]);
 
   const appsById = useMemo(() => {
     const map = new Map<string, DesktopApp>();
-    apps.forEach((app) => {
+    visibleApps.forEach((app) => {
       map.set(app.id, app);
     });
+
+    const registry = ephemeralFileAppsRef.current;
+    registry.forEach((app, appId) => {
+      if (!map.has(appId)) {
+        map.set(appId, app);
+      }
+    });
+
     return map;
-  }, [apps]);
+  }, [visibleApps, ephemeralFileAppsVersion]);
 
   const appsByIdRef = useRef(appsById);
 
   useEffect(() => {
     appsByIdRef.current = appsById;
   }, [appsById]);
+
+  const registerEphemeralFileApp = useCallback((app: DesktopApp) => {
+    const registry = ephemeralFileAppsRef.current;
+    const existing = registry.get(app.id);
+    if (existing === app) return;
+
+    registry.set(app.id, app);
+
+    const nextMap = new Map(appsByIdRef.current);
+    nextMap.set(app.id, app);
+    appsByIdRef.current = nextMap;
+
+    setEphemeralFileAppsVersion((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     if (!selectedAppId) return;
@@ -314,13 +340,7 @@ export const Desktop = () => {
         const nextApp = createDesktopFileApp({ path: normalizedPath, name: displayName });
         targetApp = nextApp;
         console.info("[desktop] Creating new desktop app for file", { appId: nextApp.id });
-
-        setRootFileApps((current) => {
-          if (current.some((existing) => existing.id === nextApp.id)) return current;
-          const next = [...current, nextApp];
-          next.sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
-          return next;
-        });
+        registerEphemeralFileApp(nextApp);
       } else {
         console.info("[desktop] Reusing existing desktop app for file", { appId: targetApp.id });
       }
@@ -336,7 +356,7 @@ export const Desktop = () => {
     return () => {
       window.removeEventListener(OPEN_DESKTOP_FILE_EVENT, handleOpenFile as EventListener);
     };
-  }, [setRootFileApps, setSelectedAppId]);
+  }, [registerEphemeralFileApp, setSelectedAppId]);
 
   const getAppById = useCallback((appId: string) => appsById.get(appId), [appsById]);
 
@@ -582,7 +602,7 @@ export const Desktop = () => {
         gridTemplateColumns="repeat(auto-fit, minmax(5rem, max-content))"
         zIndex={1}
       >
-        {apps.map((app) => {
+        {visibleApps.map((app) => {
           const isRootFileApp = app.id.startsWith(ROOT_FILE_PREFIX);
 
           const renderContextMenu = () => {
