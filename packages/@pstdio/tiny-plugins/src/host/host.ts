@@ -54,6 +54,7 @@ function isNotFoundError(error: unknown) {
 
 export function createPluginHost(options: HostOptions = {}): PluginHost {
   const root = resolveRoot(options.root);
+  const dataRoot = options.dataRoot ? resolveRoot(options.dataRoot) : root;
   const watchEnabled = options.watch !== false;
   const timeouts: Timeouts = {
     activate: options.timeouts?.activate ?? DEFAULT_TIMEOUTS.activate,
@@ -218,6 +219,7 @@ export function createPluginHost(options: HostOptions = {}): PluginHost {
       const loaded = await loadPlugin({
         pluginId: state.id,
         pluginsRoot: root,
+        pluginsDataRoot: dataRoot,
         registry,
         manifestValidator,
         ajv,
@@ -433,7 +435,7 @@ export function createPluginHost(options: HostOptions = {}): PluginHost {
   function ensureSettingsAccessor(state: PluginState | undefined, pluginId: string): SettingsAccessor {
     if (state?.loaded?.contextSettings) return state.loaded.contextSettings;
 
-    const fs = createScopedFs([root, pluginId].filter(Boolean).join("/"));
+    const fs = createScopedFs([dataRoot, pluginId].filter(Boolean).join("/"));
     let validator = state?.settingsValidator;
 
     if (!validator && state?.manifest?.settingsSchema) {

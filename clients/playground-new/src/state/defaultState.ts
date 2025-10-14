@@ -16,7 +16,7 @@ export const DEFAULT_STATE: WorkspaceState = {
     nextZIndex: 1,
   },
   settings: {
-    modelId: "gpt-5-mini",
+    modelId: "gpt-5",
     baseUrl: "",
     apiKey: "",
     approvalGatedTools: [...DEFAULT_APPROVAL_GATED_TOOLS],

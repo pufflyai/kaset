@@ -8,15 +8,6 @@ async function readSettings(ctx) {
   return { ...defaults, ...(stored ?? {}) };
 }
 
-export const commands = {
-  async "hello.sayHello"(ctx) {
-    const settings = await readSettings(ctx);
-    const greeting = settings.greeting || defaults.greeting;
-    const recipient = settings.recipient || defaults.recipient;
-    ctx.ui.notify?.("info", `${greeting}, ${recipient}!`);
-  },
-};
-
 export default {
   async activate(ctx) {
     const settings = await readSettings(ctx);

@@ -1,4 +1,5 @@
 import { toaster } from "@/components/ui/toaster";
+import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
 import { ROOT } from "@/constant";
 import { Box, Button, Center, Spinner, Text } from "@chakra-ui/react";
 import {
@@ -8,6 +9,7 @@ import {
   setLockfile,
   TinyUI,
   unregisterVirtualSnapshot,
+  type TinyUiOpsRequest,
 } from "@pstdio/tiny-ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -91,6 +93,59 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
     toaster.create({ type, title: message, duration: 5000 });
   }, []);
+
+  const handleOpenFile = useCallback(
+    async (path: string, options?: { displayName?: string }) => {
+      console.info("[tiny-ui-window] Forwarding open file request to desktop", { pluginId, path, options });
+      requestOpenDesktopFile(path, options);
+    },
+    [pluginId],
+  );
+
+  const forwardRequest = useCallback(
+    async (request: TinyUiOpsRequest) => {
+      console.info("[tiny-ui-window] Received Tiny UI request", {
+        pluginId,
+        method: request.method,
+        params: request.params,
+      });
+      if (request.method === "actions.openFile") {
+        const rawParams = request.params;
+        let path: string | undefined;
+        let displayName: string | undefined;
+
+        if (typeof rawParams === "string") {
+          path = rawParams;
+        } else if (rawParams && typeof rawParams === "object") {
+          const record = rawParams as Record<string, unknown>;
+          if (typeof record.path === "string") {
+            path = record.path;
+          } else if (Array.isArray(record.args) && typeof record.args[0] === "string") {
+            path = record.args[0];
+            const maybeDisplayName = record.args[1];
+            if (maybeDisplayName && typeof maybeDisplayName.displayName === "string") {
+              displayName = maybeDisplayName.displayName;
+            }
+          } else if (typeof record.value === "string") {
+            path = record.value;
+          }
+
+          if (typeof record.displayName === "string") {
+            displayName = record.displayName;
+          }
+        }
+
+        if (!path || !path.trim()) {
+          throw new Error("actions.openFile requires params.path");
+        }
+        await handleOpenFile(path, displayName ? { displayName } : undefined);
+        return { ok: true };
+      }
+
+      throw new Error(`Unknown Tiny UI host request: ${request.method}`);
+    },
+    [handleOpenFile, pluginId],
+  );
 
   const entryPath = pluginWindow.entry;
 
@@ -199,6 +254,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
           pluginsRoot,
           workspaceFs,
           notify,
+          forwardRequest,
         }}
         style={{ width: "100%", height: "100%" }}
       />

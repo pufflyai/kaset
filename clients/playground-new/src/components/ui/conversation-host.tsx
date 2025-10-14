@@ -8,10 +8,11 @@ import { hasCredentials } from "@/state/actions/hasCredentials";
 import { setConversationMessages } from "@/state/actions/setConversationMessages";
 import type { ApprovalRequest } from "@pstdio/kas";
 import { shortUID } from "@pstdio/prompt-utils";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import debounce from "lodash/debounce";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
+import { usePluginHost } from "../../services/plugins/usePluginHost";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import type { Message } from "../../types";
 import { ConversationArea } from "../conversation/ConversationArea";
@@ -51,10 +52,11 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
 
 export function ConversationHost() {
   const { tools: mcpTools } = useMcpService();
+  const { tools: pluginTools } = usePluginHost();
   const [streaming, setStreaming] = useState(false);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
-  const toolset = useMemo(() => [...mcpTools], [mcpTools]);
+  const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
 
   useEffect(() => {
     setApprovalHandler(

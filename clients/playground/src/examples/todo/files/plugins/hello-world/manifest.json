@@ -4,13 +4,7 @@
   "version": "0.1.0",
   "api": "^1.0.0",
   "entry": "index.js",
-  "commands": [
-    {
-      "id": "hello.sayHello",
-      "title": "Hello World",
-      "category": "Examples"
-    }
-  ],
+  "commands": [],
   "settingsSchema": {
     "type": "object",
     "properties": {
