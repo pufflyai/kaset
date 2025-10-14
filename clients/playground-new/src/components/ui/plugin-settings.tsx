@@ -1,17 +1,21 @@
 import { usePluginHost } from "@/services/plugins/usePluginHost";
-import { Button, Field, Flex, HStack, Text, Textarea, VStack } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { Box, Field, Flex, Text, VStack } from "@chakra-ui/react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { toaster } from "./toaster";
+import { CodeEditor } from "./code-editor";
 
 interface PluginFormState {
   text: string;
   dirty: boolean;
-  saving: boolean;
   error?: string;
 }
 
 interface PluginSettingsProps {
   isOpen: boolean;
+}
+
+export interface PluginSettingsHandle {
+  save: () => Promise<boolean>;
 }
 
 function serializeSettings(value: unknown) {
@@ -25,7 +29,7 @@ function serializeSettings(value: unknown) {
   }
 }
 
-export function PluginSettings(props: PluginSettingsProps) {
+export const PluginSettings = forwardRef<PluginSettingsHandle, PluginSettingsProps>((props, ref) => {
   const { isOpen } = props;
 
   const { settings: pluginSettings, readSettings, writeSettings, getDisplayName } = usePluginHost();
@@ -54,9 +58,9 @@ export function PluginSettings(props: PluginSettingsProps) {
           pluginSettings.map(async (entry) => {
             try {
               const value = await readSettings(entry.pluginId);
-              return { pluginId: entry.pluginId, value };
+              return { pluginId: entry.pluginId, value } as const;
             } catch (error) {
-              return { pluginId: entry.pluginId, error };
+              return { pluginId: entry.pluginId, error } as const;
             }
           }),
         );
@@ -76,7 +80,6 @@ export function PluginSettings(props: PluginSettingsProps) {
           forms[result.pluginId] = {
             text: errorMessage ? "{}" : serializeSettings(value),
             dirty: false,
-            saving: false,
             error: errorMessage,
           };
         });
@@ -100,7 +103,7 @@ export function PluginSettings(props: PluginSettingsProps) {
 
   const handlePluginInputChange = (pluginId: string, nextText: string) => {
     setPluginForms((previous) => {
-      const current = previous[pluginId] ?? { text: "{}", dirty: false, saving: false };
+      const current = previous[pluginId] ?? { text: "{}", dirty: false };
       return {
         ...previous,
         [pluginId]: {
@@ -113,96 +116,97 @@ export function PluginSettings(props: PluginSettingsProps) {
     });
   };
 
-  const reloadPluginSettings = async (pluginId: string) => {
-    setPluginForms((previous) => {
-      const current = previous[pluginId] ?? { text: "{}", dirty: false, saving: false };
-      return {
-        ...previous,
-        [pluginId]: { ...current, saving: true, error: undefined },
-      };
+  const saveDirtyPlugins = useCallback(async (): Promise<boolean> => {
+    if (pluginSettings.length === 0) return true;
+
+    const entriesToSave = pluginSettings
+      .map((entry) => ({ entry, form: pluginForms[entry.pluginId] }))
+      .filter((item): item is { entry: (typeof pluginSettings)[number]; form: PluginFormState } =>
+        Boolean(item.form?.dirty),
+      );
+
+    if (entriesToSave.length === 0) {
+      return true;
+    }
+
+    let hasValidationError = false;
+    const parsedValues = new Map<string, { value: unknown; text: string }>();
+    const nextFormsAfterValidation: Record<string, PluginFormState> = { ...pluginForms };
+
+    entriesToSave.forEach(({ entry, form }) => {
+      const raw = form.text ?? "{}";
+
+      try {
+        const parsed = raw.trim() ? JSON.parse(raw) : {};
+        parsedValues.set(entry.pluginId, { value: parsed, text: serializeSettings(parsed) });
+        nextFormsAfterValidation[entry.pluginId] = {
+          ...form,
+          error: undefined,
+        };
+      } catch (error) {
+        hasValidationError = true;
+        nextFormsAfterValidation[entry.pluginId] = {
+          ...form,
+          error: error instanceof Error ? `Invalid JSON: ${error.message}` : "Invalid JSON",
+        };
+      }
     });
 
-    try {
-      const value = await readSettings(pluginId);
-      setPluginForms((previous) => ({
-        ...previous,
-        [pluginId]: {
-          text: serializeSettings(value),
-          dirty: false,
-          saving: false,
-        },
-      }));
-    } catch (error) {
-      setPluginForms((previous) => {
-        const current = previous[pluginId] ?? { text: "{}", dirty: false, saving: false };
-        return {
-          ...previous,
-          [pluginId]: {
-            ...current,
-            saving: false,
-            error: error instanceof Error ? error.message : String(error),
-          },
-        };
-      });
-    }
-  };
-
-  const handleSavePlugin = async (pluginId: string) => {
-    const current = pluginForms[pluginId];
-    const raw = current?.text ?? "{}";
-
-    let parsed: unknown;
-    try {
-      parsed = raw.trim() ? JSON.parse(raw) : {};
-    } catch (error) {
-      setPluginForms((previous) => ({
-        ...previous,
-        [pluginId]: {
-          ...(previous[pluginId] ?? { text: raw, dirty: true, saving: false }),
-          error: error instanceof Error ? `Invalid JSON: ${error.message}` : "Invalid JSON",
-        },
-      }));
-      return;
-    }
-
-    setPluginForms((previous) => ({
-      ...previous,
-      [pluginId]: {
-        ...(previous[pluginId] ?? { text: serializeSettings(parsed), dirty: false, saving: false }),
-        saving: true,
-        error: undefined,
-      },
-    }));
-
-    try {
-      await writeSettings(pluginId, parsed);
-      setPluginForms((previous) => ({
-        ...previous,
-        [pluginId]: {
-          ...(previous[pluginId] ?? { text: serializeSettings(parsed), dirty: false, saving: false }),
-          saving: false,
-          dirty: false,
-          error: undefined,
-        },
-      }));
-      toaster.create({ type: "success", title: `Saved ${getDisplayName(pluginId)} settings` });
-    } catch (error) {
-      setPluginForms((previous) => ({
-        ...previous,
-        [pluginId]: {
-          ...(previous[pluginId] ?? { text: raw, dirty: true, saving: false }),
-          saving: false,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      }));
+    if (hasValidationError) {
+      setPluginForms(nextFormsAfterValidation);
       toaster.create({
         type: "error",
-        title: `Failed to save ${getDisplayName(pluginId)} settings`,
-        description: error instanceof Error ? error.message : String(error),
+        title: "Failed to save plugin settings",
+        description: "Fix invalid JSON before saving.",
         duration: 7000,
       });
+      return false;
     }
-  };
+
+    setPluginForms(nextFormsAfterValidation);
+
+    let hasSaveFailure = false;
+    const nextFormsAfterSave: Record<string, PluginFormState> = { ...nextFormsAfterValidation };
+
+    for (const [pluginId, { value, text }] of parsedValues.entries()) {
+      try {
+        await writeSettings(pluginId, value);
+        const current = nextFormsAfterSave[pluginId] ?? { text, dirty: false };
+        nextFormsAfterSave[pluginId] = {
+          ...current,
+          text,
+          dirty: false,
+          error: undefined,
+        };
+        toaster.create({ type: "success", title: `Saved ${getDisplayName(pluginId)} settings` });
+      } catch (error) {
+        hasSaveFailure = true;
+        const message = error instanceof Error ? error.message : String(error);
+        const current = nextFormsAfterSave[pluginId] ?? { text, dirty: true };
+        nextFormsAfterSave[pluginId] = {
+          ...current,
+          error: message,
+        };
+        toaster.create({
+          type: "error",
+          title: `Failed to save ${getDisplayName(pluginId)} settings`,
+          description: message,
+          duration: 7000,
+        });
+      }
+    }
+
+    setPluginForms(nextFormsAfterSave);
+    return !hasSaveFailure;
+  }, [getDisplayName, pluginForms, pluginSettings, writeSettings]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      save: saveDirtyPlugins,
+    }),
+    [saveDirtyPlugins],
+  );
 
   return (
     <Flex direction="column" gap="lg" width="100%">
@@ -224,35 +228,27 @@ export function PluginSettings(props: PluginSettingsProps) {
               return (
                 <Field.Root key={entry.pluginId} gap="xs">
                   <Field.Label>{getDisplayName(entry.pluginId)}</Field.Label>
-                  <Textarea
-                    fontFamily="mono"
-                    minHeight="140px"
-                    value={form?.text ?? "{}"}
-                    onChange={(event) => handlePluginInputChange(entry.pluginId, event.target.value)}
-                  />
+                  <Box
+                    borderWidth="1px"
+                    borderRadius="md"
+                    overflow="hidden"
+                    borderColor="border.primary"
+                    height="240px"
+                  >
+                    <CodeEditor
+                      language="json"
+                      code={form?.text ?? "{}"}
+                      isEditable
+                      wrapLines
+                      showLineNumbers
+                      onChange={(value) => handlePluginInputChange(entry.pluginId, value)}
+                    />
+                  </Box>
                   {form?.error && (
                     <Text fontSize="xs" color="foreground.feedback.alert">
                       {form.error}
                     </Text>
                   )}
-                  <HStack justify="flex-end" gap="xs">
-                    <Button
-                      size="xs"
-                      variant="ghost"
-                      onClick={() => reloadPluginSettings(entry.pluginId)}
-                      disabled={form?.saving}
-                    >
-                      Reset
-                    </Button>
-                    <Button
-                      size="xs"
-                      variant="solid"
-                      onClick={() => handleSavePlugin(entry.pluginId)}
-                      disabled={!form || form.saving || !form.dirty}
-                    >
-                      {form?.saving ? "Saving…" : "Save"}
-                    </Button>
-                  </HStack>
                 </Field.Root>
               );
             })}
@@ -261,4 +257,6 @@ export function PluginSettings(props: PluginSettingsProps) {
       </Flex>
     </Flex>
   );
-}
+});
+
+PluginSettings.displayName = "PluginSettings";

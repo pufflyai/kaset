@@ -23,9 +23,10 @@ import {
 import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import { ls, readFile } from "@pstdio/opfs-utils";
 import { shortUID } from "@pstdio/prompt-utils";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { McpServerCard } from "./mcp-server-card";
 import { PluginSettings } from "./plugin-settings";
+import type { PluginSettingsHandle } from "./plugin-settings";
 
 const TOOL_LABELS: Record<string, string> = {
   opfs_write_file: "Write file",
@@ -84,6 +85,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [wallpapers, setWallpapers] = useState<string[]>([]);
   const [selectedWallpaper, setSelectedWallpaper] = useState<string>("");
   const [wallpaperPreviews, setWallpaperPreviews] = useState<Record<string, string>>({});
+  const pluginSettingsRef = useRef<PluginSettingsHandle>(null);
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
   useEffect(() => {
@@ -222,178 +224,6 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     onClose();
   };
 
-  const renderActiveSection = () => {
-    switch (activeSection) {
-      case "kas":
-        return (
-          <VStack align="stretch" gap="md">
-            <Field.Root>
-              <Field.Label>Model</Field.Label>
-              <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
-            </Field.Root>
-            <Field.Root>
-              <Field.Label>API Key</Field.Label>
-              <HStack>
-                <Input
-                  type={showKey ? "text" : "password"}
-                  placeholder="sk-..."
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                />
-                <Button onClick={() => setShowKey((v) => !v)}>{showKey ? "Hide" : "Show"}</Button>
-              </HStack>
-            </Field.Root>
-            <Field.Root>
-              <Field.Label>Base URL (optional)</Field.Label>
-              <Input
-                placeholder="https://api.openai.com/v1"
-                value={baseUrl}
-                onChange={(e) => setBaseUrl(e.target.value)}
-              />
-            </Field.Root>
-          </VStack>
-        );
-      case "display":
-        return (
-          <VStack align="stretch" gap="md">
-            <Field.Root>
-              <Field.Label>Theme</Field.Label>
-              <HStack>
-                <Button
-                  variant={theme === "light" ? "solid" : "ghost"}
-                  size="sm"
-                  onClick={() => handleThemeSelect("light")}
-                  aria-pressed={theme === "light"}
-                >
-                  Light
-                </Button>
-                <Button
-                  variant={theme === "dark" ? "solid" : "ghost"}
-                  size="sm"
-                  onClick={() => handleThemeSelect("dark")}
-                  aria-pressed={theme === "dark"}
-                >
-                  Dark
-                </Button>
-              </HStack>
-            </Field.Root>
-            <Field.Root>
-              <Field.Label>Desktop Wallpaper</Field.Label>
-              <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap="sm">
-                {wallpapers.map((wallpaper) => {
-                  const name = wallpaper.split("/").pop() ?? wallpaper;
-                  const previewUrl = wallpaperPreviews[wallpaper];
-                  const isSelected = selectedWallpaper === wallpaper;
-                  return (
-                    <Box
-                      key={wallpaper}
-                      as="button"
-                      onClick={() => setSelectedWallpaper(wallpaper)}
-                      borderWidth="1px"
-                      borderColor="border.primary"
-                      borderRadius="md"
-                      padding="sm"
-                      bg={isSelected ? "background.secondary" : "background.primary"}
-                      textAlign="center"
-                      display="flex"
-                      flexDirection="column"
-                      gap="xs"
-                      cursor="pointer"
-                      transition="background-color 0.2s ease, border-color 0.2s ease"
-                      _hover={{ bg: "background.secondary" }}
-                      _focusVisible={{ outline: "none", boxShadow: "0 0 0 2px var(--chakra-colors-blue-500)" }}
-                    >
-                      <Box
-                        borderRadius="sm"
-                        overflow="hidden"
-                        height="100px"
-                        bg="background.subtle"
-                        display="flex"
-                        alignItems="center"
-                        justifyContent="center"
-                      >
-                        {previewUrl ? (
-                          <chakra.img
-                            src={previewUrl}
-                            alt={`${name} wallpaper preview`}
-                            width="100%"
-                            height="100%"
-                            objectFit="cover"
-                          />
-                        ) : (
-                          <Text fontSize="sm" color="fg.muted">
-                            Preview unavailable
-                          </Text>
-                        )}
-                      </Box>
-                      <Text fontWeight="medium">{name}</Text>
-                    </Box>
-                  );
-                })}
-              </SimpleGrid>
-            </Field.Root>
-          </VStack>
-        );
-      case "permissions":
-        return (
-          <Flex gap="xs" direction="column" width="100%">
-            <Text>Approval-gated tools</Text>
-            <VStack align="stretch">
-              {DEFAULT_APPROVAL_GATED_TOOLS.map((tool) => (
-                <Checkbox.Root
-                  key={tool}
-                  checked={approvalTools.includes(tool)}
-                  onCheckedChange={(e) => {
-                    setApprovalTools((prev) => (e.checked ? [...prev, tool] : prev.filter((t) => t !== tool)));
-                  }}
-                >
-                  <Checkbox.HiddenInput />
-                  <Checkbox.Control />
-                  <Checkbox.Label>{TOOL_LABELS[tool]}</Checkbox.Label>
-                </Checkbox.Root>
-              ))}
-            </VStack>
-          </Flex>
-        );
-      case "mcp":
-        return (
-          <Flex gap="xs" direction="column" width="100%">
-            <Text>MCP servers</Text>
-            <Text fontSize="sm" color="fg.muted">
-              Configure remote MCP endpoints to surface their tools in the playground.
-            </Text>
-            <VStack align="stretch" gap="sm">
-              {mcpServers.length === 0 ? (
-                <Flex align="center" borderRadius="md" borderWidth="1px" justify="space-between" p="md">
-                  <Text color="fg.muted">No MCP servers configured.</Text>
-                </Flex>
-              ) : (
-                mcpServers.map((server) => (
-                  <McpServerCard
-                    key={server.id}
-                    server={server}
-                    enabled={activeMcpServerIds.includes(server.id)}
-                    tokenVisible={showServerTokens[server.id] ?? false}
-                    onToggleEnabled={toggleServerActive}
-                    onRemove={removeMcpServer}
-                    onChange={updateMcpServer}
-                    onToggleTokenVisibility={toggleServerTokenVisibility}
-                  />
-                ))
-              )}
-            </VStack>
-            <Button alignSelf="flex-start" size="sm" variant="outline" onClick={addMcpServer}>
-              Add MCP server
-            </Button>
-          </Flex>
-        );
-      case "plugins":
-        return <PluginSettings isOpen={isOpen} />;
-      default:
-        return null;
-    }
-  };
-
   useEffect(() => {
     if (!isOpen) {
       setActiveSection("kas");
@@ -454,6 +284,11 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setSavingSettings(true);
 
     try {
+      const pluginResult = await pluginSettingsRef.current?.save();
+      if (pluginResult === false) {
+        return;
+      }
+
       const sanitizedServers = mcpServers
         .map((server) => {
           const name = server.name?.trim() ?? "";
@@ -555,7 +390,173 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                       </Field.Root>
                     </Box>
                   )}
-                  {renderActiveSection()}
+                  <Box display={activeSection === "kas" ? "block" : "none"}>
+                    <VStack align="stretch" gap="md">
+                      <Field.Root>
+                        <Field.Label>Model</Field.Label>
+                        <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label>API Key</Field.Label>
+                        <HStack>
+                          <Input
+                            type={showKey ? "text" : "password"}
+                            placeholder="sk-..."
+                            value={apiKey}
+                            onChange={(e) => setApiKey(e.target.value)}
+                          />
+                          <Button onClick={() => setShowKey((v) => !v)}>{showKey ? "Hide" : "Show"}</Button>
+                        </HStack>
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label>Base URL (optional)</Field.Label>
+                        <Input
+                          placeholder="https://api.openai.com/v1"
+                          value={baseUrl}
+                          onChange={(e) => setBaseUrl(e.target.value)}
+                        />
+                      </Field.Root>
+                    </VStack>
+                  </Box>
+                  <Box display={activeSection === "display" ? "block" : "none"}>
+                    <VStack align="stretch" gap="md">
+                      <Field.Root>
+                        <Field.Label>Theme</Field.Label>
+                        <HStack>
+                          <Button
+                            variant={theme === "light" ? "solid" : "ghost"}
+                            size="sm"
+                            onClick={() => handleThemeSelect("light")}
+                            aria-pressed={theme === "light"}
+                          >
+                            Light
+                          </Button>
+                          <Button
+                            variant={theme === "dark" ? "solid" : "ghost"}
+                            size="sm"
+                            onClick={() => handleThemeSelect("dark")}
+                            aria-pressed={theme === "dark"}
+                          >
+                            Dark
+                          </Button>
+                        </HStack>
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label>Desktop Wallpaper</Field.Label>
+                        <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap="sm">
+                          {wallpapers.map((wallpaper) => {
+                            const name = wallpaper.split("/").pop() ?? wallpaper;
+                            const previewUrl = wallpaperPreviews[wallpaper];
+                            const isSelected = selectedWallpaper === wallpaper;
+                            return (
+                              <Box
+                                key={wallpaper}
+                                as="button"
+                                onClick={() => setSelectedWallpaper(wallpaper)}
+                                borderWidth="1px"
+                                borderColor="border.primary"
+                                borderRadius="md"
+                                padding="sm"
+                                bg={isSelected ? "background.secondary" : "background.primary"}
+                                textAlign="center"
+                                display="flex"
+                                flexDirection="column"
+                                gap="xs"
+                                cursor="pointer"
+                                transition="background-color 0.2s ease, border-color 0.2s ease"
+                                _hover={{ bg: "background.secondary" }}
+                                _focusVisible={{
+                                  outline: "none",
+                                  boxShadow: "0 0 0 2px var(--chakra-colors-blue-500)",
+                                }}
+                              >
+                                <Box
+                                  borderRadius="sm"
+                                  overflow="hidden"
+                                  height="100px"
+                                  bg="background.subtle"
+                                  display="flex"
+                                  alignItems="center"
+                                  justifyContent="center"
+                                >
+                                  {previewUrl ? (
+                                    <chakra.img
+                                      src={previewUrl}
+                                      alt={`${name} wallpaper preview`}
+                                      width="100%"
+                                      height="100%"
+                                      objectFit="cover"
+                                    />
+                                  ) : (
+                                    <Text fontSize="sm" color="fg.muted">
+                                      Preview unavailable
+                                    </Text>
+                                  )}
+                                </Box>
+                                <Text fontWeight="medium">{name}</Text>
+                              </Box>
+                            );
+                          })}
+                        </SimpleGrid>
+                      </Field.Root>
+                    </VStack>
+                  </Box>
+                  <Box display={activeSection === "permissions" ? "block" : "none"}>
+                    <Flex gap="xs" direction="column" width="100%">
+                      <Text>Approval-gated tools</Text>
+                      <VStack align="stretch">
+                        {DEFAULT_APPROVAL_GATED_TOOLS.map((tool) => (
+                          <Checkbox.Root
+                            key={tool}
+                            checked={approvalTools.includes(tool)}
+                            onCheckedChange={(e) => {
+                              setApprovalTools((prev) =>
+                                e.checked ? [...prev, tool] : prev.filter((t) => t !== tool),
+                              );
+                            }}
+                          >
+                            <Checkbox.HiddenInput />
+                            <Checkbox.Control />
+                            <Checkbox.Label>{TOOL_LABELS[tool]}</Checkbox.Label>
+                          </Checkbox.Root>
+                        ))}
+                      </VStack>
+                    </Flex>
+                  </Box>
+                  <Box display={activeSection === "mcp" ? "block" : "none"}>
+                    <Flex gap="xs" direction="column" width="100%">
+                      <Text>MCP servers</Text>
+                      <Text fontSize="sm" color="fg.muted">
+                        Configure remote MCP endpoints to surface their tools in the playground.
+                      </Text>
+                      <VStack align="stretch" gap="sm">
+                        {mcpServers.length === 0 ? (
+                          <Flex align="center" borderRadius="md" borderWidth="1px" justify="space-between" p="md">
+                            <Text color="fg.muted">No MCP servers configured.</Text>
+                          </Flex>
+                        ) : (
+                          mcpServers.map((server) => (
+                            <McpServerCard
+                              key={server.id}
+                              server={server}
+                              enabled={activeMcpServerIds.includes(server.id)}
+                              tokenVisible={showServerTokens[server.id] ?? false}
+                              onToggleEnabled={toggleServerActive}
+                              onRemove={removeMcpServer}
+                              onChange={updateMcpServer}
+                              onToggleTokenVisibility={toggleServerTokenVisibility}
+                            />
+                          ))
+                        )}
+                      </VStack>
+                      <Button alignSelf="flex-start" size="sm" variant="outline" onClick={addMcpServer}>
+                        Add MCP server
+                      </Button>
+                    </Flex>
+                  </Box>
+                  <Box display={activeSection === "plugins" ? "block" : "none"}>
+                    <PluginSettings ref={pluginSettingsRef} isOpen={isOpen} />
+                  </Box>
                 </Box>
               </Flex>
             </VStack>
