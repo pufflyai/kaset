@@ -11,6 +11,7 @@ import {
   unregisterVirtualSnapshot,
   type TinyUiOpsRequest,
 } from "@pstdio/tiny-ui";
+import type { TinyUIStatus } from "@pstdio/tiny-ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getMergedPluginDependencies,
@@ -86,6 +87,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const [error, setError] = useState<string | null>(null);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [sourceRoot, setSourceRoot] = useState<string | null>(null);
+  const [tinyStatus, setTinyStatus] = useState<TinyUIStatus>("initializing");
   const refreshToken = usePluginFilesRefresh(pluginId);
   const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
 
@@ -194,6 +196,10 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     };
   }, [pluginId, entryPath, refreshToken]);
 
+  useEffect(() => {
+    setTinyStatus("initializing");
+  }, [snapshotVersion]);
+
   if (status === "loading" || status === "idle") {
     return (
       <Center height="100%" width="100%">
@@ -233,6 +239,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   // we remount the component if the snapshotVersion changes
   // this way if the UI changes we get a fresh iframe and TinyUI instance
   const key = `${pluginId}:${instanceId}:${snapshotVersion}`;
+  const isLoadingOverlayActive = tinyStatus === "initializing" || tinyStatus === "compiling";
 
   return (
     <Box height="100%" width="100%" position="relative">
@@ -245,6 +252,13 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         autoCompile
         serviceWorkerUrl={serviceWorkerUrl}
         runtimeUrl={runtimeUrl}
+        onStatusChange={(nextStatus) => {
+          if (nextStatus === "error") {
+            return;
+          }
+
+          setTinyStatus(nextStatus);
+        }}
         onError={(tinyError) => {
           setError(tinyError.message);
           setStatus("error");
@@ -258,6 +272,15 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         }}
         style={{ width: "100%", height: "100%" }}
       />
+      <Center
+        position="absolute"
+        inset={0}
+        zIndex={1}
+        pointerEvents={isLoadingOverlayActive ? "all" : "none"}
+        display={isLoadingOverlayActive ? "flex" : "none"}
+      >
+        <Spinner />
+      </Center>
     </Box>
   );
 };
