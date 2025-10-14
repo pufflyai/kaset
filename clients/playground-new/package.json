@@ -6,13 +6,15 @@
   "type": "module",
   "scripts": {
     "start": "vite",
-    "build": "tsc -b && vite build",
+    "build": "npm run typegen:tokens && tsc -b && vite build",
+    "typegen:tokens": "chakra typegen ./src/theme/theme.ts",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "format": "prettier --check \"./src/**/*.{js,jsx,ts,tsx,css,scss,html,md}\" --write",
     "visualize-bundle": "npx vite-bundle-visualizer"
   },
   "dependencies": {
+    "@chakra-ui/cli": "^3.27.1",
     "@chakra-ui/react": "^3.24.2",
     "@codesandbox/sandpack-react": "^2.20.0",
     "@emotion/react": "^11.14.0",
