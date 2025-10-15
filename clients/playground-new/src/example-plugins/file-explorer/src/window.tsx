@@ -1,19 +1,17 @@
-import { ChakraProvider, Flex, defaultSystem } from "@chakra-ui/react";
+import { ChakraProvider, Flex, Text, defaultSystem } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { FileExplorer } from "./components/file-explorer";
+import type { WorkspaceHost } from "./hooks/fs";
 
 const ROOT_DIR = "playground";
 const CHANNEL_NAME = "file-explorer:open-folder";
 
 type OpenFileAction = (path: string, options?: { displayName?: string }) => Promise<void> | void;
 
-interface DesktopHost {
+interface FileExplorerHost extends WorkspaceHost {
   actions?: {
     openFile?: OpenFileAction;
-  };
-  fs?: {
-    readFile?(path: string): Promise<Uint8Array>;
   };
   settings?: {
     read?(): Promise<unknown>;
@@ -21,13 +19,13 @@ interface DesktopHost {
 }
 
 interface FileExplorerWindowProps {
-  host?: DesktopHost | null;
+  host: FileExplorerHost | null;
   onOpenFile?: OpenFileAction;
 }
 
 declare global {
   interface Window {
-    __tinyUiHost__?: DesktopHost;
+    __tinyUiHost__?: FileExplorerHost | null;
   }
 }
 
@@ -80,14 +78,24 @@ function FileExplorerWindow(props: FileExplorerWindowProps) {
     };
   }, [host]);
 
+  if (!host) {
+    return (
+      <Flex height="100%" bg="background.dark" color="foreground.inverse" align="center" justify="center" padding="6">
+        <Text fontSize="sm" color="foreground.subtle" textAlign="center">
+          Tiny UI host is not available for the File Explorer plugin.
+        </Text>
+      </Flex>
+    );
+  }
+
   return (
     <Flex height="100%" bg="background.dark" color="foreground.inverse" direction="column">
-      <FileExplorer rootDir={ROOT_DIR} requestedPath={requestedPath} onOpenFile={onOpenFile} />
+      <FileExplorer host={host} rootDir={ROOT_DIR} requestedPath={requestedPath} onOpenFile={onOpenFile} />
     </Flex>
   );
 }
 
-export function mount(container: Element | null, host?: DesktopHost | null) {
+export function mount(container: Element | null, host?: FileExplorerHost | null) {
   if (!container) throw new Error("file-explorer mount target is not available");
 
   const target = container as HTMLElement;

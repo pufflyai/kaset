@@ -6,17 +6,38 @@ export interface FsNode {
   children?: FsNode[];
 }
 
-type OpfsDirectoryHandle = FileSystemDirectoryHandle & {
-  entries?: () => AsyncIterableIterator<[string, FileSystemHandle]>;
-};
+interface TinyFsEntry {
+  path: string;
+  name: string;
+  kind: "file" | "directory";
+  depth: number;
+  size?: number;
+  lastModified?: number;
+}
 
-type OpfsFileHandle = FileSystemFileHandle;
+interface TinyFsDirSnapshot {
+  dir: string;
+  entries: TinyFsEntry[];
+  signature?: string;
+  generatedAt?: number;
+}
 
-type OpfsHandle = OpfsDirectoryHandle | OpfsFileHandle;
+interface WorkspaceApi {
+  dirSnapshot?(dir?: string): Promise<TinyFsDirSnapshot>;
+  readFile?(path: string): Promise<Uint8Array | string | ArrayBuffer | ArrayBufferView>;
+}
 
-type StorageManagerWithDirectory = StorageManager & {
-  getDirectory?: () => Promise<FileSystemDirectoryHandle>;
-};
+export interface WorkspaceHost {
+  workspace?: WorkspaceApi | null;
+  call?(method: string, params?: Record<string, unknown>): Promise<unknown>;
+}
+
+interface WorkspaceAdapter {
+  dirSnapshot(path: string, signal?: AbortSignal): Promise<TinyFsDirSnapshot>;
+  readFile(path: string, signal?: AbortSignal): Promise<string>;
+}
+
+const textDecoder = new TextDecoder();
 
 const normalizePath = (path: string | null | undefined) => {
   if (!path) return "";
@@ -31,12 +52,6 @@ const getRootLabel = (normalizedRoot: string) => {
   if (!normalizedRoot) return "/";
   const parts = normalizedRoot.split("/");
   return parts[parts.length - 1] || "/";
-};
-
-const toAbsolutePath = (rootId: string, relative: string) => {
-  if (!relative) return rootId;
-  if (!rootId || rootId === "/") return relative;
-  return `${rootId}/${relative}`;
 };
 
 const createRootNode = (normalizedRoot: string): FsNode => {
@@ -60,7 +75,8 @@ const ensureDirectory = (
   if (existing) return existing;
 
   const name = relative ? (relative.split("/").pop() ?? context.rootName) : context.rootName;
-  const absoluteId = toAbsolutePath(context.rootId, relative);
+  const absoluteId =
+    context.rootId === "/" ? relative || "/" : relative ? `${context.rootId}/${relative}` : context.rootId;
 
   const dirNode: FsNode = {
     id: absoluteId,
@@ -99,59 +115,83 @@ const sortTree = (node: FsNode) => {
   }
 };
 
-const isAbortError = (error: unknown) => {
-  if (!error) return false;
-  return (error as { name?: string }).name === "AbortError";
+const isArrayBufferView = (value: unknown): value is ArrayBufferView =>
+  Boolean(value) && ArrayBuffer.isView(value as ArrayBufferView);
+
+const decodeBytes = (value: Uint8Array | string | ArrayBuffer | ArrayBufferView) => {
+  if (typeof value === "string") return value;
+  if (value instanceof Uint8Array) return textDecoder.decode(value);
+  if (value instanceof ArrayBuffer) return textDecoder.decode(new Uint8Array(value));
+  if (isArrayBufferView(value)) return textDecoder.decode(new Uint8Array(value.buffer));
+  throw new Error("Tiny UI workspace.readFile returned unsupported data");
 };
 
-const isAborted = (signal?: AbortSignal) => signal?.aborted ?? false;
-
-const getStorageManager = (): StorageManagerWithDirectory | null => {
-  if (typeof navigator === "undefined") return null;
-  const storage = navigator.storage as StorageManagerWithDirectory | undefined;
-  return storage ?? null;
+const createSignature = (entries: TinyFsEntry[]) => {
+  if (!Array.isArray(entries) || entries.length === 0) return "0";
+  return entries
+    .slice()
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+    .map((entry) => {
+      const modified = entry.lastModified == null ? "" : String(entry.lastModified);
+      const size = entry.size == null ? "" : String(entry.size);
+      return `${entry.path}|${entry.kind}|${modified}|${size}`;
+    })
+    .join(";");
 };
 
-const getOpfsRoot = async (signal?: AbortSignal): Promise<OpfsDirectoryHandle | null> => {
-  const storage = getStorageManager();
-  if (!storage || typeof storage.getDirectory !== "function") return null;
-  if (isAborted(signal)) return null;
+const createWorkspaceAdapter = (host: WorkspaceHost | null | undefined): WorkspaceAdapter | null => {
+  if (!host) return null;
 
-  try {
-    const handle = await storage.getDirectory();
-    if (isAborted(signal)) return null;
-    return handle as OpfsDirectoryHandle;
-  } catch (error) {
-    if (!isAbortError(error)) console.warn("Failed to obtain OPFS root", error);
-    return null;
-  }
-};
+  const workspace = host.workspace ?? null;
+  const call = typeof host.call === "function" ? host.call.bind(host) : null;
 
-const getDirectoryHandleForPath = async (
-  root: OpfsDirectoryHandle,
-  segments: string[],
-  signal?: AbortSignal,
-): Promise<OpfsDirectoryHandle | null> => {
-  let current: OpfsDirectoryHandle = root;
-
-  for (const segment of segments) {
-    if (isAborted(signal)) return null;
-    try {
-      const next = await current.getDirectoryHandle(segment);
-      current = next as OpfsDirectoryHandle;
-    } catch {
-      return null;
+  const dirSnapshot = async (dir: string, signal?: AbortSignal) => {
+    if (signal?.aborted) {
+      return { dir, entries: [], signature: "0", generatedAt: Date.now() } satisfies TinyFsDirSnapshot;
     }
-  }
 
-  return current;
+    let result: unknown;
+
+    if (workspace && typeof workspace.dirSnapshot === "function") {
+      result = await workspace.dirSnapshot(dir);
+    } else if (call) {
+      result = await call("workspace.dirSnapshot", { dir });
+    } else {
+      throw new Error("Tiny UI host workspace.dirSnapshot is not available");
+    }
+
+    if (!result || typeof result !== "object") {
+      throw new Error("Tiny UI workspace.dirSnapshot returned invalid data");
+    }
+
+    const snapshot = result as TinyFsDirSnapshot;
+    snapshot.dir = typeof snapshot.dir === "string" ? snapshot.dir : dir;
+    snapshot.entries = Array.isArray(snapshot.entries) ? snapshot.entries : [];
+    snapshot.signature = snapshot.signature ?? createSignature(snapshot.entries);
+    return snapshot;
+  };
+
+  const readFile = async (path: string, signal?: AbortSignal) => {
+    if (signal?.aborted) return "";
+
+    let result: unknown;
+
+    if (workspace && typeof workspace.readFile === "function") {
+      result = await workspace.readFile(path);
+    } else if (call) {
+      result = await call("workspace.readFile", { path });
+    } else {
+      throw new Error("Tiny UI host workspace.readFile is not available");
+    }
+
+    if (result == null) return "";
+    return decodeBytes(result as Uint8Array | string | ArrayBuffer | ArrayBufferView);
+  };
+
+  return { dirSnapshot, readFile };
 };
 
-const buildTreeFromDirectory = async (
-  rootHandle: OpfsDirectoryHandle,
-  normalizedRoot: string,
-  signal?: AbortSignal,
-) => {
+const buildTreeFromSnapshot = (normalizedRoot: string, snapshot: TinyFsDirSnapshot) => {
   const rootNode = createRootNode(normalizedRoot);
   const context = {
     rootId: rootNode.id,
@@ -159,124 +199,105 @@ const buildTreeFromDirectory = async (
     nodeMap: new Map<string, FsNode>([["", rootNode]]),
   };
 
-  const isDirectoryHandle = (handle: OpfsHandle): handle is OpfsDirectoryHandle => handle.kind === "directory";
+  const sortedEntries = snapshot.entries.slice().sort((a, b) => {
+    if (a.depth === b.depth) return a.path.localeCompare(b.path);
+    return a.depth - b.depth;
+  });
 
-  const isFileHandle = (handle: OpfsHandle): handle is OpfsFileHandle => handle.kind === "file";
+  for (const entry of sortedEntries) {
+    const relative = entry.path.replace(/^\/+/, "");
+    const parentRelative = relative.includes("/") ? relative.slice(0, relative.lastIndexOf("/")) : "";
 
-  const traverse = async (handle: OpfsDirectoryHandle, relative: string) => {
-    if (isAborted(signal)) return;
-    const dirNode = ensureDirectory(relative, context);
-    dirNode.children = dirNode.children ?? [];
-
-    try {
-      const iterator = handle.entries?.() as AsyncIterableIterator<[string, OpfsHandle]> | undefined;
-      if (!iterator) return;
-
-      for await (const [name, childHandle] of iterator) {
-        if (isAborted(signal)) return;
-        const childRelative = relative ? `${relative}/${name}` : name;
-
-        if (isDirectoryHandle(childHandle)) {
-          ensureDirectory(childRelative, context);
-          await traverse(childHandle, childRelative);
-        } else if (isFileHandle(childHandle)) {
-          const absoluteId = toAbsolutePath(context.rootId, childRelative);
-          if (!dirNode.children.some((child) => child.id === absoluteId)) {
-            dirNode.children.push({
-              id: absoluteId,
-              name,
-            });
-          }
-        }
-      }
-    } catch (error) {
-      if (!isAbortError(error)) console.warn("Failed to enumerate OPFS directory", error);
+    if (entry.kind === "directory") {
+      ensureDirectory(relative, context);
+      continue;
     }
-  };
 
-  await traverse(rootHandle, "");
+    const parentNode = ensureDirectory(parentRelative, context);
+    parentNode.children = parentNode.children ?? [];
+
+    const absoluteId =
+      context.rootId === "/"
+        ? relative || "/"
+        : parentRelative
+          ? `${context.rootId}/${relative}`
+          : `${context.rootId}/${entry.name}`;
+
+    if (!parentNode.children.some((child) => child.id === absoluteId)) {
+      parentNode.children.push({
+        id: absoluteId,
+        name: entry.name,
+      });
+    }
+  }
+
   sortTree(rootNode);
   return rootNode;
 };
 
-const resolveRootHandle = async (normalizedRoot: string, signal?: AbortSignal) => {
-  const rootHandle = await getOpfsRoot(signal);
-  if (!rootHandle) return null;
-
-  const segments = normalizedRoot ? normalizedRoot.split("/").filter((segment) => segment.length > 0) : [];
-  if (segments.length === 0) return rootHandle;
-
-  return await getDirectoryHandleForPath(rootHandle, segments, signal);
-};
-
-const readFileFromOpfs = async (path: string, signal?: AbortSignal) => {
-  const rootHandle = await getOpfsRoot(signal);
-  if (!rootHandle) return "";
-
-  const segments = path.split("/").filter((segment) => segment.length > 0);
-  if (segments.length === 0) return "";
-
-  const fileName = segments[segments.length - 1] ?? "";
-  const dirSegments = segments.slice(0, -1);
-  const directoryHandle = await getDirectoryHandleForPath(rootHandle, dirSegments, signal);
-  if (!directoryHandle) return "";
-
-  try {
-    const fileHandle = await directoryHandle.getFileHandle(fileName);
-    if (isAborted(signal)) return "";
-
-    const file = await fileHandle.getFile();
-    if (isAborted(signal)) return "";
-
-    return await file.text();
-  } catch (error) {
-    if (!isAbortError(error)) console.warn("Failed to read OPFS file", error);
-    return "";
-  }
-};
-
-export function useFsTree(rootDir: string) {
+export function useFsTree(host: WorkspaceHost | null | undefined, rootDir: string) {
   const normalizedRoot = useMemo(() => normalizePath(rootDir), [rootDir]);
   const [tree, setTree] = useState<FsNode>(() => createRootNode(normalizedRoot));
 
   useEffect(() => {
+    const adapter = createWorkspaceAdapter(host);
+    if (!adapter) {
+      setTree(createRootNode(normalizedRoot));
+      return () => undefined;
+    }
+
     let active = true;
     const controller = new AbortController();
+    let lastSignature: string | null = null;
 
-    setTree(createRootNode(normalizedRoot));
+    const refresh = async (emitInitial: boolean) => {
+      if (!active) return;
+      try {
+        const snapshot = await adapter.dirSnapshot(normalizedRoot, controller.signal);
+        if (!active || controller.signal.aborted) return;
 
-    const loadTree = async () => {
-      const handle = await resolveRootHandle(normalizedRoot, controller.signal);
-      if (!handle) {
-        if (active) setTree(createRootNode(normalizedRoot));
-        return;
-      }
+        const signature = snapshot.signature ?? createSignature(snapshot.entries);
+        if (!emitInitial && signature === lastSignature) return;
 
-      const nextTree = await buildTreeFromDirectory(handle, normalizedRoot, controller.signal);
-      if (active && !isAborted(controller.signal)) {
-        setTree(nextTree);
+        lastSignature = signature;
+        setTree(buildTreeFromSnapshot(normalizedRoot, snapshot));
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.warn("[file-explorer] Failed to refresh workspace tree", error);
+          if (emitInitial) {
+            setTree(createRootNode(normalizedRoot));
+          }
+        }
       }
     };
 
-    loadTree().catch((error) => {
-      if (!isAbortError(error)) console.warn("Failed to load OPFS tree for file explorer plugin", error);
-      if (active) setTree(createRootNode(normalizedRoot));
-    });
+    void refresh(true);
+
+    const interval = setInterval(() => {
+      void refresh(false);
+    }, 2000);
 
     return () => {
       active = false;
       controller.abort();
+      clearInterval(interval);
     };
-  }, [normalizedRoot]);
+  }, [host, normalizedRoot]);
 
   return tree;
 }
 
-export function useFileContent(filePath: string | null | undefined) {
+export function useFileContent(host: WorkspaceHost | null | undefined, filePath: string | null | undefined) {
   const normalizedPath = useMemo(() => normalizePath(filePath), [filePath]);
   const [content, setContent] = useState("");
 
   useEffect(() => {
+    const adapter = createWorkspaceAdapter(host);
+    if (!adapter) {
+      setContent("");
+      return () => undefined;
+    }
+
     let active = true;
     const controller = new AbortController();
 
@@ -288,25 +309,33 @@ export function useFileContent(filePath: string | null | undefined) {
       };
     }
 
-    setContent("");
-
-    const loadContent = async () => {
-      const text = await readFileFromOpfs(normalizedPath, controller.signal);
-      if (active && !isAborted(controller.signal)) {
-        setContent(text);
+    const load = async () => {
+      try {
+        const text = await adapter.readFile(normalizedPath, controller.signal);
+        if (active && !controller.signal.aborted) {
+          setContent(text);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.warn("[file-explorer] Failed to read workspace file", error);
+          if (active) setContent("");
+        }
       }
     };
 
-    loadContent().catch((error) => {
-      if (!isAbortError(error)) console.warn("Failed to load OPFS file content", error);
-      if (active) setContent("");
+    setContent("");
+    load().catch((error) => {
+      if (!controller.signal.aborted) {
+        console.warn("[file-explorer] Failed to load workspace file", error);
+        if (active) setContent("");
+      }
     });
 
     return () => {
       active = false;
       controller.abort();
     };
-  }, [normalizedPath]);
+  }, [host, normalizedPath]);
 
   return { content };
 }

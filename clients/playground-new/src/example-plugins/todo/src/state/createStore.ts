@@ -1,11 +1,14 @@
-import { deleteFile, ensureDirExists, ls, readFile, writeFile } from "../opfs";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import type { TodoItem, TodoStore } from "./types";
+import type { TodoHostHelpers, TodoFileEntry } from "../opfs";
 
-export const ROOT = "playground";
-export const TODO_LISTS_DIR = `${ROOT}/plugin_data/todo`;
+export const TODO_LISTS_DIR = "plugin_data/todo";
+
+export interface TodoStoreDependencies {
+  fs: Pick<TodoHostHelpers, "ensureDir" | "listFiles" | "readFile" | "writeFile" | "deleteFile">;
+}
 
 function parseMarkdownTodos(md: string): TodoItem[] {
   const lines = md.split("\n");
@@ -49,11 +52,19 @@ function replaceTodoTextAtLine(md: string, lineIndex: number, nextText: string):
   return lines.join("\n");
 }
 
-export const createTodoStore = () =>
+const extractFileNames = (entries: TodoFileEntry[]) =>
+  entries
+    .slice()
+    .filter((entry) => entry.kind === "file")
+    .map((entry) => entry.name)
+    .sort((a, b) => a.localeCompare(b));
+
+export const createTodoStore = (dependencies: TodoStoreDependencies) =>
   create<TodoStore>()(
     devtools(
       immer((set, get) => {
         const setState = (partial: Partial<TodoStore>, action: string) => set(partial, false, action);
+        const { fs } = dependencies;
 
         return {
           error: null,
@@ -76,10 +87,10 @@ export const createTodoStore = () =>
 
             try {
               setState({ error: null }, "todo/refreshLists:resetError");
-              await ensureDirExists(TODO_LISTS_DIR, true);
+              await fs.ensureDir(TODO_LISTS_DIR);
 
-              const entries = await ls(TODO_LISTS_DIR, { maxDepth: 1, kinds: ["file"], include: ["*.md"] });
-              const names = entries.map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+              const entries = await fs.listFiles(TODO_LISTS_DIR);
+              const names = extractFileNames(entries).filter((name) => name.toLowerCase().endsWith(".md"));
               const nextSelected = names.includes(previousSelected ?? "") ? previousSelected : (names[0] ?? null);
 
               setState(
@@ -102,7 +113,7 @@ export const createTodoStore = () =>
             const path = `${TODO_LISTS_DIR}/${fileName}`;
 
             try {
-              const md = await readFile(path);
+              const md = await fs.readFile(path);
 
               setState(
                 {
@@ -133,7 +144,7 @@ export const createTodoStore = () =>
             const path = `${TODO_LISTS_DIR}/${name}`;
 
             try {
-              await writeFile(path, "- [ ] New item\n");
+              await fs.writeFile(path, "- [ ] New item\n");
               setState({ newListName: "" }, "todo/addList:resetNewListName");
 
               await get().refreshLists();
@@ -146,7 +157,7 @@ export const createTodoStore = () =>
             const path = `${TODO_LISTS_DIR}/${name}`;
 
             try {
-              await deleteFile(path);
+              await fs.deleteFile(path);
 
               if (get().selectedList === name) {
                 setState({ selectedList: null, content: null, items: [] }, "todo/removeList:clearSelected");
@@ -179,7 +190,7 @@ export const createTodoStore = () =>
             setState({ content: next, items: parseMarkdownTodos(next) }, "todo/setChecked:update");
 
             try {
-              await writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
+              await fs.writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
             } catch (error) {
               setState(
                 {
@@ -205,7 +216,7 @@ export const createTodoStore = () =>
             setState({ content: next, items: parseMarkdownTodos(next), newItemText: "" }, "todo/addItem:apply");
 
             try {
-              await writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
+              await fs.writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
             } catch (error) {
               setState(
                 {
@@ -231,7 +242,7 @@ export const createTodoStore = () =>
             setState({ content: next, items: parseMarkdownTodos(next) }, "todo/removeItem:apply");
 
             try {
-              await writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
+              await fs.writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
             } catch (error) {
               setState(
                 {
@@ -258,7 +269,7 @@ export const createTodoStore = () =>
             );
 
             try {
-              await writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
+              await fs.writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
             } catch (error) {
               setState(
                 {
@@ -272,7 +283,7 @@ export const createTodoStore = () =>
           },
           initialize: async () => {
             try {
-              await ensureDirExists(TODO_LISTS_DIR, true);
+              await fs.ensureDir(TODO_LISTS_DIR);
 
               await get().refreshLists();
             } catch (error) {

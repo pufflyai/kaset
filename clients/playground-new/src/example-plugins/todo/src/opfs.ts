@@ -1,354 +1,247 @@
-// TEMPORARY: OPFS WILL BE ACCESSIBLE THROUGH THE HOST API
+const textDecoder = new TextDecoder();
+const textEncoder = new TextEncoder();
 
-type OpfsDirectoryHandle = FileSystemDirectoryHandle & {
-  entries?: () => AsyncIterableIterator<[string, FileSystemHandle]>;
-};
-
-type OpfsFileHandle = FileSystemFileHandle;
-
-type StorageManagerWithDirectory = StorageManager & {
-  getDirectory?: () => Promise<FileSystemDirectoryHandle>;
-};
-
-interface LsEntry {
-  name: string;
-  kind: FileSystemHandle["kind"];
+export interface TinyFsEntry {
   path: string;
+  name: string;
+  kind: "file" | "directory";
+  depth: number;
+  size?: number;
+  lastModified?: number;
 }
 
-interface LsOptions {
-  include?: string[];
-  kinds?: Array<FileSystemHandle["kind"]>;
-  maxDepth?: number;
+export interface TinyFsDirSnapshot {
+  dir: string;
+  entries: TinyFsEntry[];
+  signature?: string;
+  generatedAt?: number;
 }
 
-type DirectoryChangeType = "appeared" | "disappeared" | "modified";
-
-export interface DirectoryChange {
-  type: DirectoryChangeType;
-  path: string[];
+interface TinyHostFs {
+  readFile(path: string): Promise<Uint8Array | string | ArrayBuffer | ArrayBufferView>;
+  writeFile(path: string, data: Uint8Array | string): Promise<unknown>;
+  deleteFile?(path: string): Promise<unknown>;
+  mkdirp?(path: string): Promise<unknown>;
+  dirSnapshot?(dir?: string): Promise<TinyFsDirSnapshot>;
+  ls?(dir?: string): Promise<TinyFsEntry[]>;
 }
 
-interface WatchDirectoryOptions {
-  emitInitial?: boolean;
-  intervalMs?: number;
-  recursive?: boolean;
-  signal?: AbortSignal;
+interface TinyHost {
+  fs?: TinyHostFs | null;
+  call?(method: string, params?: Record<string, unknown>): Promise<unknown>;
 }
 
-const normalizePath = (path: string | null | undefined) => {
-  if (!path) return "";
-  return path
-    .split("/")
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0)
-    .join("/");
-};
+export interface TodoFileEntry {
+  name: string;
+  path: string;
+  kind: "file" | "directory";
+  lastModified?: number;
+  size?: number;
+}
 
-const splitPath = (path: string) => {
-  const normalized = normalizePath(path);
-  return normalized ? normalized.split("/") : [];
-};
+export interface TodoDirectorySnapshot {
+  entries: TodoFileEntry[];
+  signature: string;
+}
 
-const matchesInclude = (name: string, include: string[] | undefined) => {
-  if (!include || include.length === 0) return true;
+export interface TodoHostHelpers {
+  ensureDir(path: string): Promise<void>;
+  listFiles(path: string): Promise<TodoFileEntry[]>;
+  readFile(path: string): Promise<string>;
+  writeFile(path: string, contents: string): Promise<void>;
+  deleteFile(path: string): Promise<void>;
+  watchDirectory(
+    path: string,
+    callback: (snapshot: TodoDirectorySnapshot) => void,
+    options?: { intervalMs?: number; emitInitial?: boolean; signal?: AbortSignal },
+  ): Promise<() => void>;
+}
 
-  for (const pattern of include) {
-    if (pattern === "*") return true;
+const isArrayBufferView = (value: unknown): value is ArrayBufferView =>
+  Boolean(value) && ArrayBuffer.isView(value as ArrayBufferView);
 
-    if (pattern.startsWith("*.")) {
-      const suffix = pattern.slice(1).toLowerCase();
-      if (name.toLowerCase().endsWith(suffix)) return true;
-    } else if (pattern === name) {
-      return true;
-    }
+function toUint8Array(value: Uint8Array | string) {
+  if (typeof value === "string") {
+    return textEncoder.encode(value);
+  }
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+  return new Uint8Array(value);
+}
+
+function decodeBytes(value: Uint8Array | string | ArrayBuffer | ArrayBufferView) {
+  if (typeof value === "string") return value;
+  if (value instanceof Uint8Array) return textDecoder.decode(value);
+  if (value instanceof ArrayBuffer) return textDecoder.decode(new Uint8Array(value));
+  if (isArrayBufferView(value)) return textDecoder.decode(new Uint8Array(value.buffer));
+  throw new Error("Tiny UI host returned unsupported data payload");
+}
+
+function ensureFs(host: TinyHost | null | undefined): TinyHostFs {
+  if (!host?.fs) {
+    throw new Error("Tiny UI host fs adapter is unavailable");
+  }
+  return host.fs;
+}
+
+function ensureDirSnapshot(host: TinyHost, fs: TinyHostFs): (dir: string) => Promise<TinyFsDirSnapshot> {
+  if (typeof fs.dirSnapshot === "function") {
+    return (dir: string) => fs.dirSnapshot?.(dir ?? "") ?? Promise.resolve({ dir: "", entries: [] });
   }
 
-  return false;
-};
-
-const getStorageManager = (): StorageManagerWithDirectory | null => {
-  if (typeof navigator === "undefined") return null;
-  return (navigator.storage as StorageManagerWithDirectory | undefined) ?? null;
-};
-
-let rootHandlePromise: Promise<OpfsDirectoryHandle> | null = null;
-
-const getOpfsRoot = async (): Promise<OpfsDirectoryHandle> => {
-  if (rootHandlePromise) return rootHandlePromise;
-
-  const storage = getStorageManager();
-  if (!storage || typeof storage.getDirectory !== "function") {
-    throw new Error("OPFS is not available in this environment.");
-  }
-
-  rootHandlePromise = storage
-    .getDirectory()
-    .then((handle) => handle as OpfsDirectoryHandle)
-    .catch((error) => {
-      rootHandlePromise = null;
-      throw error;
-    });
-
-  return rootHandlePromise;
-};
-
-const getDirectoryHandleForPath = async (
-  path: string,
-  options: { create?: boolean; allowMissing?: boolean } = {},
-): Promise<OpfsDirectoryHandle | null> => {
-  const { create = false, allowMissing = false } = options;
-  const segments = splitPath(path);
-  let current = await getOpfsRoot();
-
-  for (const segment of segments) {
-    try {
-      current = (await current.getDirectoryHandle(
-        segment,
-        create ? { create: true } : undefined,
-      )) as OpfsDirectoryHandle;
-    } catch (error: any) {
-      if (create) {
-        current = (await current.getDirectoryHandle(segment, { create: true })) as OpfsDirectoryHandle;
-      } else if (allowMissing && error?.name === "NotFoundError") {
-        return null;
-      } else {
-        throw error;
+  if (typeof host.call === "function") {
+    return async (dir: string) => {
+      const result = await host.call!("fs.dirSnapshot", { dir });
+      if (!result || typeof result !== "object") {
+        throw new Error("Tiny UI host returned an invalid dirSnapshot response");
       }
-    }
+      const snapshot = result as TinyFsDirSnapshot;
+      snapshot.entries = Array.isArray(snapshot.entries) ? snapshot.entries : [];
+      snapshot.signature = snapshot.signature ?? createSignature(snapshot.entries);
+      return snapshot;
+    };
   }
 
-  return current;
-};
-
-export const ensureDirExists = async (path: string, recursive: boolean) => {
-  const segments = splitPath(path);
-  let current = await getOpfsRoot();
-
-  for (let index = 0; index < segments.length; index += 1) {
-    const segment = segments[index];
-    const shouldCreate = recursive || index === segments.length - 1;
-
-    current = (await current.getDirectoryHandle(
-      segment,
-      shouldCreate ? { create: true } : undefined,
-    )) as OpfsDirectoryHandle;
+  if (typeof fs.ls === "function") {
+    return async (dir: string) => {
+      const entries = await fs.ls?.(dir ?? "");
+      const normalized = Array.isArray(entries) ? entries : [];
+      return { dir, entries: normalized, signature: createSignature(normalized), generatedAt: Date.now() };
+    };
   }
 
-  return current;
-};
+  throw new Error("Tiny UI host does not expose fs.dirSnapshot or a compatible alternative");
+}
 
-export const ls = async (path: string, options: LsOptions = {}): Promise<LsEntry[]> => {
-  const { include, kinds, maxDepth = 1 } = options;
-  const normalized = normalizePath(path);
-  const directory = await getDirectoryHandleForPath(normalized, { allowMissing: true });
-  if (!directory || maxDepth <= 0) return [];
+function createSignature(entries: TinyFsEntry[]) {
+  if (!Array.isArray(entries) || entries.length === 0) return "0";
+  return entries
+    .slice()
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+    .map((entry) => {
+      const modified = entry.lastModified == null ? "" : String(entry.lastModified);
+      const size = entry.size == null ? "" : String(entry.size);
+      return `${entry.path}|${entry.kind}|${modified}|${size}`;
+    })
+    .join(";");
+}
 
-  const results: LsEntry[] = [];
+function toTodoEntries(entries: TinyFsEntry[]): TodoFileEntry[] {
+  if (!Array.isArray(entries)) return [];
+  return entries
+    .filter((entry) => entry.kind === "file" && entry.depth === 1)
+    .map((entry) => ({
+      name: entry.name,
+      path: entry.path,
+      kind: entry.kind,
+      lastModified: entry.lastModified,
+      size: entry.size,
+    }));
+}
 
-  const walk = async (handle: OpfsDirectoryHandle, depth: number, relative: string) => {
-    if (!handle.entries) return;
+export function createTodoHostHelpers(host: TinyHost): TodoHostHelpers {
+  const fs = ensureFs(host);
+  const dirSnapshot = ensureDirSnapshot(host, fs);
 
-    for await (const [name, childHandle] of handle.entries()) {
-      const nextDepth = depth + 1;
-      const isDirectory = childHandle.kind === "directory";
-      const shouldInclude =
-        nextDepth <= maxDepth &&
-        (!kinds || kinds.includes(childHandle.kind)) &&
-        (isDirectory || matchesInclude(name, include));
-
-      if (shouldInclude) {
-        const relativePath = relative ? `${relative}/${name}` : name;
-        const absolutePath = normalized ? `${normalized}/${relativePath}` : relativePath;
-        results.push({
-          name,
-          kind: childHandle.kind,
-          path: absolutePath,
-        });
-      }
-
-      if (isDirectory && nextDepth < maxDepth) {
-        await walk(childHandle as OpfsDirectoryHandle, nextDepth, relative ? `${relative}/${name}` : name);
-      }
+  const ensureDir = async (path: string) => {
+    if (typeof fs.mkdirp !== "function") {
+      throw new Error("Tiny UI host fs.mkdirp is not available");
     }
+    await fs.mkdirp(path);
   };
 
-  await walk(directory, 0, "");
-  return results;
-};
-
-const resolveFileHandle = async (
-  path: string,
-  options: { create?: boolean } = {},
-): Promise<{ directory: OpfsDirectoryHandle; handle: OpfsFileHandle }> => {
-  const normalized = normalizePath(path);
-  if (!normalized) {
-    throw new Error("File path must not be empty.");
-  }
-
-  const segments = normalized.split("/");
-  const fileName = segments.pop();
-  if (!fileName) {
-    throw new Error("File name is missing in the provided path.");
-  }
-
-  const directoryPath = segments.join("/");
-  const directoryOptions = options.create ? { create: true } : {};
-  const directory =
-    directoryPath.length > 0
-      ? ((await getDirectoryHandleForPath(directoryPath, { ...directoryOptions })) as OpfsDirectoryHandle)
-      : await getOpfsRoot();
-
-  const handle = (await directory.getFileHandle(
-    fileName,
-    options.create ? { create: true } : undefined,
-  )) as OpfsFileHandle;
-
-  return { directory, handle };
-};
-
-export const readFile = async (path: string) => {
-  const { handle } = await resolveFileHandle(path);
-  const file = await handle.getFile();
-  return file.text();
-};
-
-export const writeFile = async (path: string, contents: string) => {
-  const { handle } = await resolveFileHandle(path, { create: true });
-  const writable = await handle.createWritable();
-
-  try {
-    await writable.write(contents);
-  } finally {
-    await writable.close();
-  }
-};
-
-export const deleteFile = async (path: string) => {
-  const normalized = normalizePath(path);
-  if (!normalized) return;
-
-  const segments = normalized.split("/");
-  const fileName = segments.pop();
-  if (!fileName) return;
-
-  const directoryPath = segments.join("/");
-  const directory =
-    directoryPath.length > 0
-      ? await getDirectoryHandleForPath(directoryPath, { allowMissing: true })
-      : await getOpfsRoot();
-  if (!directory) return;
-
-  await directory.removeEntry(fileName);
-};
-
-const collectSnapshot = async (path: string, recursive: boolean) => {
-  const directory = await getDirectoryHandleForPath(path, { allowMissing: true });
-  if (!directory) return new Map<string, number>();
-
-  const snapshot = new Map<string, number>();
-
-  const walk = async (handle: OpfsDirectoryHandle, relative: string) => {
-    if (!handle.entries) return;
-
-    for await (const [name, childHandle] of handle.entries()) {
-      const childRelative = relative ? `${relative}/${name}` : name;
-
-      if (childHandle.kind === "file") {
-        const file = await (childHandle as OpfsFileHandle).getFile();
-        snapshot.set(childRelative, file.lastModified);
-      } else if (recursive) {
-        await walk(childHandle as OpfsDirectoryHandle, childRelative);
-      }
-    }
+  const listFiles = async (path: string) => {
+    const snapshot = await dirSnapshot(path);
+    const entries = toTodoEntries(snapshot.entries);
+    return entries.sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  await walk(directory, "");
-  return snapshot;
-};
+  const readFile = async (path: string) => {
+    const contents = await fs.readFile(path);
+    return decodeBytes(contents);
+  };
 
-export const watchDirectory = async (
-  path: string,
-  callback: (changes: DirectoryChange[]) => void,
-  options: WatchDirectoryOptions = {},
-): Promise<() => void> => {
-  const intervalMs = options.intervalMs ?? 1500;
-  const recursive = options.recursive ?? false;
-  const normalized = normalizePath(path);
-  const signal = options.signal;
+  const writeFile = async (path: string, contents: string) => {
+    await fs.writeFile(path, toUint8Array(contents));
+  };
 
-  if (signal?.aborted) {
-    return () => undefined;
-  }
+  const deleteFile = async (path: string) => {
+    if (typeof fs.deleteFile !== "function") {
+      throw new Error("Tiny UI host fs.deleteFile is not available");
+    }
+    await fs.deleteFile(path);
+  };
 
-  let stopped = false;
-  let pending = false;
-  let current = await collectSnapshot(normalized, recursive);
+  const watchDirectory = async (
+    path: string,
+    callback: (snapshot: TodoDirectorySnapshot) => void,
+    options: { intervalMs?: number; emitInitial?: boolean; signal?: AbortSignal } = {},
+  ) => {
+    const intervalMs = Math.max(250, options.intervalMs ?? 1500);
+    const signal = options.signal;
 
-  if (options.emitInitial) {
-    const initialChanges: DirectoryChange[] = [];
-    for (const name of current.keys()) {
-      initialChanges.push({ type: "appeared", path: [name] });
+    if (signal?.aborted) {
+      return () => undefined;
     }
 
-    if (initialChanges.length > 0) {
-      callback(initialChanges);
-    }
-  }
+    let stopped = false;
+    let initialized = false;
+    let lastSignature: string | null = null;
 
-  const tick = async () => {
-    if (stopped || pending) return;
-    pending = true;
+    const emitSnapshot = async (emitInitial: boolean) => {
+      if (stopped) return;
+      try {
+        const snapshot = await dirSnapshot(path);
+        if (stopped) return;
+        const entries = toTodoEntries(snapshot.entries);
+        const signature = snapshot.signature ?? createSignature(snapshot.entries);
 
-    try {
-      const next = await collectSnapshot(normalized, recursive);
-      const seen = new Set<string>();
-      const changes: DirectoryChange[] = [];
-
-      for (const [name, lastModified] of next) {
-        seen.add(name);
-
-        if (!current.has(name)) {
-          changes.push({ type: "appeared", path: name.split("/") });
-        } else if (current.get(name) !== lastModified) {
-          changes.push({ type: "modified", path: name.split("/") });
+        if (!initialized) {
+          initialized = true;
+          lastSignature = signature;
+          if (emitInitial) {
+            callback({ entries, signature });
+          }
+          return;
         }
-      }
 
-      for (const name of current.keys()) {
-        if (!seen.has(name)) {
-          changes.push({ type: "disappeared", path: name.split("/") });
+        if (signature !== lastSignature) {
+          lastSignature = signature;
+          callback({ entries, signature });
         }
+      } catch (error) {
+        console.warn("[todo] Failed to refresh directory snapshot", error);
       }
+    };
 
-      if (!stopped && changes.length > 0) {
-        callback(changes);
-      }
+    await emitSnapshot(options.emitInitial === true);
 
-      current = next;
-    } catch (error) {
-      console.warn("OPFS directory watch failed", error);
-    } finally {
-      pending = false;
+    const timer = setInterval(() => {
+      void emitSnapshot(false);
+    }, intervalMs);
+
+    const cleanup = () => {
+      if (stopped) return;
+      stopped = true;
+      clearInterval(timer);
+    };
+
+    if (signal) {
+      signal.addEventListener("abort", cleanup, { once: true });
     }
+
+    return cleanup;
   };
 
-  const intervalId = setInterval(
-    () => {
-      void tick();
-    },
-    Math.max(250, intervalMs),
-  );
-
-  const cleanup = () => {
-    if (stopped) return;
-    stopped = true;
-    clearInterval(intervalId);
+  return {
+    ensureDir,
+    listFiles,
+    readFile,
+    writeFile,
+    deleteFile,
+    watchDirectory,
   };
+}
 
-  if (signal) {
-    signal.addEventListener("abort", cleanup, { once: true });
-  }
-
-  return cleanup;
-};
+export type { TinyHost };

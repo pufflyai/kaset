@@ -1,9 +1,10 @@
 import { Box, Breadcrumb, Flex, Text } from "@chakra-ui/react";
 import { FileText, FolderClosed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useFsTree, type FsNode } from "../hooks/fs";
+import { useFsTree, type FsNode, type WorkspaceHost } from "../hooks/fs";
 
 interface FileExplorerProps {
+  host: WorkspaceHost | null;
   rootDir: string;
   requestedPath?: string | null;
   onOpenFile?: (path: string, options?: { displayName?: string }) => Promise<void> | void;
@@ -40,8 +41,8 @@ const createBreadcrumbs = (currentId: string, maps: ReturnType<typeof buildMaps>
 };
 
 export function FileExplorer(props: FileExplorerProps) {
-  const { rootDir, onOpenFile, requestedPath } = props;
-  const fsTree = useFsTree(rootDir);
+  const { host, rootDir, onOpenFile, requestedPath } = props;
+  const fsTree = useFsTree(host, rootDir);
 
   const maps = useMemo(() => buildMaps(fsTree), [fsTree]);
   const [currentPath, setCurrentPath] = useState<string>(fsTree.id);
