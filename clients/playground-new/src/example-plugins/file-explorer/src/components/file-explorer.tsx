@@ -72,10 +72,14 @@ export function FileExplorer(props: FileExplorerProps) {
     };
 
     const target = resolveRequestedNode();
-    if (target && target.id !== currentPath) {
-      setCurrentPath(target.id);
-    }
-  }, [requestedPath, maps, currentPath, fsTree, fsTree.id]);
+    if (!target) return;
+
+    // Only honor requested paths when they differ from the current selection so manual navigation persists.
+    setCurrentPath((previous) => {
+      if (target.id === previous) return previous;
+      return target.id;
+    });
+  }, [requestedPath, maps, fsTree]);
 
   const currentNode = maps.nodeMap.get(currentPath) ?? fsTree;
   const breadcrumbs = useMemo(() => createBreadcrumbs(currentNode.id, maps), [currentNode.id, maps]);

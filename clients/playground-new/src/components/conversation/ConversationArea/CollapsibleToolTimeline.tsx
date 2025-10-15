@@ -17,7 +17,6 @@ export function CollapsibleToolTimeline({
   const [open, setOpen] = useState<boolean>(false);
   const toggle = () => setOpen((v) => !v);
 
-  // Compute timeline data only when opened to avoid heavy work while collapsed
   const data: TimelineDoc | null = useMemo(() => {
     if (!open) return null;
     return invocationsToTimeline(invocations, { labeledBlocks: false });
@@ -33,7 +32,7 @@ export function CollapsibleToolTimeline({
         _hover={{ color: "foreground.primary" }}
         color="foreground.secondary"
       >
-        <HStack className="group" gap="sm" align="center" cursor="pointer">
+        <HStack className="group" gap="xs" align="center" cursor="pointer">
           <Text textStyle="label/SM/regular">{completed ? "Finished working" : "Working..."}</Text>
           <Box
             transition="transform 200ms ease, color 200ms ease"
