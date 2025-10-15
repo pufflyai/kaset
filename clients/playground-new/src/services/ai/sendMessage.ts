@@ -5,6 +5,7 @@ import { buildInitialConversation, createKasAgent, toConversation } from "@pstdi
 import { safeAutoCommit } from "@pstdio/opfs-utils";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import { requestApproval } from "./approval";
+import { checkDesktopStateTool } from "../desktop/checkDesktopStateTool";
 
 const directory = ROOT;
 
@@ -15,6 +16,8 @@ export async function* sendMessage(conversationId: string, conversation: UIConve
 
   const { modelId, approvalGatedTools, apiKey, baseUrl } = getWorkspaceSettings();
 
+  const toolsForAgent = [checkDesktopStateTool, ...extraTools];
+
   const agent = createKasAgent({
     model: modelId,
     workspaceDir: directory,
@@ -22,7 +25,7 @@ export async function* sendMessage(conversationId: string, conversation: UIConve
     requestApproval,
     apiKey: apiKey ?? "PLACEHOLDER_KEY",
     ...(baseUrl ? { baseURL: baseUrl } : {}),
-    extraTools: extraTools.length > 0 ? extraTools : undefined,
+    extraTools: toolsForAgent,
   });
 
   for await (const ui of toConversation(agent(initialForAgent, { sessionId }), { boot: uiBoot, devNote })) {
