@@ -264,8 +264,6 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const key = `${pluginId}:${instanceId}:${snapshotVersion}`;
   const isLoadingOverlayActive = tinyStatus === "compiling" || tinyStatus === "initializing";
 
-  console.log(isLoadingOverlayActive);
-
   return (
     <Box height="100%" width="100%" position="relative">
       <TinyUI
