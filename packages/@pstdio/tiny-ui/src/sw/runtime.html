@@ -126,11 +126,29 @@
                 ls(dir = "") {
                   return invoke("fs.ls", { dir });
                 },
+                dirSnapshot(dir = "") {
+                  return remote.ops({ method: "fs.dirSnapshot", params: { dir } });
+                },
                 deleteFile(path) {
                   return invoke("fs.deleteFile", { path });
                 },
                 downloadFile(path, filename) {
                   return invoke("fs.downloadFile", { path, filename });
+                },
+                exists(path) {
+                  return remote.ops({ method: "fs.exists", params: { path } });
+                },
+                mkdirp(path) {
+                  return remote.ops({ method: "fs.mkdirp", params: { path } });
+                },
+                moveFile(from, to) {
+                  return remote.ops({ method: "fs.moveFile", params: { from, to } });
+                },
+                readJSON(path) {
+                  return remote.ops({ method: "fs.readJSON", params: { path } });
+                },
+                writeJSON(path, value, pretty = false) {
+                  return remote.ops({ method: "fs.writeJSON", params: { path, value, pretty } });
                 },
               },
               workspace: {
