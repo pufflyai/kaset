@@ -25,6 +25,7 @@ export async function* sendMessage(conversationId: string, conversation: UIConve
     requestApproval,
     apiKey: apiKey ?? "PLACEHOLDER_KEY",
     ...(baseUrl ? { baseURL: baseUrl } : {}),
+    dangerouslyAllowBrowser: true,
     extraTools: toolsForAgent,
   });
 
