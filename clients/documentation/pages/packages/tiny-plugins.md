@@ -65,7 +65,7 @@ stopSync();
 - `listCommands()` – retrieve all registered commands with their `pluginId`.
 - `listPluginCommands(pluginId)` – narrow the command list to a single plugin.
 - `runPluginCommand(pluginId, commandId)` – get a callable that validates params and executes the command under timeout control.
-- `readPluginSettings(pluginId)` / `writePluginSettings(pluginId, value)` – persist JSON settings to `.settings.json`, validating against the manifest schema when available.
+- `readPluginSettings(pluginId)` / `writePluginSettings(pluginId, value)` – persist JSON settings to `/plugin_data/<id>/.settings.json`, validating against the manifest schema when available.
 - `readPluginManifest(pluginId)` – access the last loaded manifest copy.
 - `subscribePluginManifest(pluginId, cb)` / `subscribeManifests(cb)` – track manifest updates.
 - `subscribePluginFiles(pluginId, cb)` – receive OPFS change events for a plugin directory.
@@ -80,6 +80,9 @@ All subscriptions return an unsubscribe function for teardown.
   <plugin-id>/
     manifest.json
     index.js
+
+/plugin_data/
+  <plugin-id>/
     .settings.json          # auto-created by the host
 ```
 
@@ -144,7 +147,7 @@ Command handlers receive a lightweight `PluginContext`:
 - `ctx.log.{info|warn|error}` – namespaced logging helpers.
 - `ctx.commands.notify(level, message)` – send structured notifications back to the host `notify` callback.
 - `ctx.fs` – scoped file-system helpers backed by `@pstdio/opfs-utils` (`readFile`, `writeFile`, `deleteFile`, `moveFile`, `exists`, `mkdirp`, `readJSON`, `writeJSON`).
-- `ctx.settings.{read, write}` – JSON persistence to `.settings.json` with schema validation when declared.
+- `ctx.settings.{read, write}` – JSON persistence to `/plugin_data/<id>/.settings.json` with schema validation when declared.
 - `ctx.net.fetch(url, init?)` – uses the global `fetch` implementation when available.
 
 Plugins must export a default object with an `activate(ctx)` function. `deactivate()` is optional and runs on unload.

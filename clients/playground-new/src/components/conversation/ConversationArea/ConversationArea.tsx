@@ -1,15 +1,13 @@
 import { ConversationContent, ConversationRoot, ConversationScrollButton } from "@/components/ui/ai-conversation";
 import { ChangeBubble } from "@/components/ui/change-bubble";
 import { SettingsModal } from "@/components/ui/settings-modal";
-import { formatUSD, getModelPricing, type ModelPricing } from "@/models";
 import { hasCredentials } from "@/state/actions/hasCredentials";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import type { Message } from "@/types";
-import { Alert, Button, Flex, HStack, Input, Stack, Text, useDisclosure, type FlexProps } from "@chakra-ui/react";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Button, Flex, HStack, Input, Stack, useDisclosure, type FlexProps } from "@chakra-ui/react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { summarizeConversationChanges } from "../utils/diff";
-import { useEstimatedTokens } from "../hooks/useEstimatedTokens";
 import { AutoScroll } from "./AutoScroll";
+import { ConversationContextUsage } from "./ConversationContextUsage";
 import { MessageList } from "./MessageList";
 
 interface ConversationAreaProps extends FlexProps {
@@ -55,13 +53,10 @@ export const ConversationArea = (props: ConversationAreaProps) => {
   const { messages, streaming, onSendMessage, onSelectFile, canSend = true, examplePrompts = [], ...rest } = props;
   const [input, setInput] = useState("");
 
-  const estimatedTokens = useEstimatedTokens(messages, input);
-
-  const [modelPricing, setModelPricing] = useState<ModelPricing | undefined>(undefined);
-  const modelId = useWorkspaceStore((s) => s.settings.modelId);
   const settings = useDisclosure();
   const conversationChanges = useMemo(() => summarizeConversationChanges(messages), [messages]);
   const showChangeBubble = conversationChanges.fileCount > 0;
+
   const handleUseExample = useCallback(
     (text: string) => {
       const trimmed = text.trim();
@@ -71,14 +66,6 @@ export const ConversationArea = (props: ConversationAreaProps) => {
     },
     [canSend, onSendMessage, setInput],
   );
-
-  // Load selected model from localStorage and resolve pricing
-  // Only input tokens are known before sending; we price those
-  // using the selected model's input token rate.
-  // Falls back to tokens-only display if model is unknown.
-  useEffect(() => {
-    setModelPricing(getModelPricing(modelId || undefined));
-  }, [modelId]);
 
   const handleSend = () => {
     const text = input.trim();
@@ -99,14 +86,18 @@ export const ConversationArea = (props: ConversationAreaProps) => {
 
       <Flex p="sm" borderTopWidth="1px" borderColor="border.secondary">
         <Stack direction="column" gap="sm" width="full">
-          <Flex w="full" justify="flex-end">
-            <Text textStyle="label/XS" color="foreground.secondary">
-              {estimatedTokens} tokens
-              {modelPricing && (
-                <> · {formatUSD((estimatedTokens / modelPricing.perTokens) * modelPricing.inputTokenCost)}</>
-              )}
-            </Text>
+          <Flex w="full" align="center">
+            {showChangeBubble && (
+              <ChangeBubble
+                additions={conversationChanges.additions}
+                deletions={conversationChanges.deletions}
+                fileCount={conversationChanges.fileCount}
+                streaming={streaming}
+              />
+            )}
+            <ConversationContextUsage messages={messages} input={input} />
           </Flex>
+
           {!hasCredentials() && (
             <Alert.Root status="warning">
               <Alert.Indicator />
@@ -119,16 +110,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
               </Alert.Content>
             </Alert.Root>
           )}
-          {showChangeBubble && (
-            <Flex justify="flex-end">
-              <ChangeBubble
-                additions={conversationChanges.additions}
-                deletions={conversationChanges.deletions}
-                fileCount={conversationChanges.fileCount}
-                streaming={streaming}
-              />
-            </Flex>
-          )}
+
           <Input
             placeholder="Type a message..."
             value={input}

@@ -19,8 +19,11 @@ Plugins can only touch the surfaces that the host runtime exposes. Keep the cont
   <plugin-id>/
     manifest.json        # metadata, commands, optional settings schema
     index.js             # default export with activate()
-    .settings.json       # created by the host after first write
     assets/**            # optional static files referenced by the plugin
+
+/plugin_data/
+  <plugin-id>/
+    .settings.json       # created by the host after first write
 ```
 
 - **Editable**: OPFS keeps plugin code local to the browser. Agents can rewrite modules, manifests, or assets on the fly.
@@ -142,7 +145,7 @@ unsubscribeChanges();
 - `listPlugins()` / `subscribePlugins(cb)` – view plugin metadata (id, name, version) and react to changes.
 - `listCommands()` / `listPluginCommands(pluginId)` – enumerate registered commands.
 - `runPluginCommand(pluginId, commandId)` – obtain an async runner that validates params and executes the handler with timeout guarantees.
-- `readPluginSettings(pluginId)` / `writePluginSettings(pluginId, value)` – persist JSON to `.settings.json` with AJV validation.
+- `readPluginSettings(pluginId)` / `writePluginSettings(pluginId, value)` – persist JSON to `/plugin_data/<id>/.settings.json` with AJV validation.
 - `readPluginManifest(pluginId)` – fetch the latest manifest snapshot.
 - `subscribePluginManifest(pluginId, cb)` / `subscribeManifests(cb)` – observe manifest updates.
 - `subscribePluginFiles(pluginId, cb)` – receive OPFS change notifications for a plugin directory.
@@ -187,7 +190,7 @@ export default {
 - `ctx.log` – namespaced `{ info, warn, error }` logger.
 - `ctx.commands.notify(level, message)` – bridge notifications to the host `notify` callback.
 - `ctx.fs` – scoped filesystem helpers from `@pstdio/opfs-utils` (`readFile`, `writeFile`, `deleteFile`, `moveFile`, `exists`, `mkdirp`, `readJSON`, `writeJSON`).
-- `ctx.settings.read<T>()` / `ctx.settings.write(value)` – persist JSON to `.settings.json`, validated against `settingsSchema` when provided.
+- `ctx.settings.read<T>()` / `ctx.settings.write(value)` – persist JSON to `/plugin_data/<id>/.settings.json`, validated against `settingsSchema` when provided.
 - `ctx.net.fetch(url, init?)` – reuses the global `fetch` implementation (polyfill when needed).
 
 `activate(ctx)` runs once per load. `deactivate()` is optional and executes on unload or reload.
@@ -195,7 +198,7 @@ export default {
 ## Notifications & Settings
 
 - **Notifications** – call `ctx.commands.notify(level, message)` to surface feedback. The host sends the message to its `notify` handler, so apps can display toasts or log structured output.
-- **Settings** – stored at `/plugins/<id>/.settings.json`. Reads return `{}` when the file is missing or invalid JSON. Writes are pretty-printed and validated against `settingsSchema`.
+- **Settings** – stored at `/plugin_data/<id>/.settings.json`. Reads return `{}` when the file is missing or invalid JSON. Writes are pretty-printed and validated against `settingsSchema`.
 
 ## Tiny AI Tasks Integration
 

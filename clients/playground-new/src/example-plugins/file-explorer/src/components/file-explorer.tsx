@@ -5,6 +5,8 @@ import { useFsTree, type FsNode } from "../hooks/fs";
 
 interface FileExplorerProps {
   rootDir: string;
+  requestedPath?: string | null;
+  onOpenFile?: (path: string, options?: { displayName?: string }) => Promise<void> | void;
 }
 
 const isDirectory = (node: FsNode) => Array.isArray(node.children);
@@ -38,7 +40,7 @@ const createBreadcrumbs = (currentId: string, maps: ReturnType<typeof buildMaps>
 };
 
 export function FileExplorer(props: FileExplorerProps) {
-  const { rootDir } = props;
+  const { rootDir, onOpenFile, requestedPath } = props;
   const fsTree = useFsTree(rootDir);
 
   const maps = useMemo(() => buildMaps(fsTree), [fsTree]);
@@ -47,6 +49,37 @@ export function FileExplorer(props: FileExplorerProps) {
   useEffect(() => {
     setCurrentPath(fsTree.id);
   }, [fsTree.id]);
+
+  useEffect(() => {
+    if (typeof requestedPath !== "string") return;
+
+    const trimmed = requestedPath.trim();
+    if (!trimmed) return;
+
+    const fallback = maps.nodeMap.get(fsTree.id) ?? fsTree;
+    const resolveRequestedNode = () => {
+      const exact = maps.nodeMap.get(trimmed);
+      if (exact) return exact;
+
+      const segments = trimmed.split("/").filter((segment) => segment.length > 0);
+      for (let index = segments.length - 1; index > 0; index -= 1) {
+        const candidate = segments.slice(0, index).join("/");
+        const ancestor = maps.nodeMap.get(candidate);
+        if (ancestor) return ancestor;
+      }
+
+      return fallback;
+    };
+
+    const target = resolveRequestedNode();
+    if (!target) return;
+
+    // Only honor requested paths when they differ from the current selection so manual navigation persists.
+    setCurrentPath((previous) => {
+      if (target.id === previous) return previous;
+      return target.id;
+    });
+  }, [requestedPath, maps, fsTree]);
 
   const currentNode = maps.nodeMap.get(currentPath) ?? fsTree;
   const breadcrumbs = useMemo(() => createBreadcrumbs(currentNode.id, maps), [currentNode.id, maps]);
@@ -120,7 +153,19 @@ export function FileExplorer(props: FileExplorerProps) {
                 background: "gray.100",
               }}
               onClick={() => {
-                if (directory) setCurrentPath(node.id);
+                if (directory) {
+                  console.info("[file-explorer] Navigating into directory", { id: node.id });
+                  setCurrentPath(node.id);
+                  return;
+                }
+
+                console.info("[file-explorer] Requesting host to open file", { id: node.id, name: node.name });
+                const result = onOpenFile?.(node.id, { displayName: node.name });
+                if (result instanceof Promise) {
+                  result.catch((error) => {
+                    console.error("[file-explorer] Failed to open file", error);
+                  });
+                }
               }}
             >
               <Box

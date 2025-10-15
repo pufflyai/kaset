@@ -20,7 +20,6 @@ function HelloWorldApp(props: HelloWorldAppProps) {
         fontFamily: "system-ui, sans-serif",
         background: "linear-gradient(135deg, #0f172a, #1e293b)",
         color: "#e2e8f0",
-        borderRadius: "8px",
       }}
     >
       <strong style={{ fontSize: "1.5rem" }}>{title}</strong>

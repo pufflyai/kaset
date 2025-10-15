@@ -1,6 +1,6 @@
 import { shortUID } from "@pstdio/prompt-utils";
 import { type AssistantMessage } from "@pstdio/tiny-ai-tasks";
-import type { Message, ToolInvocation, UIConversation } from "./types";
+import type { Message, TokenUsage, ToolInvocation, UIConversation } from "./types";
 
 type AgentStream = AsyncIterable<[AssistantMessage[] | AssistantMessage | any, any, any]>;
 
@@ -25,8 +25,55 @@ export async function* toConversation(agentStream: AgentStream, { boot, devNote 
 
   let thoughtMarked = false;
   let currentAssistantId: string | null = null;
+  let lastAssistantMessageId: string | null = null;
+  let currentAssistantUsage: TokenUsage | undefined;
   const toolMeta = new Map<string, ToolMeta>();
   const toolUiMessageId = new Map<string, string>();
+
+  const applyCurrentAssistantUsage = () => {
+    if (!currentAssistantUsage) return;
+
+    const targetAssistantId = currentAssistantId ?? lastAssistantMessageId;
+    const targetUserId = (() => {
+      for (let i = uiMessages.length - 1; i >= 0; i -= 1) {
+        const candidate = uiMessages[i];
+        if (candidate.role === "user") {
+          return candidate.id;
+        }
+      }
+      return null;
+    })();
+
+    const { promptTokens, completionTokens, totalTokens } = currentAssistantUsage;
+
+    uiMessages = uiMessages.map((m) => {
+      if (targetAssistantId && m.id === targetAssistantId) {
+        const priorUsage = { ...(m.meta?.usage ?? {}) };
+        if (promptTokens !== undefined) {
+          priorUsage.promptTokens = promptTokens;
+        }
+        if (completionTokens !== undefined) {
+          priorUsage.completionTokens = completionTokens;
+        }
+        if (totalTokens !== undefined) {
+          priorUsage.totalTokens = totalTokens;
+        }
+
+        const meta = { ...(m.meta ?? {}), usage: priorUsage };
+        return { ...m, meta } as Message;
+      }
+
+      if (targetUserId && m.id === targetUserId && promptTokens !== undefined) {
+        const priorUsage = { ...(m.meta?.usage ?? {}) };
+        priorUsage.promptTokens = promptTokens;
+
+        const meta = { ...(m.meta ?? {}), usage: priorUsage };
+        return { ...m, meta } as Message;
+      }
+
+      return m;
+    });
+  };
 
   const finalizeAssistantTextIfAny = () => {
     if (!currentAssistantId) return;
@@ -36,28 +83,35 @@ export async function* toConversation(agentStream: AgentStream, { boot, devNote 
       return { ...m, parts: [{ ...part, state: "done" }] } as Message;
     });
     currentAssistantId = null;
+    currentAssistantUsage = undefined;
   };
 
   const upsertAssistantText = (text: string, done = false) => {
     if (!currentAssistantId) {
       const id = shortUID();
       currentAssistantId = id;
+      lastAssistantMessageId = id;
       const msg: Message = {
         id,
         role: "assistant",
         parts: [{ type: "text", text, state: done ? "done" : "streaming" }],
       };
       uiMessages = [...uiMessages, msg];
-      return;
+    } else {
+      uiMessages = uiMessages.map((m) => {
+        if (m.id !== currentAssistantId) return m;
+        return {
+          ...m,
+          parts: [{ type: "text", text, state: done ? "done" : "streaming" }],
+        } as Message;
+      });
+
+      lastAssistantMessageId = currentAssistantId;
     }
 
-    uiMessages = uiMessages.map((m) => {
-      if (m.id !== currentAssistantId) return m;
-      return {
-        ...m,
-        parts: [{ type: "text", text, state: done ? "done" : "streaming" }],
-      } as Message;
-    });
+    if (currentAssistantUsage) {
+      applyCurrentAssistantUsage();
+    }
   };
 
   const upsertToolInvocation = (inv: ToolInvocation) => {
@@ -75,6 +129,7 @@ export async function* toConversation(agentStream: AgentStream, { boot, devNote 
       };
 
       uiMessages = [...uiMessages, msg];
+      lastAssistantMessageId = msgId;
       return;
     }
 
@@ -97,6 +152,9 @@ export async function* toConversation(agentStream: AgentStream, { boot, devNote 
 
       return { ...m, parts } as Message;
     });
+
+    lastAssistantMessageId = existingMsgId;
+    applyCurrentAssistantUsage();
   };
 
   const markDevNoteIfNeeded = () => {
@@ -149,6 +207,15 @@ export async function* toConversation(agentStream: AgentStream, { boot, devNote 
         const txt = (a.content ?? "").toString();
         if (calls.length === 0 && typeof txt === "string" && txt.trim().length > 0) {
           upsertAssistantText(txt, false);
+        }
+
+        if (a.usage) {
+          currentAssistantUsage = {
+            promptTokens: a.usage.prompt_tokens ?? undefined,
+            completionTokens: a.usage.completion_tokens ?? undefined,
+            totalTokens: a.usage.total_tokens ?? undefined,
+          } satisfies TokenUsage;
+          applyCurrentAssistantUsage();
         }
 
         yield uiMessages;

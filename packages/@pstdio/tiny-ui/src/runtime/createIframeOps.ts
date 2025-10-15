@@ -1,6 +1,6 @@
-import { basename, createScopedFs, joinUnderWorkspace, type ScopedFs } from "@pstdio/opfs-utils";
+import { basename, createScopedFs, joinUnderWorkspace, ls, type ScopedFs } from "@pstdio/opfs-utils";
 import { createSettingsAccessor } from "@pstdio/tiny-plugins/src/host/settings";
-import type { WorkspaceFs, TinyUiOpsHandler, TinyUiOpsRequest } from "./types";
+import type { TinyFsDirSnapshot, TinyFsEntry, TinyUiOpsHandler, TinyUiOpsRequest, WorkspaceFs } from "./types";
 
 type SettingsValidator = Parameters<typeof createSettingsAccessor>[2];
 
@@ -13,6 +13,8 @@ export interface CreateIframeOpsOptions {
   notify?(level: "info" | "warn" | "error", message: string): void;
   workspaceFs?: WorkspaceFs;
   settingsValidator?: SettingsValidator;
+  enableDirSnapshots?: boolean;
+  forwardRequest?(request: TinyUiOpsRequest): Promise<unknown>;
 }
 
 function normalizeSegment(value: string) {
@@ -35,6 +37,49 @@ function normalizeDataPath(path?: string) {
   const joined = joinUnderWorkspace(DATA_ROOT, input);
   const trimmed = joined.replace(/\/+$/, "");
   return trimmed || DATA_ROOT;
+}
+
+function toDataRelative(normalizedPath: string) {
+  if (normalizedPath === DATA_ROOT) {
+    return "";
+  }
+  const stripped = stripDataPrefix(normalizedPath);
+  return stripped.replace(/^\/+/, "");
+}
+
+function createEntryForDir(
+  dir: string,
+  entry: {
+    path: string;
+    name: string;
+    kind: "file" | "directory";
+    depth: number;
+    size?: number;
+    lastModified?: number;
+  },
+): TinyFsEntry {
+  const prefix = dir ? `${dir.replace(/\/+$/, "")}/` : "";
+  return {
+    name: entry.name,
+    kind: entry.kind,
+    depth: entry.depth,
+    size: entry.size,
+    lastModified: entry.lastModified,
+    path: prefix ? `${prefix}${entry.path}` : entry.path,
+  };
+}
+
+function createSnapshotSignature(entries: TinyFsEntry[]) {
+  if (entries.length === 0) return "0";
+  return entries
+    .slice()
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0))
+    .map((entry) => {
+      const mtime = entry.lastModified == null ? "" : String(entry.lastModified);
+      const size = entry.size == null ? "" : String(entry.size);
+      return `${entry.path}|${entry.kind}|${mtime}|${size}`;
+    })
+    .join(";");
 }
 
 function createDataScopedFs(fs: ScopedFs): ScopedFs {
@@ -161,6 +206,37 @@ export function createIframeOps(options: CreateIframeOpsOptions): TinyUiOpsHandl
   const notify = ensureNotify(options.notify);
   const settings = createSettingsAccessor(dataFs, options.pluginId, options.settingsValidator);
   const workspaceFs = options.workspaceFs;
+  const allowSnapshots = options.enableDirSnapshots !== false;
+
+  async function getDirectoryEntries(targetDir: string, detailed: boolean) {
+    const normalized = normalizeDataPath(targetDir);
+    const relativeDir = toDataRelative(normalized);
+    const lsPath = joinUnderWorkspace(pluginRoot, normalized);
+    const entries = await ls(lsPath, {
+      maxDepth: 1,
+      stat: detailed,
+      dirsFirst: true,
+      sortBy: "name",
+    });
+    return {
+      relativeDir,
+      entries: entries.map((entry) => createEntryForDir(relativeDir, entry)),
+    };
+  }
+
+  async function createDirSnapshot(dir: string): Promise<TinyFsDirSnapshot> {
+    if (!allowSnapshots) {
+      throw new Error("Tiny UI host directory snapshots are disabled");
+    }
+
+    const { relativeDir, entries } = await getDirectoryEntries(dir, true);
+    return {
+      dir: relativeDir,
+      entries,
+      signature: createSnapshotSignature(entries),
+      generatedAt: Date.now(),
+    };
+  }
 
   return async function handleOps(request: TinyUiOpsRequest) {
     const method = request.method;
@@ -186,7 +262,53 @@ export function createIframeOps(options: CreateIframeOpsOptions): TinyUiOpsHandl
         const params =
           request.params && typeof request.params === "object" ? (request.params as Record<string, unknown>) : {};
         const dir = getStringParam(params, "dir", method, false);
-        return dataFs.readdir(dir ?? "");
+        const detailed = params.detailed === true || params.stat === true;
+        const { entries } = await getDirectoryEntries(dir ?? "", detailed);
+        return entries;
+      }
+
+      case "fs.dirSnapshot": {
+        const params = ensureParams(request.params, method);
+        const dir = getStringParam(params, "dir", method, false) ?? "";
+        return createDirSnapshot(dir);
+      }
+
+      case "fs.exists": {
+        const params = ensureParams(request.params, method);
+        const path = getStringParam(params, "path", method)!;
+        return dataFs.exists(path);
+      }
+
+      case "fs.mkdirp": {
+        const params = ensureParams(request.params, method);
+        const path = getStringParam(params, "path", method)!;
+        await dataFs.mkdirp(path);
+        return { ok: true };
+      }
+
+      case "fs.moveFile": {
+        const params = ensureParams(request.params, method);
+        const from = getStringParam(params, "from", method)!;
+        const to = getStringParam(params, "to", method)!;
+        await dataFs.moveFile(from, to);
+        return { ok: true };
+      }
+
+      case "fs.readJSON": {
+        const params = ensureParams(request.params, method);
+        const path = getStringParam(params, "path", method)!;
+        return dataFs.readJSON(path);
+      }
+
+      case "fs.writeJSON": {
+        const params = ensureParams(request.params, method);
+        const path = getStringParam(params, "path", method)!;
+        if (!("value" in params)) {
+          throw new Error("fs.writeJSON requires params.value");
+        }
+        const pretty = params.pretty === true;
+        await dataFs.writeJSON(path, params.value, pretty);
+        return { ok: true };
       }
 
       case "fs.deleteFile": {
@@ -242,6 +364,9 @@ export function createIframeOps(options: CreateIframeOpsOptions): TinyUiOpsHandl
       }
 
       default:
+        if (options.forwardRequest) {
+          return options.forwardRequest(request);
+        }
         throw new Error(`Unknown Tiny-UI ops method: ${method}`);
     }
   };

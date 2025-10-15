@@ -1,6 +1,9 @@
+import { LoadingState } from "@/components/ui/loading-state";
 import { toaster } from "@/components/ui/toaster";
 import { ROOT } from "@/constant";
-import { Box, Button, Center, Spinner, Text } from "@chakra-ui/react";
+import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
+import { Box, Button, Center, Text } from "@chakra-ui/react";
+import type { TinyUIStatus } from "@pstdio/tiny-ui";
 import {
   createWorkspaceFs,
   getLockfile,
@@ -8,6 +11,7 @@ import {
   setLockfile,
   TinyUI,
   unregisterVirtualSnapshot,
+  type TinyUiOpsRequest,
 } from "@pstdio/tiny-ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -84,15 +88,97 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const [error, setError] = useState<string | null>(null);
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [sourceRoot, setSourceRoot] = useState<string | null>(null);
+  const [tinyStatus, setTinyStatus] = useState<TinyUIStatus>("initializing");
   const refreshToken = usePluginFilesRefresh(pluginId);
   const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
+  const pluginsRoot = useMemo(() => getPluginsRoot(), []);
+
+  const handleTinyStatusChange = useCallback((nextStatus: TinyUIStatus) => {
+    if (nextStatus === "error") return;
+    setTinyStatus(nextStatus);
+  }, []);
+
+  const handleTinyError = useCallback((tinyError: Error) => {
+    setError(tinyError.message);
+    setStatus("error");
+  }, []);
 
   const notify = useCallback((level: "info" | "warn" | "error", message: string) => {
     const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
     toaster.create({ type, title: message, duration: 5000 });
   }, []);
 
+  const handleOpenFile = useCallback(
+    async (path: string, options?: { displayName?: string }) => {
+      console.info("[tiny-ui-window] Forwarding open file request to desktop", { pluginId, path, options });
+      requestOpenDesktopFile(path, options);
+    },
+    [pluginId],
+  );
+
+  const forwardRequest = useCallback(
+    async (request: TinyUiOpsRequest) => {
+      console.info("[tiny-ui-window] Received Tiny UI request", {
+        pluginId,
+        method: request.method,
+        params: request.params,
+      });
+      if (request.method === "actions.openFile") {
+        const rawParams = request.params;
+        let path: string | undefined;
+        let displayName: string | undefined;
+
+        if (typeof rawParams === "string") {
+          path = rawParams;
+        } else if (rawParams && typeof rawParams === "object") {
+          const record = rawParams as Record<string, unknown>;
+          if (typeof record.path === "string") {
+            path = record.path;
+          } else if (Array.isArray(record.args) && typeof record.args[0] === "string") {
+            path = record.args[0];
+            const maybeDisplayName = record.args[1];
+            if (maybeDisplayName && typeof maybeDisplayName.displayName === "string") {
+              displayName = maybeDisplayName.displayName;
+            }
+          } else if (typeof record.value === "string") {
+            path = record.value;
+          }
+
+          if (typeof record.displayName === "string") {
+            displayName = record.displayName;
+          }
+        }
+
+        if (!path || !path.trim()) {
+          throw new Error("actions.openFile requires params.path");
+        }
+        await handleOpenFile(path, displayName ? { displayName } : undefined);
+        return { ok: true };
+      }
+
+      throw new Error(`Unknown Tiny UI host request: ${request.method}`);
+    },
+    [handleOpenFile, pluginId],
+  );
+
   const entryPath = pluginWindow.entry;
+  const bridge = useMemo(
+    () => ({
+      pluginId,
+      pluginsRoot,
+      workspaceFs,
+      notify,
+      forwardRequest,
+    }),
+    [pluginId, pluginsRoot, workspaceFs, notify, forwardRequest],
+  );
+  const tinyUiStyle = useMemo(
+    () => ({
+      width: "100%",
+      height: "100%",
+    }),
+    [],
+  );
 
   useEffect(() => {
     applyLockfile(getMergedPluginDependencies());
@@ -105,7 +191,6 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       return undefined;
     }
 
-    const pluginsRoot = getPluginsRoot();
     const pluginRoot = buildPluginRoot(pluginsRoot, pluginId);
     const snapshotRoot = `/${pluginRoot}`;
 
@@ -137,14 +222,14 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       cancelled = true;
       unregisterVirtualSnapshot(snapshotRoot);
     };
-  }, [pluginId, entryPath, refreshToken]);
+  }, [entryPath, pluginId, pluginsRoot, refreshToken]);
+
+  useEffect(() => {
+    setTinyStatus("initializing");
+  }, [snapshotVersion]);
 
   if (status === "loading" || status === "idle") {
-    return (
-      <Center height="100%" width="100%">
-        <Spinner />
-      </Center>
-    );
+    return null;
   }
 
   if (status === "error" || !sourceRoot) {
@@ -172,12 +257,12 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     );
   }
 
-  const pluginsRoot = getPluginsRoot();
   // one plugin might have bundled code for multiple surfaces
   const sourceId = `${pluginId}:${surfaceId}`;
   // we remount the component if the snapshotVersion changes
   // this way if the UI changes we get a fresh iframe and TinyUI instance
   const key = `${pluginId}:${instanceId}:${snapshotVersion}`;
+  const isLoadingOverlayActive = tinyStatus === "compiling" || tinyStatus === "initializing";
 
   return (
     <Box height="100%" width="100%" position="relative">
@@ -190,18 +275,21 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         autoCompile
         serviceWorkerUrl={serviceWorkerUrl}
         runtimeUrl={runtimeUrl}
-        onError={(tinyError) => {
-          setError(tinyError.message);
-          setStatus("error");
-        }}
-        bridge={{
-          pluginId,
-          pluginsRoot,
-          workspaceFs,
-          notify,
-        }}
-        style={{ width: "100%", height: "100%" }}
+        onStatusChange={handleTinyStatusChange}
+        onError={handleTinyError}
+        bridge={bridge}
+        style={tinyUiStyle}
       />
+      <Center
+        background="background.primary"
+        position="absolute"
+        inset={0}
+        zIndex={1}
+        pointerEvents={isLoadingOverlayActive ? "all" : "none"}
+        display={isLoadingOverlayActive ? "flex" : "none"}
+      >
+        <LoadingState title={tinyStatus} />
+      </Center>
     </Box>
   );
 };

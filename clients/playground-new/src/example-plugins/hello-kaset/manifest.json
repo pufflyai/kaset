@@ -24,28 +24,7 @@
       }
     }
   },
-  "commands": [
-    {
-      "id": "hello.sayHello",
-      "title": "Say Hello",
-      "category": "Examples",
-      "description": "Show a greeting using the plugin's saved settings or parameters.",
-      "parameters": {
-        "type": "object",
-        "properties": {
-          "title": {
-            "type": "string",
-            "description": "Override the title before persisting settings."
-          },
-          "subtitle": {
-            "type": "string",
-            "description": "Override the subtitle before persisting settings."
-          }
-        },
-        "additionalProperties": false
-      }
-    }
-  ],
+  "commands": [],
   "ui": {
     "desktop": {
       "title": "Hello Kaset",

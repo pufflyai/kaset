@@ -75,15 +75,24 @@ export interface ToolInvocationUIPart {
   toolInvocation: ToolInvocation;
 }
 
+export interface TokenUsage {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
+export interface MessageMeta {
+  hidden?: boolean;
+  tags?: string[];
+  usage?: TokenUsage;
+}
+
 export interface Message {
   id: string;
   createdAt?: Date;
   streaming?: boolean;
   // Optional metadata for UI and prompt filtering
-  meta?: {
-    hidden?: boolean;
-    tags?: string[];
-  };
+  meta?: MessageMeta;
   attachments?: Array<{
     contentType: string;
     name: string;
