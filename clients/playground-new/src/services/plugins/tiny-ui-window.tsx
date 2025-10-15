@@ -1,7 +1,9 @@
+import { LoadingState } from "@/components/ui/loading-state";
 import { toaster } from "@/components/ui/toaster";
-import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
 import { ROOT } from "@/constant";
-import { Box, Button, Center, Spinner, Text } from "@chakra-ui/react";
+import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
+import { Box, Button, Center, Text } from "@chakra-ui/react";
+import type { TinyUIStatus } from "@pstdio/tiny-ui";
 import {
   createWorkspaceFs,
   getLockfile,
@@ -11,7 +13,6 @@ import {
   unregisterVirtualSnapshot,
   type TinyUiOpsRequest,
 } from "@pstdio/tiny-ui";
-import type { TinyUIStatus } from "@pstdio/tiny-ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getMergedPluginDependencies,
@@ -90,6 +91,17 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const [tinyStatus, setTinyStatus] = useState<TinyUIStatus>("initializing");
   const refreshToken = usePluginFilesRefresh(pluginId);
   const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
+  const pluginsRoot = useMemo(() => getPluginsRoot(), []);
+
+  const handleTinyStatusChange = useCallback((nextStatus: TinyUIStatus) => {
+    if (nextStatus === "error") return;
+    setTinyStatus(nextStatus);
+  }, []);
+
+  const handleTinyError = useCallback((tinyError: Error) => {
+    setError(tinyError.message);
+    setStatus("error");
+  }, []);
 
   const notify = useCallback((level: "info" | "warn" | "error", message: string) => {
     const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
@@ -150,6 +162,23 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   );
 
   const entryPath = pluginWindow.entry;
+  const bridge = useMemo(
+    () => ({
+      pluginId,
+      pluginsRoot,
+      workspaceFs,
+      notify,
+      forwardRequest,
+    }),
+    [pluginId, pluginsRoot, workspaceFs, notify],
+  );
+  const tinyUiStyle = useMemo(
+    () => ({
+      width: "100%",
+      height: "100%",
+    }),
+    [],
+  );
 
   useEffect(() => {
     applyLockfile(getMergedPluginDependencies());
@@ -162,7 +191,6 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       return undefined;
     }
 
-    const pluginsRoot = getPluginsRoot();
     const pluginRoot = buildPluginRoot(pluginsRoot, pluginId);
     const snapshotRoot = `/${pluginRoot}`;
 
@@ -194,18 +222,14 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       cancelled = true;
       unregisterVirtualSnapshot(snapshotRoot);
     };
-  }, [pluginId, entryPath, refreshToken]);
+  }, [entryPath, pluginId, pluginsRoot, refreshToken]);
 
   useEffect(() => {
     setTinyStatus("initializing");
   }, [snapshotVersion]);
 
   if (status === "loading" || status === "idle") {
-    return (
-      <Center height="100%" width="100%">
-        <Spinner />
-      </Center>
-    );
+    return null;
   }
 
   if (status === "error" || !sourceRoot) {
@@ -233,13 +257,14 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     );
   }
 
-  const pluginsRoot = getPluginsRoot();
   // one plugin might have bundled code for multiple surfaces
   const sourceId = `${pluginId}:${surfaceId}`;
   // we remount the component if the snapshotVersion changes
   // this way if the UI changes we get a fresh iframe and TinyUI instance
   const key = `${pluginId}:${instanceId}:${snapshotVersion}`;
-  const isLoadingOverlayActive = tinyStatus === "initializing" || tinyStatus === "compiling";
+  const isLoadingOverlayActive = tinyStatus === "compiling" || tinyStatus === "initializing";
+
+  console.log(isLoadingOverlayActive);
 
   return (
     <Box height="100%" width="100%" position="relative">
@@ -252,34 +277,20 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         autoCompile
         serviceWorkerUrl={serviceWorkerUrl}
         runtimeUrl={runtimeUrl}
-        onStatusChange={(nextStatus) => {
-          if (nextStatus === "error") {
-            return;
-          }
-
-          setTinyStatus(nextStatus);
-        }}
-        onError={(tinyError) => {
-          setError(tinyError.message);
-          setStatus("error");
-        }}
-        bridge={{
-          pluginId,
-          pluginsRoot,
-          workspaceFs,
-          notify,
-          forwardRequest,
-        }}
-        style={{ width: "100%", height: "100%" }}
+        onStatusChange={handleTinyStatusChange}
+        onError={handleTinyError}
+        bridge={bridge}
+        style={tinyUiStyle}
       />
       <Center
+        background="background.primary"
         position="absolute"
         inset={0}
         zIndex={1}
         pointerEvents={isLoadingOverlayActive ? "all" : "none"}
         display={isLoadingOverlayActive ? "flex" : "none"}
       >
-        <Spinner />
+        <LoadingState title={tinyStatus} />
       </Center>
     </Box>
   );
