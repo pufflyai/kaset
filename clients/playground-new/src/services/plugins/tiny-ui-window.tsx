@@ -170,7 +170,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       notify,
       forwardRequest,
     }),
-    [pluginId, pluginsRoot, workspaceFs, notify],
+    [pluginId, pluginsRoot, workspaceFs, notify, forwardRequest],
   );
   const tinyUiStyle = useMemo(
     () => ({
