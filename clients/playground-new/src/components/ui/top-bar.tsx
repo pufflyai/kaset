@@ -1,7 +1,5 @@
-import { ROOT } from "@/constant";
 import { createConversation } from "@/state/actions/createConversation";
 import { deleteAllConversations as deleteAllConversationsAction } from "@/state/actions/deleteAllConversations";
-import { resetWorkspace } from "@/state/actions/resetWorkspace";
 import { selectConversation } from "@/state/actions/selectConversation";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import {
@@ -23,14 +21,12 @@ import {
   ExternalLink as ExternalLinkIcon,
   GitCommitVerticalIcon,
   HistoryIcon,
-  RotateCcw,
   Settings as SettingsIcon,
   Trash2 as TrashIcon,
 } from "lucide-react";
 import { type ReactNode } from "react";
 import { SettingsModal } from "../../components/ui/settings-modal";
 import { Tooltip } from "../../components/ui/tooltip";
-import { resetPlayground } from "../../services/playground/reset";
 import { CommitHistory } from "./commit-history";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { MenuItem } from "./menu-item";
@@ -43,23 +39,12 @@ export function TopBar(props: TopBarProps) {
   const { mobileCenterContent } = props;
   const { open: isOpen, onOpen, onClose } = useDisclosure();
   const deleteAll = useDisclosure();
-  const resetProject = useDisclosure();
   const versionHistory = useDisclosure();
   const conversations = useWorkspaceStore((s) => s.conversations);
   const selectedId = useWorkspaceStore((s) => s.selectedConversationId);
 
   const handleDeleteAllConversations = () => {
     deleteAllConversationsAction();
-  };
-
-  const handleResetProject = async () => {
-    try {
-      await resetPlayground();
-    } catch (error) {
-      console.error("Failed to reset playground files", error);
-    }
-
-    resetWorkspace();
   };
 
   const handleVersionHistoryChange = (event: { open: boolean }) => {
@@ -124,11 +109,6 @@ export function TopBar(props: TopBarProps) {
               />
               <Separator marginY="sm" />
               <MenuItem
-                primaryLabel={`Reset playground`}
-                leftIcon={<RotateCcw size={16} />}
-                onClick={resetProject.onOpen}
-              />
-              <MenuItem
                 primaryLabel="Delete all conversations"
                 leftIcon={<TrashIcon size={16} />}
                 onClick={deleteAll.onOpen}
@@ -166,15 +146,6 @@ export function TopBar(props: TopBarProps) {
         onDelete={handleDeleteAllConversations}
         headline="Delete all conversations"
         buttonText="Delete all"
-      />
-      <DeleteConfirmationModal
-        open={resetProject.open}
-        onClose={resetProject.onClose}
-        onDelete={handleResetProject}
-        headline={`Reset playground`}
-        notificationText={`Remove all files under "${ROOT}" and restore default files?`}
-        buttonText="Reset project"
-        closeOnInteractOutside={false}
       />
       <Drawer.Root open={versionHistory.open} onOpenChange={handleVersionHistoryChange}>
         <Portal>
