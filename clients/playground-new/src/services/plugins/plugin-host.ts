@@ -1,6 +1,7 @@
 import { toaster } from "@/components/ui/toaster";
-import { PLUGIN_ROOT } from "@/constant";
+import { PLUGIN_DATA_ROOT, PLUGIN_ROOT } from "@/constant";
 import type { ChangeRecord } from "@pstdio/opfs-utils";
+import type { Tool } from "@pstdio/tiny-ai-tasks";
 import {
   createPluginHost,
   createToolsForCommands,
@@ -11,7 +12,6 @@ import {
   type PluginMetadata,
   type RegisteredCommand,
 } from "@pstdio/tiny-plugins";
-import type { Tool } from "@pstdio/tiny-ai-tasks";
 
 type HostCommand = RegisteredCommand & { pluginId: string };
 
@@ -72,6 +72,7 @@ type SettingsListener = (pluginId: string, schema?: JSONSchema) => void;
 type DesktopSurfaceListener = (surfaces: PluginDesktopSurface[]) => void;
 
 let pluginsRoot = normalizePluginsRoot(PLUGIN_ROOT);
+const pluginDataRoot = normalizePluginsRoot(PLUGIN_DATA_ROOT);
 let hostGeneration = 0;
 
 let host: PluginHost | null = null;
@@ -437,6 +438,7 @@ function attachHostSubscriptions(instance: PluginHost, generation: number) {
 function createHostInstance(): PluginHost {
   return createPluginHost({
     root: pluginsRoot,
+    dataRoot: pluginDataRoot,
     watch: true,
     notify(level, message) {
       const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";

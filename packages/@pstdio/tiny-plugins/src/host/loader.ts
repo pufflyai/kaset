@@ -34,6 +34,7 @@ type AjvLike = { compile(schema: unknown): ValidateFunction };
 export interface LoadPluginOptions {
   pluginId: string;
   pluginsRoot: string;
+  pluginsDataRoot: string;
   registry: CommandRegistry;
   manifestValidator: ValidateFunction;
   ajv: AjvLike;
@@ -80,15 +81,28 @@ function compileSettingsSchema(
 }
 
 export async function loadPlugin(options: LoadPluginOptions): Promise<LoadedPlugin> {
-  const { pluginId, pluginsRoot, registry, manifestValidator, ajv, timeouts, hostApiVersion, notify, warn } = options;
+  const {
+    pluginId,
+    pluginsRoot,
+    pluginsDataRoot,
+    registry,
+    manifestValidator,
+    ajv,
+    timeouts,
+    hostApiVersion,
+    notify,
+    warn,
+  } = options;
 
   const pluginRoot = joinRoot(pluginsRoot, pluginId);
-  const fs = createScopedFs(pluginRoot);
+  const pluginDataRoot = joinRoot(pluginsDataRoot, pluginId);
+  const pluginFs = createScopedFs(pluginRoot);
+  const settingsFs = createScopedFs(pluginDataRoot);
   const manifestPath = `${pluginRoot}/${MANIFEST_FILE}`;
 
   let manifestText: string;
   try {
-    const bytes = await fs.readFile(MANIFEST_FILE);
+    const bytes = await pluginFs.readFile(MANIFEST_FILE);
     manifestText = toText(bytes);
   } catch (error) {
     throw manifestParseError(manifestPath, (error as Error).message);
@@ -113,7 +127,7 @@ export async function loadPlugin(options: LoadPluginOptions): Promise<LoadedPlug
     throw apiIncompatible(pluginId, manifest.api, hostApiVersion);
   }
 
-  const entryBytes = await fs.readFile(manifest.entry);
+  const entryBytes = await pluginFs.readFile(manifest.entry);
   const entryCode = toText(entryBytes);
   const blob = new Blob([entryCode], { type: "text/javascript" });
   const objectUrl = URL.createObjectURL(blob);
@@ -134,12 +148,12 @@ export async function loadPlugin(options: LoadPluginOptions): Promise<LoadedPlug
 
   const abort = new AbortController();
   const settingsValidator = compileSettingsSchema(ajv, manifest.settingsSchema, warn);
-  const settings = createSettingsAccessor(fs, pluginId, settingsValidator);
+  const settings = createSettingsAccessor(settingsFs, pluginId, settingsValidator);
 
   const context = createPluginContext({
     pluginId,
     manifest,
-    fs,
+    fs: pluginFs,
     notify,
     settings,
   });

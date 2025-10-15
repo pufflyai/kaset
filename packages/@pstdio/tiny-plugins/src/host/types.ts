@@ -3,6 +3,7 @@ import type { Manifest, PluginMetadata, RegisteredCommand } from "../model/manif
 
 export interface HostOptions {
   root?: string;
+  dataRoot?: string;
   watch?: boolean;
   timeouts?: {
     activate?: number;

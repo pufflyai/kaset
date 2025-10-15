@@ -14,6 +14,7 @@ export interface CreateIframeOpsOptions {
   workspaceFs?: WorkspaceFs;
   settingsValidator?: SettingsValidator;
   enableDirSnapshots?: boolean;
+  forwardRequest?(request: TinyUiOpsRequest): Promise<unknown>;
 }
 
 function normalizeSegment(value: string) {
@@ -363,6 +364,9 @@ export function createIframeOps(options: CreateIframeOpsOptions): TinyUiOpsHandl
       }
 
       default:
+        if (options.forwardRequest) {
+          return options.forwardRequest(request);
+        }
         throw new Error(`Unknown Tiny-UI ops method: ${method}`);
     }
   };
