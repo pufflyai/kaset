@@ -118,6 +118,23 @@ describe("toBaseMessages", () => {
     ]);
   });
 
+  it("includes system messages even when metadata is present", () => {
+    const conversation: UIConversation = [
+      {
+        id: "system-1",
+        role: "system",
+        meta: { tags: ["bootstrap"], source: "agents.md" },
+        parts: [{ type: "text", text: "System setup" }],
+      },
+      createTextMessage("user-1", "user", "test"),
+    ];
+
+    expect(toBaseMessages(conversation)).toEqual([
+      { role: "system", content: "System setup" },
+      { role: "user", content: "test" },
+    ]);
+  });
+
   it("groups tool-only assistant messages and emits tool results", () => {
     const readInvocation: ToolInvocation = {
       type: "tool-opfs_read_file",

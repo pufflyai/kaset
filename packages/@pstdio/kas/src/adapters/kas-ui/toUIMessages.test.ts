@@ -145,7 +145,7 @@ describe("toUIMessages", () => {
       {
         role: "assistant",
         id: "msg-1",
-        content: [" line 1 ", { text: "line 2" }],
+        content: [{ text: " line 1 " }, { text: "line 2" }],
         streaming: true,
         attachments: [{ contentType: "text/plain", name: "log.txt", size: 12, url: "/log.txt" }],
         meta: { hidden: true, tags: ["trace"], usage: { promptTokens: 1 } },

@@ -25,38 +25,31 @@ export function decorateWithThought(initial: UIConversation, shortId = shortUID)
     parts: [{ type: "reasoning", text: "Thinking...", state: "streaming" } as ThoughtPart],
   };
 
-  let closed = false;
+  let closedMessage: UIMessage | null = null;
 
   const close = (conversation: UIConversation): UIConversation => {
-    if (closed) return conversation;
-    const finishedAt = Date.now();
-    const durationMs = Math.max(0, finishedAt - startedAt);
-    const secs = Math.max(1, Math.round(durationMs / 1000));
-
     const idx = conversation.findIndex((m) => m.id === id);
+
     if (idx === -1) {
-      closed = true;
-      return [
-        {
-          ...thinkingMessage,
-          meta: { hidden: true, finishedAt, durationMs },
-          parts: [{ type: "reasoning", text: `Thought for ${secs} seconds`, state: "done" }],
-        } as UIMessage,
-        ...conversation,
-      ];
+      return conversation;
     }
 
-    closed = true;
+    if (!closedMessage) {
+      const msg = conversation[idx];
 
-    const msg = conversation[idx];
-    const updated = {
-      ...msg,
-      meta: { ...(msg.meta ?? {}), hidden: true, finishedAt, durationMs },
-      parts: [{ type: "reasoning", text: `Thought for ${secs} seconds`, state: "done" }],
-    } as UIMessage;
+      const finishedAt = Date.now();
+      const durationMs = Math.max(0, finishedAt - startedAt);
+      const secs = Math.max(1, Math.round(durationMs / 1000));
+
+      closedMessage = {
+        ...msg,
+        meta: { ...(msg.meta ?? {}), hidden: true, finishedAt, durationMs },
+        parts: [{ type: "reasoning", text: `Thought for ${secs} seconds`, state: "done" }],
+      };
+    }
 
     const next = conversation.slice();
-    next[idx] = updated;
+    next[idx] = closedMessage;
     return next;
   };
 

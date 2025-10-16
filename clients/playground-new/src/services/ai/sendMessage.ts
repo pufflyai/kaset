@@ -37,6 +37,10 @@ export async function* sendMessage(_conversationId: string, messages: UIConversa
 
   yield initialUIMessages;
 
+  console.log("initial messages", initialMessages);
+
+  console.log("to base messages", toBaseMessages(initialMessages));
+
   for await (const ui of toConversationUI(agent(toBaseMessages(initialMessages)))) {
     const next = withClosedThoughts([...initialUIMessages, ...ui], thought);
     yield next;

@@ -1,6 +1,20 @@
 import type { AssistantMessage, BaseMessage, ToolCall, ToolMessage } from "@pstdio/tiny-ai-tasks";
 import { UIMessage, UIConversation } from "./types";
 
+function extractMessageText(parts: UIMessage["parts"]) {
+  return parts
+    .map((part) => {
+      const type = (part as any).type;
+      if (type !== "text" && type !== "reasoning") return "";
+
+      const text = (part as any).text;
+      return typeof text === "string" ? text : "";
+    })
+    .filter(Boolean)
+    .join("\n\n")
+    .trim();
+}
+
 export function getLastUserText(conversation: UIConversation) {
   for (let i = conversation.length - 1; i >= 0; i--) {
     const m = conversation[i];
@@ -56,14 +70,23 @@ export function toBaseMessages(conversation: UIConversation): BaseMessage[] {
   for (let i = 0; i < conversation.length; i++) {
     const m = conversation[i];
 
+    if (m.meta?.hidden) continue;
+
+    if (m.role === "developer") continue;
+
+    if (m.role === "system") {
+      const text = extractMessageText(m.parts);
+
+      if (text) history.push({ role: "system", content: text });
+
+      continue;
+    }
+
     if (m.role === "user") {
-      const text = m.parts
-        .map((p) => ((p as any).type === "text" ? (p as any).text : ""))
-        .filter(Boolean)
-        .join("\n\n")
-        .trim();
+      const text = extractMessageText(m.parts);
 
       if (text) history.push({ role: "user", content: text });
+
       continue;
     }
 
@@ -108,14 +131,11 @@ export function toBaseMessages(conversation: UIConversation): BaseMessage[] {
         }
 
         i = j - 1; // skip grouped tool messages
+
         continue;
       }
 
-      const text = m.parts
-        .map((p) => ((p as any).type === "text" ? (p as any).text : ""))
-        .filter(Boolean)
-        .join("\n\n")
-        .trim();
+      const text = extractMessageText(m.parts);
 
       if (text) history.push({ role: "assistant", content: text });
     }
