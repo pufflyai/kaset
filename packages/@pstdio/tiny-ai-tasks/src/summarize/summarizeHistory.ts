@@ -4,6 +4,7 @@ import { task } from "../runtime";
 import { createLLMTask } from "../llm/createLLMTask";
 import type { ExtendedMessage } from "../messages/bus";
 import type { BaseMessage } from "../utils/messageTypes";
+import { messageContentToString } from "../utils/messageTypes";
 import { roughCounter, type TokenCounter } from "./token";
 
 export interface SummarizeOptions {
@@ -113,7 +114,9 @@ export function createSummarizer(
 
       let summaryText = "";
       for await (const [assistantMsg] of callLLM(summarizePrompt)) {
-        summaryText = (assistantMsg?.content ?? summaryText) || summaryText;
+        if (!assistantMsg) continue;
+        const candidate = messageContentToString(assistantMsg.content);
+        if (candidate) summaryText = candidate;
       }
 
       const summaryMsg: ExtendedMessage = {

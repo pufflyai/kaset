@@ -1,4 +1,11 @@
-import { createLLMTask, createSummarizer, truncateToBudget, roughCounter, type ExtendedMessage } from "../src/index";
+import {
+  createLLMTask,
+  createSummarizer,
+  truncateToBudget,
+  roughCounter,
+  type ExtendedMessage,
+  messageContentToString,
+} from "../src/index";
 
 // Example: compact a long chat history to fit a token budget
 // - First: show deterministic truncation (no LLM)
@@ -49,7 +56,7 @@ console.log("Budget:", budget);
 // 1) Deterministic truncate: keeps leading system, then the newest tail
 const truncated = truncateToBudget(history, { budget, counter });
 console.log("\nDeterministic truncate → messages:");
-for (const m of truncated) console.log(`- [${m.role}] ${String(m.content).slice(0, 72)}...`);
+for (const m of truncated) console.log(`- [${m.role}] ${messageContentToString(m.content).slice(0, 72)}...`);
 
 // 2) LLM summarizer: compress the middle slice into one developer note
 // Provide OpenAI credentials via env or pass apiKey/baseUrl to createLLMTask
@@ -62,7 +69,7 @@ for await (const [compacted] of summarize({ history, opts: { budget, markSummary
   console.log("\nSummarized history → messages:");
   for (const m of compacted as any) {
     const tag = m.meta?.summary ? " (summary)" : "";
-    console.log(`- [${m.role}${tag}] ${String(m.content)}`);
+    console.log(`- [${m.role}${tag}] ${messageContentToString(m.content)}`);
   }
 
   console.log("\nNew token estimate:", counter.count(compacted as any));

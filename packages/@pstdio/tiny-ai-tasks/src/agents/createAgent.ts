@@ -2,10 +2,10 @@ import type { Task } from "@pstdio/tiny-tasks";
 import { task } from "../runtime";
 import type { Tool } from "../tools/Tool";
 import { createToolTask } from "../tools/createToolTask";
-import type { AssistantMessage, BaseMessage } from "../utils/messageTypes";
+import type { AssistantMessage, BaseMessage, ToolMessage } from "../utils/messageTypes";
 
 export interface CallToolResult {
-  messages: BaseMessage[];
+  messages: ToolMessage[];
   error?: unknown;
   data?: unknown;
 }
