@@ -1,5 +1,5 @@
 import type { TimelineDoc, TitleSegment } from "@/components/ui/timeline";
-import type { ToolInvocation } from "@/types";
+import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { buildDiffTitleSegments } from "./diff";
 import { toolTypeToIconName } from "./toolIcon";
 

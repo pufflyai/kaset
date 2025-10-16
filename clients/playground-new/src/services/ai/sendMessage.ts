@@ -1,40 +1,49 @@
 import { ROOT } from "@/constant";
 import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
-import type { UIConversation } from "@/types";
-import { buildInitialConversation, createKasAgent, toConversation } from "@pstdio/kas";
+import { createApprovalGate, createKasAgent } from "@pstdio/kas";
+import type { UIConversation } from "@pstdio/kas/kas-ui";
+import { decorateWithThought, toBaseMessages, toConversationUI, withClosedThoughts } from "@pstdio/kas/kas-ui";
+import { createOpfsTools, loadAgentInstructions } from "@pstdio/kas/opfs-tools";
 import { safeAutoCommit } from "@pstdio/opfs-utils";
-import type { Tool } from "@pstdio/tiny-ai-tasks";
+import { type Tool } from "@pstdio/tiny-ai-tasks";
+import { desktopTools } from "../desktop/tools";
 import { requestApproval } from "./approval";
-import { checkDesktopStateTool } from "../desktop/checkDesktopStateTool";
 
-const directory = ROOT;
+const rootDir = ROOT;
 
-export async function* sendMessage(conversationId: string, conversation: UIConversation, extraTools: Tool[] = []) {
-  const sessionId = conversationId;
-
-  const { initialForAgent, uiBoot, devNote } = await buildInitialConversation(conversation, directory);
-
+export async function* sendMessage(_conversationId: string, messages: UIConversation, extraTools: Tool[] = []) {
   const { modelId, approvalGatedTools, apiKey, baseUrl } = getWorkspaceSettings();
 
-  const toolsForAgent = [checkDesktopStateTool, ...extraTools];
+  const approvalGate = createApprovalGate({ approvalGatedTools, requestApproval });
+
+  // load agents.md file
+  const agentInstructions = await loadAgentInstructions(rootDir);
+
+  const OPFSTools = createOpfsTools({ rootDir, approvalGate });
+
+  const tools: Tool<any, any>[] = [...OPFSTools, ...desktopTools, ...extraTools];
 
   const agent = createKasAgent({
     model: modelId,
-    workspaceDir: directory,
-    approvalGatedTools,
-    requestApproval,
+    tools,
     apiKey: apiKey ?? "PLACEHOLDER_KEY",
     ...(baseUrl ? { baseURL: baseUrl } : {}),
     dangerouslyAllowBrowser: true,
-    extraTools: toolsForAgent,
   });
 
-  for await (const ui of toConversation(agent(initialForAgent, { sessionId }), { boot: uiBoot, devNote })) {
-    yield ui;
+  const initialMessages = [...agentInstructions.messages, ...messages];
+
+  const { messages: initialUIMessages, thought } = decorateWithThought(messages);
+
+  yield initialUIMessages;
+
+  for await (const ui of toConversationUI(agent(toBaseMessages(initialMessages)))) {
+    const next = withClosedThoughts([...initialUIMessages, ...ui], thought);
+    yield next;
   }
 
   await safeAutoCommit({
-    dir: directory,
+    dir: rootDir,
     message: "AI updates",
     author: { name: "KAS", email: "kas@kaset.dev" },
   });

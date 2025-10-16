@@ -7,6 +7,7 @@ import { getSelectedConversationId } from "@/state/actions/getSelectedConversati
 import { hasCredentials } from "@/state/actions/hasCredentials";
 import { setConversationMessages } from "@/state/actions/setConversationMessages";
 import type { ApprovalRequest } from "@pstdio/kas";
+import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { shortUID } from "@pstdio/prompt-utils";
 import debounce from "lodash/debounce";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -14,11 +15,10 @@ import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { usePluginHost } from "../../services/plugins/usePluginHost";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
-import type { Message } from "../../types";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
 
-const EMPTY_MESSAGES: Message[] = [];
+const EMPTY_MESSAGES: UIMessage[] = [];
 
 interface ConversationAreaWithMessagesProps {
   streaming: boolean;
@@ -81,7 +81,7 @@ export function ConversationHost() {
 
       if (!conversationId || !conversation) return;
 
-      const userMessage: Message = {
+      const userMessage: UIMessage = {
         id: shortUID(),
         role: "user",
         parts: [{ type: "text", text }],
@@ -91,7 +91,7 @@ export function ConversationHost() {
       const base = [...current, userMessage];
 
       const applyConversationUpdate = debounce(
-        (nextMessages: Message[]) => {
+        (nextMessages: UIMessage[]) => {
           setConversationMessages(conversationId, nextMessages, "conversations/send/assistant");
         },
         500,
@@ -110,7 +110,7 @@ export function ConversationHost() {
       } catch (err) {
         applyConversationUpdate.flush();
 
-        const assistantError: Message = {
+        const assistantError: UIMessage = {
           id: shortUID(),
           role: "assistant",
           parts: [

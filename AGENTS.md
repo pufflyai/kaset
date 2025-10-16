@@ -398,3 +398,5 @@ void hello("world");
 ```
 
 ## 10. Keep files shorter than 400 lines
+
+## 11. Don't be overly defensive, Keep it Simple Stupid

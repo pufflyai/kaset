@@ -1,6 +1,6 @@
 import { TimelineFromJSON, type TimelineDoc } from "@/components/ui/timeline";
-import type { ToolInvocation } from "@/types";
 import { Box, HStack, Text } from "@chakra-ui/react";
+import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { ChevronUpIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { invocationsToTimeline } from "../utils/timeline";

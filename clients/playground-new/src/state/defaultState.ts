@@ -1,4 +1,3 @@
-import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import type { ThemePreference, WorkspaceState } from "./types";
 
 export const DEFAULT_STATE: WorkspaceState = {
@@ -19,7 +18,7 @@ export const DEFAULT_STATE: WorkspaceState = {
     modelId: "gpt-5",
     baseUrl: "",
     apiKey: "",
-    approvalGatedTools: [...DEFAULT_APPROVAL_GATED_TOOLS],
+    approvalGatedTools: [],
     mcpServers: [],
     activeMcpServerIds: [],
     theme: "light" satisfies ThemePreference,

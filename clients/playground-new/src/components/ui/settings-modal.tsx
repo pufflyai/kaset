@@ -20,7 +20,6 @@ import {
   chakra,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import { ls, readFile } from "@pstdio/opfs-utils";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useRef, useState } from "react";
@@ -74,7 +73,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [baseUrl, setBaseUrl] = useState<string>("");
   const [model, setModel] = useState<string>("gpt-5");
   const [showKey, setShowKey] = useState<boolean>(false);
-  const [approvalTools, setApprovalTools] = useState<string[]>([...DEFAULT_APPROVAL_GATED_TOOLS]);
+  const [approvalTools, setApprovalTools] = useState<string[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
   const [activeMcpServerIds, setActiveMcpServerIds] = useState<string[]>([]);
   const [showServerTokens, setShowServerTokens] = useState<Record<string, boolean>>({});
@@ -95,7 +94,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setApiKey(settings.apiKey ?? "");
     setBaseUrl(settings.baseUrl ?? "");
     setModel(settings.modelId || "gpt-5");
-    setApprovalTools(settings.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
+    setApprovalTools(settings.approvalGatedTools || []);
 
     const nextTheme = settings.theme ?? "light";
     setTheme(nextTheme);
@@ -505,7 +504,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                     <Flex gap="xs" direction="column" width="100%">
                       <Text>Approval-gated tools</Text>
                       <VStack align="stretch">
-                        {DEFAULT_APPROVAL_GATED_TOOLS.map((tool) => (
+                        {[].map((tool) => (
                           <Checkbox.Root
                             key={tool}
                             checked={approvalTools.includes(tool)}
