@@ -1,5 +1,4 @@
 import { Card, Stack, Text } from "@chakra-ui/react";
-import { CodeEditor } from "@/components/ui/code-editor";
 import { DiffEditor } from "@/components/ui/diff-editor";
 import { ResourceBadge } from "@/components/ui/resource-badge";
 
@@ -36,12 +35,11 @@ export function OpfsLsBlock(props: OpfsLsBlockProps) {
 export interface OpfsReadFileBlockProps {
   summary?: string;
   content: string;
-  language?: string;
   truncated?: boolean;
 }
 
 export function OpfsReadFileBlock(props: OpfsReadFileBlockProps) {
-  const { content, language, summary, truncated } = props;
+  const { content, summary, truncated } = props;
 
   return (
     <Stack gap="xs">
@@ -51,8 +49,10 @@ export function OpfsReadFileBlock(props: OpfsReadFileBlockProps) {
         </Text>
       ) : null}
       <Card.Root minH="160px" overflow="hidden">
-        <Card.Body padding="0">
-          <CodeEditor language={language ?? "text"} code={content} isEditable={false} />
+        <Card.Body padding="sm">
+          <Text as="pre" margin="0" textStyle="body/S/regular" whiteSpace="pre-wrap" wordBreak="break-word">
+            {content}
+          </Text>
         </Card.Body>
       </Card.Root>
       {truncated ? (

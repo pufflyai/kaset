@@ -73,7 +73,7 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
 
       return {
         title: [
-          { kind: "text", text: "List" },
+          { kind: "text", text: "Explore files in" },
           { kind: "text", text: pathLabel, bold: true },
         ],
         blocks: [
@@ -97,7 +97,6 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
       const filePath = ensureString(input?.file) || ensureString(output?.file) || "";
       const fileName = filePath ? extractFileName(filePath) : "(unknown)";
       const content = ensureStringOrEmpty(output?.llmContent);
-      const language = guessLanguageFromPath(filePath);
 
       return {
         title: [
@@ -111,7 +110,6 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
               <OpfsReadFileBlock
                 summary={ensureString(output?.returnDisplay)}
                 content={content}
-                language={language}
                 truncated={Boolean(output?.isTruncated)}
               />
             ),
@@ -124,6 +122,7 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
       const input = (invocation as any).input as { file?: string; content?: string; diff?: string } | undefined;
       const output = (invocation as any).output as { previousContent?: unknown } | undefined;
       const filePath = ensureString(input?.file) || "";
+      const fileName = filePath ? extractFileName(filePath) : "(unknown)";
       const language = guessLanguageFromPath(filePath);
       const originalContent = ensureStringOrEmpty(output?.previousContent);
       const newContent = ensureStringOrEmpty(input?.content);
@@ -131,7 +130,7 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
       return {
         title: [
           { kind: "text", text: "Write file" },
-          { kind: "link", text: filePath || "(unknown)", filePath, href: "" },
+          { kind: "link", text: fileName, filePath: filePath || undefined, href: undefined, variant: "bubble" },
         ],
         blocks: [
           {
