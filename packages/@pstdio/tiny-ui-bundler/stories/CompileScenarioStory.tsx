@@ -519,7 +519,7 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
         const styles: string[] = [];
 
         for (const asset of styleAssets) {
-          const assetUrl = buildAssetUrl(previewBundle.hash, asset);
+          const assetUrl = buildVirtualUrl(previewBundle.hash, asset);
           const response = await fetch(assetUrl, { cache: "no-cache" });
           if (!response.ok) {
             console.warn(`[Tiny UI Bundler] Failed to fetch CSS asset ${asset} (${response.status})`);
