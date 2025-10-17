@@ -72,11 +72,16 @@ const WindowChrome = (props: WindowChromeProps) => {
             {window.title}
           </Text>
         </HStack>
-        <HStack gap="2xs">
-          <IconButton aria-label={window.isMaximized ? "Restore" : "Maximize"} size="2xs" onClick={onMaximize}>
+        <HStack gap="2xs" className="desktop-window__drag-cancel">
+          <IconButton
+            aria-label={window.isMaximized ? "Restore" : "Maximize"}
+            size="2xs"
+            onClick={onMaximize}
+            className="desktop-window__drag-cancel"
+          >
             {window.isMaximized ? <Minimize2 size={14} /> : <Square size={14} />}
           </IconButton>
-          <IconButton aria-label="Close" size="2xs" onClick={onClose}>
+          <IconButton aria-label="Close" size="2xs" onClick={onClose} className="desktop-window__drag-cancel">
             <X size={14} />
           </IconButton>
         </HStack>
@@ -318,6 +323,7 @@ export const Window = (props: WindowProps) => {
       position={position}
       bounds="parent"
       dragHandleClassName="desktop-window__drag-handle"
+      cancel=".desktop-window__drag-cancel"
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragStop={handleDragStop}
