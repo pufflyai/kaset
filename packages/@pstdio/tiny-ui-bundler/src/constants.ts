@@ -8,7 +8,7 @@ export const ENTRY_NAME = "bundle";
 export const REMOTE_NAMESPACE = "kaset-remote";
 
 // Module extensions esbuild should resolve without specifying their suffix.
-export const RESOLVE_EXTENSIONS = ["", ".ts", ".tsx", ".js", ".jsx", ".json", ".css"] as const;
+export const RESOLVE_EXTENSIONS = [".ts", ".tsx", ".js", ".jsx", ".json", ".css"] as const;
 
 import { resolveBasePath } from "./core/base-path";
 
@@ -21,3 +21,14 @@ const MANIFEST_RELATIVE_PATH = "tiny-ui/manifest.json";
 export const getRuntimeHtmlPath = () => resolveBasePath(RUNTIME_HTML_RELATIVE_PATH);
 export const getVirtualPrefix = () => resolveBasePath(VIRTUAL_RELATIVE_PREFIX);
 export const getManifestUrl = () => resolveBasePath(MANIFEST_RELATIVE_PATH);
+
+// Unified builder for entry and asset URLs within the Cache API and consumers.
+export const buildVirtualUrl = (hash: string, assetPath?: string) => {
+  const prefix = getVirtualPrefix();
+  if (!assetPath) {
+    return `${prefix}${hash}.js`;
+  }
+
+  const normalized = assetPath.startsWith("/") ? assetPath.slice(1) : assetPath;
+  return `${prefix}${hash}/${normalized}`;
+};

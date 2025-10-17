@@ -1,4 +1,4 @@
-import { CACHE_NAME, getVirtualPrefix } from "../constants";
+import { CACHE_NAME, buildVirtualUrl, getVirtualPrefix } from "../constants";
 
 export const getBundleCacheName = () => CACHE_NAME;
 
@@ -17,13 +17,6 @@ export interface PublishBundlePayload {
 export const openBundleCache = async () => {
   if (!("caches" in globalThis)) return null;
   return caches.open(CACHE_NAME);
-};
-
-const buildVirtualUrl = (hash: string, assetPath?: string) => {
-  const prefix = getVirtualPrefix();
-  if (!assetPath) return `${prefix}${hash}.js`;
-  const normalized = assetPath.startsWith("/") ? assetPath.slice(1) : assetPath;
-  return `${prefix}${hash}/${normalized}`;
 };
 
 export const publishBundleToSW = async ({ hash, entry, assets }: PublishBundlePayload) => {

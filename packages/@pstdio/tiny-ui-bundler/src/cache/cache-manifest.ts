@@ -1,4 +1,4 @@
-import { getManifestUrl, getVirtualPrefix } from "../constants";
+import { buildVirtualUrl, getManifestUrl, getVirtualPrefix } from "../constants";
 import type { CompileResult } from "../types";
 import { openBundleCache } from "./cache";
 import { computeLockfileHash } from "../core/hash";
@@ -14,16 +14,12 @@ interface ManifestEntry {
   assets: string[];
   bytes: number;
   lockfileHash: string;
-  fromCache: boolean;
   updatedAt: number;
 }
 
 type Manifest = Record<string, ManifestEntry>;
 
-const toAssetUrl = (hash: string, asset: string) => {
-  const normalized = asset.startsWith("/") ? asset.slice(1) : asset;
-  return `${getVirtualPrefix()}${hash}/${normalized}`;
-};
+const toAssetUrl = (hash: string, asset: string) => buildVirtualUrl(hash, asset);
 
 const readManifest = async (cache: Cache): Promise<Manifest> => {
   const response = await cache.match(getManifestUrl());
@@ -75,7 +71,7 @@ const loadManifestContext = async () => {
   return { cache, manifest };
 };
 
-export const setCachedCompileResult = async (id: string, result: CompileResult & { lockfileHash: string }) => {
+export const setCachedCompileResult = async (id: string, result: CompileResult) => {
   await withManifestLock(async () => {
     const context = await loadManifestContext();
     if (!context) return;
@@ -87,7 +83,6 @@ export const setCachedCompileResult = async (id: string, result: CompileResult &
       assets: [...result.assets],
       bytes: result.bytes,
       lockfileHash: result.lockfileHash,
-      fromCache: result.fromCache,
       updatedAt: Date.now(),
     };
 

@@ -30,11 +30,6 @@ const matchCachedResponse = async (cache: Cache, request: Request) => {
   const normalizedMatch = await cache.match(url.pathname);
   if (normalizedMatch) return normalizedMatch;
 
-  if (url.pathname === RUNTIME_HTML_PATH) {
-    const runtimeMatch = await cache.match(RUNTIME_HTML_PATH);
-    if (runtimeMatch) return runtimeMatch;
-  }
-
   return null;
 };
 

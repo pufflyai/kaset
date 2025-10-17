@@ -1,6 +1,6 @@
 import { clearCachedCompileResult, resetStats, setLockfile } from "../src";
-import { CACHE_NAME, getManifestUrl, getVirtualPrefix } from "../src/constants";
-import type { CompileResult } from "../src/esbuild/types";
+import { CACHE_NAME, buildVirtualUrl, getManifestUrl } from "../src/constants";
+import type { CompileResult } from "../src/types";
 
 import { SOURCE_ID, STORY_ROOT } from "./compileScenarioShared";
 
@@ -43,14 +43,10 @@ type ManifestEntry = {
   assets: string[];
   bytes: number;
   lockfileHash: string;
-  fromCache: boolean;
   updatedAt: number;
 };
 
-const toAssetUrl = (hash: string, assetPath: string) => {
-  const normalized = assetPath.startsWith("/") ? assetPath.slice(1) : assetPath;
-  return `${getVirtualPrefix()}${hash}/${normalized}`;
-};
+const toAssetUrl = (hash: string, assetPath: string) => buildVirtualUrl(hash, assetPath);
 
 export const listHostedBundles = async (): Promise<HostedBundle[]> => {
   if (typeof window === "undefined") return [];

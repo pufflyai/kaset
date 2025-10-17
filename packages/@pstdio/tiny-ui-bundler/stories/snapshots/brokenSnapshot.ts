@@ -4,8 +4,6 @@ import { applyReplacements } from "./utils";
 
 import brokenEntrySource from "./broken/files/index.ts?raw";
 
-const escapeForDoubleQuotedString = (value: string) => value.replaceAll("\\", "\\\\").replaceAll('"', '\\"');
-
 const ERROR_NOTES: Record<SnapshotVariant, string> = {
   fresh: "Fresh snapshot references helper modules that were never registered.",
   updated: "Updated snapshot swaps to a different missing module to keep the bundle broken.",
@@ -22,8 +20,8 @@ export const brokenSnapshot: SnapshotDefinition = {
   description:
     "Intentional failure case that imports modules which are not part of the virtual snapshot, surfacing esbuild errors.",
   build: (variant) => {
-    const reason = escapeForDoubleQuotedString(ERROR_NOTES[variant]);
-    const missingPath = escapeForDoubleQuotedString(MISSING_TARGETS[variant]);
+    const reason = JSON.stringify(ERROR_NOTES[variant]).slice(1, -1);
+    const missingPath = JSON.stringify(MISSING_TARGETS[variant]).slice(1, -1);
 
     return {
       entry: ENTRY_PATH,
