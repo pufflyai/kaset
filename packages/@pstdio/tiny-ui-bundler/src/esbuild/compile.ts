@@ -7,7 +7,6 @@ import { computeHash, computeLockfileHash } from "../core/hash";
 import { getLockfile } from "../core/idb";
 import { readSnapshot } from "../core/snapshot";
 import { getSource } from "../core/sources";
-import { ensureLeadingSlash } from "../utils";
 import { ENTRY_NAME, OUTPUT_DIR } from "../constants";
 import { createLockfilePlugin } from "./plugins/lockfile-plugin";
 import { createVirtualFsPlugin } from "./plugins/virtual-fs-plugin";
@@ -82,7 +81,7 @@ export const compile = async (id: string, options: BuildWithEsbuildOptions): Pro
   }
 
   const files: SnapshotFileMap = { ...snapshot.files };
-  const entry = ensureLeadingSlash(snapshot.entryRelative);
+  const entry = snapshot.entryRelative;
   const remotePlugin = createLockfilePlugin(lockfile ?? null);
   const plugins = [createVirtualFsPlugin(files, entry)];
 

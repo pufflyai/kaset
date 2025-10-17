@@ -35,20 +35,7 @@ const ensureRelativeToRoot = (root: string, path: string) => {
   return ensureLeadingSlash(path);
 };
 
-const digest = async (input: string) => {
-  const hashed = await hashText(input);
-
-  if (
-    typeof crypto !== "undefined" &&
-    "subtle" in crypto &&
-    typeof crypto.subtle.digest === "function" &&
-    typeof TextEncoder !== "undefined"
-  ) {
-    return hashed;
-  }
-
-  return `placeholder-${hashed}`;
-};
+const digest = (input: string) => hashText(input);
 
 const resolveEntryRelative = (config: SourceConfig, override?: string) => {
   if (override) {

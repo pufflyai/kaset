@@ -28,42 +28,25 @@ const findFileCandidate = (files: SnapshotFileMap, path: string) => {
 export const createVirtualFsPlugin = (files: SnapshotFileMap, entry: string): esbuild.Plugin => ({
   name: "kaset-virtual-fs",
   setup(build) {
+    const resolveLocal = (importer: string | undefined, spec: string) => {
+      const importerPath = importer ? ensureLeadingSlash(importer) : entry;
+      const tentative = joinPath(importerPath, spec);
+      return (
+        findFileCandidate(files, tentative) ||
+        (spec.startsWith("/") ? findFileCandidate(files, ensureLeadingSlash(spec)) : null)
+      );
+    };
+
     build.onResolve({ filter: /.*/ }, (args) => {
       if (args.kind === "entry-point") {
         return { path: entry, namespace: VIRTUAL_NAMESPACE };
       }
-
-      if (args.namespace === VIRTUAL_NAMESPACE) {
-        if (!args.path.startsWith(".") && !args.path.startsWith("/")) {
-          return null;
-        }
-
-        const importer = args.importer ? ensureLeadingSlash(args.importer) : entry;
-        const tentative = joinPath(importer, args.path);
-        const resolved = findFileCandidate(files, tentative);
-        if (resolved) {
-          return { path: resolved, namespace: VIRTUAL_NAMESPACE };
-        }
-
-        if (args.path.startsWith("/")) {
-          const absolute = findFileCandidate(files, ensureLeadingSlash(args.path));
-          if (absolute) {
-            return { path: absolute, namespace: VIRTUAL_NAMESPACE };
-          }
-        }
-
-        return null;
-      }
-
       if (args.path.startsWith(".") || args.path.startsWith("/")) {
-        const importer = args.importer ? ensureLeadingSlash(args.importer) : entry;
-        const tentative = joinPath(importer, args.path);
-        const resolved = findFileCandidate(files, tentative);
+        const resolved = resolveLocal(args.importer, args.path);
         if (resolved) {
           return { path: resolved, namespace: VIRTUAL_NAMESPACE };
         }
       }
-
       return null;
     });
 

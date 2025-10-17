@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { compile, getCachedBundle, setLockfile } from "../src";
-import { getVirtualPrefix } from "../src/constants";
+import { buildVirtualUrl } from "../src/constants";
 import { registerVirtualSnapshot } from "../src/core/snapshot";
 import { registerSources } from "../src/core/sources";
-import type { BuildWithEsbuildOptions } from "../src/esbuild/types";
-import type { CompileResult } from "../src/esbuild/types";
+import type { BuildWithEsbuildOptions, CompileResult } from "../src/types";
 
 import esbuildWasmUrl from "esbuild-wasm/esbuild.wasm?url";
 
@@ -28,12 +27,6 @@ import {
 } from "./compileScenarioState";
 import { DEFAULT_SNAPSHOT_ID, getSnapshotDefinition, type SnapshotId } from "./snapshots";
 
-const buildAssetUrl = (hash: string, assetPath: string) => {
-  const prefix = getVirtualPrefix();
-  const normalized = assetPath.startsWith("/") ? assetPath.slice(1) : assetPath;
-  return `${prefix}${hash}/${normalized}`;
-};
-
 const renderAssetList = (hash: string, assets: string[]) => {
   if (assets.length === 0) return "None";
 
@@ -48,7 +41,7 @@ const renderAssetList = (hash: string, assets: string[]) => {
       }}
     >
       {assets.map((asset) => {
-        const assetUrl = buildAssetUrl(hash, asset);
+        const assetUrl = buildVirtualUrl(hash, asset);
         return (
           <li key={`${hash}-${asset}`} style={{ overflowWrap: "anywhere" }}>
             <a href={assetUrl} target="_blank" rel="noopener noreferrer">
@@ -526,7 +519,7 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
         const styles: string[] = [];
 
         for (const asset of styleAssets) {
-          const assetUrl = buildAssetUrl(previewBundle.hash, asset);
+          const assetUrl = buildVirtualUrl(previewBundle.hash, asset);
           const response = await fetch(assetUrl, { cache: "no-cache" });
           if (!response.ok) {
             console.warn(`[Tiny UI Bundler] Failed to fetch CSS asset ${asset} (${response.status})`);
