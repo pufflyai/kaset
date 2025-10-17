@@ -1,7 +1,6 @@
-import React, { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
-import { compile, registerSources, type CompileResult } from "@pstdio/tiny-ui-bundler";
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useRef } from "react";
+import { compile, type CompileResult } from "@pstdio/tiny-ui-bundler";
 import { getRuntimeHtmlPath } from "../constant";
-import { createIframeOps, type CreateIframeOpsOptions } from "../runtime/createIframeOps";
 import { createTinyUITimer } from "./createTinyUITimer";
 import { TinyUIStatus } from "./types";
 import { useComms } from "./useComms";
@@ -9,20 +8,24 @@ import { useCompile, useServiceWorker } from "./useServiceWorker";
 
 const DEFAULT_ESBUILD_WASM_URL = "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm";
 
+export type TinyUIActionHandler = (
+  method: string,
+  params?: Record<string, unknown> | undefined,
+) => unknown | Promise<unknown>;
+
 export interface TinyUIProps {
   title?: string;
   instanceId: string;
   sourceId?: string;
   skipCache?: boolean;
-  root: string;
-  serviceWorkerUrl: string;
+  serviceWorkerUrl?: string;
   autoCompile?: boolean;
   runtimeUrl?: string;
   onStatusChange?(s: TinyUIStatus): void;
   onReady?(r: CompileResult): void;
   onError?(e: Error): void;
   style?: React.CSSProperties;
-  bridge?: CreateIframeOpsOptions;
+  onActionCall?: TinyUIActionHandler;
 }
 
 export interface TinyUIHandle {
@@ -35,7 +38,6 @@ export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(prop
     title = "TinyUI",
     sourceId = instanceId,
     skipCache = false,
-    root,
     serviceWorkerUrl,
     runtimeUrl,
     autoCompile = true,
@@ -43,28 +45,39 @@ export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(prop
     onReady,
     onError,
     style,
-    bridge,
+    onActionCall,
   } = props;
 
   const resultRef = useRef<CompileResult | null>(null);
   const { iframeRef, getHost } = useComms({ id: instanceId, onReady, onError, resultRef, onStatusChange });
+  const actionHandlerRef = useRef<TinyUIActionHandler | undefined>(onActionCall);
+
+  useEffect(() => {
+    actionHandlerRef.current = onActionCall ?? undefined;
+  }, [onActionCall]);
+
+  const ensureHost = useCallback(async () => {
+    const host = await getHost();
+
+    host.onOps(async (request) => {
+      const handler = actionHandlerRef.current;
+
+      if (!handler) {
+        throw new Error(`Tiny UI host cannot handle request for method '${request.method}'`);
+      }
+
+      return handler(request.method, request.params);
+    });
+
+    return host;
+  }, [getHost]);
 
   const compileAndInit = useCallback(
     async (forceRecompile: boolean) => {
       const timing = createTinyUITimer(`${sourceId}:${forceRecompile ? "rebuild" : "init"}`);
 
       try {
-        await timing.withTiming("registerSources", () => {
-          registerSources([{ id: sourceId, root }]);
-        });
-
-        const host = await timing.withTiming("getHost", () => getHost());
-
-        if (bridge) {
-          await timing.withTiming("registerBridgeOps", () => {
-            host.onOps(createIframeOps(bridge));
-          });
-        }
+        const host = await timing.withTiming("getHost", () => ensureHost());
 
         let statusSet = false;
         const shouldSkipCache = forceRecompile || skipCache;
@@ -90,7 +103,7 @@ export const TinyUI = forwardRef<TinyUIHandle, TinyUIProps>(function TinyUI(prop
         timing.mark?.("total");
       }
     },
-    [bridge, sourceId, getHost, onStatusChange, root, skipCache],
+    [ensureHost, sourceId, onStatusChange, skipCache],
   );
 
   const runInitialCompile = useCallback(() => compileAndInit(false), [compileAndInit]);

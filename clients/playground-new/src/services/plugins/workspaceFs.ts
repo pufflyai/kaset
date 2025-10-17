@@ -1,11 +1,14 @@
 import { createScopedFs, joinUnderWorkspace } from "@pstdio/opfs-utils";
-import type { WorkspaceFs } from "./types";
+
+export interface WorkspaceFs {
+  readFile(path: string): Promise<Uint8Array>;
+}
 
 interface CreateWorkspaceFsOptions {
   root: string;
 }
 
-function normalizeRoot(root: string) {
+function normalizeWorkspaceRoot(root: string) {
   return root.replace(/^\/+/, "").replace(/\/+$/, "");
 }
 
@@ -17,7 +20,7 @@ function normalizeWorkspacePath(path: string) {
 
 export function createWorkspaceFs(rootOrOptions: CreateWorkspaceFsOptions | string): WorkspaceFs {
   const root = typeof rootOrOptions === "string" ? rootOrOptions : rootOrOptions.root;
-  const normalizedRoot = normalizeRoot(root);
+  const normalizedRoot = normalizeWorkspaceRoot(root);
   const fs = createScopedFs(normalizedRoot);
 
   return {

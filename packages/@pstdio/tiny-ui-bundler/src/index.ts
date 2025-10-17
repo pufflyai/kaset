@@ -26,3 +26,5 @@ export { resolveBasePath, setBasePath, resetBasePath, getBasePath } from "./core
 export { getLockfile, getStats, resetStats, setLockfile } from "./core/idb";
 
 export { buildImportMap, type ImportMap, type Lockfile } from "./core/import-map";
+
+export { CACHE_NAME, getRuntimeHtmlPath, getVirtualPrefix, getManifestUrl } from "./constants";

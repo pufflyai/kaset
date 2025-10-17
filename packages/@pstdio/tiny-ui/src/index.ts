@@ -1,19 +1,8 @@
 export { TinyUI } from "./react/tiny-ui";
-
-export type { TinyUIHandle, TinyUIProps } from "./react/tiny-ui";
-
+export type { TinyUIActionHandler, TinyUIHandle, TinyUIProps } from "./react/tiny-ui";
 export type { TinyUIStatus } from "./react/types";
-
 export { CACHE_NAME, getManifestUrl, getRuntimeHtmlPath, getVirtualPrefix } from "./constant";
-
 export { loadSnapshot } from "@pstdio/tiny-ui-bundler/opfs";
-
-export { createTinyHost } from "./comms/host";
-
-export { createIframeOps } from "./runtime/createIframeOps";
-
-export { createWorkspaceFs } from "./runtime/createWorkspaceFs";
-
-export type { CreateIframeOpsOptions } from "./runtime/createIframeOps";
-
-export type { TinyFsDirSnapshot, TinyFsEntry, TinyUiOpsRequest, TinyUiOpsHandler, WorkspaceFs } from "./runtime/types";
+export { getLockfile, getStats, resetStats, setLockfile } from "@pstdio/tiny-ui-bundler";
+export { createTinyHost } from "./runtime/host";
+export type { TinyUiOpsHandler, TinyUiOpsRequest } from "./types";

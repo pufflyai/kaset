@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { CACHE_NAME } from "../src/constant";
-import { setLockfile } from "../src/core/idb";
 import type { CompileResult } from "../src/esbuild/types";
 import { TinyUI, type TinyUIHandle, type TinyUIProps } from "../src/react/tiny-ui";
 import { TinyUIStatus } from "../src/react/types";
@@ -58,6 +58,7 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
     setStatus("initializing");
     setMessage("Loading vanilla sources into OPFS...");
 
+    registerSources([{ id: SOURCE_ID, root: STORY_ROOT, entry: ENTRY_PATH }]);
     ensureSnapshotReady(STORY_ROOT)
       .then(() => {
         if (cancelled) return;
@@ -140,6 +141,11 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
     }
   }, []);
 
+  const handleActionCall = useCallback(async (method: string, params?: Record<string, unknown>) => {
+    console.warn("[TinyUI Story] Unhandled host request", { method, params });
+    throw new Error(`Story host does not implement '${method}'`);
+  }, []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 480 }}>
       <div style={{ display: "flex", gap: 8 }}>
@@ -153,14 +159,15 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
       {initialized ? (
         <TinyUI
           ref={uiRef}
-          root={STORY_ROOT}
-          id={SOURCE_ID}
+          instanceId={SOURCE_ID}
+          sourceId={SOURCE_ID}
           autoCompile={autoCompile}
           serviceWorkerUrl={serviceWorkerUrl}
           {...runtimeOverrides}
           onStatusChange={handleStatusChange}
           onReady={handleReady}
           onError={handleError}
+          onActionCall={handleActionCall}
           style={{
             height: 320,
           }}

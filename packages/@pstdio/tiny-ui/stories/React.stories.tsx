@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { CACHE_NAME } from "../src/constant";
-import { setLockfile } from "../src/core/idb";
 import type { CompileResult } from "../src/esbuild/types";
 import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
 import { TinyUIStatus } from "../src/react/types";
@@ -105,6 +105,7 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
       };
     }
 
+    registerSources([{ id: bundleId, root: sourceRoot, entry: definition.entry }]);
     compileStartedAtRef.current = null;
     setInitialized(false);
     setStatus("initializing");
@@ -127,7 +128,7 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
     return () => {
       cancelled = true;
     };
-  }, [sourceRoot]);
+  }, [bundleId, sourceRoot]);
 
   const handleStatusChange = useCallback(
     (next: TinyUIStatus) => {
@@ -188,6 +189,11 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
     }
   }, []);
 
+  const handleActionCall = useCallback(async (method: string, params?: Record<string, unknown>) => {
+    console.warn("[TinyUI Story] Unhandled host request", { method, params });
+    throw new Error(`Story host does not implement '${method}'`);
+  }, []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 480 }}>
       <div style={{ display: "flex", gap: 8 }}>
@@ -201,13 +207,14 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
       {initialized ? (
         <TinyUI
           ref={uiRef}
-          root={sourceRoot}
-          id={bundleId}
+          instanceId={bundleId}
+          sourceId={bundleId}
           autoCompile={autoCompile}
           serviceWorkerUrl="/tiny-ui-sw.js"
           onStatusChange={handleStatusChange}
           onReady={handleReady}
           onError={handleError}
+          onActionCall={handleActionCall}
           style={{
             height: 480,
           }}

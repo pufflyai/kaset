@@ -1,13 +1,34 @@
 import { basename, createScopedFs, joinUnderWorkspace, ls, type ScopedFs } from "@pstdio/opfs-utils";
 import { createSettingsAccessor } from "@pstdio/tiny-plugins/src/host/settings";
-import type { TinyFsDirSnapshot, TinyFsEntry, TinyUiOpsHandler, TinyUiOpsRequest, WorkspaceFs } from "./types";
-
+import type { WorkspaceFs } from "./workspaceFs";
 type SettingsValidator = Parameters<typeof createSettingsAccessor>[2];
+interface TinyFsEntry {
+  path: string;
+  name: string;
+  kind: "file" | "directory";
+  depth: number;
+  size?: number;
+  lastModified?: number;
+}
+
+interface TinyFsDirSnapshot {
+  dir: string;
+  entries: TinyFsEntry[];
+  signature: string;
+  generatedAt: number;
+}
+
+export interface TinyUiOpsRequest {
+  method: string;
+  params?: Record<string, unknown>;
+}
+
+export type TinyUiOpsHandler = (request: TinyUiOpsRequest) => Promise<unknown>;
 
 const DATA_ROOT = "data";
 const textDecoder = new TextDecoder();
 
-export interface CreateIframeOpsOptions {
+export interface CreateTinyUiOpsOptions {
   pluginsRoot: string;
   pluginId: string;
   notify?(level: "info" | "warn" | "error", message: string): void;
@@ -24,7 +45,7 @@ function normalizeSegment(value: string) {
 function buildPluginRoot(pluginsRoot: string, pluginId: string) {
   const root = normalizeSegment(pluginsRoot);
   const id = normalizeSegment(pluginId);
-  if (!id) throw new Error("createIframeOps requires a pluginId");
+  if (!id) throw new Error("createTinyUiOpsHandler requires a pluginId");
   return root ? `${root}/${id}` : id;
 }
 
@@ -199,7 +220,41 @@ function normalizeLevel(level: string | undefined): "info" | "warn" | "error" {
   return "info";
 }
 
-export function createIframeOps(options: CreateIframeOpsOptions): TinyUiOpsHandler {
+async function getDirectoryEntries(
+  pluginRoot: string,
+  targetDir: string,
+  detailed: boolean,
+): Promise<{ relativeDir: string; entries: TinyFsEntry[] }> {
+  const normalized = normalizeDataPath(targetDir);
+  const relativeDir = toDataRelative(normalized);
+  const lsPath = joinUnderWorkspace(pluginRoot, normalized);
+  const entries = await ls(lsPath, {
+    maxDepth: 1,
+    stat: detailed,
+    dirsFirst: true,
+    sortBy: "name",
+  });
+  return {
+    relativeDir,
+    entries: entries.map((entry) => createEntryForDir(relativeDir, entry)),
+  };
+}
+
+async function createDirSnapshot(pluginRoot: string, dir: string, allowSnapshots: boolean): Promise<TinyFsDirSnapshot> {
+  if (!allowSnapshots) {
+    throw new Error("Tiny UI host directory snapshots are disabled");
+  }
+
+  const { relativeDir, entries } = await getDirectoryEntries(pluginRoot, dir, true);
+  return {
+    dir: relativeDir,
+    entries,
+    signature: createSnapshotSignature(entries),
+    generatedAt: Date.now(),
+  };
+}
+
+export function createTinyUiOpsHandler(options: CreateTinyUiOpsOptions): TinyUiOpsHandler {
   const pluginRoot = buildPluginRoot(options.pluginsRoot, options.pluginId);
   const pluginFs = createScopedFs(pluginRoot);
   const dataFs = createDataScopedFs(pluginFs);
@@ -207,36 +262,6 @@ export function createIframeOps(options: CreateIframeOpsOptions): TinyUiOpsHandl
   const settings = createSettingsAccessor(dataFs, options.pluginId, options.settingsValidator);
   const workspaceFs = options.workspaceFs;
   const allowSnapshots = options.enableDirSnapshots !== false;
-
-  async function getDirectoryEntries(targetDir: string, detailed: boolean) {
-    const normalized = normalizeDataPath(targetDir);
-    const relativeDir = toDataRelative(normalized);
-    const lsPath = joinUnderWorkspace(pluginRoot, normalized);
-    const entries = await ls(lsPath, {
-      maxDepth: 1,
-      stat: detailed,
-      dirsFirst: true,
-      sortBy: "name",
-    });
-    return {
-      relativeDir,
-      entries: entries.map((entry) => createEntryForDir(relativeDir, entry)),
-    };
-  }
-
-  async function createDirSnapshot(dir: string): Promise<TinyFsDirSnapshot> {
-    if (!allowSnapshots) {
-      throw new Error("Tiny UI host directory snapshots are disabled");
-    }
-
-    const { relativeDir, entries } = await getDirectoryEntries(dir, true);
-    return {
-      dir: relativeDir,
-      entries,
-      signature: createSnapshotSignature(entries),
-      generatedAt: Date.now(),
-    };
-  }
 
   return async function handleOps(request: TinyUiOpsRequest) {
     const method = request.method;
@@ -263,14 +288,14 @@ export function createIframeOps(options: CreateIframeOpsOptions): TinyUiOpsHandl
           request.params && typeof request.params === "object" ? (request.params as Record<string, unknown>) : {};
         const dir = getStringParam(params, "dir", method, false);
         const detailed = params.detailed === true || params.stat === true;
-        const { entries } = await getDirectoryEntries(dir ?? "", detailed);
+        const { entries } = await getDirectoryEntries(pluginRoot, dir ?? "", detailed);
         return entries;
       }
 
       case "fs.dirSnapshot": {
         const params = ensureParams(request.params, method);
         const dir = getStringParam(params, "dir", method, false) ?? "";
-        return createDirSnapshot(dir);
+        return createDirSnapshot(pluginRoot, dir, allowSnapshots);
       }
 
       case "fs.exists": {

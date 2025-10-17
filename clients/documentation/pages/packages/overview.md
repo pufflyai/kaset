@@ -72,7 +72,7 @@ Includes: `task`, `createRuntime`, `MemorySaver`
 
 **Browser-first plugin runtime** — Compile OPFS-backed sources with esbuild-wasm, cache bundles in a service worker, and expose host capabilities to plugin iframes.
 
-Includes: `TinyUI`, `compile`, `loadSourceFiles`, `createTinyHost`, `createIframeOps`
+Includes: `TinyUI`, `compile`, `loadSnapshot`, `createTinyHost`
 
 ---
 

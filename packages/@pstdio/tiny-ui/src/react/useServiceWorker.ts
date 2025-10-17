@@ -3,7 +3,7 @@ import { resetBasePath, setBasePath } from "@pstdio/tiny-ui-bundler";
 import type { TinyUIStatus } from "./types";
 
 interface UseServiceWorkerOptions {
-  serviceWorkerUrl: string;
+  serviceWorkerUrl?: string;
   onError?(error: Error): void;
   onStatusChange?(status: TinyUIStatus): void;
 }
@@ -123,6 +123,12 @@ export function useServiceWorker(options: UseServiceWorkerOptions) {
   const [serviceWorkerReady, setServiceWorkerReady] = useState(false);
 
   useEffect(() => {
+    if (!serviceWorkerUrl) {
+      resetBasePath();
+      setServiceWorkerReady(true);
+      return;
+    }
+
     let cancelled = false;
 
     setServiceWorkerReady(false);

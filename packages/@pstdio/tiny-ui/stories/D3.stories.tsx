@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
+import { registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { CACHE_NAME } from "../src/constant";
-import { setLockfile } from "../src/core/idb";
 import type { CompileResult } from "../src/esbuild/types";
 import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
 import { TinyUIStatus } from "../src/react/types";
@@ -60,6 +60,8 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
     setStatus("initializing");
     setMessage("Loading D3 source files into OPFS...");
 
+    registerSources([{ id: bundleId, root: sourceRoot, entry: ENTRY_PATH }]);
+
     ensureSnapshotReady(sourceRoot)
       .then(() => {
         if (cancelled) return;
@@ -77,7 +79,7 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
     return () => {
       cancelled = true;
     };
-  }, [sourceRoot]);
+  }, [bundleId, sourceRoot]);
 
   const handleStatusChange = useCallback((next: TinyUIStatus) => {
     setStatus(next);
@@ -131,6 +133,11 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
     }
   }, []);
 
+  const handleActionCall = useCallback(async (method: string, params?: Record<string, unknown>) => {
+    console.warn("[TinyUI Story] Unhandled host request", { method, params });
+    throw new Error(`Story host does not implement '${method}'`);
+  }, []);
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 480 }}>
       <div style={{ display: "flex", gap: 8 }}>
@@ -144,13 +151,14 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
       {initialized ? (
         <TinyUI
           ref={uiRef}
-          root={sourceRoot}
-          id={bundleId}
+          instanceId={bundleId}
+          sourceId={bundleId}
           autoCompile={autoCompile}
           serviceWorkerUrl="/tiny-ui-sw.js"
           onStatusChange={handleStatusChange}
           onReady={handleReady}
           onError={handleError}
+          onActionCall={handleActionCall}
           style={{
             width: "100%",
             height: 360,

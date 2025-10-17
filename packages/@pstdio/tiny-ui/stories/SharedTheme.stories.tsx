@@ -3,8 +3,8 @@ import debounce from "lodash.debounce";
 import type { ChangeEvent, CSSProperties } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { CACHE_NAME } from "../src/constant";
-import { setLockfile } from "../src/core/idb";
 import type { CompileResult } from "../src/esbuild/types";
 import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
 import { TinyUIStatus } from "../src/react/types";
@@ -163,6 +163,10 @@ const SharedThemeDemo = () => {
         if (cancelled) return;
 
         if (isFirstSync) {
+          registerSources([
+            { id: SOURCE_ID_A, root: CHAKRA_ROOT_A, entry: ENTRY_PATH },
+            { id: SOURCE_ID_B, root: CHAKRA_ROOT_B, entry: ENTRY_PATH },
+          ]);
           setInitialized(true);
           setStatusA("idle");
           setStatusB("idle");
@@ -247,6 +251,11 @@ const SharedThemeDemo = () => {
     console.log(err);
   }, []);
 
+  const handleActionCall = useCallback(async (method: string, params?: Record<string, unknown>) => {
+    console.warn("[TinyUI Story] Unhandled host request", { method, params });
+    throw new Error(`Story host does not implement '${method}'`);
+  }, []);
+
   const clearCache = useCallback(async () => {
     if (typeof caches === "undefined") return;
     setMessage("Clearing bundle cache...");
@@ -297,24 +306,26 @@ const SharedThemeDemo = () => {
           <>
             <TinyUI
               ref={tinyARef}
-              root={CHAKRA_ROOT_A}
-              id={SOURCE_ID_A}
+              instanceId={SOURCE_ID_A}
+              sourceId={SOURCE_ID_A}
               autoCompile
               serviceWorkerUrl="/tiny-ui-sw.js"
               onStatusChange={onStatusChangeA}
               onReady={onReady}
               onError={onError}
+              onActionCall={handleActionCall}
               style={frameStyle}
             />
             <TinyUI
               ref={tinyBRef}
-              root={CHAKRA_ROOT_B}
-              id={SOURCE_ID_B}
+              instanceId={SOURCE_ID_B}
+              sourceId={SOURCE_ID_B}
               autoCompile
               serviceWorkerUrl="/tiny-ui-sw.js"
               onStatusChange={onStatusChangeB}
               onReady={onReady}
               onError={onError}
+              onActionCall={handleActionCall}
               style={frameStyle}
             />
           </>

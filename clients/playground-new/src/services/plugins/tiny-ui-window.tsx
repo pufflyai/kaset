@@ -3,9 +3,8 @@ import { toaster } from "@/components/ui/toaster";
 import { ROOT } from "@/constant";
 import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
 import { Box, Button, Center, Text } from "@chakra-ui/react";
-import type { TinyUIStatus } from "@pstdio/tiny-ui";
-import { createWorkspaceFs, loadSnapshot, TinyUI, type TinyUiOpsRequest } from "@pstdio/tiny-ui";
-import { getLockfile, setLockfile, unregisterVirtualSnapshot } from "@pstdio/tiny-ui-bundler";
+import { TinyUI, loadSnapshot, type TinyUIActionHandler, type TinyUIStatus } from "@pstdio/tiny-ui";
+import { getLockfile, registerSources, setLockfile, unregisterVirtualSnapshot } from "@pstdio/tiny-ui-bundler";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getMergedPluginDependencies,
@@ -13,6 +12,8 @@ import {
   subscribeToPluginFiles,
   type PluginDesktopWindowDescriptor,
 } from "./plugin-host";
+import { createTinyUiOpsHandler, type TinyUiOpsRequest } from "./tinyUiOps";
+import { createWorkspaceFs } from "./workspaceFs";
 
 type Status = "idle" | "loading" | "ready" | "error";
 
@@ -85,6 +86,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const refreshToken = usePluginFilesRefresh(pluginId);
   const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
   const pluginsRoot = useMemo(() => getPluginsRoot(), []);
+  const sourceId = `${pluginId}:${surfaceId}`;
 
   const handleTinyStatusChange = useCallback((nextStatus: TinyUIStatus) => {
     if (nextStatus === "error") return;
@@ -155,15 +157,21 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   );
 
   const entryPath = pluginWindow.entry;
-  const bridge = useMemo(
-    () => ({
-      pluginId,
-      pluginsRoot,
-      workspaceFs,
-      notify,
-      forwardRequest,
-    }),
+  const opsHandler = useMemo(
+    () =>
+      createTinyUiOpsHandler({
+        pluginId,
+        pluginsRoot,
+        workspaceFs,
+        notify,
+        forwardRequest,
+      }),
     [pluginId, pluginsRoot, workspaceFs, notify, forwardRequest],
+  );
+
+  const handleActionCall = useCallback<TinyUIActionHandler>(
+    (method, params) => opsHandler({ method, params }),
+    [opsHandler],
   );
   const tinyUiStyle = useMemo(
     () => ({
@@ -194,6 +202,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       setError(null);
 
       try {
+        registerSources([{ id: sourceId, root: snapshotRoot }]);
         await loadSnapshot(pluginRoot, `/${entryPath}`);
 
         if (cancelled) return;
@@ -215,7 +224,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       cancelled = true;
       unregisterVirtualSnapshot(snapshotRoot);
     };
-  }, [entryPath, pluginId, pluginsRoot, refreshToken]);
+  }, [entryPath, pluginId, pluginsRoot, refreshToken, sourceId]);
 
   useEffect(() => {
     setTinyStatus("initializing");
@@ -250,8 +259,6 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     );
   }
 
-  // one plugin might have bundled code for multiple surfaces
-  const sourceId = `${pluginId}:${surfaceId}`;
   // we remount the component if the snapshotVersion changes
   // this way if the UI changes we get a fresh iframe and TinyUI instance
   const key = `${pluginId}:${instanceId}:${snapshotVersion}`;
@@ -263,14 +270,13 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         key={key}
         instanceId={instanceId}
         sourceId={sourceId}
-        root={sourceRoot}
         skipCache={refreshToken > 0}
         autoCompile
         serviceWorkerUrl={serviceWorkerUrl}
         runtimeUrl={runtimeUrl}
         onStatusChange={handleTinyStatusChange}
         onError={handleTinyError}
-        bridge={bridge}
+        onActionCall={handleActionCall}
         style={tinyUiStyle}
       />
       <Center

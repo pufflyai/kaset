@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { type CompileResult } from "@pstdio/tiny-ui-bundler";
-import { createTinyHost } from "../comms/host";
+import { createTinyHost } from "../runtime/host";
 import { TinyUIStatus } from "./types";
 
 type HostInstance = Awaited<ReturnType<typeof createTinyHost>>;
