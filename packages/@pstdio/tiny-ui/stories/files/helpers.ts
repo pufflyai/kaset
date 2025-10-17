@@ -1,6 +1,6 @@
 import { writeFile } from "@pstdio/opfs-utils";
 
-import { loadSnapshot } from "../../src/fs/loadSnapshot";
+import { loadSnapshot } from "@pstdio/tiny-ui-bundler/opfs";
 
 type EntryResolver = string | ((root: string) => string);
 type FilesResolver = Record<string, string> | ((root: string) => Record<string, string>);
