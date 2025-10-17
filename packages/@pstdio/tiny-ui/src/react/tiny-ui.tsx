@@ -1,8 +1,6 @@
 import React, { forwardRef, useCallback, useImperativeHandle, useRef } from "react";
+import { compile, registerSources, type CompileResult } from "@pstdio/tiny-ui-bundler";
 import { getRuntimeHtmlPath } from "../constant";
-import { registerSources } from "../core/sources";
-import { compile } from "../esbuild/compile";
-import type { CompileResult } from "../esbuild/types";
 import { createIframeOps, type CreateIframeOpsOptions } from "../runtime/createIframeOps";
 import { createTinyUITimer } from "./createTinyUITimer";
 import { TinyUIStatus } from "./types";

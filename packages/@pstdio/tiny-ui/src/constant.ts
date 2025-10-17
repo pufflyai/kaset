@@ -1,4 +1,4 @@
-import { resolveBasePath } from "./core/base-path";
+import { resolveBasePath } from "@pstdio/tiny-ui-bundler";
 
 export const CACHE_NAME = "tiny-ui-bundles-v1";
 

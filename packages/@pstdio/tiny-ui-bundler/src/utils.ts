@@ -1,4 +1,4 @@
-type Loader = "js" | "jsx" | "ts" | "tsx" | "json" | "css";
+import type { Loader } from "esbuild-wasm";
 
 export const ensureLeadingSlash = (value: string) => (value.startsWith("/") ? value : `/${value}`);
 

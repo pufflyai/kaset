@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { resetBasePath, setBasePath } from "../core/base-path";
+import { resetBasePath, setBasePath } from "@pstdio/tiny-ui-bundler";
 import type { TinyUIStatus } from "./types";
 
 interface UseServiceWorkerOptions {

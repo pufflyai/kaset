@@ -1,17 +1,17 @@
 import * as esbuild from "esbuild-wasm";
 
-import { getVirtualPrefix } from "../constant";
-import { publishBundleToSW } from "../core/cache";
-import { getCachedBundle, setCachedCompileResult } from "../core/cache-manifest";
+import { getVirtualPrefix } from "../constants";
+import { publishBundleToSW } from "../cache/cache";
+import { getCachedBundle, setCachedCompileResult } from "../cache/cache-manifest";
 import { computeHash, computeLockfileHash } from "../core/hash";
 import { getLockfile } from "../core/idb";
-import { getSource } from "../core/sources";
 import { readSnapshot } from "../core/snapshot";
-import { ENTRY_NAME, OUTPUT_DIR } from "./constants";
+import { getSource } from "../core/sources";
+import { ensureLeadingSlash } from "../utils";
+import { ENTRY_NAME, OUTPUT_DIR } from "../constants";
 import { createLockfilePlugin } from "./plugins/lockfile-plugin";
 import { createVirtualFsPlugin } from "./plugins/virtual-fs-plugin";
 import type { BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "./types";
-import { ensureLeadingSlash } from "../utils";
 
 let initializePromise: Promise<void> | null = null;
 
@@ -83,7 +83,6 @@ export const compile = async (id: string, options: BuildWithEsbuildOptions): Pro
 
   const files: SnapshotFileMap = { ...snapshot.files };
   const entry = ensureLeadingSlash(snapshot.entryRelative);
-
   const remotePlugin = createLockfilePlugin(lockfile ?? null);
   const plugins = [createVirtualFsPlugin(files, entry)];
 
@@ -178,14 +177,6 @@ export const compile = async (id: string, options: BuildWithEsbuildOptions): Pro
     lockfileHash,
     fromCache: false,
     bytes: totalBytes,
-    assets: assetPaths,
-  });
-
-  console.info("[Tiny UI compile] result", {
-    id,
-    hash,
-    virtualPrefix: getVirtualPrefix(),
-    url: result.url,
     assets: assetPaths,
   });
 

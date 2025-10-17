@@ -96,9 +96,9 @@ function IndicatorView({ ind }: { ind?: Indicator }) {
   if (ind.type === "icon") {
     const IndicatorIcon = getIconComponent(ind.icon);
     return (
-      <Timeline.Indicator outline="none" shadow="none" border="none" background={"bg"} color={"fg"}>
+      <Timeline.Indicator outline="none" shadow="none" border="none" background={"bg"} color={"foreground.primary"}>
         <Span display="inline-flex" alignItems="center">
-          <IndicatorIcon size={12} />
+          <IndicatorIcon size={14} strokeWidth={1} />
         </Span>
       </Timeline.Indicator>
     );

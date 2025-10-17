@@ -1,8 +1,9 @@
+import { getManifestUrl, getVirtualPrefix } from "../constants";
 import type { CompileResult } from "../esbuild/types";
-import { getManifestUrl, getVirtualPrefix } from "../constant";
 import { openBundleCache } from "./cache";
-import { computeLockfileHash } from "./hash";
-import { getLockfile } from "./idb";
+import { computeLockfileHash } from "../core/hash";
+import { getLockfile } from "../core/idb";
+
 const JSON_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
 };

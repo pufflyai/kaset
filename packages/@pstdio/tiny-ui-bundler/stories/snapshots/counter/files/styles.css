@@ -1,0 +1,11 @@
+:root {
+  --counter-accent: __COLOR__;
+}
+
+body::after {
+  content: __MESSAGE__;
+  color: var(--counter-accent);
+  display: block;
+  font-weight: 600;
+  margin-top: 1rem;
+}

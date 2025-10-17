@@ -1,5 +1,5 @@
 import { joinPath, ls, readFile } from "@pstdio/opfs-utils";
-import { registerVirtualSnapshot, VirtualSnapshot } from "../core/snapshot";
+import { registerVirtualSnapshot, type VirtualSnapshot } from "@pstdio/tiny-ui-bundler";
 
 /**
  * Load all relevant source files from an OPFS folder and register a Tiny UI snapshot.

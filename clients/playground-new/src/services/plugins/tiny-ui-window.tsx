@@ -4,15 +4,8 @@ import { ROOT } from "@/constant";
 import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
 import { Box, Button, Center, Text } from "@chakra-ui/react";
 import type { TinyUIStatus } from "@pstdio/tiny-ui";
-import {
-  createWorkspaceFs,
-  getLockfile,
-  loadSnapshot,
-  setLockfile,
-  TinyUI,
-  unregisterVirtualSnapshot,
-  type TinyUiOpsRequest,
-} from "@pstdio/tiny-ui";
+import { createWorkspaceFs, loadSnapshot, TinyUI, type TinyUiOpsRequest } from "@pstdio/tiny-ui";
+import { getLockfile, setLockfile, unregisterVirtualSnapshot } from "@pstdio/tiny-ui-bundler";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getMergedPluginDependencies,

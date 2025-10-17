@@ -1,4 +1,4 @@
-import { CACHE_NAME, getVirtualPrefix } from "../constant";
+import { CACHE_NAME, getVirtualPrefix } from "../constants";
 
 export const getBundleCacheName = () => CACHE_NAME;
 
@@ -67,7 +67,6 @@ export const getBundleCount = async () => {
       const { pathname } = new URL(request.url);
       return pathname.startsWith(virtualPrefix);
     } catch (error) {
-      console.warn("[Tiny UI cache] Failed to parse request URL", error);
       return false;
     }
   });
