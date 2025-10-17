@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import { CACHE_NAME } from "../src/constant";
+import { CACHE_NAME, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import type { CompileResult } from "../src/esbuild/types";
-import { TinyUI, type TinyUIHandle, type TinyUIProps } from "../src/react/tiny-ui";
-import { TinyUIStatus } from "../src/react/types";
+import { TinyUI } from "../src/react/tiny-ui";
+import { TinyUIStatus } from "../src/types";
+import { setupTinyUI } from "../src/setupTinyUI";
 
 import { createSnapshotInitializer, now } from "./files/helpers";
 import VANILLA_ENTRY_SOURCE from "./files/Vanilla/index.js?raw";
@@ -27,24 +27,28 @@ interface VanillaDemoProps {
 }
 
 const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoProps) => {
-  const uiRef = useRef<TinyUIHandle | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [rebuildKey, setRebuildKey] = useState(0);
 
-  const serviceWorkerUrl = failureMode === "serviceWorker" ? "/tiny-ui-sw-missing.js" : "/tiny-ui-sw.js";
-  const runtimeOverrides: Partial<TinyUIProps> =
-    failureMode === "runtimeMissing"
-      ? {
-          runtimeUrl: `${STORY_ROOT}/missing-runtime.html`,
-        }
-      : {};
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const serviceWorkerUrl = failureMode === "serviceWorker" ? "/tiny-ui-sw-missing.js" : "/tiny-ui-sw.js";
+    const runtimeUrl = failureMode === "runtimeMissing" ? `${STORY_ROOT}/missing-runtime.html` : undefined;
+
+    setupTinyUI({ serviceWorkerUrl, runtimeUrl }).catch((error) => {
+      console.error("[TinyUI Story] Failed to initialize Tiny UI", error);
+    });
+  }, [failureMode]);
+
   const failureExplanation =
     failureMode === "serviceWorker"
       ? "Service worker registration fails because /tiny-ui-sw-missing.js does not exist."
       : failureMode === "runtimeMissing"
-        ? "Runtime HTML caching fails because the runtimeUrl points to a missing HTML file."
+        ? "Runtime HTML caching fails because setupTinyUI points to a missing runtime HTML file."
         : null;
 
   useLayoutEffect(() => {
@@ -116,12 +120,7 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
 
   const handleRebuild = useCallback(() => {
     if (!initialized) return;
-
-    uiRef.current?.rebuild().catch((error) => {
-      const normalized = error instanceof Error ? error : new Error("Failed to rebuild bundle");
-      setStatus("error");
-      setMessage(normalized.message);
-    });
+    setRebuildKey((value) => value + 1);
   }, [initialized]);
 
   const handleClearCache = useCallback(async () => {
@@ -158,12 +157,11 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
       </div>
       {initialized ? (
         <TinyUI
-          ref={uiRef}
+          key={rebuildKey}
           instanceId={SOURCE_ID}
           sourceId={SOURCE_ID}
           autoCompile={autoCompile}
-          serviceWorkerUrl={serviceWorkerUrl}
-          {...runtimeOverrides}
+          skipCache={rebuildKey > 0}
           onStatusChange={handleStatusChange}
           onReady={handleReady}
           onError={handleError}

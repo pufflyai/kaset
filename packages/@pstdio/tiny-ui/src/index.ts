@@ -1,8 +1,13 @@
+export { getLockfile, getStats, resetStats, setLockfile } from "@pstdio/tiny-ui-bundler";
+export { loadSnapshot } from "@pstdio/tiny-ui-bundler/opfs";
 export { TinyUI } from "./react/tiny-ui";
 export type { TinyUIActionHandler, TinyUIHandle, TinyUIProps } from "./react/tiny-ui";
-export type { TinyUIStatus } from "./react/types";
-export { CACHE_NAME, getManifestUrl, getRuntimeHtmlPath, getVirtualPrefix } from "./constant";
-export { loadSnapshot } from "@pstdio/tiny-ui-bundler/opfs";
-export { getLockfile, getStats, resetStats, setLockfile } from "@pstdio/tiny-ui-bundler";
-export { createTinyHost } from "./runtime/host";
+export { TinyUIProvider, useTinyUIServiceWorker } from "./react/tiny-ui-provider";
 export type { TinyUiOpsHandler, TinyUiOpsRequest } from "./types";
+export type { TinyUIStatus } from "./types";
+export type { TinyUIActionHandler, TinyUIProps } from "./react/tiny-ui";
+export { CACHE_NAME, getManifestUrl, getRuntimeHtmlPath, getVirtualPrefix } from "@pstdio/tiny-ui-bundler";
+export { createTinyHost } from "./runtime/host";
+export { compile, getLockfile, getStats, resetStats, setLockfile } from "@pstdio/tiny-ui-bundler";
+export { getTinyUIRuntimePath, setupServiceWorker, setupTinyUI } from "./setupTinyUI";
+export type { SetupServiceWorkerOptions, SetupTinyUIOptions } from "./setupTinyUI";

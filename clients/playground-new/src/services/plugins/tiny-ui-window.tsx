@@ -3,7 +3,7 @@ import { toaster } from "@/components/ui/toaster";
 import { ROOT } from "@/constant";
 import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
 import { Box, Button, Center, Text } from "@chakra-ui/react";
-import { TinyUI, loadSnapshot, type TinyUIActionHandler, type TinyUIStatus } from "@pstdio/tiny-ui";
+import { TinyUI, loadSnapshot, setupTinyUI, type TinyUIActionHandler, type TinyUIStatus } from "@pstdio/tiny-ui";
 import { getLockfile, registerSources, setLockfile, unregisterVirtualSnapshot } from "@pstdio/tiny-ui-bundler";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -87,6 +87,17 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
   const pluginsRoot = useMemo(() => getPluginsRoot(), []);
   const sourceId = `${pluginId}:${surfaceId}`;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setupTinyUI({ serviceWorkerUrl, runtimeUrl }).catch((reason) => {
+      const message =
+        reason instanceof Error ? reason.message : "Tiny UI service worker failed to initialize for this window.";
+      console.error("[tiny-ui-window] Failed to initialize Tiny UI", reason);
+      setError(message);
+      setStatus("error");
+    });
+  }, []);
 
   const handleTinyStatusChange = useCallback((nextStatus: TinyUIStatus) => {
     if (nextStatus === "error") return;
@@ -272,8 +283,6 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         sourceId={sourceId}
         skipCache={refreshToken > 0}
         autoCompile
-        serviceWorkerUrl={serviceWorkerUrl}
-        runtimeUrl={runtimeUrl}
         onStatusChange={handleTinyStatusChange}
         onError={handleTinyError}
         onActionCall={handleActionCall}

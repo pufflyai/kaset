@@ -1,6 +1,5 @@
 import { host } from "rimless";
-import { buildImportMap, getLockfile, type CompileResult } from "@pstdio/tiny-ui-bundler";
-import { getVirtualPrefix } from "../constant";
+import { buildImportMap, getLockfile, getVirtualPrefix, type CompileResult } from "@pstdio/tiny-ui-bundler";
 import type { TinyUiOpsHandler, TinyUiOpsRequest } from "../types";
 
 export interface HostAPI {

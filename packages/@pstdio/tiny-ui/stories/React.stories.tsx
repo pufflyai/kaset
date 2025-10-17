@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import { CACHE_NAME } from "../src/constant";
+import { CACHE_NAME, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import type { CompileResult } from "../src/esbuild/types";
-import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
-import { TinyUIStatus } from "../src/react/types";
+import { TinyUI } from "../src/react/tiny-ui";
+import { TinyUIStatus } from "../src/types";
+import { setupTinyUI } from "../src/setupTinyUI";
 
 import { createSnapshotInitializer, now } from "./files/helpers";
 import REACT_ENTRY_SOURCE from "./files/React/index.tsx?raw";
@@ -79,17 +79,24 @@ interface ReactDemoProps {
 }
 
 const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE_ID }: ReactDemoProps) => {
-  const uiRef = useRef<TinyUIHandle | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [rebuildKey, setRebuildKey] = useState(0);
 
   const snapshot = SNAPSHOT_DEFINITIONS[sourceRoot];
   const label = snapshot?.label ?? "Tiny UI workspace";
 
   useLayoutEffect(() => {
     setLockfile(LOCKFILE);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setupTinyUI({ serviceWorkerUrl: "/tiny-ui-sw.js" }).catch((error) => {
+      console.error("[TinyUI Story] Failed to initialize Tiny UI", error);
+    });
   }, []);
 
   useEffect(() => {
@@ -164,12 +171,7 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
 
   const handleRebuild = useCallback(() => {
     if (!initialized) return;
-
-    uiRef.current?.rebuild().catch((error) => {
-      const normalized = error instanceof Error ? error : new Error("Failed to rebuild bundle");
-      setStatus("error");
-      setMessage(normalized.message);
-    });
+    setRebuildKey((value) => value + 1);
   }, [initialized]);
 
   const handleClearCache = useCallback(async () => {
@@ -206,11 +208,11 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
       </div>
       {initialized ? (
         <TinyUI
-          ref={uiRef}
+          key={rebuildKey}
           instanceId={bundleId}
           sourceId={bundleId}
           autoCompile={autoCompile}
-          serviceWorkerUrl="/tiny-ui-sw.js"
+          skipCache={rebuildKey > 0}
           onStatusChange={handleStatusChange}
           onReady={handleReady}
           onError={handleError}

@@ -3,11 +3,11 @@ import debounce from "lodash.debounce";
 import type { ChangeEvent, CSSProperties } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import { CACHE_NAME } from "../src/constant";
+import { CACHE_NAME, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import type { CompileResult } from "../src/esbuild/types";
-import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
-import { TinyUIStatus } from "../src/react/types";
+import { TinyUI } from "../src/react/tiny-ui";
+import { TinyUIStatus } from "../src/types";
+import { setupTinyUI } from "../src/setupTinyUI";
 
 import { now, normalizeRoot, writeSnapshotFiles } from "./files/helpers";
 import CHAKRA_ENTRY_SOURCE from "./files/SharedTheme/index.tsx?raw";
@@ -111,12 +111,19 @@ const SharedThemeDemo = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const startedAtRef = useRef<number | null>(null);
-  const tinyARef = useRef<TinyUIHandle | null>(null);
-  const tinyBRef = useRef<TinyUIHandle | null>(null);
+  const [rebuildKeyA, setRebuildKeyA] = useState(0);
+  const [rebuildKeyB, setRebuildKeyB] = useState(0);
   const firstSyncRef = useRef(true);
 
   useLayoutEffect(() => {
     setLockfile(LOCKFILE);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setupTinyUI({ serviceWorkerUrl: "/tiny-ui-sw.js" }).catch((error) => {
+      console.error("[TinyUI Story] Failed to initialize Tiny UI", error);
+    });
   }, []);
 
   const setTokenValue = useMemo(
@@ -175,19 +182,10 @@ const SharedThemeDemo = () => {
         }
 
         setMessage("Shared theme tokens updated. Rebuilding...");
-
-        const rebuild = (handle: TinyUIHandle | null, setStatus: (next: TinyUIStatus) => void) => {
-          if (!handle) return;
-
-          handle.rebuild().catch((error) => {
-            const normalized = error instanceof Error ? error : new Error("Failed to rebuild Tiny UI instance.");
-            setStatus("error");
-            setMessage(normalized.message);
-          });
-        };
-
-        rebuild(tinyARef.current, setStatusA);
-        rebuild(tinyBRef.current, setStatusB);
+        setStatusA("compiling");
+        setStatusB("compiling");
+        setRebuildKeyA((value) => value + 1);
+        setRebuildKeyB((value) => value + 1);
       })
       .catch((cause) => {
         if (cancelled) return;
@@ -305,11 +303,11 @@ const SharedThemeDemo = () => {
         {initialized ? (
           <>
             <TinyUI
-              ref={tinyARef}
+              key={`tinyui-a-${rebuildKeyA}`}
               instanceId={SOURCE_ID_A}
               sourceId={SOURCE_ID_A}
               autoCompile
-              serviceWorkerUrl="/tiny-ui-sw.js"
+              skipCache={rebuildKeyA > 0}
               onStatusChange={onStatusChangeA}
               onReady={onReady}
               onError={onError}
@@ -317,11 +315,11 @@ const SharedThemeDemo = () => {
               style={frameStyle}
             />
             <TinyUI
-              ref={tinyBRef}
+              key={`tinyui-b-${rebuildKeyB}`}
               instanceId={SOURCE_ID_B}
               sourceId={SOURCE_ID_B}
               autoCompile
-              serviceWorkerUrl="/tiny-ui-sw.js"
+              skipCache={rebuildKeyB > 0}
               onStatusChange={onStatusChangeB}
               onReady={onReady}
               onError={onError}
