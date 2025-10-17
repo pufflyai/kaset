@@ -1,7 +1,19 @@
 import { getIconComponent, type IconName } from "@/utils/getIcon";
-import { Avatar, Box, Button, Card, Timeline as ChakraTimeline, Input, Span, Stack, Text } from "@chakra-ui/react";
+import {
+  Avatar,
+  Box,
+  Button,
+  Card,
+  Timeline as ChakraTimeline,
+  Input,
+  Link,
+  Span,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
 import { ChevronUpIcon } from "lucide-react";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { CodeEditor } from "./code-editor";
 import { DiffBubble } from "./diff-bubble";
 import { DiffEditor } from "./diff-editor";
@@ -29,7 +41,8 @@ export type Indicator =
 export type TitleSegment =
   | { kind: "text"; text: string; bold?: boolean; muted?: boolean }
   | { kind: "avatar"; src: string; alt?: string }
-  | { kind: "diff"; fileName: string; filePath?: string; additions?: number; deletions?: number };
+  | { kind: "diff"; fileName: string; filePath?: string; additions?: number; deletions?: number }
+  | { kind: "link"; text: string; href?: string; filePath?: string; bold?: boolean; muted?: boolean };
 
 export type Block =
   | { type: "comment"; text: string; reactions?: { clap?: number } }
@@ -40,7 +53,8 @@ export type Block =
   | {
       type: "references";
       references: Array<string>;
-    };
+    }
+  | { type: "component"; render: (ctx: { onOpenFile?: (filePath: string) => void }) => ReactNode };
 
 function TitleInline({
   seg,
@@ -73,6 +87,32 @@ function TitleInline({
           onOpenFile?.(path);
         }}
       />
+    );
+  }
+
+  if (seg.kind === "link") {
+    const fontWeight = seg.bold ? "medium" : undefined;
+    return (
+      <Link
+        href={seg.href ?? "#"}
+        fontWeight={fontWeight}
+        color={seg.muted ? "foreground.secondary" : "accent.primary"}
+        textDecoration="underline"
+        onClick={(event) => {
+          if (!seg.href) {
+            event.preventDefault();
+          }
+          if (seg.filePath) {
+            onOpenFile?.(seg.filePath);
+          }
+        }}
+        _hover={{
+          color: seg.muted ? "foreground.secondary" : "accent.primary",
+          textDecoration: "underline",
+        }}
+      >
+        {seg.text}
+      </Link>
     );
   }
 
@@ -114,7 +154,7 @@ function IndicatorView({ ind }: { ind?: Indicator }) {
   );
 }
 
-function BlockView({ b }: { b: Block }) {
+function BlockView({ b, onOpenFile }: { b: Block; onOpenFile?: (filePath: string) => void }) {
   switch (b.type) {
     case "comment":
       return (
@@ -167,6 +207,8 @@ function BlockView({ b }: { b: Block }) {
           })}
         </Stack>
       );
+    case "component":
+      return <>{b.render({ onOpenFile })}</>;
   }
 }
 
@@ -239,7 +281,7 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
                     >
                       {it.blocks!.map((b, i) => (
                         <Box key={i}>
-                          <BlockView b={b} />
+                          <BlockView b={b} onOpenFile={onOpenFile} />
                         </Box>
                       ))}
                     </Box>
