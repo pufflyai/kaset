@@ -1,6 +1,6 @@
-import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import type { Block, TitleSegment } from "@/components/ui/timeline";
-import { OpfsLsBlock, OpfsReadFileBlock, OpfsWriteFileBlock } from "../ConversationArea/OpfsToolBlocks";
+import type { ToolInvocation } from "@pstdio/kas/kas-ui";
+import { OpfsLsBlock, OpfsWriteFileBlock } from "../ConversationArea/OpfsToolBlocks";
 
 interface RenderResult {
   title: TitleSegment[];
@@ -73,7 +73,7 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
 
       return {
         title: [
-          { kind: "text", text: "Explore files in" },
+          { kind: "text", text: "Explored files in" },
           { kind: "text", text: pathLabel, bold: true },
         ],
         blocks: [
@@ -96,7 +96,6 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
         | undefined;
       const filePath = ensureString(input?.file) || ensureString(output?.file) || "";
       const fileName = filePath ? extractFileName(filePath) : "(unknown)";
-      const content = ensureStringOrEmpty(output?.llmContent);
 
       return {
         title: [
@@ -106,13 +105,7 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
         blocks: [
           {
             type: "component",
-            render: () => (
-              <OpfsReadFileBlock
-                summary={ensureString(output?.returnDisplay)}
-                content={content}
-                truncated={Boolean(output?.isTruncated)}
-              />
-            ),
+            render: () => null,
           },
         ],
         expandable: false,
@@ -129,7 +122,7 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
 
       return {
         title: [
-          { kind: "text", text: "Write file" },
+          { kind: "text", text: "Wrote file" },
           { kind: "link", text: fileName, filePath: filePath || undefined, href: undefined, variant: "bubble" },
         ],
         blocks: [

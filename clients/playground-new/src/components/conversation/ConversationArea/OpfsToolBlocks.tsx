@@ -1,6 +1,6 @@
-import { Card, Stack, Text } from "@chakra-ui/react";
 import { DiffEditor } from "@/components/ui/diff-editor";
 import { ResourceBadge } from "@/components/ui/resource-badge";
+import { Card, Stack, Text } from "@chakra-ui/react";
 
 export interface OpfsLsBlockProps {
   entries: Array<{ path: string; kind: "file" | "directory" }>;
@@ -13,7 +13,7 @@ export function OpfsLsBlock(props: OpfsLsBlockProps) {
 
   return (
     <Card.Root background="transparent" borderColor="border.subtle">
-      <Card.Body padding="sm">
+      <Card.Body padding="0">
         <Stack gap="2xs">
           {hasEntries ? (
             entries.map((entry) => {
@@ -32,38 +32,6 @@ export function OpfsLsBlock(props: OpfsLsBlockProps) {
   );
 }
 
-export interface OpfsReadFileBlockProps {
-  summary?: string;
-  content: string;
-  truncated?: boolean;
-}
-
-export function OpfsReadFileBlock(props: OpfsReadFileBlockProps) {
-  const { content, summary, truncated } = props;
-
-  return (
-    <Stack gap="xs">
-      {summary ? (
-        <Text textStyle="label/S/regular" color="foreground.secondary">
-          {summary}
-        </Text>
-      ) : null}
-      <Card.Root minH="160px" overflow="hidden">
-        <Card.Body padding="sm">
-          <Text as="pre" margin="0" textStyle="body/S/regular" whiteSpace="pre-wrap" wordBreak="break-word">
-            {content}
-          </Text>
-        </Card.Body>
-      </Card.Root>
-      {truncated ? (
-        <Text textStyle="label/XS/regular" color="foreground.secondary">
-          Content truncated. Use opfs_read_file with pagination to view more.
-        </Text>
-      ) : null}
-    </Stack>
-  );
-}
-
 export interface OpfsWriteFileBlockProps {
   originalContent: string;
   newContent: string;
@@ -74,7 +42,7 @@ export function OpfsWriteFileBlock(props: OpfsWriteFileBlockProps) {
   const { language, newContent, originalContent } = props;
 
   return (
-    <Card.Root minH="160px" overflow="hidden">
+    <Card.Root height="160px" overflow="hidden">
       <Card.Body padding="0">
         <DiffEditor
           original={originalContent}

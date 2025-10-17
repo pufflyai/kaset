@@ -285,11 +285,11 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
                   onClick={canExpand ? () => toggle(key) : undefined}
                 >
                   <Span display="inline-flex" alignItems="center" gap="sm" flexWrap={"wrap"}>
-                    {it.title.map((seg, i) => (
-                      <Span key={i} display="inline-flex" alignItems="center">
-                        <TitleInline seg={seg} isClickable={canExpand} onOpenFile={onOpenFile} />
-                      </Span>
-                    ))}
+                    <Span display="inline-flex" alignItems="center" gap="xs" flexWrap={"wrap"}>
+                      {it.title.map((seg, i) => (
+                        <TitleInline key={i} seg={seg} isClickable={canExpand} onOpenFile={onOpenFile} />
+                      ))}
+                    </Span>
                     {canExpand ? (
                       <Span
                         display="inline-flex"
@@ -306,36 +306,26 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
                 </Timeline.Title>
               )}
               {hasBlocks ? (
-                canExpand ? (
-                  <Box
-                    display="grid"
-                    gridTemplateRows={isOpen ? "1fr" : "0fr"}
-                    transition="grid-template-rows 220ms ease"
-                  >
-                    {isOpen ? (
-                      <Box
-                        overflow="hidden"
-                        opacity={1}
-                        transform="translateY(0)"
-                        transition="opacity 200ms ease, transform 200ms ease"
-                      >
-                        {it.blocks!.map((b, i) => (
-                          <Box key={i}>
-                            <BlockView b={b} onOpenFile={onOpenFile} />
-                          </Box>
-                        ))}
-                      </Box>
-                    ) : null}
-                  </Box>
-                ) : (
-                  <Box mt="xs">
-                    {it.blocks!.map((b, i) => (
-                      <Box key={i}>
-                        <BlockView b={b} onOpenFile={onOpenFile} />
-                      </Box>
-                    ))}
-                  </Box>
-                )
+                <Box
+                  display="grid"
+                  gridTemplateRows={isOpen ? "1fr" : "0fr"}
+                  transition="grid-template-rows 220ms ease"
+                >
+                  {isOpen ? (
+                    <Box
+                      overflow="hidden"
+                      opacity={1}
+                      transform="translateY(0)"
+                      transition="opacity 200ms ease, transform 200ms ease"
+                    >
+                      {it.blocks!.map((b, i) => (
+                        <Box key={i}>
+                          <BlockView b={b} onOpenFile={onOpenFile} />
+                        </Box>
+                      ))}
+                    </Box>
+                  ) : null}
+                </Box>
               ) : null}
             </Timeline.Content>
           </Timeline.Item>
