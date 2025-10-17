@@ -1,4 +1,5 @@
-import { registerSources } from "@pstdio/tiny-ui-bundler";
+import { registerSources } from "../core/sources";
+
 import { loadSnapshot } from "./loadSnapshot";
 
 export async function loadSourceFiles(source: { id: string; root: string; entrypoint: string }) {

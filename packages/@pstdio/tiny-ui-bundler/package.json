@@ -31,6 +31,10 @@
     "./sw": {
       "types": "./dist/sw.d.ts",
       "import": "./dist/sw.js"
+    },
+    "./opfs": {
+      "types": "./dist/opfs/index.d.ts",
+      "import": "./dist/opfs.js"
     }
   },
   "files": [
@@ -41,6 +45,7 @@
   },
   "devDependencies": {},
   "dependencies": {
+    "@pstdio/opfs-utils": "*",
     "esbuild-wasm": "^0.25.10"
   },
   "peerDependencies": {

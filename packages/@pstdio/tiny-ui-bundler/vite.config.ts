@@ -4,14 +4,15 @@ import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 
 const rootDir = __dirname;
-const libraryEntry = path.resolve(rootDir, "src/index.ts");
+const libraryEntries = {
+  index: path.resolve(rootDir, "src/index.ts"),
+  opfs: path.resolve(rootDir, "src/opfs/index.ts"),
+};
 
 export default defineConfig({
   build: {
     lib: {
-      entry: {
-        index: libraryEntry,
-      },
+      entry: libraryEntries,
       name: "tiny-ui-bundler",
       fileName: (_format, entryName) => {
         if (entryName === "index") return "index.js";

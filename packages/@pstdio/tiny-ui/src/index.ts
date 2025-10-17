@@ -6,7 +6,7 @@ export type { TinyUIStatus } from "./react/types";
 
 export { CACHE_NAME, getManifestUrl, getRuntimeHtmlPath, getVirtualPrefix } from "./constant";
 
-export { loadSnapshot } from "./fs/loadSnapshot";
+export { loadSnapshot } from "@pstdio/tiny-ui-bundler/opfs";
 
 export { createTinyHost } from "./comms/host";
 

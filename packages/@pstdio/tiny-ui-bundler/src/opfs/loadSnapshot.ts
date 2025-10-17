@@ -1,5 +1,31 @@
 import { joinPath, ls, readFile } from "@pstdio/opfs-utils";
-import { registerVirtualSnapshot, type VirtualSnapshot } from "@pstdio/tiny-ui-bundler";
+
+import { registerVirtualSnapshot, type VirtualSnapshot } from "../core/snapshot";
+
+const INCLUDE = [
+  "**/*.ts",
+  "**/*.tsx",
+  "**/*.js",
+  "**/*.jsx",
+  "**/*.mjs",
+  "**/*.cjs",
+  "**/*.json",
+  "**/*.css",
+  "**/*.scss",
+  "**/*.sass",
+  "**/*.md",
+];
+
+const EXCLUDE = [
+  "**/node_modules/**",
+  "**/.git/**",
+  "**/.cache/**",
+  "**/dist/**",
+  "**/build/**",
+  "**/.turbo/**",
+  "**/.nx/**",
+  "**/out/**",
+];
 
 /**
  * Load all relevant source files from an OPFS folder and register a Tiny UI snapshot.
@@ -13,30 +39,6 @@ import { registerVirtualSnapshot, type VirtualSnapshot } from "@pstdio/tiny-ui-b
 export async function loadSnapshot(folderName: string, entry: string): Promise<VirtualSnapshot> {
   const relRoot = String(folderName || "").replace(/^\/+/, "");
   const tinyRoot = "/" + relRoot;
-
-  const INCLUDE = [
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.js",
-    "**/*.jsx",
-    "**/*.mjs",
-    "**/*.cjs",
-    "**/*.json",
-    "**/*.css",
-    "**/*.scss",
-    "**/*.sass",
-    "**/*.md",
-  ];
-  const EXCLUDE = [
-    "**/node_modules/**",
-    "**/.git/**",
-    "**/.cache/**",
-    "**/dist/**",
-    "**/build/**",
-    "**/.turbo/**",
-    "**/.nx/**",
-    "**/out/**",
-  ];
 
   const entries = await ls(relRoot, {
     maxDepth: Infinity,
