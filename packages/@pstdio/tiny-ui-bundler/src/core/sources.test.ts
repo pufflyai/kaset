@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { getSource, registerSources, removeSource, updateSource } from "../src/core/sources";
+import { getSource, registerSources, removeSource, updateSource } from "./sources";
 
 describe("sources", () => {
   afterEach(() => {

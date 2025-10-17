@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { publishBundleToSW } from "../src/cache/cache";
-import { clearCachedCompileResult, getCachedBundle, setCachedCompileResult } from "../src/cache/cache-manifest";
-import { computeLockfileHash } from "../src/core/hash";
-import { setLockfile } from "../src/core/idb";
-import { CACHE_NAME, getManifestUrl } from "../src/constants";
+import { publishBundleToSW } from "./cache";
+import { clearCachedCompileResult, getCachedBundle, setCachedCompileResult } from "./cache-manifest";
+import { computeLockfileHash } from "../core/hash";
+import { setLockfile } from "../core/idb";
+import { CACHE_NAME, getManifestUrl } from "../constants";
 
 const SOURCE_ID = "source";
 

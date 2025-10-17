@@ -1,8 +1,9 @@
 import { buildVirtualUrl, getManifestUrl, getVirtualPrefix } from "../constants";
-import type { CompileResult } from "../types";
-import { openBundleCache } from "./cache";
 import { computeLockfileHash } from "../core/hash";
 import { getLockfile } from "../core/idb";
+import { ensureVirtualFetchFallback } from "../runtime/fetch-fallback";
+import type { CompileResult } from "../types";
+import { openBundleCache } from "./cache";
 
 const JSON_HEADERS: Record<string, string> = {
   "Content-Type": "application/json",
@@ -160,6 +161,8 @@ export const getCachedBundle = async (id: string): Promise<CompileResult | null>
     assets: [...entry.assets],
     lockfileHash,
   };
+
+  ensureVirtualFetchFallback();
 
   return result;
 };

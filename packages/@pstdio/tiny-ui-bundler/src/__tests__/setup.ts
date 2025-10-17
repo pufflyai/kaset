@@ -16,7 +16,19 @@ if (typeof globalThis.TextDecoder === "undefined") {
 class MemoryCache implements Cache {
   private readonly store = new Map<string, Response>();
 
-  async match(request: RequestInfo | URL): Promise<Response | undefined> {
+  async add(request: RequestInfo | URL): Promise<void> {
+    const response = await fetch(request);
+    await this.put(request, response);
+  }
+
+  async addAll(requests: RequestInfo[]): Promise<void>;
+  async addAll(requests: Iterable<RequestInfo>): Promise<void>;
+  async addAll(requests: Iterable<RequestInfo>): Promise<void> {
+    const items = Array.isArray(requests) ? requests : Array.from(requests);
+    await Promise.all(items.map((request) => this.add(request)));
+  }
+
+  async match(request: RequestInfo | URL, _options?: CacheQueryOptions): Promise<Response | undefined> {
     const key = this.keyFrom(request);
     const stored = this.store.get(key);
     return stored?.clone();
@@ -27,12 +39,26 @@ class MemoryCache implements Cache {
     this.store.set(key, response.clone());
   }
 
-  async delete(request: RequestInfo | URL): Promise<boolean> {
+  async delete(request: RequestInfo | URL, _options?: CacheQueryOptions): Promise<boolean> {
     const key = this.keyFrom(request);
     return this.store.delete(key);
   }
 
-  async keys(): Promise<Request[]> {
+  async matchAll(request?: RequestInfo | URL, _options?: CacheQueryOptions): Promise<Response[]> {
+    if (typeof request === "undefined") {
+      return Array.from(this.store.values()).map((response) => response.clone());
+    }
+
+    const match = await this.match(request);
+    return match ? [match] : [];
+  }
+
+  async keys(request?: RequestInfo | URL, _options?: CacheQueryOptions): Promise<ReadonlyArray<Request>> {
+    if (request) {
+      const match = await this.match(request);
+      return match ? [new Request(this.toAbsolute(this.keyFrom(request)))] : [];
+    }
+
     return Array.from(this.store.keys()).map((url) => new Request(this.toAbsolute(url)));
   }
 
@@ -79,8 +105,13 @@ class MemoryCaches implements CacheStorage {
     return Array.from(this.caches.keys());
   }
 
-  match(): Promise<Response | undefined> {
-    return Promise.resolve(undefined);
+  async match(request: RequestInfo | URL, options?: MultiCacheQueryOptions): Promise<Response | undefined> {
+    for (const cache of this.caches.values()) {
+      const match = await cache.match(request, options);
+      if (match) return match;
+    }
+
+    return undefined;
   }
 }
 

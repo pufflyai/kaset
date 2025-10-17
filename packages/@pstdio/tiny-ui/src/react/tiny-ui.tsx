@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useRef } from "react";
 import { type CompileResult } from "@pstdio/tiny-ui-bundler";
+import React, { useCallback, useEffect, useRef } from "react";
+import { getTinyUIRuntimePath } from "../setupTinyUI";
 import { TinyUIStatus } from "../types";
 import { useComms } from "./useComms";
-import { TinyUIProvider, useTinyUIServiceWorker } from "./tiny-ui-provider";
 import { useCompile } from "./useCompile";
-import { getTinyUIRuntimePath } from "../setupTinyUI";
+import { useServiceWorkerStatus } from "./useServiceWorkerStatus";
 
 const DEFAULT_ESBUILD_WASM_URL = "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm";
 
@@ -27,17 +27,9 @@ export interface TinyUIProps {
 }
 
 export function TinyUI(props: TinyUIProps) {
-  return (
-    <TinyUIProvider>
-      <TinyUIInner {...props} />
-    </TinyUIProvider>
-  );
-}
-
-function TinyUIInner(props: TinyUIProps) {
   const {
     instanceId,
-    title = "TinyUI",
+    title = "tiny-ui",
     sourceId = instanceId,
     skipCache = false,
     autoCompile = true,
@@ -52,7 +44,11 @@ function TinyUIInner(props: TinyUIProps) {
   const { iframeRef, getHost } = useComms({ id: instanceId, onReady, onError, resultRef, onStatusChange });
   const hostSetupRef = useRef(false);
   const actionHandlerRef = useRef<TinyUIActionHandler | undefined>(onActionCall);
-  const { serviceWorkerReady, status: providerStatus, error: providerError } = useTinyUIServiceWorker();
+  const { serviceWorkerReady, status: providerStatus, error: providerError } = useServiceWorkerStatus();
+
+  const onResult = useCallback((result: CompileResult) => {
+    resultRef.current = result;
+  }, []);
 
   useEffect(() => {
     actionHandlerRef.current = onActionCall ?? undefined;
@@ -96,9 +92,7 @@ function TinyUIInner(props: TinyUIProps) {
     sourceId,
     wasmURL: DEFAULT_ESBUILD_WASM_URL,
     ensureHost,
-    onResult(result) {
-      resultRef.current = result;
-    },
+    onResult,
     onError,
     onStatusChange,
   });

@@ -1,5 +1,5 @@
 import { host } from "rimless";
-import { buildImportMap, getLockfile, getVirtualPrefix, type CompileResult } from "@pstdio/tiny-ui-bundler";
+import { buildImportMap, getLockfile, prepareRuntimeAssets, type CompileResult } from "@pstdio/tiny-ui-bundler";
 import type { TinyUiOpsHandler, TinyUiOpsRequest } from "../types";
 
 export interface HostAPI {
@@ -34,24 +34,25 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
     opsHandler?: TinyUiOpsHandler;
   } = {};
 
+  let assetCleanup: (() => void) | null = null;
+
   async function sendInit(result: CompileResult) {
+    if (assetCleanup) {
+      assetCleanup();
+      assetCleanup = null;
+    }
+
     const lockfile = getLockfile() ?? null;
     const importMap = lockfile ? buildImportMap(lockfile) : undefined;
-    const virtualPrefix = getVirtualPrefix();
-    const styles = (result.assets || []).map((p) => `${virtualPrefix}${result.hash}/${p}`);
-
-    console.info("[Tiny UI host] init result", {
-      url: result.url,
-      virtualPrefix,
-      hash: result.hash,
-      assets: result.assets,
-    });
+    const prepared = await prepareRuntimeAssets(result);
+    assetCleanup = prepared.cleanup;
 
     await conn.remote.init({
       id,
-      moduleUrl: result.url,
+      moduleUrl: prepared.moduleUrl,
       importMap,
-      styles,
+      styles: prepared.styles,
+      inlineStyles: prepared.inlineStyles.length > 0 ? prepared.inlineStyles : undefined,
       entryExport: "mount",
       mountSelector: "#root",
       runtimeOptions: {},
@@ -73,6 +74,10 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
     disconnect() {
       conn.remote.disconnect?.();
       internal.opsHandler = undefined;
+      if (assetCleanup) {
+        assetCleanup();
+        assetCleanup = null;
+      }
     },
   };
 }

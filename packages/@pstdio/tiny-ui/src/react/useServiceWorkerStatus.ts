@@ -1,22 +1,14 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getTinyUISetupState, subscribeToTinyUISetup, toTinyUIError } from "../setupTinyUI";
-import type { TinyUIStatus } from "../types";
+import { TinyUIStatus } from "../types";
 
-interface TinyUIContextValue {
+interface TinyUIServiceWorkerState {
   serviceWorkerReady: boolean;
   status: TinyUIStatus;
   error: Error | null;
 }
 
-const TinyUIContext = createContext<TinyUIContextValue | null>(null);
-
-interface TinyUIProviderProps {
-  children: React.ReactNode;
-}
-
-export function TinyUIProvider(props: TinyUIProviderProps) {
-  const { children } = props;
-
+export function useServiceWorkerStatus(): TinyUIServiceWorkerState {
   const initialSnapshot = getTinyUISetupState();
   const initialStatus = getInitialStatus(initialSnapshot);
 
@@ -37,7 +29,7 @@ export function TinyUIProvider(props: TinyUIProviderProps) {
           setServiceWorkerReady(false);
         }
 
-        if (nextStatus === "ready") {
+        if (nextStatus === "service-worker-ready") {
           setServiceWorkerReady(true);
           setError(null);
         }
@@ -49,7 +41,7 @@ export function TinyUIProvider(props: TinyUIProviderProps) {
         setError(tinyError);
       },
       onReady() {
-        setStatus("ready");
+        setStatus("service-worker-ready");
         setServiceWorkerReady(true);
         setError(null);
       },
@@ -61,38 +53,25 @@ export function TinyUIProvider(props: TinyUIProviderProps) {
       setStatus("error");
       setServiceWorkerReady(false);
       setError(snapshot.error);
-      return () => {
-        unsubscribe();
-      };
-    }
-
-    if (snapshot.ready) {
-      setStatus("ready");
+    } else if (snapshot.ready) {
+      setStatus("service-worker-ready");
       setServiceWorkerReady(true);
       setError(null);
-      return () => {
-        unsubscribe();
-      };
-    }
-
-    if (!snapshot.pending) {
-      console.warn("[Tiny UI] setupTinyUI has not been called before TinyUIProvider mounted");
+    } else if (!snapshot.pending) {
+      console.warn("[Tiny UI] setupTinyUI has not been called before useTinyUIServiceWorker was used");
       setStatus("idle");
       setServiceWorkerReady(false);
-      return () => {
-        unsubscribe();
-      };
+    } else {
+      setStatus("initializing");
+      setServiceWorkerReady(false);
     }
-
-    setStatus("initializing");
-    setServiceWorkerReady(false);
 
     return () => {
       unsubscribe();
     };
   }, []);
 
-  const value = useMemo<TinyUIContextValue>(
+  return useMemo<TinyUIServiceWorkerState>(
     () => ({
       serviceWorkerReady,
       status,
@@ -100,23 +79,11 @@ export function TinyUIProvider(props: TinyUIProviderProps) {
     }),
     [serviceWorkerReady, status, error],
   );
-
-  return <TinyUIContext.Provider value={value}>{children}</TinyUIContext.Provider>;
-}
-
-export function useTinyUIServiceWorker() {
-  const context = useContext(TinyUIContext);
-
-  if (!context) {
-    throw new Error("TinyUIServiceWorker context not found. Wrap your tree with <TinyUIProvider />.");
-  }
-
-  return context;
 }
 
 function getInitialStatus(snapshot: ReturnType<typeof getTinyUISetupState>): TinyUIStatus {
   if (snapshot.error) return "error";
-  if (snapshot.ready) return "ready";
+  if (snapshot.ready) return "service-worker-ready";
   if (snapshot.pending) return "initializing";
   return "idle";
 }

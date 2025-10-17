@@ -1,13 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { CACHE_NAME, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import type { CompileResult } from "../src/esbuild/types";
+import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { TinyUI } from "../src/react/tiny-ui";
 import { TinyUIStatus } from "../src/types";
 import { setupTinyUI } from "../src/setupTinyUI";
 
-import { createSnapshotInitializer, now } from "./files/helpers";
+import { calculateLifecycleTimings, createSnapshotInitializer, formatLifecycleTimings, now } from "./files/helpers";
 import NOTEPAD_ENTRY_SOURCE from "./files/OPFS/index.tsx?raw";
 import NOTEPAD_APP_SOURCE from "./files/OPFS/NotepadApp.tsx?raw";
 
@@ -37,7 +36,9 @@ interface OpfsNotepadDemoProps {
 }
 
 const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
+  const initializingStartedAtRef = useRef<number | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
+  const handshakeStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -62,6 +63,9 @@ const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
     setMessage("Loading OPFS notepad source files into OPFS...");
 
     registerSources([{ id: SOURCE_ID, root: STORY_ROOT, entry: ENTRY_PATH }]);
+    initializingStartedAtRef.current = now();
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     ensureSnapshotReady(STORY_ROOT)
       .then(() => {
         if (cancelled) return;
@@ -85,32 +89,73 @@ const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
 
   const handleStatusChange = useCallback((next: TinyUIStatus) => {
     setStatus(next);
+
+    if (next === "initializing") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
+      compileStartedAtRef.current = null;
+      handshakeStartedAtRef.current = null;
+      setMessage("Loading OPFS notepad source files into OPFS...");
+      return;
+    }
+
+    if (next === "service-worker-ready") {
+      setMessage("Tiny UI service worker ready. Preparing OPFS notepad bundle...");
+      return;
+    }
+
     if (next === "compiling") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
       compileStartedAtRef.current = now();
+      handshakeStartedAtRef.current = null;
       setMessage("Compiling OPFS notepad bundle...");
+      return;
+    }
+
+    if (next === "handshaking") {
+      if (handshakeStartedAtRef.current === null) {
+        handshakeStartedAtRef.current = now();
+      }
+      setMessage("Handshaking with the Tiny UI runtime...");
     }
   }, []);
 
   const handleReady = useCallback((result: CompileResult) => {
-    const startedAt = compileStartedAtRef.current;
+    const completedAt = now();
+    const lifecycleLabel = formatLifecycleTimings(
+      calculateLifecycleTimings({
+        initStart: initializingStartedAtRef.current,
+        compileStart: compileStartedAtRef.current,
+        handshakeStart: handshakeStartedAtRef.current,
+        completedAt,
+      }),
+    );
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
-    const duration = typeof startedAt === "number" ? Math.max(0, Math.round(now() - startedAt)) : null;
-    const timingLabel = duration !== null ? ` in ${duration}ms` : "";
     const cacheLabel = result.fromCache ? " (from cache)" : "";
 
     setStatus("ready");
-    setMessage(`OPFS notepad bundle ready${timingLabel}${cacheLabel}.`);
+    setMessage(`OPFS notepad bundle ready${lifecycleLabel}${cacheLabel}.`);
   }, []);
 
   const handleError = useCallback((error: Error) => {
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setStatus("error");
     setMessage(error.message);
   }, []);
 
   const handleRebuild = useCallback(() => {
     if (!initialized) return;
+    initializingStartedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setRebuildKey((value) => value + 1);
   }, [initialized]);
 
@@ -118,6 +163,8 @@ const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
     if (typeof caches === "undefined") return;
 
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
     try {
       setMessage("Clearing bundle cache...");

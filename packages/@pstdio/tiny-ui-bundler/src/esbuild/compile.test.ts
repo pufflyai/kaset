@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { compile } from "../src/esbuild/compile";
-import { registerSources, removeSource } from "../src/core/sources";
-import { registerVirtualSnapshot, unregisterVirtualSnapshot } from "../src/core/snapshot";
-import { setLockfile } from "../src/core/idb";
-import { getCachedBundle } from "../src/cache/cache-manifest";
-import { CACHE_NAME } from "../src/constants";
+import { compile } from "./compile";
+import { registerSources, removeSource } from "../core/sources";
+import { registerVirtualSnapshot, unregisterVirtualSnapshot } from "../core/snapshot";
+import { setLockfile } from "../core/idb";
+import { getCachedBundle } from "../cache/cache-manifest";
+import { CACHE_NAME } from "../constants";
 
 vi.mock("esbuild-wasm", () => {
   const encoder = new TextEncoder();

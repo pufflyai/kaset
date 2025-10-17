@@ -1,13 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { CACHE_NAME, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import type { CompileResult } from "../src/esbuild/types";
+import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { TinyUI } from "../src/react/tiny-ui";
 import { TinyUIStatus } from "../src/types";
 import { setupTinyUI } from "../src/setupTinyUI";
 
-import { createSnapshotInitializer, now } from "./files/helpers";
+import { calculateLifecycleTimings, createSnapshotInitializer, formatLifecycleTimings, now } from "./files/helpers";
 import REACT_ENTRY_SOURCE from "./files/React/index.tsx?raw";
 import COUNTER_CARD_SOURCE from "./files/React/CounterCard.tsx?raw";
 import ZUSTAND_ENTRY_SOURCE from "./files/React/zustand/index.tsx?raw";
@@ -79,7 +78,9 @@ interface ReactDemoProps {
 }
 
 const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE_ID }: ReactDemoProps) => {
+  const initializingStartedAtRef = useRef<number | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
+  const handshakeStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -113,7 +114,9 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
     }
 
     registerSources([{ id: bundleId, root: sourceRoot, entry: definition.entry }]);
+    initializingStartedAtRef.current = now();
     compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setInitialized(false);
     setStatus("initializing");
     setMessage(`Loading ${definition.label} source files into OPFS...`);
@@ -140,9 +143,37 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
   const handleStatusChange = useCallback(
     (next: TinyUIStatus) => {
       setStatus(next);
+
+      if (next === "initializing") {
+        if (initializingStartedAtRef.current === null) {
+          initializingStartedAtRef.current = now();
+        }
+        compileStartedAtRef.current = null;
+        handshakeStartedAtRef.current = null;
+        setMessage(`Loading ${label} source files into OPFS...`);
+        return;
+      }
+
+      if (next === "service-worker-ready") {
+        setMessage(`Tiny UI service worker ready. Preparing ${label} bundle...`);
+        return;
+      }
+
       if (next === "compiling") {
+        if (initializingStartedAtRef.current === null) {
+          initializingStartedAtRef.current = now();
+        }
         compileStartedAtRef.current = now();
+        handshakeStartedAtRef.current = null;
         setMessage(`Compiling ${label} bundle with esbuild-wasm...`);
+        return;
+      }
+
+      if (next === "handshaking") {
+        if (handshakeStartedAtRef.current === null) {
+          handshakeStartedAtRef.current = now();
+        }
+        setMessage("Handshaking with the Tiny UI runtime...");
       }
     },
     [label],
@@ -150,27 +181,39 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
 
   const handleReady = useCallback(
     (result: CompileResult) => {
-      const startedAt = compileStartedAtRef.current;
+      const completedAt = now();
+      const lifecycleLabel = formatLifecycleTimings(
+        calculateLifecycleTimings({
+          initStart: initializingStartedAtRef.current,
+          compileStart: compileStartedAtRef.current,
+          handshakeStart: handshakeStartedAtRef.current,
+          completedAt,
+        }),
+      );
       compileStartedAtRef.current = null;
-
-      const duration = typeof startedAt === "number" ? Math.max(0, Math.round(now() - startedAt)) : null;
-      const timingLabel = duration !== null ? ` in ${duration}ms` : "";
+      initializingStartedAtRef.current = null;
+      handshakeStartedAtRef.current = null;
       const cacheLabel = result.fromCache ? " (from cache)" : "";
 
       setStatus("ready");
-      setMessage(`${label} bundle ready${timingLabel}${cacheLabel}.`);
+      setMessage(`${label} bundle ready${lifecycleLabel}${cacheLabel}.`);
     },
     [label],
   );
 
   const handleError = useCallback((error: Error) => {
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setStatus("error");
     setMessage(error.message);
   }, []);
 
   const handleRebuild = useCallback(() => {
     if (!initialized) return;
+    initializingStartedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setRebuildKey((value) => value + 1);
   }, [initialized]);
 
@@ -178,6 +221,8 @@ const ReactDemo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOU
     if (typeof caches === "undefined") return;
 
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
     try {
       setMessage("Clearing bundle cache...");

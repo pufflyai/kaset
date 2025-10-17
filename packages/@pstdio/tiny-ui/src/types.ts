@@ -5,4 +5,11 @@ export interface TinyUiOpsRequest {
 
 export type TinyUiOpsHandler = (request: TinyUiOpsRequest) => Promise<unknown>;
 
-export type TinyUIStatus = "idle" | "initializing" | "compiling" | "ready" | "error";
+export type TinyUIStatus =
+  | "idle"
+  | "initializing"
+  | "service-worker-ready"
+  | "compiling"
+  | "handshaking"
+  | "ready"
+  | "error";

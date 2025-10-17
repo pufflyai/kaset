@@ -1,13 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { CACHE_NAME, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import type { CompileResult } from "../src/esbuild/types";
+import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { TinyUI } from "../src/react/tiny-ui";
 import { TinyUIStatus } from "../src/types";
 import { setupTinyUI } from "../src/setupTinyUI";
 
-import { createSnapshotInitializer, now } from "./files/helpers";
+import { calculateLifecycleTimings, createSnapshotInitializer, formatLifecycleTimings, now } from "./files/helpers";
 import VANILLA_ENTRY_SOURCE from "./files/Vanilla/index.js?raw";
 
 const STORY_ROOT = "/stories/tiny-vanilla";
@@ -27,7 +26,9 @@ interface VanillaDemoProps {
 }
 
 const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoProps) => {
+  const initializingStartedAtRef = useRef<number | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
+  const handshakeStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
@@ -63,6 +64,9 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
     setMessage("Loading vanilla sources into OPFS...");
 
     registerSources([{ id: SOURCE_ID, root: STORY_ROOT, entry: ENTRY_PATH }]);
+    initializingStartedAtRef.current = now();
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     ensureSnapshotReady(STORY_ROOT)
       .then(() => {
         if (cancelled) return;
@@ -85,8 +89,28 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
   const handleStatusChange = useCallback(
     (next: TinyUIStatus) => {
       setStatus(next);
+
+      if (next === "initializing") {
+        if (initializingStartedAtRef.current === null) {
+          initializingStartedAtRef.current = now();
+        }
+        compileStartedAtRef.current = null;
+        handshakeStartedAtRef.current = null;
+        setMessage("Loading vanilla sources into OPFS...");
+        return;
+      }
+
+      if (next === "service-worker-ready") {
+        setMessage("Tiny UI service worker ready. Preparing compile...");
+        return;
+      }
+
       if (next === "compiling") {
+        if (initializingStartedAtRef.current === null) {
+          initializingStartedAtRef.current = now();
+        }
         compileStartedAtRef.current = now();
+        handshakeStartedAtRef.current = null;
         if (failureMode === "serviceWorker") {
           setMessage("Attempting to register Tiny UI service worker (expected to fail)...");
           return;
@@ -96,30 +120,52 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
           return;
         }
         setMessage("Compiling bundle with esbuild-wasm...");
+        return;
+      }
+
+      if (next === "handshaking") {
+        if (handshakeStartedAtRef.current === null) {
+          handshakeStartedAtRef.current = now();
+        }
+        setMessage("Handshaking with the Tiny UI runtime...");
       }
     },
     [failureMode],
   );
 
   const handleReady = useCallback((result: CompileResult) => {
-    const startedAt = compileStartedAtRef.current;
+    const completedAt = now();
+    const lifecycleLabel = formatLifecycleTimings(
+      calculateLifecycleTimings({
+        initStart: initializingStartedAtRef.current,
+        compileStart: compileStartedAtRef.current,
+        handshakeStart: handshakeStartedAtRef.current,
+        completedAt,
+      }),
+    );
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
-    const duration = typeof startedAt === "number" ? Math.max(0, Math.round(now() - startedAt)) : null;
-    const timingLabel = duration !== null ? ` in ${duration}ms` : "";
     const cacheLabel = result.fromCache ? " (from cache)" : "";
 
-    setMessage(`Bundle ready${timingLabel}${cacheLabel}.`);
+    setStatus("ready");
+    setMessage(`Bundle ready${lifecycleLabel}${cacheLabel}.`);
   }, []);
 
   const handleError = useCallback((error: Error) => {
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setStatus("error");
     setMessage(error.message);
   }, []);
 
   const handleRebuild = useCallback(() => {
     if (!initialized) return;
+    initializingStartedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setRebuildKey((value) => value + 1);
   }, [initialized]);
 
@@ -127,6 +173,8 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
     if (typeof caches === "undefined") return;
 
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
     try {
       setMessage("Clearing bundle cache...");

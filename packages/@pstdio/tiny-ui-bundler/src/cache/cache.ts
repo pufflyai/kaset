@@ -1,4 +1,5 @@
 import { CACHE_NAME, buildVirtualUrl, getVirtualPrefix } from "../constants";
+import { ensureVirtualFetchFallback } from "../runtime/fetch-fallback";
 
 export const getBundleCacheName = () => CACHE_NAME;
 
@@ -39,6 +40,8 @@ export const publishBundleToSW = async ({ hash, entry, assets }: PublishBundlePa
     const virtualUrl = buildVirtualUrl(hash, asset.path);
     await cache.put(virtualUrl, new Response(asset.source, asset.init));
   }
+
+  ensureVirtualFetchFallback();
 };
 
 export const hasBundle = async (hash: string) => {

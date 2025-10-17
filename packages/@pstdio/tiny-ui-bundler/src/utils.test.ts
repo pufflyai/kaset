@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ensureLeadingSlash, isHttpUrl, joinPath, loaderFromPath } from "../src/utils";
+import { ensureLeadingSlash, isHttpUrl, joinPath, loaderFromPath } from "./utils";
 
 describe("utils", () => {
   it("ensureLeadingSlash", () => {

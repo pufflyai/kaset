@@ -1,17 +1,16 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { CACHE_NAME, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import type { CompileResult } from "../src/esbuild/types";
+import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { TinyUI } from "../src/react/tiny-ui";
-import { TinyUIStatus } from "../src/types";
 import { setupTinyUI } from "../src/setupTinyUI";
+import { TinyUIStatus } from "../src/types";
 
-import { createSnapshotInitializer, now } from "./files/helpers";
-import D3_ENTRY_SOURCE from "./files/D3/index.js?raw";
-import SPIRAL_SOURCE from "./files/D3/animations/createSpiral.js?raw";
 import BARS_SOURCE from "./files/D3/animations/createPulseBars.js?raw";
+import SPIRAL_SOURCE from "./files/D3/animations/createSpiral.js?raw";
 import GRID_SOURCE from "./files/D3/animations/createWaveGrid.js?raw";
+import D3_ENTRY_SOURCE from "./files/D3/index.js?raw";
+import { calculateLifecycleTimings, createSnapshotInitializer, formatLifecycleTimings, now } from "./files/helpers";
 
 const STORY_ROOT = "/stories/tiny-d3";
 const SOURCE_ID = "tiny-ui-d3";
@@ -43,7 +42,9 @@ interface D3DemoProps {
 }
 
 const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE_ID }: D3DemoProps) => {
+  const initializingStartedAtRef = useRef<number | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
+  const handshakeStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>("Loading D3 source files into OPFS...");
   const [initialized, setInitialized] = useState(false);
@@ -68,6 +69,9 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
     setMessage("Loading D3 source files into OPFS...");
 
     registerSources([{ id: bundleId, root: sourceRoot, entry: ENTRY_PATH }]);
+    initializingStartedAtRef.current = now();
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
     ensureSnapshotReady(sourceRoot)
       .then(() => {
@@ -90,31 +94,73 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
 
   const handleStatusChange = useCallback((next: TinyUIStatus) => {
     setStatus(next);
+
+    if (next === "initializing") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
+      compileStartedAtRef.current = null;
+      handshakeStartedAtRef.current = null;
+      setMessage("Loading D3 source files into OPFS...");
+      return;
+    }
+
+    if (next === "service-worker-ready") {
+      setMessage("Tiny UI service worker ready. Preparing D3 bundle...");
+      return;
+    }
+
     if (next === "compiling") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
       compileStartedAtRef.current = now();
+      handshakeStartedAtRef.current = null;
       setMessage("Compiling D3 bundle with esbuild-wasm...");
+      return;
+    }
+
+    if (next === "handshaking") {
+      if (handshakeStartedAtRef.current === null) {
+        handshakeStartedAtRef.current = now();
+      }
+      setMessage("Handshaking with the Tiny UI runtime...");
     }
   }, []);
 
   const handleReady = useCallback((result: CompileResult) => {
-    const startedAt = compileStartedAtRef.current;
+    const completedAt = now();
+    const lifecycleLabel = formatLifecycleTimings(
+      calculateLifecycleTimings({
+        initStart: initializingStartedAtRef.current,
+        compileStart: compileStartedAtRef.current,
+        handshakeStart: handshakeStartedAtRef.current,
+        completedAt,
+      }),
+    );
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
-    const duration = typeof startedAt === "number" ? Math.max(0, Math.round(now() - startedAt)) : null;
-    const timingLabel = duration !== null ? ` in ${duration}ms` : "";
     const cacheLabel = result.fromCache ? " (from cache)" : "";
 
-    setMessage(`D3 animations ready${timingLabel}${cacheLabel}.`);
+    setStatus("ready");
+    setMessage(`D3 animations ready${lifecycleLabel}${cacheLabel}.`);
   }, []);
 
   const handleError = useCallback((error: Error) => {
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setStatus("error");
     setMessage(error.message);
   }, []);
 
   const handleRebuild = useCallback(() => {
     if (!initialized) return;
+    initializingStartedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setRebuildKey((value) => value + 1);
   }, [initialized]);
 
@@ -122,6 +168,8 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
     if (typeof caches === "undefined") return;
 
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
     try {
       setMessage("Clearing bundle cache...");
@@ -216,19 +264,5 @@ type Story = StoryObj<typeof D3Demo>;
 export const Playground: Story = {
   args: {
     autoCompile: true,
-  },
-};
-
-export const ManualCompile: Story = {
-  name: "Manual Compile",
-  args: {
-    autoCompile: false,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: "Disable autoCompile to compile the animations on demand, mirroring production rebuild flows.",
-      },
-    },
   },
 };

@@ -52,6 +52,7 @@ export function useCompile(options: UseCompileOptions) {
 
       onResult?.(result);
 
+      onStatusChange?.("handshaking");
       await host.sendInit(result);
     },
     [ensureHost, onResult, onStatusChange, skipCache, sourceId, wasmURL],

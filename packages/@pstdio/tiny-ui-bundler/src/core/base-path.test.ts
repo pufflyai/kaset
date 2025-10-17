@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { getBasePath, resetBasePath, resolveBasePath, setBasePath } from "../src/core/base-path";
+import { getBasePath, resetBasePath, resolveBasePath, setBasePath } from "./base-path";
 
 describe("base-path", () => {
   beforeEach(() => {

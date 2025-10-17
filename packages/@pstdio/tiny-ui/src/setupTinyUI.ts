@@ -147,7 +147,7 @@ export function setupTinyUI(options: SetupTinyUIOptions = {}) {
         setupState.runtimeUrl = options.runtimeUrl;
       }
       setupState.ready = true;
-      notifyStatus("ready");
+      notifyStatus("service-worker-ready");
       notifyReady();
     } catch (error) {
       const err = toTinyUIError(error);

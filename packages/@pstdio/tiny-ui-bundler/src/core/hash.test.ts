@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeHash, computeLockfileHash, hashText } from "../src/core/hash";
+import { computeHash, computeLockfileHash, hashText } from "./hash";
 
 describe("hash", () => {
   it("produces identical lockfile hashes for order-insensitive inputs", async () => {

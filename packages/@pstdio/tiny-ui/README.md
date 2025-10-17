@@ -160,6 +160,7 @@ function PluginFrame() {
         if (!handler) {
           throw new Error(`Unhandled Tiny UI host method: ${method}`);
         }
+
         return handler(params as Record<string, unknown> | undefined);
       }}
     />
@@ -170,6 +171,7 @@ function PluginFrame() {
 - `instanceId` uniquely identifies the iframe host session (handy when rendering multiple instances).
 - `sourceId` must match the ID you registered via `registerSources` when seeding the snapshot.
 - Use `onActionCall` to forward `remote.ops` requests to your application API. Return a value or promise just like any async function.
+- Call `useTinyUIServiceWorker` anywhere in your tree to read the shared service worker lifecycle (status, readiness, errors).
 
 ### 6. Handle `remote.ops` requests
 
@@ -257,7 +259,7 @@ await host.sendInit(result);
 ### Load OPFS files once, reuse across reloads
 
 ```ts
-import { loadSnapshot, TinyUI, CACHE_NAME, setupTinyUI } from "@pstdio/tiny-ui";
+import { CACHE_NAME, TinyUI, loadSnapshot, setupTinyUI } from "@pstdio/tiny-ui";
 import { registerSources } from "@pstdio/tiny-ui-bundler";
 
 async function bootPlugin() {
@@ -290,7 +292,8 @@ async function invalidateBundles() {
 - `setupServiceWorker(options)` – lower-level helper to register only the service worker.
 - `getTinyUIRuntimePath()` – current runtime iframe URL resolved from `setupTinyUI`.
 - `TinyUI(props)` – React component that compiles snapshots and boots the runtime iframe. Accepts lifecycle callbacks, `autoCompile`, and an `onActionCall` handler for host RPCs.
-- `TinyUIStatus` – status union (`"initializing" | "idle" | "compiling" | "ready" | "error"`).
+- `TinyUIStatus` – status union (`"idle" | "initializing" | "service-worker-ready" | "compiling" | "handshaking" | "ready" | "error"`).
+- `useTinyUIServiceWorker()` – React hook that exposes the shared service worker lifecycle (`status`, `serviceWorkerReady`, and `error`).
 - `registerVirtualSnapshot(root, snapshot)` / `unregisterVirtualSnapshot(root)` – cache the in-memory file tree Tiny UI will compile.
 - `loadSnapshot(folder, entry)` – convenience helper that reads OPFS into a snapshot and registers it.
 - `setLockfile(lockfile)` / `getLockfile()` / `resetStats()` / `getStats()` – manage remote module metadata and runtime counters.

@@ -515,7 +515,7 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
         }
         const entrySource = await entryResponse.text();
 
-        const styleAssets = previewBundle.assets.filter((asset) => asset.endsWith(".css"));
+        const styleAssets = previewBundle.assets.filter((asset: any) => asset.endsWith(".css"));
         const styles: string[] = [];
 
         for (const asset of styleAssets) {

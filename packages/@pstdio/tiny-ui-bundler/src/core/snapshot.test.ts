@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { registerVirtualSnapshot, readSnapshot, unregisterVirtualSnapshot } from "../src/core/snapshot";
-import { registerSources, removeSource } from "../src/core/sources";
+import { registerVirtualSnapshot, readSnapshot, unregisterVirtualSnapshot } from "./snapshot";
+import { registerSources, removeSource } from "./sources";
 
 describe("snapshot", () => {
   const root = "/workspace/project";

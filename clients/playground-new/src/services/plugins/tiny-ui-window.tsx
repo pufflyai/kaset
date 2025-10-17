@@ -47,6 +47,8 @@ const applyLockfile = (dependencies: Record<string, string>) => {
   });
 };
 
+const LOADING_STATUSES: TinyUIStatus[] = ["initializing", "service-worker-ready", "compiling", "handshaking"];
+
 // usePluginFilesRefresh returns a counter that ticks whenever the plugin's files change on disk.
 const usePluginFilesRefresh = (pluginId: string) => {
   const [refreshToken, setRefreshToken] = useState(0);
@@ -273,7 +275,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   // we remount the component if the snapshotVersion changes
   // this way if the UI changes we get a fresh iframe and TinyUI instance
   const key = `${pluginId}:${instanceId}:${snapshotVersion}`;
-  const isLoadingOverlayActive = tinyStatus === "compiling" || tinyStatus === "initializing";
+  const isLoadingOverlayActive = LOADING_STATUSES.includes(tinyStatus);
 
   return (
     <Box height="100%" width="100%" position="relative">

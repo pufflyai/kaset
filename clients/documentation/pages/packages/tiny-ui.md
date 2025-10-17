@@ -132,7 +132,7 @@ Plugins invoke `remote.ops` (for example through `host.actions.*`) whenever they
 ### Core Components
 
 - **`TinyUI(props)`** – React component that compiles snapshots and boots the runtime iframe. Accepts lifecycle callbacks, `autoCompile`, and an `onActionCall` handler for host RPCs.
-- **`TinyUIStatus`** – status union (`"initializing" | "idle" | "compiling" | "ready" | "error"`).
+- **`TinyUIStatus`** – status union (`"idle" | "initializing" | "service-worker-ready" | "compiling" | "handshaking" | "ready" | "error"`).
 
 ### Snapshot Management
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildImportMap } from "../src/core/import-map";
+import { buildImportMap } from "./import-map";
 
 describe("import-map", () => {
   it("mirrors the lockfile entries", () => {

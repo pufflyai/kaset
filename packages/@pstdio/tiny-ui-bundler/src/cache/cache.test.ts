@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { getBundleCount, hasBundle, publishBundleToSW } from "../src/cache/cache";
-import { CACHE_NAME, buildVirtualUrl } from "../src/constants";
+import { getBundleCount, hasBundle, publishBundleToSW } from "./cache";
+import { CACHE_NAME, buildVirtualUrl } from "../constants";
 
 const clearCache = async () => {
   await caches.delete(CACHE_NAME);
