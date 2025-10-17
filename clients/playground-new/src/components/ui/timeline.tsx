@@ -31,6 +31,7 @@ export type Item = {
   indicator?: Indicator;
   title: TitleSegment[];
   blocks?: Block[];
+  expandable?: boolean;
 };
 
 export type Indicator =
@@ -42,7 +43,15 @@ export type TitleSegment =
   | { kind: "text"; text: string; bold?: boolean; muted?: boolean }
   | { kind: "avatar"; src: string; alt?: string }
   | { kind: "diff"; fileName: string; filePath?: string; additions?: number; deletions?: number }
-  | { kind: "link"; text: string; href?: string; filePath?: string; bold?: boolean; muted?: boolean };
+  | {
+      kind: "link";
+      text: string;
+      href?: string;
+      filePath?: string;
+      bold?: boolean;
+      muted?: boolean;
+      variant?: "default" | "bubble";
+    };
 
 export type Block =
   | { type: "comment"; text: string; reactions?: { clap?: number } }
@@ -92,6 +101,35 @@ function TitleInline({
 
   if (seg.kind === "link") {
     const fontWeight = seg.bold ? "medium" : undefined;
+
+    if (seg.variant === "bubble") {
+      const isInteractive = Boolean(seg.href || seg.filePath);
+      return (
+        <Link
+          href={seg.href ?? "#"}
+          fontWeight={fontWeight}
+          color={seg.muted ? "foreground.secondary" : "foreground.secondary"}
+          textDecoration="none"
+          cursor={isInteractive ? "pointer" : "default"}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!seg.href) {
+              event.preventDefault();
+            }
+            if (seg.filePath) {
+              onOpenFile?.(seg.filePath);
+            }
+          }}
+          _hover={{
+            textDecoration: "underline",
+            color: seg.muted ? "foreground.secondary" : "foreground.blue-dark",
+          }}
+        >
+          {seg.text}
+        </Link>
+      );
+    }
+
     return (
       <Link
         href={seg.href ?? "#"}
@@ -226,7 +264,8 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
       {data.items.map((it, idx) => {
         const key = getKey(it, idx);
         const hasBlocks = (it.blocks?.length ?? 0) > 0;
-        const isOpen = expanded[key] ?? false;
+        const canExpand = (it.expandable ?? true) && hasBlocks;
+        const isOpen = canExpand ? (expanded[key] ?? false) : hasBlocks;
 
         return (
           <Timeline.Item gap="xs" key={key}>
@@ -242,16 +281,16 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
                   display="flex"
                   alignItems="center"
                   justifyContent="space-between"
-                  cursor={hasBlocks ? "pointer" : "default"}
-                  onClick={hasBlocks ? () => toggle(key) : undefined}
+                  cursor={canExpand ? "pointer" : "default"}
+                  onClick={canExpand ? () => toggle(key) : undefined}
                 >
                   <Span display="inline-flex" alignItems="center" gap="sm" flexWrap={"wrap"}>
                     {it.title.map((seg, i) => (
                       <Span key={i} display="inline-flex" alignItems="center">
-                        <TitleInline seg={seg} isClickable={hasBlocks} onOpenFile={onOpenFile} />
+                        <TitleInline seg={seg} isClickable={canExpand} onOpenFile={onOpenFile} />
                       </Span>
                     ))}
-                    {hasBlocks ? (
+                    {canExpand ? (
                       <Span
                         display="inline-flex"
                         alignItems="center"
@@ -267,26 +306,36 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
                 </Timeline.Title>
               )}
               {hasBlocks ? (
-                <Box
-                  display="grid"
-                  gridTemplateRows={isOpen ? "1fr" : "0fr"}
-                  transition="grid-template-rows 220ms ease"
-                >
-                  {isOpen ? (
-                    <Box
-                      overflow="hidden"
-                      opacity={1}
-                      transform="translateY(0)"
-                      transition="opacity 200ms ease, transform 200ms ease"
-                    >
-                      {it.blocks!.map((b, i) => (
-                        <Box key={i}>
-                          <BlockView b={b} onOpenFile={onOpenFile} />
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : null}
-                </Box>
+                canExpand ? (
+                  <Box
+                    display="grid"
+                    gridTemplateRows={isOpen ? "1fr" : "0fr"}
+                    transition="grid-template-rows 220ms ease"
+                  >
+                    {isOpen ? (
+                      <Box
+                        overflow="hidden"
+                        opacity={1}
+                        transform="translateY(0)"
+                        transition="opacity 200ms ease, transform 200ms ease"
+                      >
+                        {it.blocks!.map((b, i) => (
+                          <Box key={i}>
+                            <BlockView b={b} onOpenFile={onOpenFile} />
+                          </Box>
+                        ))}
+                      </Box>
+                    ) : null}
+                  </Box>
+                ) : (
+                  <Box mt="xs">
+                    {it.blocks!.map((b, i) => (
+                      <Box key={i}>
+                        <BlockView b={b} onOpenFile={onOpenFile} />
+                      </Box>
+                    ))}
+                  </Box>
+                )
               ) : null}
             </Timeline.Content>
           </Timeline.Item>

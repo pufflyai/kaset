@@ -133,6 +133,7 @@ export function invocationsToTimeline(invocations: ToolInvocation[], opts?: { la
           },
           title: custom.title,
           blocks: custom.blocks,
+          expandable: custom.expandable,
         };
       }
 

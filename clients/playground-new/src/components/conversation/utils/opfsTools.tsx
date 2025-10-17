@@ -5,6 +5,7 @@ import { OpfsLsBlock, OpfsReadFileBlock, OpfsWriteFileBlock } from "../Conversat
 interface RenderResult {
   title: TitleSegment[];
   blocks?: Block[];
+  expandable?: boolean;
 }
 
 const guessLanguageFromPath = (filePath?: string): string | undefined => {
@@ -51,6 +52,12 @@ const ensureStringOrEmpty = (value: unknown): string => {
   }
 };
 
+const extractFileName = (filePath: string): string => {
+  const normalized = filePath.replace(/\\/g, "/");
+  const parts = normalized.split("/");
+  return parts[parts.length - 1] || filePath;
+};
+
 export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null {
   const type = ensureString((invocation as any).type);
   if (!type || (invocation as any).state !== "output-available") {
@@ -88,13 +95,14 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
           }
         | undefined;
       const filePath = ensureString(input?.file) || ensureString(output?.file) || "";
+      const fileName = filePath ? extractFileName(filePath) : "(unknown)";
       const content = ensureStringOrEmpty(output?.llmContent);
       const language = guessLanguageFromPath(filePath);
 
       return {
         title: [
           { kind: "text", text: "Read file" },
-          { kind: "link", text: filePath || "(unknown)", filePath, href: "" },
+          { kind: "link", text: fileName, filePath: filePath || undefined, href: undefined, variant: "bubble" },
         ],
         blocks: [
           {
@@ -109,6 +117,7 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
             ),
           },
         ],
+        expandable: false,
       };
     }
     case "tool-opfs_write_file": {
