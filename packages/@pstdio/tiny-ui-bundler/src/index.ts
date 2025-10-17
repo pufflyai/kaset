@@ -1,5 +1,5 @@
 export { compile } from "./esbuild/compile";
-export type { CompileResult, BuildWithEsbuildOptions } from "./esbuild/types";
+export type { CompileResult, BuildWithEsbuildOptions } from "./types";
 
 export { getCachedBundle, setCachedCompileResult, clearCachedCompileResult } from "./cache/cache-manifest";
 

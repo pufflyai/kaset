@@ -11,7 +11,7 @@ import { ensureLeadingSlash } from "../utils";
 import { ENTRY_NAME, OUTPUT_DIR } from "../constants";
 import { createLockfilePlugin } from "./plugins/lockfile-plugin";
 import { createVirtualFsPlugin } from "./plugins/virtual-fs-plugin";
-import type { BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "./types";
+import type { BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "../types";
 
 let initializePromise: Promise<void> | null = null;
 

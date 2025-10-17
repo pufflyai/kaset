@@ -1,6 +1,5 @@
-import { getStats } from "../src";
 import type { CompileResult } from "../src/esbuild/types";
-import type { AccessibilityCheck } from "./compileScenarioEnvironment";
+import type { AccessibilityCheck, HostedBundle } from "./compileScenarioEnvironment";
 
 export const now = () => {
   if (typeof performance !== "undefined" && typeof performance.now === "function") {
@@ -36,28 +35,26 @@ export type CompileStep = {
   durationMs: number;
 };
 
-export type StatsSnapshot = ReturnType<typeof getStats>;
-
 export type ScenarioState =
   | {
       status: "preparing" | "running";
       steps: CompileStep[];
       cachedBundle: CompileResult | null;
-      stats: StatsSnapshot | null;
+      hostedBundles: HostedBundle[];
       error: null;
     }
   | {
       status: "error";
       steps: CompileStep[];
       cachedBundle: CompileResult | null;
-      stats: StatsSnapshot | null;
+      hostedBundles: HostedBundle[];
       error: string;
     }
   | {
       status: "ready";
       steps: CompileStep[];
       cachedBundle: CompileResult | null;
-      stats: StatsSnapshot | null;
+      hostedBundles: HostedBundle[];
       error: null;
     };
 
@@ -65,6 +62,6 @@ export const INITIAL_STATE: ScenarioState = {
   status: "ready",
   steps: [],
   cachedBundle: null,
-  stats: null,
+  hostedBundles: [],
   error: null,
 };

@@ -66,7 +66,7 @@ export const getBundleCount = async () => {
     try {
       const { pathname } = new URL(request.url);
       return pathname.startsWith(virtualPrefix);
-    } catch (error) {
+    } catch {
       return false;
     }
   });

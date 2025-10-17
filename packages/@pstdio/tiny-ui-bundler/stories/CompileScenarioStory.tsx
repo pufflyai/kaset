@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { compile, getCachedBundle, getStats, setLockfile } from "../src";
+import { compile, getCachedBundle, setLockfile } from "../src";
 import { getVirtualPrefix } from "../src/constants";
 import { registerVirtualSnapshot } from "../src/core/snapshot";
 import { registerSources } from "../src/core/sources";
 import type { BuildWithEsbuildOptions } from "../src/esbuild/types";
+import type { CompileResult } from "../src/esbuild/types";
 
 import esbuildWasmUrl from "esbuild-wasm/esbuild.wasm?url";
 
 import { SCENARIO_DESCRIPTIONS, SCENARIO_LABELS, SCENARIO_RUNNERS, type Scenario } from "./compileScenarioConfig";
 import {
   ensureServiceWorkerRegistered,
+  listHostedBundles,
   resetCompileArtifacts,
   resetServiceWorker,
   verifyBundleAccessibility,
@@ -64,10 +66,251 @@ export interface CompileScenarioProps {
   snapshotId?: SnapshotId;
 }
 
+const createPreviewHtml = (params: { bundle: CompileResult; entrySource: string; styles: string[] }) => {
+  const { bundle, entrySource, styles } = params;
+  if (typeof window === "undefined") return "";
+
+  const baseHref = new URL(".", window.location.href).toString();
+  const moduleSourceJson = JSON.stringify(entrySource);
+  const stylesJson = JSON.stringify(styles);
+
+  return `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <base href="${baseHref}">
+    <style>
+      :root {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: #0f172a;
+      }
+
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #f8fafc;
+      }
+
+      #root {
+        min-height: 200px;
+        background: #ffffff;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+        padding: 16px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .loading {
+        color: #64748b;
+      }
+
+      .error {
+        color: #b91c1c;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" class="loading">Loading bundle ${bundle.hash}…</div>
+    <script type="module">
+      const root = document.getElementById("root");
+      const styleSources = ${stylesJson};
+      const moduleSource = ${moduleSourceJson};
+      const describeFns = ["describeBundle", "describeCounter", "describeLatencyWidget", "describeBundleSummary"];
+      const mountFns = ["mount", "mountLatencyWidget", "render", "boot"];
+
+      const resetRoot = () => {
+        if (!root) return;
+        root.className = "";
+        root.textContent = "";
+      };
+
+      const setStatus = (text, className = "") => {
+        if (!root) return;
+        root.className = className;
+        root.textContent = text;
+      };
+
+      const callWithTarget = async (fn) => {
+        if (typeof fn !== "function") return;
+        if (!root) return fn();
+        try {
+          switch (fn.length) {
+            case 0:
+              return fn();
+            case 1:
+              return fn(root);
+            case 2:
+              return fn(root, {});
+            default:
+              return fn(root);
+          }
+        } catch (error) {
+          throw error;
+        }
+      };
+
+      const injectStyles = (sources) => {
+        if (!Array.isArray(sources) || sources.length === 0) return;
+        for (const css of sources) {
+          if (typeof css !== "string" || !css.trim()) continue;
+          const styleEl = document.createElement("style");
+          styleEl.type = "text/css";
+          styleEl.textContent = css;
+          document.head.appendChild(styleEl);
+        }
+      };
+
+      async function renderBundle() {
+        if (!root) return;
+
+        let moduleUrl;
+
+        try {
+          injectStyles(styleSources);
+
+          const moduleBlob = new Blob([moduleSource], { type: "text/javascript" });
+          moduleUrl = URL.createObjectURL(moduleBlob);
+
+          const mod = await import(moduleUrl);
+          console.info("[Tiny UI Bundler] Preview module", mod);
+
+          for (const name of mountFns) {
+            const candidate = mod?.[name];
+            if (typeof candidate === "function") {
+              resetRoot();
+              const result = await callWithTarget(candidate);
+              if (typeof result === "string") {
+                setStatus(result);
+              } else if (result instanceof HTMLElement) {
+                root.innerHTML = "";
+                root.appendChild(result);
+              } else if (!root.hasChildNodes()) {
+                setStatus(\`Mounted \${name}()\`);
+              }
+              return;
+            }
+          }
+
+          if (typeof mod.init === "function") {
+            resetRoot();
+            const result = await callWithTarget(mod.init);
+            if (typeof result === "string") {
+              setStatus(result);
+            } else if (result instanceof HTMLElement) {
+              root.innerHTML = "";
+              root.appendChild(result);
+            } else if (!root.hasChildNodes()) {
+              setStatus("init() executed.");
+            }
+            return;
+          }
+
+          if (typeof mod.default === "function") {
+            resetRoot();
+            const output = await callWithTarget(mod.default);
+            if (typeof output === "string") {
+              setStatus(output);
+            } else if (output instanceof HTMLElement) {
+              root.innerHTML = "";
+              root.appendChild(output);
+            } else if (!root.hasChildNodes()) {
+              setStatus("Default export executed.");
+            }
+            return;
+          }
+
+          for (const name of describeFns) {
+            const candidate = mod?.[name];
+            if (typeof candidate === "function") {
+              const value = candidate();
+              setStatus(String(value ?? ""));
+              return;
+            }
+          }
+
+          const exportNames = mod ? Object.keys(mod) : [];
+          setStatus(exportNames.length > 0 ? \`Bundle loaded. Exports: \${exportNames.join(", ")}\` : "Bundle executed.");
+        } catch (error) {
+          console.error("[Tiny UI Bundler] Preview failed", error);
+          setStatus("Failed to load bundle: " + (error?.message ?? error), "error");
+        } finally {
+          if (moduleUrl) {
+            try {
+              URL.revokeObjectURL(moduleUrl);
+            } catch (revokeError) {
+              console.warn("[Tiny UI Bundler] Failed to revoke preview module URL", revokeError);
+            }
+          }
+        }
+      }
+
+      renderBundle();
+    </script>
+  </body>
+</html>
+`;
+};
+
+const escapeHtml = (value: string) => value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+const createPreviewErrorHtml = (hash: string, message: string) => `
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        color: #b91c1c;
+      }
+      .box {
+        max-width: 90%;
+        border-radius: 12px;
+        border: 1px solid #fecaca;
+        background: #fee2e2;
+        padding: 16px;
+        text-align: center;
+      }
+      h1 {
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="box">
+      <h1>Failed to preview bundle ${hash}</h1>
+      <p>${escapeHtml(message)}</p>
+    </div>
+  </body>
+</html>
+`;
+
 export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioProps) => {
   const [state, setState] = useState<ScenarioState>(INITIAL_STATE);
   const [runRequest, setRunRequest] = useState<{ id: number; scenario: Scenario } | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [previewDoc, setPreviewDoc] = useState<string | null>(null);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const activeSnapshotId = snapshotId ?? DEFAULT_SNAPSHOT_ID;
 
@@ -84,8 +327,34 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
   );
 
   useEffect(() => {
-    setState(INITIAL_STATE);
+    setState((prev) => ({
+      status: "ready",
+      steps: [],
+      cachedBundle: null,
+      hostedBundles: prev.hostedBundles,
+      error: null,
+    }));
     setRunRequest(null);
+  }, [scenario, activeSnapshotId]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshHostedBundles = async () => {
+      const bundles = await listHostedBundles();
+      if (cancelled) return;
+
+      setState((prev) => ({
+        ...prev,
+        hostedBundles: bundles,
+      }));
+    };
+
+    refreshHostedBundles();
+
+    return () => {
+      cancelled = true;
+    };
   }, [scenario, activeSnapshotId]);
 
   useEffect(() => {
@@ -94,13 +363,13 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
     let cancelled = false;
 
     const setWorkingState = (status: "preparing" | "running") => {
-      setState({
+      setState((prev) => ({
         status,
         steps: [],
         cachedBundle: null,
-        stats: null,
+        hostedBundles: prev.hostedBundles,
         error: null,
-      });
+      }));
     };
 
     const runScenario = async () => {
@@ -148,19 +417,19 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
         if (cancelled) return;
 
         const normalized = error instanceof Error ? error : new Error("Compile failed");
-        setState({
+        setState((prev) => ({
           status: "error",
           steps: [...steps],
           cachedBundle: null,
-          stats: null,
+          hostedBundles: prev.hostedBundles,
           error: normalized.message,
-        });
+        }));
         setRunRequest(null);
         return;
       }
 
       const cachedBundle = await getCachedBundle(SOURCE_ID);
-      const stats = getStats();
+      const hostedBundles = await listHostedBundles();
 
       if (cancelled) return;
 
@@ -168,7 +437,7 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
         status: "ready",
         steps,
         cachedBundle,
-        stats,
+        hostedBundles,
         error: null,
       });
 
@@ -192,12 +461,27 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
     setIsResetting(true);
     setRunRequest(null);
     setState(INITIAL_STATE);
+    setPreviewDoc(null);
+    setPreviewError(null);
+    setPreviewLoading(false);
+
+    let hostedBundles: ScenarioState["hostedBundles"] = [];
 
     try {
       await resetCompileArtifacts();
       await resetServiceWorker();
       await ensureServiceWorkerRegistered();
+      hostedBundles = await listHostedBundles();
+    } catch (error) {
+      console.warn("[Tiny UI Bundler] Failed to reset environment completely", error);
     } finally {
+      setState({
+        status: "ready",
+        steps: [],
+        cachedBundle: null,
+        hostedBundles,
+        error: null,
+      });
       setIsResetting(false);
     }
   }, [isResetting]);
@@ -208,6 +492,71 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
   const averageDurationMs = hasTiming ? totalDurationMs / state.steps.length : 0;
   const fastestDurationMs = hasTiming ? Math.min(...state.steps.map((step) => step.durationMs)) : 0;
   const slowestDurationMs = hasTiming ? Math.max(...state.steps.map((step) => step.durationMs)) : 0;
+  const previewBundle = useMemo(
+    () => state.cachedBundle ?? (state.steps.length > 0 ? state.steps[state.steps.length - 1].result : null),
+    [state.cachedBundle, state.steps],
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    let cancelled = false;
+
+    const preparePreview = async () => {
+      if (!previewBundle) {
+        if (!cancelled) {
+          setPreviewDoc(null);
+          setPreviewError(null);
+          setPreviewLoading(false);
+        }
+        return;
+      }
+
+      setPreviewLoading(true);
+      setPreviewError(null);
+      setPreviewDoc(null);
+
+      try {
+        const entryResponse = await fetch(previewBundle.url, { cache: "no-cache" });
+        if (!entryResponse.ok) {
+          throw new Error(`Entry fetch failed (${entryResponse.status})`);
+        }
+        const entrySource = await entryResponse.text();
+
+        const styleAssets = previewBundle.assets.filter((asset) => asset.endsWith(".css"));
+        const styles: string[] = [];
+
+        for (const asset of styleAssets) {
+          const assetUrl = buildAssetUrl(previewBundle.hash, asset);
+          const response = await fetch(assetUrl, { cache: "no-cache" });
+          if (!response.ok) {
+            console.warn(`[Tiny UI Bundler] Failed to fetch CSS asset ${asset} (${response.status})`);
+            continue;
+          }
+          styles.push(await response.text());
+        }
+
+        if (cancelled) return;
+
+        setPreviewDoc(createPreviewHtml({ bundle: previewBundle, entrySource, styles }));
+        setPreviewError(null);
+      } catch (error) {
+        if (cancelled) return;
+        const message = error instanceof Error ? error.message : String(error);
+        setPreviewError(message);
+        setPreviewDoc(createPreviewErrorHtml(previewBundle.hash, message));
+      } finally {
+        if (!cancelled) {
+          setPreviewLoading(false);
+        }
+      }
+    };
+
+    preparePreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [previewBundle]);
 
   return (
     <div
@@ -323,6 +672,35 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
       </section>
 
       <section style={{ border: "1px solid #cbd5f5", borderRadius: 12, padding: 12 }}>
+        <h4 style={{ margin: "0 0 8px" }}>Bundle preview</h4>
+        {previewBundle ? (
+          previewDoc ? (
+            <iframe
+              key={`${previewBundle.hash}-${previewBundle.fromCache ? "cache" : "fresh"}`}
+              title="Tiny UI bundle preview"
+              srcDoc={previewDoc}
+              sandbox="allow-scripts allow-same-origin"
+              style={{
+                width: "100%",
+                minHeight: 260,
+                border: "1px solid #cbd5f5",
+                borderRadius: 12,
+                background: "#f1f5f9",
+              }}
+            />
+          ) : previewLoading ? (
+            <p style={{ margin: 0 }}>Preparing bundle preview…</p>
+          ) : previewError ? (
+            <p style={{ margin: 0, color: "#b91c1c" }}>Failed to prepare preview: {previewError}</p>
+          ) : (
+            <p style={{ margin: 0 }}>Bundle preview will appear after the compile finishes.</p>
+          )
+        ) : (
+          <p style={{ margin: 0 }}>Run a scenario to preview the compiled bundle.</p>
+        )}
+      </section>
+
+      <section style={{ border: "1px solid #cbd5f5", borderRadius: 12, padding: 12 }}>
         <h4 style={{ margin: "0 0 8px" }}>Cached bundle</h4>
         {state.cachedBundle ? (
           <dl style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: "6px 12px", margin: 0 }}>
@@ -343,26 +721,6 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
           </dl>
         ) : (
           <p style={{ margin: 0 }}>No cached bundle recorded.</p>
-        )}
-      </section>
-
-      <section style={{ border: "1px solid #cbd5f5", borderRadius: 12, padding: 12 }}>
-        <h4 style={{ margin: "0 0 8px" }}>Stats snapshot</h4>
-        {state.stats ? (
-          <pre
-            style={{
-              margin: 0,
-              padding: 12,
-              background: "#0f172a",
-              color: "#e2e8f0",
-              borderRadius: 8,
-              overflowX: "auto",
-            }}
-          >
-            {JSON.stringify(state.stats, null, 2)}
-          </pre>
-        ) : (
-          <p style={{ margin: 0 }}>Stats are unavailable while the scenario runs.</p>
         )}
       </section>
     </div>

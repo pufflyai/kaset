@@ -2,6 +2,7 @@ import { analyticsSnapshot } from "./analyticsSnapshot";
 import { counterSnapshot } from "./counterSnapshot";
 import { defaultSnapshot } from "./defaultSnapshot";
 import { reactD3Snapshot } from "./reactD3Snapshot";
+import { brokenSnapshot } from "./brokenSnapshot";
 import type { SnapshotDefinition } from "./types";
 
 const registry = {
@@ -9,6 +10,7 @@ const registry = {
   [counterSnapshot.id]: counterSnapshot,
   [analyticsSnapshot.id]: analyticsSnapshot,
   [reactD3Snapshot.id]: reactD3Snapshot,
+  [brokenSnapshot.id]: brokenSnapshot,
 } as const satisfies Record<string, SnapshotDefinition>;
 
 export type SnapshotId = keyof typeof registry;

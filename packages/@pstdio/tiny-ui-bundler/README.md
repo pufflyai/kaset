@@ -9,7 +9,7 @@
 
 ## ✨ Why?
 
-- Build Tiny UI bundles entirely in the browser from OPFS or in-memory sources—no backend build step.
+- Build Tiny UI bundles entirely in the browser from in-memory sources — no backend build step.
 - Derive stable bundle hashes from file digests plus the lockfile so cache hits stay deterministic.
 - Publish entry chunks and assets into the Cache API and store a manifest for instant `getCachedBundle` lookups.
 - Keep remote dependencies deterministic with a lockfile-powered resolver while surfacing compile metrics for telemetry.

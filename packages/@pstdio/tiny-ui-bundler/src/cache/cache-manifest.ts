@@ -1,5 +1,5 @@
 import { getManifestUrl, getVirtualPrefix } from "../constants";
-import type { CompileResult } from "../esbuild/types";
+import type { CompileResult } from "../types";
 import { openBundleCache } from "./cache";
 import { computeLockfileHash } from "../core/hash";
 import { getLockfile } from "../core/idb";

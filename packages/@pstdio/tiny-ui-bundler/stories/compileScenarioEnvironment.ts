@@ -1,4 +1,5 @@
 import { clearCachedCompileResult, resetStats, setLockfile } from "../src";
+import { CACHE_NAME, getManifestUrl, getVirtualPrefix } from "../src/constants";
 import type { CompileResult } from "../src/esbuild/types";
 
 import { SOURCE_ID, STORY_ROOT } from "./compileScenarioShared";
@@ -21,6 +22,112 @@ export type AccessibilityCheck =
       status: "error";
       details?: string;
     };
+
+export type HostedBundle = {
+  id: string;
+  hash: string;
+  url: string;
+  bytes: number;
+  lockfileHash: string;
+  updatedAt: number;
+  entryCached: boolean;
+  assets: {
+    path: string;
+    cached: boolean;
+  }[];
+};
+
+type ManifestEntry = {
+  hash: string;
+  url: string;
+  assets: string[];
+  bytes: number;
+  lockfileHash: string;
+  fromCache: boolean;
+  updatedAt: number;
+};
+
+const toAssetUrl = (hash: string, assetPath: string) => {
+  const normalized = assetPath.startsWith("/") ? assetPath.slice(1) : assetPath;
+  return `${getVirtualPrefix()}${hash}/${normalized}`;
+};
+
+export const listHostedBundles = async (): Promise<HostedBundle[]> => {
+  if (typeof window === "undefined") return [];
+  if (!("caches" in globalThis)) return [];
+
+  let cache: Cache | null = null;
+
+  try {
+    cache = await caches.open(CACHE_NAME);
+  } catch (error) {
+    console.warn("[Tiny UI Bundler] Failed to open cache while listing bundles", error);
+    return [];
+  }
+
+  if (!cache) return [];
+
+  let manifestResponse: Response | undefined;
+
+  try {
+    manifestResponse = await cache.match(getManifestUrl());
+  } catch (error) {
+    console.warn("[Tiny UI Bundler] Failed to query manifest while listing bundles", error);
+    return [];
+  }
+
+  if (!manifestResponse) return [];
+
+  let rawManifest: unknown;
+
+  try {
+    rawManifest = await manifestResponse.json();
+  } catch (error) {
+    console.warn("[Tiny UI Bundler] Failed to parse manifest while listing bundles", error);
+    return [];
+  }
+
+  if (!rawManifest || typeof rawManifest !== "object") return [];
+
+  const manifest = rawManifest as Record<string, ManifestEntry>;
+  const bundles: HostedBundle[] = [];
+
+  for (const [id, entry] of Object.entries(manifest)) {
+    if (!entry || typeof entry !== "object") continue;
+
+    try {
+      const hash = typeof entry.hash === "string" ? entry.hash : "";
+      const entryUrl = typeof entry.url === "string" ? entry.url : "";
+      const entryMatch = entryUrl ? await cache.match(entryUrl) : undefined;
+      const assets = await Promise.all(
+        Array.isArray(entry.assets)
+          ? entry.assets.map(async (assetPath) => {
+              const assetMatch = await cache.match(toAssetUrl(hash, assetPath));
+              return {
+                path: assetPath,
+                cached: Boolean(assetMatch),
+              };
+            })
+          : [],
+      );
+
+      bundles.push({
+        id,
+        hash,
+        url: entryUrl,
+        bytes: typeof entry.bytes === "number" ? entry.bytes : 0,
+        lockfileHash: typeof entry.lockfileHash === "string" ? entry.lockfileHash : "",
+        updatedAt: typeof entry.updatedAt === "number" ? entry.updatedAt : 0,
+        entryCached: Boolean(entryMatch),
+        assets,
+      });
+    } catch (error) {
+      console.warn(`[Tiny UI Bundler] Failed to inspect cache entry for ${id}`, error);
+    }
+  }
+
+  return bundles.sort((a, b) => b.updatedAt - a.updatedAt);
+};
 
 export const ensureServiceWorkerRegistered = async () => {
   if (typeof window === "undefined") return null;
