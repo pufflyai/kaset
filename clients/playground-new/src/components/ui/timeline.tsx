@@ -1,7 +1,19 @@
 import { getIconComponent, type IconName } from "@/utils/getIcon";
-import { Avatar, Box, Button, Card, Timeline as ChakraTimeline, Input, Span, Stack, Text } from "@chakra-ui/react";
+import {
+  Avatar,
+  Box,
+  Button,
+  Card,
+  Timeline as ChakraTimeline,
+  Input,
+  Link,
+  Span,
+  Stack,
+  Text,
+} from "@chakra-ui/react";
 import { ChevronUpIcon } from "lucide-react";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { CodeEditor } from "./code-editor";
 import { DiffBubble } from "./diff-bubble";
 import { DiffEditor } from "./diff-editor";
@@ -19,6 +31,7 @@ export type Item = {
   indicator?: Indicator;
   title: TitleSegment[];
   blocks?: Block[];
+  expandable?: boolean;
 };
 
 export type Indicator =
@@ -29,7 +42,16 @@ export type Indicator =
 export type TitleSegment =
   | { kind: "text"; text: string; bold?: boolean; muted?: boolean }
   | { kind: "avatar"; src: string; alt?: string }
-  | { kind: "diff"; fileName: string; filePath?: string; additions?: number; deletions?: number };
+  | { kind: "diff"; fileName: string; filePath?: string; additions?: number; deletions?: number }
+  | {
+      kind: "link";
+      text: string;
+      href?: string;
+      filePath?: string;
+      bold?: boolean;
+      muted?: boolean;
+      variant?: "default" | "bubble";
+    };
 
 export type Block =
   | { type: "comment"; text: string; reactions?: { clap?: number } }
@@ -40,7 +62,8 @@ export type Block =
   | {
       type: "references";
       references: Array<string>;
-    };
+    }
+  | { type: "component"; render: (ctx: { onOpenFile?: (filePath: string) => void }) => ReactNode };
 
 function TitleInline({
   seg,
@@ -73,6 +96,61 @@ function TitleInline({
           onOpenFile?.(path);
         }}
       />
+    );
+  }
+
+  if (seg.kind === "link") {
+    const fontWeight = seg.bold ? "medium" : undefined;
+
+    if (seg.variant === "bubble") {
+      const isInteractive = Boolean(seg.href || seg.filePath);
+      return (
+        <Link
+          href={seg.href ?? "#"}
+          fontWeight={fontWeight}
+          color={seg.muted ? "foreground.secondary" : "foreground.secondary"}
+          textDecoration="none"
+          cursor={isInteractive ? "pointer" : "default"}
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!seg.href) {
+              event.preventDefault();
+            }
+            if (seg.filePath) {
+              onOpenFile?.(seg.filePath);
+            }
+          }}
+          _hover={{
+            textDecoration: "underline",
+            color: seg.muted ? "foreground.secondary" : "foreground.blue-dark",
+          }}
+        >
+          {seg.text}
+        </Link>
+      );
+    }
+
+    return (
+      <Link
+        href={seg.href ?? "#"}
+        fontWeight={fontWeight}
+        color={seg.muted ? "foreground.secondary" : "accent.primary"}
+        textDecoration="underline"
+        onClick={(event) => {
+          if (!seg.href) {
+            event.preventDefault();
+          }
+          if (seg.filePath) {
+            onOpenFile?.(seg.filePath);
+          }
+        }}
+        _hover={{
+          color: seg.muted ? "foreground.secondary" : "accent.primary",
+          textDecoration: "underline",
+        }}
+      >
+        {seg.text}
+      </Link>
     );
   }
 
@@ -114,7 +192,7 @@ function IndicatorView({ ind }: { ind?: Indicator }) {
   );
 }
 
-function BlockView({ b }: { b: Block }) {
+function BlockView({ b, onOpenFile }: { b: Block; onOpenFile?: (filePath: string) => void }) {
   switch (b.type) {
     case "comment":
       return (
@@ -167,6 +245,8 @@ function BlockView({ b }: { b: Block }) {
           })}
         </Stack>
       );
+    case "component":
+      return <>{b.render({ onOpenFile })}</>;
   }
 }
 
@@ -184,7 +264,8 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
       {data.items.map((it, idx) => {
         const key = getKey(it, idx);
         const hasBlocks = (it.blocks?.length ?? 0) > 0;
-        const isOpen = expanded[key] ?? false;
+        const canExpand = (it.expandable ?? true) && hasBlocks;
+        const isOpen = canExpand ? (expanded[key] ?? false) : hasBlocks;
 
         return (
           <Timeline.Item gap="xs" key={key}>
@@ -200,16 +281,16 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
                   display="flex"
                   alignItems="center"
                   justifyContent="space-between"
-                  cursor={hasBlocks ? "pointer" : "default"}
-                  onClick={hasBlocks ? () => toggle(key) : undefined}
+                  cursor={canExpand ? "pointer" : "default"}
+                  onClick={canExpand ? () => toggle(key) : undefined}
                 >
                   <Span display="inline-flex" alignItems="center" gap="sm" flexWrap={"wrap"}>
-                    {it.title.map((seg, i) => (
-                      <Span key={i} display="inline-flex" alignItems="center">
-                        <TitleInline seg={seg} isClickable={hasBlocks} onOpenFile={onOpenFile} />
-                      </Span>
-                    ))}
-                    {hasBlocks ? (
+                    <Span display="inline-flex" alignItems="center" gap="xs" flexWrap={"wrap"}>
+                      {it.title.map((seg, i) => (
+                        <TitleInline key={i} seg={seg} isClickable={canExpand} onOpenFile={onOpenFile} />
+                      ))}
+                    </Span>
+                    {canExpand ? (
                       <Span
                         display="inline-flex"
                         alignItems="center"
@@ -239,7 +320,7 @@ export function TimelineFromJSON({ data, onOpenFile }: { data: TimelineDoc; onOp
                     >
                       {it.blocks!.map((b, i) => (
                         <Box key={i}>
-                          <BlockView b={b} />
+                          <BlockView b={b} onOpenFile={onOpenFile} />
                         </Box>
                       ))}
                     </Box>

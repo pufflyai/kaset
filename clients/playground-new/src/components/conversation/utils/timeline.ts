@@ -2,6 +2,7 @@ import type { TimelineDoc, TitleSegment } from "@/components/ui/timeline";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { buildDiffTitleSegments } from "./diff";
 import { toolTypeToIconName } from "./toolIcon";
+import { renderOpfsTool } from "./opfsTools";
 
 const toJson = (value: any) => {
   try {
@@ -120,6 +121,21 @@ export function invocationsToTimeline(invocations: ToolInvocation[], opts?: { la
     items: invocations.map((inv) => {
       const toolLabel = (inv.type || "tool").replace(/^tool-/, "");
       const isError = (inv as any).state === "output-error";
+
+      const custom = renderOpfsTool(inv);
+      if (custom) {
+        return {
+          id: inv.toolCallId,
+          indicator: {
+            type: "icon" as const,
+            icon: toolTypeToIconName((inv as any).type),
+            color: isError ? "foreground.feedback.alert" : undefined,
+          },
+          title: custom.title,
+          blocks: custom.blocks,
+          expandable: custom.expandable,
+        };
+      }
 
       const diffSegments = buildDiffTitleSegments(inv);
       const blocks: NonNullable<TimelineDoc["items"][number]["blocks"]> = [];
