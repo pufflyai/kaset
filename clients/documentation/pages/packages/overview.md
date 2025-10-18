@@ -54,9 +54,9 @@ Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSum
 
 ### [@pstdio/tiny-plugins](/packages/tiny-plugins)
 
-**Tiny plugin runtime** — Watch OPFS-backed plugins, validate manifests, execute commands, and persist settings with the new `runPluginCommand` API.
+**Tiny plugin runtime** — Watch OPFS-backed plugins, validate manifests, execute commands, and persist settings with the modern `createHost` API.
 
-Includes: `createPluginHost`, `HOST_API_VERSION`, `mergeManifestDependencies`, Tiny AI Tasks adapter
+Includes: `createHost`, `HOST_API_VERSION`, `mergeManifestDependencies`, Tiny AI Tasks adapter
 
 ---
 

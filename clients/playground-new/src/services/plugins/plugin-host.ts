@@ -3,17 +3,20 @@ import { PLUGIN_DATA_ROOT, PLUGIN_ROOT } from "@/constant";
 import type { ChangeRecord } from "@pstdio/opfs-utils";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import {
-  createPluginHost,
+  createHost,
   createToolsForCommands,
   mergeManifestDependencies,
-  type JSONSchema,
+  type CommandDefinition,
   type Manifest,
-  type PluginHost,
+  type PluginChangePayload,
   type PluginMetadata,
-  type RegisteredCommand,
 } from "@pstdio/tiny-plugins";
 
-type HostCommand = RegisteredCommand & { pluginId: string };
+export type JSONSchema = Record<string, unknown>;
+
+type HostCommand = CommandDefinition & { pluginId: string };
+
+type TinyPluginHost = ReturnType<typeof createHost>;
 
 type Dimensions = {
   width: number;
@@ -75,8 +78,8 @@ let pluginsRoot = normalizePluginsRoot(PLUGIN_ROOT);
 const pluginDataRoot = normalizePluginsRoot(PLUGIN_DATA_ROOT);
 let hostGeneration = 0;
 
-let host: PluginHost | null = null;
-let startPromise: Promise<PluginHost> | null = null;
+let host: TinyPluginHost | null = null;
+let startPromise: Promise<TinyPluginHost> | null = null;
 let hostReady = false;
 
 let rawCommands: HostCommand[] = [];
@@ -85,6 +88,7 @@ let pluginTools: Tool[] = [];
 const commandSubscribers = new Set<CommandsListener>();
 const settingsSubscribers = new Set<SettingsListener>();
 const desktopSurfaceSubscribers = new Set<DesktopSurfaceListener>();
+const pluginFileListeners = new Map<string, Set<PluginFilesListener>>();
 
 const pluginSchemas = new Map<string, JSONSchema>();
 const pluginMetadata = new Map<string, PluginMetadata>();
@@ -92,8 +96,16 @@ const pluginDesktopSurfaces = new Map<string, PluginDesktopSurface[]>();
 const pluginDependencies = new Map<string, Record<string, string>>();
 const dependencySubscribers = new Set<(dependencies: Record<string, string>) => void>();
 
-let cachedMergedDependencies: Record<string, string> = {};
-let dependenciesDirty = true;
+let mergedDependencies: Record<string, string> = {};
+
+function updateMergedDependencies() {
+  mergedDependencies = mergeManifestDependencies(
+    Array.from(pluginDependencies.entries()).map(([pluginId, dependencies]) => ({
+      id: pluginId,
+      dependencies,
+    })),
+  );
+}
 
 let hostUnsubscribers: Array<() => void> = [];
 
@@ -155,17 +167,7 @@ function getDesktopSurfaceSnapshot() {
 }
 
 function getMergedDependenciesSnapshot(): Record<string, string> {
-  if (dependenciesDirty) {
-    cachedMergedDependencies = mergeManifestDependencies(
-      Array.from(pluginDependencies.entries()).map(([pluginId, dependencies]) => ({
-        id: pluginId,
-        dependencies,
-      })),
-    );
-    dependenciesDirty = false;
-  }
-
-  return { ...cachedMergedDependencies };
+  return { ...mergedDependencies };
 }
 
 function notifyDesktopSurfaceSubscribers() {
@@ -180,11 +182,28 @@ function notifyDependencySubscribers() {
   dependencySubscribers.forEach((listener) => listener({ ...snapshot }));
 }
 
+function notifyPluginFileListeners(pluginId: string, payload: PluginChangePayload) {
+  const listeners = pluginFileListeners.get(pluginId);
+  if (!listeners || listeners.size === 0) return;
+
+  const changes: ChangeRecord[] = (payload.paths ?? []).map((path) => ({
+    type: "unknown",
+    path: path.split("/").filter(Boolean),
+  }));
+
+  listeners.forEach((listener) => {
+    try {
+      listener({ pluginId, changes });
+    } catch (error) {
+      console.warn(`[plugin-host] Failed to notify file listener for ${pluginId}`, error);
+    }
+  });
+}
+
 function rebuildTools() {
   pluginTools = createToolsForCommands(rawCommands, async (pluginId, commandId, params) => {
     const instance = await ensureHost();
-    const execute = instance.runPluginCommand(pluginId, commandId);
-    await execute(params);
+    await instance.runCommand(pluginId, commandId, params);
   });
 }
 
@@ -318,10 +337,13 @@ function resetPluginsState() {
 
   const hadDependencies = pluginDependencies.size > 0;
   pluginDependencies.clear();
-  cachedMergedDependencies = {};
-  dependenciesDirty = true;
-  if (hadDependencies) {
+  if (hadDependencies || Object.keys(mergedDependencies).length > 0) {
+    mergedDependencies = {};
     notifyDependencySubscribers();
+  }
+
+  if (pluginFileListeners.size > 0) {
+    pluginFileListeners.clear();
   }
 }
 
@@ -387,9 +409,7 @@ function handleManifestUpdate(pluginId: string, manifest: Manifest | null) {
   }
 
   if (dependenciesChanged) {
-    cachedMergedDependencies = {};
-    dependenciesDirty = true;
-    notifyDependencySubscribers();
+    updateMergedDependencies();
   }
 
   const manifestWithUi = (manifest ?? undefined) as ManifestWithUi | undefined;
@@ -410,33 +430,35 @@ function handleManifestUpdate(pluginId: string, manifest: Manifest | null) {
   }
 }
 
-function refreshCommands(instance: PluginHost) {
+function refreshCommands(instance: TinyPluginHost) {
   const commands = instance.listCommands() as HostCommand[];
   rawCommands = commands.map((command) => ({ ...command }));
   rebuildTools();
   notifyCommandSubscribers();
 }
 
-function attachHostSubscriptions(instance: PluginHost, generation: number) {
+function attachHostSubscriptions(instance: TinyPluginHost, generation: number) {
   clearHostSubscriptions();
 
-  const unsubscribePlugins = instance.subscribePlugins((entries) => {
+  const unsubscribePluginChange = instance.onPluginChange((pluginId, payload) => {
     if (generation !== hostGeneration) return;
-    syncPluginMetadata(entries);
+    handleManifestUpdate(pluginId, payload.manifest);
+    syncPluginMetadata(instance.getMetadata());
     refreshCommands(instance);
+    notifyPluginFileListeners(pluginId, payload);
   });
 
-  const unsubscribeManifests = instance.subscribeManifests(({ pluginId, manifest }) => {
+  const unsubscribeDependencies = instance.onDependencyChange(({ deps }) => {
     if (generation !== hostGeneration) return;
-    handleManifestUpdate(pluginId, manifest);
-    refreshCommands(instance);
+    mergedDependencies = { ...deps };
+    notifyDependencySubscribers();
   });
 
-  hostUnsubscribers = [unsubscribePlugins, unsubscribeManifests];
+  hostUnsubscribers = [unsubscribePluginChange, unsubscribeDependencies];
 }
 
-function createHostInstance(): PluginHost {
-  return createPluginHost({
+function createHostInstance(): TinyPluginHost {
+  return createHost({
     root: pluginsRoot,
     dataRoot: pluginDataRoot,
     watch: true,
@@ -447,7 +469,7 @@ function createHostInstance(): PluginHost {
   });
 }
 
-async function disposeHost(instance: PluginHost | null) {
+async function disposeHost(instance: TinyPluginHost | null) {
   if (!instance) return;
   try {
     await instance.stop();
@@ -456,27 +478,17 @@ async function disposeHost(instance: PluginHost | null) {
   }
 }
 
-async function initializeHostState(instance: PluginHost, generation: number) {
-  const metadataList = instance.listPlugins();
+async function initializeHostState(instance: TinyPluginHost, generation: number) {
+  const metadataList = instance.getMetadata();
   if (generation !== hostGeneration) return;
 
   syncPluginMetadata(metadataList);
   refreshCommands(instance);
-
-  const manifestPromises = metadataList.map(async ({ id }) => {
-    try {
-      const manifest = await instance.readPluginManifest(id);
-      if (generation !== hostGeneration) return;
-      handleManifestUpdate(id, manifest);
-    } catch (error) {
-      console.warn(`[plugin-host] Failed to read manifest for ${id}`, error);
-    }
-  });
-
-  await Promise.allSettled(manifestPromises);
+  mergedDependencies = instance.getPluginDependencies();
+  notifyDependencySubscribers();
 }
 
-async function ensureHost(): Promise<PluginHost> {
+async function ensureHost(): Promise<TinyPluginHost> {
   if (host && hostReady) return host;
 
   if (!startPromise) {
@@ -554,7 +566,7 @@ export async function setPluginsRoot(nextRoot: string) {
   await disposeHost(previousHost);
 }
 
-export async function ensurePluginHost(): Promise<PluginHost> {
+export async function ensurePluginHost(): Promise<TinyPluginHost> {
   return ensureHost();
 }
 
@@ -627,48 +639,39 @@ export function subscribeToPluginDependencies(listener: (dependencies: Record<st
 }
 
 export function subscribeToPluginFiles(pluginId: string, listener: PluginFilesListener) {
-  let unsubscribe: (() => void) | null = null;
-  let active = true;
+  let listeners = pluginFileListeners.get(pluginId);
+  if (!listeners) {
+    listeners = new Set();
+    pluginFileListeners.set(pluginId, listeners);
+  }
 
-  const connect = async () => {
-    try {
-      const instance = await ensureHost();
-      if (!active) return;
-      unsubscribe = instance.subscribePluginFiles(pluginId, listener);
-    } catch (error) {
-      console.warn(`[plugin-host] Failed to subscribe to plugin files for ${pluginId}`, error);
-    }
-  };
-
-  void connect();
+  listeners.add(listener);
+  void ensureHost().catch((error) => {
+    console.warn(`[plugin-host] Failed to initialize plugin host for file subscription ${pluginId}`, error);
+  });
 
   return () => {
-    active = false;
-    if (unsubscribe) {
-      try {
-        unsubscribe();
-      } catch (error) {
-        console.warn(`[plugin-host] Failed to unsubscribe from plugin files for ${pluginId}`, error);
-      }
-      unsubscribe = null;
+    const current = pluginFileListeners.get(pluginId);
+    current?.delete(listener);
+    if (current && current.size === 0) {
+      pluginFileListeners.delete(pluginId);
     }
   };
 }
 
 export async function runPluginCommand(pluginId: string, commandId: string, params?: unknown) {
   const instance = await ensureHost();
-  const execute = instance.runPluginCommand(pluginId, commandId);
-  await execute(params);
+  await instance.runCommand(pluginId, commandId, params);
 }
 
 export async function readPluginSettings<T = unknown>(pluginId: string): Promise<T> {
   const instance = await ensureHost();
-  return instance.readPluginSettings<T>(pluginId);
+  return instance.readSettings<T>(pluginId);
 }
 
 export async function writePluginSettings<T = unknown>(pluginId: string, value: T): Promise<void> {
   const instance = await ensureHost();
-  await instance.writePluginSettings(pluginId, value);
+  await instance.updateSettings(pluginId, value);
 }
 
 export function getPluginDisplayName(pluginId: string) {

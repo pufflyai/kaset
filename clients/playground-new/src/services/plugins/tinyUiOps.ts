@@ -1,6 +1,8 @@
 import { basename, createScopedFs, joinUnderWorkspace, ls, type ScopedFs } from "@pstdio/opfs-utils";
-import { createSettingsAccessor } from "@pstdio/tiny-plugins/src/host/settings";
+import { createSettingsAccessor } from "@pstdio/tiny-plugins";
+import type { TinyFsDirSnapshot, TinyFsEntry, TinyUiOpsHandler, TinyUiOpsRequest } from "./types";
 import type { WorkspaceFs } from "./workspaceFs";
+
 type SettingsValidator = Parameters<typeof createSettingsAccessor>[2];
 interface TinyFsEntry {
   path: string;

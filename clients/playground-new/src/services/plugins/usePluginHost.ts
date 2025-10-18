@@ -1,4 +1,3 @@
-import type { JSONSchema } from "@pstdio/tiny-plugins";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import { useEffect, useState } from "react";
 
@@ -14,6 +13,7 @@ import {
   subscribeToPluginCommands,
   subscribeToPluginSettings,
   type PluginCommand,
+  type JSONSchema,
   writePluginSettings,
 } from "./plugin-host";
 

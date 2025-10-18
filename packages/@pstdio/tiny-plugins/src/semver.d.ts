@@ -22,4 +22,5 @@ declare module "semver" {
   export function parse(version: string, options?: SemverParseOptions): SemverVersion | null;
   export function satisfies(version: string, range: string, options?: SemverSatisfiesOptions): boolean;
   export function validRange(range: string, options?: SemverRangeOptions): string | null;
+  export function valid(version: string, options?: SemverParseOptions): string | null;
 }
