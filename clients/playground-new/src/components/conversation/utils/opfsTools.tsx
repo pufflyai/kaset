@@ -1,5 +1,6 @@
 import type { Block, TitleSegment } from "@/components/ui/timeline";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
+import { buildDiffTitleSegments, buildFileDiffPreviews } from "./diff";
 import { OpfsLsBlock, OpfsWriteFileBlock } from "../ConversationArea/OpfsToolBlocks";
 
 interface RenderResult {
@@ -59,6 +60,16 @@ const extractFileName = (filePath: string): string => {
 };
 
 const isPendingState = (state: string) => state === "input-streaming" || state === "input-available";
+
+const toJson = (value: unknown): string => {
+  try {
+    if (value == null) return "";
+    if (typeof value === "string") return value;
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+};
 
 export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null {
   const type = ensureString((invocation as any).type);
@@ -239,6 +250,54 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
             ),
           },
         ],
+      };
+    }
+    case "tool-opfs_patch": {
+      const isError = state === "output-error";
+      const input = (invocation as any).input;
+      const output = (invocation as any).output;
+
+      const diffSegments = buildDiffTitleSegments(invocation);
+      const diffText = ensureString((input as any)?.diff);
+      const previews = buildFileDiffPreviews(diffText);
+
+      const blocks: Block[] = [];
+      for (const preview of previews) {
+        blocks.push({
+          type: "diff",
+          language: guessLanguageFromPath(preview.filePath),
+          original: preview.original,
+          modified: preview.modified,
+          sideBySide: false,
+        });
+      }
+
+      if (blocks.length === 0) {
+        if (input != null) {
+          blocks.push({ type: "code", language: "json", code: toJson(input), editable: false });
+        }
+
+        if (isError && errorText) {
+          blocks.push({ type: "code", language: "text", code: errorText, editable: false });
+        } else if (!isError && output != null) {
+          blocks.push({ type: "code", language: "json", code: toJson(output), editable: false });
+        }
+      }
+
+      const title: TitleSegment[] =
+        diffSegments.length > 0
+          ? diffSegments
+          : [
+              {
+                kind: "text",
+                text: isError ? "Failed to apply patch" : isPendingState(state) ? "Applying patch" : "Applied patch",
+                bold: true,
+              },
+            ];
+
+      return {
+        title,
+        blocks: blocks.length > 0 ? blocks : undefined,
       };
     }
     default:
