@@ -159,6 +159,98 @@ beforeEach(() => {
   lsMock.mockImplementation(async () => Array.from(pluginRegistry.keys()).map((id) => ({ name: id })));
   createObjectURLMock.mockClear();
   revokeObjectURLMock.mockClear();
+  delete (globalThis as { __pluginHistory?: string[] }).__pluginHistory;
+});
+
+describe("createHost plugin reload cleanup", () => {
+  it("deactivates previous plugin before activating replacements", async () => {
+    const moduleSource = (
+      label: string,
+    ) => `const history = globalThis.__pluginHistory ?? (globalThis.__pluginHistory = []);
+export default {
+  activate() {
+    history.push("activate:${label}");
+  },
+  deactivate() {
+    history.push("deactivate:${label}");
+  },
+};
+export const commands = {
+  run() {},
+};
+`;
+
+    const history: string[] = [];
+    (globalThis as { __pluginHistory?: string[] }).__pluginHistory = history;
+
+    pluginRegistry.set("demo", {
+      manifest: {
+        id: "demo",
+        name: "Demo",
+        version: "1.0.0",
+        api: "1.0.0",
+        entry: "index.js",
+        commands: [
+          {
+            id: "run",
+            title: "Run",
+          },
+        ],
+      },
+      files: {
+        "index.js": moduleSource("v1"),
+      },
+    });
+
+    const { createHost } = await hostModulePromise;
+    const host = createHost({ root: "plugins", watch: true, hostApiVersion: "1.0.0" });
+
+    await host.start();
+
+    expect(history).toEqual(["activate:v1"]);
+    expect(host.listCommands().filter((cmd) => cmd.pluginId === "demo")).toHaveLength(1);
+
+    const watcher = pluginWatchers.get("demo");
+    expect(watcher).toBeDefined();
+
+    const updates = [
+      { version: "1.0.1", label: "v2" },
+      { version: "1.0.2", label: "v3" },
+    ];
+
+    const expectedHistory = ["activate:v1"] as string[];
+    let previousLabel = "v1";
+
+    for (const update of updates) {
+      const record = pluginRegistry.get("demo");
+      if (!record) throw new Error("missing plugin record");
+      record.manifest = {
+        ...record.manifest,
+        version: update.version,
+      };
+      record.files["index.js"] = moduleSource(update.label);
+
+      await watcher?.onChange?.([{ path: ["demo", "index.js"], type: "modified", handleKind: "file" }] as Array<{
+        path: string[];
+        type: string;
+        handleKind?: string;
+      }>);
+
+      expectedHistory.push(`deactivate:${previousLabel}`);
+      expectedHistory.push(`activate:${update.label}`);
+      previousLabel = update.label;
+
+      expect(history).toEqual(expectedHistory);
+      expect(host.listCommands().filter((cmd) => cmd.pluginId === "demo")).toHaveLength(1);
+    }
+
+    expect(revokeObjectURLMock).toHaveBeenCalledTimes(updates.length);
+
+    await host.stop();
+
+    expect(history).toEqual([...expectedHistory, `deactivate:${previousLabel}`]);
+    expect(revokeObjectURLMock).toHaveBeenCalledTimes(updates.length + 1);
+  });
 });
 
 describe("createHost watcher cleanup", () => {

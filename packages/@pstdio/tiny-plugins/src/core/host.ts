@@ -152,6 +152,18 @@ export function createHost(options: HostOptions) {
 
   async function loadPlugin(pluginId: string) {
     const prevState = states.get(pluginId);
+
+    const cleanupPrevious = async () => {
+      commands.unregister(pluginId);
+      if (!prevState) return;
+      try {
+        await prevState.plugin?.deactivate?.();
+      } catch (e) {
+        console.warn(`[tiny-plugins] deactivate error for ${pluginId}`, e);
+      }
+      if (prevState.moduleUrl) URL.revokeObjectURL(prevState.moduleUrl);
+    };
+
     const fs = createPluginFs(root, pluginId);
 
     const mres = await readManifestStrict(
@@ -161,6 +173,7 @@ export function createHost(options: HostOptions) {
     );
 
     if (!mres.ok) {
+      await cleanupPrevious();
       const nextState = { manifest: null, watcherCleanup: prevState?.watcherCleanup };
       states.set(pluginId, nextState);
       if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
@@ -179,6 +192,8 @@ export function createHost(options: HostOptions) {
 
     const manifest = mres.manifest;
     const entry = manifest.entry;
+
+    await cleanupPrevious();
 
     const code = new TextDecoder().decode(await fs.readFile(entry));
     const blob = new Blob([code], { type: "text/javascript" });
@@ -204,10 +219,14 @@ export function createHost(options: HostOptions) {
       api: buildHostApi(pluginId),
     };
 
-    await plugin.activate(ctx);
+    try {
+      await plugin.activate(ctx);
+    } catch (e) {
+      URL.revokeObjectURL(url);
+      throw e;
+    }
     commands.register(pluginId, manifest.commands, mod.commands);
 
-    if (prevState?.moduleUrl) URL.revokeObjectURL(prevState.moduleUrl);
     const nextState = {
       manifest,
       moduleUrl: url,
