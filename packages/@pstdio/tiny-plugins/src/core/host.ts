@@ -152,6 +152,17 @@ export function createHost(options: HostOptions) {
 
   async function loadPlugin(pluginId: string) {
     const prevState = states.get(pluginId);
+    const prevWatcherCleanup = prevState?.watcherCleanup;
+
+    if (prevState) {
+      commands.unregister(pluginId);
+      try {
+        await prevState.plugin?.deactivate?.();
+      } catch (e) {
+        console.warn(`[tiny-plugins] deactivate error for ${pluginId}`, e);
+      }
+      if (prevState.moduleUrl) URL.revokeObjectURL(prevState.moduleUrl);
+    }
     const fs = createPluginFs(root, pluginId);
 
     const mres = await readManifestStrict(
@@ -161,7 +172,7 @@ export function createHost(options: HostOptions) {
     );
 
     if (!mres.ok) {
-      const nextState = { manifest: null };
+      const nextState = { manifest: null, watcherCleanup: prevWatcherCleanup };
       states.set(pluginId, nextState);
       if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
       emitStatus(`manifest invalid for ${pluginId}: ${mres.error}`, pluginId, mres.details ?? mres);
@@ -207,8 +218,7 @@ export function createHost(options: HostOptions) {
     await plugin.activate(ctx);
     commands.register(pluginId, manifest.commands, mod.commands);
 
-    if (prevState?.moduleUrl) URL.revokeObjectURL(prevState.moduleUrl);
-    const nextState = { manifest, moduleUrl: url, module: mod, plugin, ctx };
+    const nextState = { manifest, moduleUrl: url, module: mod, plugin, ctx, watcherCleanup: prevWatcherCleanup };
     states.set(pluginId, nextState);
     if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
 
