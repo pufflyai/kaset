@@ -1,9 +1,9 @@
-import type { Message } from "@/types";
+import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { useWorkspaceStore } from "../WorkspaceProvider";
 
 export const appendConversationMessages = (
   conversationId: string,
-  messages: Message[],
+  messages: UIMessage[],
   actionName = "conversations/append/messages",
 ) => {
   if (!conversationId || messages.length === 0) return;

@@ -1,5 +1,6 @@
 import { Tool } from "../tools/Tool";
 import type { ToolResult } from "../tools/createToolTask";
+import type { ToolMessage } from "../utils/messageTypes";
 
 export interface Scratchpad {
   get(): Record<string, any>;
@@ -30,8 +31,13 @@ export function createScratchpadTool(s: Scratchpad) {
       if (op === "set") s.set(patch);
       else if (op === "clear") s.clear();
       else throw new Error("invalid op");
+      const message: ToolMessage = {
+        role: "tool",
+        tool_call_id: toolCall?.id ?? "",
+        content: JSON.stringify({ ok: true }),
+      };
       return {
-        messages: [{ role: "tool" as const, tool_call_id: toolCall?.id ?? "", content: JSON.stringify({ ok: true }) }],
+        messages: [message],
         data: { ok: true },
       };
     },

@@ -2,10 +2,10 @@ import type { Task } from "@pstdio/tiny-tasks";
 import { task } from "../runtime";
 import type { Tool } from "../tools/Tool";
 import { createToolTask } from "../tools/createToolTask";
-import type { AssistantMessage, BaseMessage } from "../utils/messageTypes";
+import type { AssistantMessage, BaseMessage, ToolMessage } from "../utils/messageTypes";
 
 export interface CallToolResult {
-  messages: BaseMessage[];
+  messages: ToolMessage[];
   error?: unknown;
   data?: unknown;
 }
@@ -70,13 +70,21 @@ export function createAgent({ template = [], llm, tools = [], maxTurns = 5 }: Ag
           return history;
         }
 
-        // Execute tool calls in-order and append resulting messages
-        for (const tc of calls) {
-          let result: CallToolResult | undefined;
+        // Execute tool calls concurrently and append resulting messages in-order
+        const toolRuns = calls.map((tc) =>
+          (async () => {
+            let result: CallToolResult | undefined;
 
-          for await (const [res] of callTool(tc)) {
-            result = res as CallToolResult;
-          }
+            for await (const [res] of callTool(tc)) {
+              result = res as CallToolResult;
+            }
+
+            return result;
+          })(),
+        );
+
+        for (const run of toolRuns) {
+          const result = await run;
 
           if (result?.messages?.length) {
             history = [...history, ...result.messages];

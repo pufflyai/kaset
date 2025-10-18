@@ -19,19 +19,22 @@ npm i @pstdio/kas
 ### Usage
 
 ```ts
-import { createKasAgent } from "@pstdio/kas";
+import { createOpfsTools } from "@pstdio/kas/opfs-tools";
+import { createKasAgent, createApprovalGate } from "@pstdio/kas";
 
-const workspaceDir = "/projects/demo";
+const rootDir = "/projects/demo";
 
 const OPFSTools = createOpfsTools({
-  workspaceDir,
-  // Optional: customize which tools require approval
-  approvalGatedTools: ["opfs_write_file"],
-  // Require permission before the approval gated tool in this workspace
-  requestApproval: async ({ tool, workspaceDir, detail }) => {
-    console.log("Needs approval", tool, workspaceDir, detail);
-    return confirm(`Allow ${tool} in ${workspaceDir}?`);
-  },
+  rootDir,
+  approvalGate: createApprovalGate({
+    // Optional: customize which tools require approval
+    approvalGatedTools: ["opfs_write_file"],
+    // Optional: Require permission before the approval gated tool in this workspace
+    requestApproval: async ({ tool, workspaceDir, detail }) => {
+      console.log("Needs approval", tool, workspaceDir, detail);
+      return window.confirm(`Allow ${tool} in ${workspaceDir}?`);
+    },
+  }),
 });
 
 const agent = createKasAgent({
@@ -43,6 +46,19 @@ const agent = createKasAgent({
 // Run agent with messages
 const messages = [{ role: "user", content: "Create a simple React component" }];
 for await (const response of agent(messages)) {
+  console.log(response);
+}
+```
+
+With UI adapters
+
+```ts
+import { loadAgentInstructions } from "@pstdio/kas/opfs-utils";
+import { toConversationUI } from "@pstdio/kas/kas-ui";
+
+const messages = [{ role: "user", content: "Create a simple React component" }];
+
+for await (const response of toConversationUI(agent(messages))) {
   console.log(response);
 }
 ```

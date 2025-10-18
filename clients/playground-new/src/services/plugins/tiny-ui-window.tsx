@@ -3,16 +3,8 @@ import { toaster } from "@/components/ui/toaster";
 import { ROOT } from "@/constant";
 import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
 import { Box, Button, Center, Text } from "@chakra-ui/react";
-import type { TinyUIStatus } from "@pstdio/tiny-ui";
-import {
-  createWorkspaceFs,
-  getLockfile,
-  loadSnapshot,
-  setLockfile,
-  TinyUI,
-  unregisterVirtualSnapshot,
-  type TinyUiOpsRequest,
-} from "@pstdio/tiny-ui";
+import { TinyUI, loadSnapshot, type TinyUIActionHandler, type TinyUIStatus } from "@pstdio/tiny-ui";
+import { getLockfile, registerSources, setLockfile, unregisterVirtualSnapshot } from "@pstdio/tiny-ui-bundler";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getMergedPluginDependencies,
@@ -20,6 +12,8 @@ import {
   subscribeToPluginFiles,
   type PluginDesktopWindowDescriptor,
 } from "./plugin-host";
+import { createTinyUiOpsHandler, type TinyUiOpsRequest } from "./tinyUiOps";
+import { createWorkspaceFs } from "./workspaceFs";
 
 type Status = "idle" | "loading" | "ready" | "error";
 
@@ -29,16 +23,6 @@ export interface PluginTinyUiWindowProps {
   instanceId: string;
   pluginWindow: PluginDesktopWindowDescriptor;
 }
-
-const buildAssetUrl = (path: string) => {
-  const baseUrl = import.meta.env.BASE_URL || "/";
-  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
-  return `${normalizedBase}${normalizedPath}`;
-};
-
-const serviceWorkerUrl = buildAssetUrl("sw.js");
-const runtimeUrl = buildAssetUrl("tiny-ui/runtime.html");
 
 const buildPluginRoot = (pluginsRoot: string, pluginId: string) => {
   const normalized = pluginsRoot.replace(/\/+$/, "");
@@ -52,6 +36,8 @@ const applyLockfile = (dependencies: Record<string, string>) => {
     ...dependencies,
   });
 };
+
+const LOADING_STATUSES: TinyUIStatus[] = ["initializing", "service-worker-ready", "compiling", "handshaking"];
 
 // usePluginFilesRefresh returns a counter that ticks whenever the plugin's files change on disk.
 const usePluginFilesRefresh = (pluginId: string) => {
@@ -92,6 +78,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const refreshToken = usePluginFilesRefresh(pluginId);
   const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
   const pluginsRoot = useMemo(() => getPluginsRoot(), []);
+  const sourceId = `${pluginId}:${surfaceId}`;
 
   const handleTinyStatusChange = useCallback((nextStatus: TinyUIStatus) => {
     if (nextStatus === "error") return;
@@ -162,16 +149,23 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   );
 
   const entryPath = pluginWindow.entry;
-  const bridge = useMemo(
-    () => ({
-      pluginId,
-      pluginsRoot,
-      workspaceFs,
-      notify,
-      forwardRequest,
-    }),
+  const opsHandler = useMemo(
+    () =>
+      createTinyUiOpsHandler({
+        pluginId,
+        pluginsRoot,
+        workspaceFs,
+        notify,
+        forwardRequest,
+      }),
     [pluginId, pluginsRoot, workspaceFs, notify, forwardRequest],
   );
+
+  const handleActionCall = useCallback<TinyUIActionHandler>(
+    (method, params) => opsHandler({ method, params }),
+    [opsHandler],
+  );
+
   const tinyUiStyle = useMemo(
     () => ({
       width: "100%",
@@ -201,6 +195,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       setError(null);
 
       try {
+        registerSources([{ id: sourceId, root: snapshotRoot }]);
         await loadSnapshot(pluginRoot, `/${entryPath}`);
 
         if (cancelled) return;
@@ -222,7 +217,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
       cancelled = true;
       unregisterVirtualSnapshot(snapshotRoot);
     };
-  }, [entryPath, pluginId, pluginsRoot, refreshToken]);
+  }, [entryPath, pluginId, pluginsRoot, refreshToken, sourceId]);
 
   useEffect(() => {
     setTinyStatus("initializing");
@@ -257,12 +252,10 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     );
   }
 
-  // one plugin might have bundled code for multiple surfaces
-  const sourceId = `${pluginId}:${surfaceId}`;
   // we remount the component if the snapshotVersion changes
   // this way if the UI changes we get a fresh iframe and TinyUI instance
   const key = `${pluginId}:${instanceId}:${snapshotVersion}`;
-  const isLoadingOverlayActive = tinyStatus === "compiling" || tinyStatus === "initializing";
+  const isLoadingOverlayActive = LOADING_STATUSES.includes(tinyStatus);
 
   return (
     <Box height="100%" width="100%" position="relative">
@@ -270,14 +263,11 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
         key={key}
         instanceId={instanceId}
         sourceId={sourceId}
-        root={sourceRoot}
         skipCache={refreshToken > 0}
         autoCompile
-        serviceWorkerUrl={serviceWorkerUrl}
-        runtimeUrl={runtimeUrl}
         onStatusChange={handleTinyStatusChange}
         onError={handleTinyError}
-        bridge={bridge}
+        onActionCall={handleActionCall}
         style={tinyUiStyle}
       />
       <Center

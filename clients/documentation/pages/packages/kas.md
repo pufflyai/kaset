@@ -131,14 +131,14 @@ Converts agent responses to UI-friendly format.
 
 **Returns:** Async generator yielding UI conversation updates.
 
-### `createApprovalGate(requestApproval?, needsApproval?)`
+### `createApprovalGate({ approvalGatedTools?, requestApproval? })`
 
 Creates an approval gate for controlling tool access.
 
 **Parameters:**
 
-- `requestApproval?: RequestApproval` - Approval callback
-- `needsApproval?: string[]` - Tools requiring approval
+- `approvalGatedTools?: string[]` - Tools requiring approval
+- `requestApproval?: RequestApproval` - Approval callback used when a gated tool is invoked
 
 **Returns:** Object with `check` method for validating tool usage.
 

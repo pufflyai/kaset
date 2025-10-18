@@ -6,21 +6,14 @@ import dts from "vite-plugin-dts";
 
 const rootDir = __dirname;
 const libraryEntry = path.resolve(rootDir, "src/index.ts");
-const serviceWorkerEntry = path.resolve(rootDir, "src/sw/sw.ts");
-const runtimeHtmlSource = path.resolve(rootDir, "src/sw/runtime.html");
+const runtimeHtmlSource = path.resolve(rootDir, "src/runtime/runtime.html");
 
 export default defineConfig({
   build: {
     lib: {
-      entry: {
-        index: libraryEntry,
-        sw: serviceWorkerEntry,
-      },
-      name: "tiny-plugins",
-      fileName: (_format, entryName) => {
-        if (entryName === "index") return "index.js";
-        return `${entryName}.js`;
-      },
+      entry: libraryEntry,
+      name: "tiny-ui",
+      fileName: () => "index.js",
       formats: ["es"],
     },
     sourcemap: true,

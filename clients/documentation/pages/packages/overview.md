@@ -54,9 +54,9 @@ Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSum
 
 ### [@pstdio/tiny-plugins](/packages/tiny-plugins)
 
-**Tiny plugin runtime** — Watch OPFS-backed plugins, validate manifests, execute commands, and persist settings with the new `runPluginCommand` API.
+**Tiny plugin runtime** — Watch OPFS-backed plugins, validate manifests, execute commands, and persist settings with the modern `createHost` API.
 
-Includes: `createPluginHost`, `HOST_API_VERSION`, `mergeManifestDependencies`, Tiny AI Tasks adapter
+Includes: `createHost`, `HOST_API_VERSION`, `mergeManifestDependencies`, Tiny AI Tasks adapter
 
 ---
 
@@ -72,7 +72,7 @@ Includes: `task`, `createRuntime`, `MemorySaver`
 
 **Browser-first plugin runtime** — Compile OPFS-backed sources with esbuild-wasm, cache bundles in a service worker, and expose host capabilities to plugin iframes.
 
-Includes: `TinyUI`, `compile`, `loadSourceFiles`, `createTinyHost`, `createIframeOps`
+Includes: `TinyUI`, `compile`, `loadSnapshot`, `createTinyHost`
 
 ---
 

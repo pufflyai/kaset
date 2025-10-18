@@ -1,0 +1,50 @@
+:root {
+  --analytics-accent: __ACCENT__;
+}
+
+body {
+  border: 2px solid var(--analytics-accent);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.15);
+  max-width: 720px;
+  margin: 24px auto;
+  font-family:
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+body::before {
+  content: attr(data-analytics-announcement);
+  display: block;
+  font-weight: 600;
+  color: var(--analytics-accent);
+  margin-bottom: 12px;
+}
+
+.analytics-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--analytics-accent);
+  color: var(--analytics-accent);
+  background: rgba(15, 23, 42, 0.05);
+  font-size: 14px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.analytics-badge[data-severity="high"] {
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.analytics-badge[data-severity="medium"] {
+  border-color: #ea580c;
+  color: #ea580c;
+}

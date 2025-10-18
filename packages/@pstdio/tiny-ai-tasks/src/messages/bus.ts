@@ -79,7 +79,7 @@ export function mergeHistory(a: ExtendedMessage[], b: ExtendedMessage[]): Extend
 }
 
 /** QoL: drop .meta so you can pass the result straight to createLLMTask */
-export function toBaseMessages(history: ExtendedMessage[]): BaseMessage[] {
+export function busToBaseMessages(history: ExtendedMessage[]): BaseMessage[] {
   return history.map((m) => {
     const { meta: _, ...rest } = m as any;
     return rest as BaseMessage;

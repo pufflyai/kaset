@@ -1,0 +1,59 @@
+:root {
+  color-scheme: light;
+}
+
+.latency-chart {
+  --accent: __ACCENT__;
+  display: grid;
+  gap: 12px;
+  max-width: 420px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 18%, #ffffff), #ffffff 68%);
+  box-shadow: 0 18px 34px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.latency-chart figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font:
+    600 14px/1.4 "Inter",
+    system-ui,
+    sans-serif;
+}
+
+.latency-chart figcaption strong {
+  font-size: 16px;
+  color: var(--accent);
+}
+
+.latency-chart svg {
+  width: 100%;
+  height: auto;
+}
+
+.latency-chart path {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.latency-chart__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 13px;
+}
+
+.latency-chart__metrics dt {
+  color: color-mix(in srgb, var(--accent) 62%, #1f2937);
+  font-weight: 600;
+}
+
+.latency-chart__metrics dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

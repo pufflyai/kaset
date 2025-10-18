@@ -13,37 +13,46 @@ import {
   ChevronUp,
   Copy,
   CornerDownRight,
+  DotIcon,
   File,
   FileArchive,
   FileChartLine,
   FileCode,
   FileCog,
+  FileDiff,
+  FileDown,
   FileImage,
   FileJson,
+  FilePen,
+  FileSearch,
   FileSpreadsheet,
   FileText,
+  FileUp,
   Globe,
+  ListTree,
+  Move,
   Play,
-  Plug,
   Search,
+  Terminal,
+  Trash2,
 } from "lucide-react";
 
-export type IconName =
-  | "plugin"
-  | "copy"
-  | "danger"
-  | "check"
-  | "play"
-  | "arrow-down"
-  | "chevron-down"
-  | "chevron-up"
-  | "corner-down-right"
-  | "search"
-  | "browser"
-  | "file";
+const opfsToolIconMap = {
+  opfs_shell: Terminal,
+  opfs_ls: ListTree,
+  opfs_grep: FileSearch,
+  opfs_read_file: FileText,
+  opfs_write_file: FilePen,
+  opfs_delete_file: Trash2,
+  opfs_patch: FileDiff,
+  opfs_upload_files: FileUp,
+  opfs_download_file: FileDown,
+  opfs_move_file: Move,
+} as const satisfies Record<string, LucideIcon>;
 
-const iconMap = {
-  plugin: Plug,
+const baseIconMap = {
+  dot: DotIcon,
+  plugin: DotIcon,
   copy: Copy,
   danger: AlertTriangle,
   check: Check,
@@ -55,7 +64,19 @@ const iconMap = {
   search: Search,
   browser: Globe,
   file: File,
-} satisfies Record<IconName, LucideIcon>;
+} as const satisfies Record<string, LucideIcon>;
+
+const iconMap = {
+  ...baseIconMap,
+  ...opfsToolIconMap,
+} as const satisfies Record<string, LucideIcon>;
+
+export type IconName = keyof typeof iconMap;
+export type OpfsToolIconName = keyof typeof opfsToolIconMap;
+
+export function isOpfsToolIconName(value: string): value is OpfsToolIconName {
+  return Object.prototype.hasOwnProperty.call(opfsToolIconMap, value);
+}
 
 export function getIconComponent(name: IconName): LucideIcon {
   return iconMap[name];

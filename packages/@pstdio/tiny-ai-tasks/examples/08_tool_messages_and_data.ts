@@ -1,4 +1,4 @@
-import { createAgent, createLLMTask, Tool, mergeStreamingMessages } from "../src/index";
+import { createAgent, createLLMTask, Tool, mergeStreamingMessages, messageContentToString } from "../src/index";
 import type { MessageHistory } from "../src/index";
 
 // Example: A tool that returns both custom messages and structured data
@@ -73,7 +73,8 @@ async function run() {
     for (const m of newMessages || []) {
       if (m.role === "tool" && m?.content) {
         try {
-          const parsed = JSON.parse(String(m.content));
+          const contentText = messageContentToString(m.content as any);
+          const parsed = JSON.parse(contentText);
           resultFromToolMessage = { a: parsed.a, b: parsed.b, result: parsed.result };
         } catch {
           // ignore

@@ -3,13 +3,19 @@ import debounce from "lodash.debounce";
 import type { ChangeEvent, CSSProperties } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-import { CACHE_NAME } from "../src/constant";
-import { setLockfile } from "../src/core/idb";
-import type { CompileResult } from "../src/esbuild/types";
-import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
-import { TinyUIStatus } from "../src/react/types";
+import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
+import { TinyUI } from "../src/react/components/TinyUI";
+import { TinyUiProvider } from "../src/react/tiny-ui-provider";
+import { TinyUIStatus } from "../src/types";
+import { setupTinyUI } from "../src/setupTinyUI";
 
-import { now, normalizeRoot, writeSnapshotFiles } from "./files/helpers";
+import {
+  calculateLifecycleTimings,
+  formatLifecycleTimings,
+  now,
+  normalizeRoot,
+  writeSnapshotFiles,
+} from "./files/helpers";
 import CHAKRA_ENTRY_SOURCE from "./files/SharedTheme/index.tsx?raw";
 
 /** Virtual source roots for two MFEs that will share the same tokens */
@@ -33,6 +39,7 @@ const LOCKFILE = {
 const ENTRY_PATH = "/index.tsx";
 const SNAPSHOT_ROOTS = [CHAKRA_ROOT_A, CHAKRA_ROOT_B] as const;
 const SNAPSHOT_WRITE_QUEUES = new Map<string, Promise<void>>();
+const BUNDLE_COUNT = SNAPSHOT_ROOTS.length;
 
 type SharedThemeTokens = {
   surface: string;
@@ -110,13 +117,24 @@ const SharedThemeDemo = () => {
   const [statusB, setStatusB] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
-  const startedAtRef = useRef<number | null>(null);
-  const tinyARef = useRef<TinyUIHandle | null>(null);
-  const tinyBRef = useRef<TinyUIHandle | null>(null);
+  const [rebuildKeyA, setRebuildKeyA] = useState(0);
+  const [rebuildKeyB, setRebuildKeyB] = useState(0);
   const firstSyncRef = useRef(true);
+  const initializingStartedAtRef = useRef<number | null>(null);
+  const compileStartedAtRef = useRef<number | null>(null);
+  const handshakeStartedAtRef = useRef<number | null>(null);
+  const readyCountRef = useRef(0);
+  const allFromCacheRef = useRef(true);
 
   useLayoutEffect(() => {
     setLockfile(LOCKFILE);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setupTinyUI({ serviceWorkerUrl: "/tiny-ui-sw.js" }).catch((error) => {
+      console.error("[TinyUI Story] Failed to initialize Tiny UI", error);
+    });
   }, []);
 
   const setTokenValue = useMemo(
@@ -151,6 +169,12 @@ const SharedThemeDemo = () => {
     const isFirstSync = firstSyncRef.current;
     firstSyncRef.current = false;
 
+    initializingStartedAtRef.current = now();
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
+    readyCountRef.current = 0;
+    allFromCacheRef.current = true;
+
     if (!isFirstSync) {
       setStatusA("initializing");
       setStatusB("initializing");
@@ -163,6 +187,10 @@ const SharedThemeDemo = () => {
         if (cancelled) return;
 
         if (isFirstSync) {
+          registerSources([
+            { id: SOURCE_ID_A, root: CHAKRA_ROOT_A, entry: ENTRY_PATH },
+            { id: SOURCE_ID_B, root: CHAKRA_ROOT_B, entry: ENTRY_PATH },
+          ]);
           setInitialized(true);
           setStatusA("idle");
           setStatusB("idle");
@@ -171,19 +199,10 @@ const SharedThemeDemo = () => {
         }
 
         setMessage("Shared theme tokens updated. Rebuilding...");
-
-        const rebuild = (handle: TinyUIHandle | null, setStatus: (next: TinyUIStatus) => void) => {
-          if (!handle) return;
-
-          handle.rebuild().catch((error) => {
-            const normalized = error instanceof Error ? error : new Error("Failed to rebuild Tiny UI instance.");
-            setStatus("error");
-            setMessage(normalized.message);
-          });
-        };
-
-        rebuild(tinyARef.current, setStatusA);
-        rebuild(tinyBRef.current, setStatusB);
+        setStatusA("compiling");
+        setStatusB("compiling");
+        setRebuildKeyA((value) => value + 1);
+        setRebuildKeyB((value) => value + 1);
       })
       .catch((cause) => {
         if (cancelled) return;
@@ -224,27 +243,113 @@ const SharedThemeDemo = () => {
     [tokens.surface],
   );
 
-  const onStatusChangeA = useCallback((s: TinyUIStatus) => {
-    setStatusA(s);
-    if (s === "compiling") {
-      startedAtRef.current = now();
+  const handleStatusUpdate = useCallback((next: TinyUIStatus) => {
+    if (next === "initializing") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
+      compileStartedAtRef.current = null;
+      handshakeStartedAtRef.current = null;
+      return;
+    }
+
+    if (next === "service-worker-ready") {
+      setMessage("Tiny UI service worker ready. Preparing Chakra bundle(s)...");
+      return;
+    }
+
+    if (next === "compiling") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
+      if (compileStartedAtRef.current === null) {
+        compileStartedAtRef.current = now();
+      }
+      handshakeStartedAtRef.current = null;
       setMessage("Compiling Chakra bundle(s)...");
+      return;
+    }
+
+    if (next === "handshaking") {
+      if (handshakeStartedAtRef.current === null) {
+        handshakeStartedAtRef.current = now();
+      }
+      setMessage("Handshaking with the Tiny UI runtime...");
     }
   }, []);
-  const onStatusChangeB = useCallback((s: TinyUIStatus) => setStatusB(s), []);
 
-  const onReady = useCallback((result: CompileResult) => {
-    const t0 = startedAtRef.current;
-    startedAtRef.current = null;
-    const dt = typeof t0 === "number" ? Math.max(0, Math.round(now() - t0)) : null;
-    const timing = dt !== null ? ` in ${dt}ms` : "";
-    const cache = result.fromCache ? " (from cache)" : "";
-    setMessage(`Bundles ready${timing}${cache}.`);
+  const onStatusChangeA = useCallback(
+    (s: TinyUIStatus) => {
+      setStatusA(s);
+      handleStatusUpdate(s);
+    },
+    [handleStatusUpdate],
+  );
+
+  const onStatusChangeB = useCallback(
+    (s: TinyUIStatus) => {
+      setStatusB(s);
+      handleStatusUpdate(s);
+    },
+    [handleStatusUpdate],
+  );
+
+  const handleReady = useCallback((id: "a" | "b", result: CompileResult) => {
+    allFromCacheRef.current = allFromCacheRef.current && result.fromCache;
+    readyCountRef.current += 1;
+
+    if (id === "a") {
+      setStatusA("ready");
+    } else {
+      setStatusB("ready");
+    }
+
+    if (readyCountRef.current < BUNDLE_COUNT) return;
+
+    const completedAt = now();
+    const lifecycleLabel = formatLifecycleTimings(
+      calculateLifecycleTimings({
+        initStart: initializingStartedAtRef.current,
+        compileStart: compileStartedAtRef.current,
+        handshakeStart: handshakeStartedAtRef.current,
+        completedAt,
+      }),
+    );
+    const cacheLabel = allFromCacheRef.current ? " (from cache)" : "";
+
+    initializingStartedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
+    readyCountRef.current = 0;
+    allFromCacheRef.current = true;
+
+    setMessage(`Bundles ready${lifecycleLabel}${cacheLabel}.`);
   }, []);
 
+  const onReadyA = useCallback(
+    (result: CompileResult) => {
+      handleReady("a", result);
+    },
+    [handleReady],
+  );
+
+  const onReadyB = useCallback(
+    (result: CompileResult) => {
+      handleReady("b", result);
+    },
+    [handleReady],
+  );
+
   const onError = useCallback((err: Error) => {
-    startedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     console.log(err);
+  }, []);
+
+  const handleActionCall = useCallback(async (method: string, params?: Record<string, unknown>) => {
+    console.warn("[TinyUI Story] Unhandled host request", { method, params });
+    throw new Error(`Story host does not implement '${method}'`);
   }, []);
 
   const clearCache = useCallback(async () => {
@@ -253,108 +358,117 @@ const SharedThemeDemo = () => {
     await caches.delete(CACHE_NAME);
     setStatusA("idle");
     setStatusB("idle");
+    initializingStartedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
+    readyCountRef.current = 0;
+    allFromCacheRef.current = true;
     setMessage("Cache cleared. Rebuild to compile again.");
   }, []);
 
   return (
-    <div style={containerStyle}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <button onClick={clearCache} type="button">
-          Clear Cache
-        </button>
-      </div>
+    <TinyUiProvider serviceWorkerUrl="/tiny-ui-sw.js">
+      <div style={containerStyle}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={clearCache} type="button">
+            Clear Cache
+          </button>
+        </div>
 
-      <div
-        style={{
-          display: "grid",
-          gap: 12,
-          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-        }}
-      >
-        {TOKEN_CONTROLS.map(({ key, label }) => (
-          <label key={key} style={{ display: "grid", gap: 6, fontSize: 12, fontWeight: 500 }}>
-            <span>{label}</span>
-            <input
-              type="color"
-              value={tokens[key]}
-              onChange={handleTokenChange(key)}
-              style={{
-                width: "100%",
-                minHeight: 38,
-                border: "1px solid rgba(148, 163, 184, 0.35)",
-                borderRadius: 8,
-                padding: 0,
-                background: "transparent",
-              }}
-            />
-            <span style={{ fontFamily: "monospace", fontSize: 11 }}>{tokens[key]}</span>
-          </label>
-        ))}
-      </div>
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          }}
+        >
+          {TOKEN_CONTROLS.map(({ key, label }) => (
+            <label key={key} style={{ display: "grid", gap: 6, fontSize: 12, fontWeight: 500 }}>
+              <span>{label}</span>
+              <input
+                type="color"
+                value={tokens[key]}
+                onChange={handleTokenChange(key)}
+                style={{
+                  width: "100%",
+                  minHeight: 38,
+                  border: "1px solid rgba(148, 163, 184, 0.35)",
+                  borderRadius: 8,
+                  padding: 0,
+                  background: "transparent",
+                }}
+              />
+              <span style={{ fontFamily: "monospace", fontSize: 11 }}>{tokens[key]}</span>
+            </label>
+          ))}
+        </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {initialized ? (
-          <>
-            <TinyUI
-              ref={tinyARef}
-              root={CHAKRA_ROOT_A}
-              id={SOURCE_ID_A}
-              autoCompile
-              serviceWorkerUrl="/tiny-ui-sw.js"
-              onStatusChange={onStatusChangeA}
-              onReady={onReady}
-              onError={onError}
-              style={frameStyle}
-            />
-            <TinyUI
-              ref={tinyBRef}
-              root={CHAKRA_ROOT_B}
-              id={SOURCE_ID_B}
-              autoCompile
-              serviceWorkerUrl="/tiny-ui-sw.js"
-              onStatusChange={onStatusChangeB}
-              onReady={onReady}
-              onError={onError}
-              style={frameStyle}
-            />
-          </>
-        ) : (
-          <>
-            <div
-              aria-busy="true"
-              style={{
-                ...frameStyle,
-                borderRadius: 12,
-                border: "1px dashed #475569",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#475569",
-              }}
-            >
-              Loading Chakra UI sources...
-            </div>
-            <div
-              aria-busy="true"
-              style={{
-                ...frameStyle,
-                borderRadius: 12,
-                border: "1px dashed #475569",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#475569",
-              }}
-            >
-              Loading Chakra UI sources...
-            </div>
-          </>
-        )}
-      </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {initialized ? (
+            <>
+              <TinyUI
+                key={`tinyui-a-${rebuildKeyA}`}
+                instanceId={SOURCE_ID_A}
+                sourceId={SOURCE_ID_A}
+                autoCompile
+                skipCache={rebuildKeyA > 0}
+                onStatusChange={onStatusChangeA}
+                onReady={onReadyA}
+                onError={onError}
+                onActionCall={handleActionCall}
+                style={frameStyle}
+              />
+              <TinyUI
+                key={`tinyui-b-${rebuildKeyB}`}
+                instanceId={SOURCE_ID_B}
+                sourceId={SOURCE_ID_B}
+                autoCompile
+                skipCache={rebuildKeyB > 0}
+                onStatusChange={onStatusChangeB}
+                onReady={onReadyB}
+                onError={onError}
+                onActionCall={handleActionCall}
+                style={frameStyle}
+              />
+            </>
+          ) : (
+            <>
+              <div
+                aria-busy="true"
+                style={{
+                  ...frameStyle,
+                  borderRadius: 12,
+                  border: "1px dashed #475569",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#475569",
+                }}
+              >
+                Loading Chakra UI sources...
+              </div>
+              <div
+                aria-busy="true"
+                style={{
+                  ...frameStyle,
+                  borderRadius: 12,
+                  border: "1px dashed #475569",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#475569",
+                }}
+              >
+                Loading Chakra UI sources...
+              </div>
+            </>
+          )}
+        </div>
 
-      <div aria-live="polite">
-        <strong>Status A:</strong> {statusA} &nbsp; | &nbsp; <strong>Status B:</strong> {statusB}
-        {message ? <div>{message}</div> : null}
+        <div aria-live="polite">
+          <strong>Status A:</strong> {statusA} &nbsp; | &nbsp; <strong>Status B:</strong> {statusB}
+          {message ? <div>{message}</div> : null}
+        </div>
       </div>
-    </div>
+    </TinyUiProvider>
   );
 };
 

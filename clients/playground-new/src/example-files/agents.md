@@ -86,7 +86,7 @@ A valid `manifest.json` must follow the strict schema:
 ```js
 export default {
   async activate(ctx) {
-    ctx.log.info("hello plugin activated");
+    await ctx.api["log.info"]("hello plugin activated");
   },
 };
 ```

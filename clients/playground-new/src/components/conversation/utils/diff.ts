@@ -1,5 +1,5 @@
 import type { TitleSegment } from "@/components/ui/timeline";
-import type { Message, ToolInvocation } from "@/types";
+import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 
 export type FileChange = { filePath: string; additions: number; deletions: number };
 
@@ -123,7 +123,7 @@ export function buildDiffTitleSegments(inv: ToolInvocation): TitleSegment[] {
   }));
 }
 
-export function summarizeConversationChanges(messages: Message[]): {
+export function summarizeConversationChanges(messages: UIMessage[]): {
   additions: number;
   deletions: number;
   fileCount: number;

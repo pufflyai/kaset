@@ -92,7 +92,11 @@ describe("createToolTask", () => {
     for await (const [out] of rt(call)) final = out;
 
     expect(final!.messages[0].tool_call_id).toBe("1");
-    expect(JSON.parse(final!.messages[0].content).data).toEqual({ ok: true, x: 1 });
+
+    const messageContent = final!.messages[0].content;
+    if (typeof messageContent !== "string") throw new Error("Expected string tool message content");
+
+    expect(JSON.parse(messageContent).data).toEqual({ ok: true, x: 1 });
   });
 
   it("passes the arguments object through to the tool", async () => {

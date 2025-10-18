@@ -1,5 +1,5 @@
 import { Action } from "@/components/ui/action";
-import type { ToolInvocation } from "@/types";
+import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { getIconComponent } from "@/utils/getIcon";
 import { Box, HStack, Separator, Stack, Text } from "@chakra-ui/react";
 import { CopyIcon } from "lucide-react";

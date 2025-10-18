@@ -14,8 +14,8 @@ function getAbsolutePath(value: string): any {
 }
 
 const tinyUiRootDir = path.resolve(__dirname, "..");
-const runtimeHtmlPath = path.resolve(tinyUiRootDir, "src/sw/runtime.html");
-const serviceWorkerEntry = path.resolve(tinyUiRootDir, "src/sw/sw.ts");
+const runtimeHtmlPath = path.resolve(tinyUiRootDir, "src/runtime/runtime.html");
+const serviceWorkerEntry = path.resolve(__dirname, "../../tiny-ui-bundler/src/sw.ts");
 const runtimeRequestPath = "/tiny-ui/runtime.html";
 const serviceWorkerRequestPath = "/tiny-ui-sw.js";
 
@@ -29,7 +29,7 @@ const createTinyUiAssetsPlugin = (): PluginOption => {
     runtimeHtml = await fs.readFile(runtimeHtmlPath, "utf8");
 
     const result = await bundleServiceWorker({
-      absWorkingDir: tinyUiRootDir,
+      absWorkingDir: path.resolve(tinyUiRootDir, ".."),
       bundle: true,
       entryPoints: [serviceWorkerEntry],
       format: "iife",

@@ -1,14 +1,14 @@
 import { MessageContent, MessageRoot } from "@/components/ui/ai-message";
 import { EmptyState } from "@/components/ui/empty-state";
 import { hasCredentials } from "@/state/actions/hasCredentials";
-import type { Message, ToolInvocation } from "@/types";
+import type { UIMessage, ToolInvocation } from "@pstdio/kas/kas-ui";
 import { Box, Button, Link, Text, VStack } from "@chakra-ui/react";
 import { CassetteTapeIcon } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
 import { CollapsibleToolTimeline } from "./CollapsibleToolTimeline";
 import { MessagePartsRenderer } from "./MessagePartsRenderer";
 
-const isToolOnlyMessage = (m: Message) =>
+const isToolOnlyMessage = (m: UIMessage) =>
   m.parts.length > 0 && m.parts.every((p) => (p as any).type === "tool-invocation");
 
 function pickRandom<T>(arr: readonly T[], n: number): T[] {
@@ -32,12 +32,12 @@ const MessageRow = memo(
     isStreaming,
     onOpenFile,
   }: {
-    message: Message;
+    message: UIMessage;
     isStreaming: boolean;
     onOpenFile?: (filePath: string) => void;
   }) {
     return (
-      <MessageRoot from={message.role}>
+      <MessageRoot from={message.role as any}>
         <MessageContent>
           <MemoMessagePartsRenderer message={message} streaming={isStreaming} onOpenFile={onOpenFile} />
         </MessageContent>
@@ -73,7 +73,7 @@ const ToolGroupRow = memo(
 );
 
 type RenderItem =
-  | { kind: "message"; key: string; message: Message }
+  | { kind: "message"; key: string; message: UIMessage }
   | { kind: "tool-group"; key: string; invocations: ToolInvocation[]; completed: boolean };
 
 /**
@@ -81,7 +81,7 @@ type RenderItem =
  * - Groups contiguous assistant tool-only messages into one ToolGroupRow
  * - Keeps stable array/object identities across renders when `messages` is unchanged
  */
-function useRenderPlan(messages: Message[]): RenderItem[] {
+function useRenderPlan(messages: UIMessage[]): RenderItem[] {
   return useMemo(() => {
     const items: RenderItem[] = [];
     let i = 0;
@@ -121,7 +121,7 @@ function useRenderPlan(messages: Message[]): RenderItem[] {
 }
 
 interface MessageListProps {
-  messages: Message[];
+  messages: UIMessage[];
   streaming: boolean;
   onOpenFile?: (filePath: string) => void;
   onUseExample?: (text: string) => void;

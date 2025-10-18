@@ -1,5 +1,5 @@
-import "./preview.css";
 import { Buffer } from "buffer";
+import "./preview.css";
 
 window.Buffer = Buffer;
 
@@ -31,6 +31,7 @@ const preview: Preview = {
     },
   },
   decorators: [
+    (Story) => <Story />,
     withThemeByClassName({
       defaultTheme: "light",
       themes: { light: "", dark: "dark" },

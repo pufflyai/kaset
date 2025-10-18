@@ -67,7 +67,7 @@ export const commands = {
 };
 
 export default {
-  async activate({ log }) {
-    log.info("File Explorer plugin activated");
+  async activate(ctx) {
+    await ctx.api["log.info"]("File Explorer plugin activated");
   },
 };

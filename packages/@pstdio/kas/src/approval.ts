@@ -1,21 +1,17 @@
 export type ApprovalRequest = { tool: string; workspaceDir: string; detail?: any };
 export type RequestApproval = (req: ApprovalRequest) => Promise<boolean>;
 export type Workspace = { workspaceDir: string };
+export type ApprovalGate = { check: (tool: string, workspaceDir: string, detail?: any) => Promise<void> } | null;
 
-export const DEFAULT_APPROVAL_GATED_TOOLS = [
-  "opfs_write_file",
-  "opfs_delete_file",
-  "opfs_patch",
-  "opfs_upload_files",
-  "opfs_move_file",
-] as const;
+export type CreateApprovalGateOptions = {
+  approvalGatedTools?: readonly string[];
+  requestApproval: RequestApproval;
+};
 
-export function createApprovalGate(
-  requestApproval?: RequestApproval,
-  needsApproval: readonly string[] = DEFAULT_APPROVAL_GATED_TOOLS,
-) {
+export function createApprovalGate(options: CreateApprovalGateOptions) {
+  const { approvalGatedTools = [], requestApproval } = options;
   const cache = new Set<string>();
-  const needs = new Set(needsApproval);
+  const needs = new Set(approvalGatedTools);
   const key = (tool: string, dir: string) => `${tool}:${dir}`;
 
   async function check(tool: string, workspaceDir: string, detail?: any) {
@@ -31,5 +27,5 @@ export function createApprovalGate(
     cache.add(k);
   }
 
-  return { check };
+  return { check } as ApprovalGate;
 }

@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { CACHE_NAME } from "../src/constant";
-import { setLockfile } from "../src/core/idb";
-import type { CompileResult } from "../src/esbuild/types";
-import { TinyUI, type TinyUIHandle, type TinyUIProps } from "../src/react/tiny-ui";
-import { TinyUIStatus } from "../src/react/types";
+import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
+import { TinyUI } from "../src/react/components/TinyUI";
+import { TinyUiProvider } from "../src/react/tiny-ui-provider";
+import { TinyUIStatus } from "../src/types";
+import { setupTinyUI } from "../src/setupTinyUI";
 
-import { createSnapshotInitializer, now } from "./files/helpers";
+import { calculateLifecycleTimings, createSnapshotInitializer, formatLifecycleTimings, now } from "./files/helpers";
 import VANILLA_ENTRY_SOURCE from "./files/Vanilla/index.js?raw";
 
 const STORY_ROOT = "/stories/tiny-vanilla";
@@ -27,24 +27,30 @@ interface VanillaDemoProps {
 }
 
 const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoProps) => {
-  const uiRef = useRef<TinyUIHandle | null>(null);
+  const initializingStartedAtRef = useRef<number | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
+  const handshakeStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [rebuildKey, setRebuildKey] = useState(0);
 
   const serviceWorkerUrl = failureMode === "serviceWorker" ? "/tiny-ui-sw-missing.js" : "/tiny-ui-sw.js";
-  const runtimeOverrides: Partial<TinyUIProps> =
-    failureMode === "runtimeMissing"
-      ? {
-          runtimeUrl: `${STORY_ROOT}/missing-runtime.html`,
-        }
-      : {};
+  const runtimeUrl = failureMode === "runtimeMissing" ? `${STORY_ROOT}/missing-runtime.html` : undefined;
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    setupTinyUI({ serviceWorkerUrl, runtimeUrl }).catch((error) => {
+      console.error("[TinyUI Story] Failed to initialize Tiny UI", error);
+    });
+  }, [failureMode, runtimeUrl, serviceWorkerUrl]);
+
   const failureExplanation =
     failureMode === "serviceWorker"
       ? "Service worker registration fails because /tiny-ui-sw-missing.js does not exist."
       : failureMode === "runtimeMissing"
-        ? "Runtime HTML caching fails because the runtimeUrl points to a missing HTML file."
+        ? "Runtime HTML caching fails because setupTinyUI points to a missing runtime HTML file."
         : null;
 
   useLayoutEffect(() => {
@@ -58,6 +64,10 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
     setStatus("initializing");
     setMessage("Loading vanilla sources into OPFS...");
 
+    registerSources([{ id: SOURCE_ID, root: STORY_ROOT, entry: ENTRY_PATH }]);
+    initializingStartedAtRef.current = now();
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     ensureSnapshotReady(STORY_ROOT)
       .then(() => {
         if (cancelled) return;
@@ -80,8 +90,28 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
   const handleStatusChange = useCallback(
     (next: TinyUIStatus) => {
       setStatus(next);
+
+      if (next === "initializing") {
+        if (initializingStartedAtRef.current === null) {
+          initializingStartedAtRef.current = now();
+        }
+        compileStartedAtRef.current = null;
+        handshakeStartedAtRef.current = null;
+        setMessage("Loading vanilla sources into OPFS...");
+        return;
+      }
+
+      if (next === "service-worker-ready") {
+        setMessage("Tiny UI service worker ready. Preparing compile...");
+        return;
+      }
+
       if (next === "compiling") {
+        if (initializingStartedAtRef.current === null) {
+          initializingStartedAtRef.current = now();
+        }
         compileStartedAtRef.current = now();
+        handshakeStartedAtRef.current = null;
         if (failureMode === "serviceWorker") {
           setMessage("Attempting to register Tiny UI service worker (expected to fail)...");
           return;
@@ -91,42 +121,61 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
           return;
         }
         setMessage("Compiling bundle with esbuild-wasm...");
+        return;
+      }
+
+      if (next === "handshaking") {
+        if (handshakeStartedAtRef.current === null) {
+          handshakeStartedAtRef.current = now();
+        }
+        setMessage("Handshaking with the Tiny UI runtime...");
       }
     },
     [failureMode],
   );
 
   const handleReady = useCallback((result: CompileResult) => {
-    const startedAt = compileStartedAtRef.current;
+    const completedAt = now();
+    const lifecycleLabel = formatLifecycleTimings(
+      calculateLifecycleTimings({
+        initStart: initializingStartedAtRef.current,
+        compileStart: compileStartedAtRef.current,
+        handshakeStart: handshakeStartedAtRef.current,
+        completedAt,
+      }),
+    );
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
-    const duration = typeof startedAt === "number" ? Math.max(0, Math.round(now() - startedAt)) : null;
-    const timingLabel = duration !== null ? ` in ${duration}ms` : "";
     const cacheLabel = result.fromCache ? " (from cache)" : "";
 
-    setMessage(`Bundle ready${timingLabel}${cacheLabel}.`);
+    setStatus("ready");
+    setMessage(`Bundle ready${lifecycleLabel}${cacheLabel}.`);
   }, []);
 
   const handleError = useCallback((error: Error) => {
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setStatus("error");
     setMessage(error.message);
   }, []);
 
   const handleRebuild = useCallback(() => {
     if (!initialized) return;
-
-    uiRef.current?.rebuild().catch((error) => {
-      const normalized = error instanceof Error ? error : new Error("Failed to rebuild bundle");
-      setStatus("error");
-      setMessage(normalized.message);
-    });
+    initializingStartedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
+    setRebuildKey((value) => value + 1);
   }, [initialized]);
 
   const handleClearCache = useCallback(async () => {
     if (typeof caches === "undefined") return;
 
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
     try {
       setMessage("Clearing bundle cache...");
@@ -140,57 +189,64 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
     }
   }, []);
 
+  const handleActionCall = useCallback(async (method: string, params?: Record<string, unknown>) => {
+    console.warn("[TinyUI Story] Unhandled host request", { method, params });
+    throw new Error(`Story host does not implement '${method}'`);
+  }, []);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 480 }}>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
-          {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
-        </button>
-        <button onClick={handleClearCache} type="button">
-          Clear Cache
-        </button>
-      </div>
-      {initialized ? (
-        <TinyUI
-          ref={uiRef}
-          root={STORY_ROOT}
-          id={SOURCE_ID}
-          autoCompile={autoCompile}
-          serviceWorkerUrl={serviceWorkerUrl}
-          {...runtimeOverrides}
-          onStatusChange={handleStatusChange}
-          onReady={handleReady}
-          onError={handleError}
-          style={{
-            height: 320,
-          }}
-        />
-      ) : (
-        <div
-          aria-busy="true"
-          style={{
-            height: 320,
-            border: "1px dashed #475569",
-            borderRadius: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#475569",
-          }}
-        >
-          Loading vanilla source files...
+    <TinyUiProvider serviceWorkerUrl={serviceWorkerUrl} runtimeUrl={runtimeUrl}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 480 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
+            {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
+          </button>
+          <button onClick={handleClearCache} type="button">
+            Clear Cache
+          </button>
         </div>
-      )}
-      {failureExplanation ? (
-        <div>
-          <strong>Expected failure:</strong> {failureExplanation}
+        {initialized ? (
+          <TinyUI
+            key={rebuildKey}
+            instanceId={SOURCE_ID}
+            sourceId={SOURCE_ID}
+            autoCompile={autoCompile}
+            skipCache={rebuildKey > 0}
+            onStatusChange={handleStatusChange}
+            onReady={handleReady}
+            onError={handleError}
+            onActionCall={handleActionCall}
+            style={{
+              height: 320,
+            }}
+          />
+        ) : (
+          <div
+            aria-busy="true"
+            style={{
+              height: 320,
+              border: "1px dashed #475569",
+              borderRadius: 12,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#475569",
+            }}
+          >
+            Loading vanilla source files...
+          </div>
+        )}
+        {failureExplanation ? (
+          <div>
+            <strong>Expected failure:</strong> {failureExplanation}
+          </div>
+        ) : null}
+        <div aria-live="polite">
+          <strong>Status:</strong> {status}
+          {message ? <div>{message}</div> : null}
         </div>
-      ) : null}
-      <div aria-live="polite">
-        <strong>Status:</strong> {status}
-        {message ? <div>{message}</div> : null}
       </div>
-    </div>
+    </TinyUiProvider>
   );
 };
 
