@@ -1,4 +1,4 @@
-import { ROOT } from "@/constant";
+import { APPROVAL_GATED_TOOL_IDS, ROOT } from "@/constant";
 import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
 import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
 import type { McpServerConfig, ThemePreference } from "@/state/types";
@@ -94,7 +94,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setApiKey(settings.apiKey ?? "");
     setBaseUrl(settings.baseUrl ?? "");
     setModel(settings.modelId || "gpt-5");
-    setApprovalTools(settings.approvalGatedTools || []);
+    const gatedTools = settings.approvalGatedTools ? [...settings.approvalGatedTools] : [...APPROVAL_GATED_TOOL_IDS];
+    setApprovalTools(gatedTools);
 
     const nextTheme = settings.theme ?? "light";
     setTheme(nextTheme);
@@ -504,7 +505,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                     <Flex gap="xs" direction="column" width="100%">
                       <Text>Approval-gated tools</Text>
                       <VStack align="stretch">
-                        {[].map((tool) => (
+                        {APPROVAL_GATED_TOOL_IDS.map((tool) => (
                           <Checkbox.Root
                             key={tool}
                             checked={approvalTools.includes(tool)}
