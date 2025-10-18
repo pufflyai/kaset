@@ -58,11 +58,16 @@ const extractFileName = (filePath: string): string => {
   return parts[parts.length - 1] || filePath;
 };
 
+const isPendingState = (state: string) => state === "input-streaming" || state === "input-available";
+
 export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null {
   const type = ensureString((invocation as any).type);
-  if (!type || (invocation as any).state !== "output-available") {
+  const state = ensureString((invocation as any).state);
+  if (!type || !state) {
     return null;
   }
+
+  const errorText = ensureString((invocation as any).errorText);
 
   switch (type) {
     case "tool-opfs_ls": {
@@ -70,6 +75,38 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
       const output = (invocation as any).output as { entries?: unknown } | undefined;
       const entries = toEntryArray(output?.entries);
       const pathLabel = ensureString(input?.path) || "/";
+
+      if (isPendingState(state)) {
+        return {
+          title: [
+            { kind: "text", text: "Listing directory" },
+            { kind: "text", text: pathLabel, bold: true },
+          ],
+          expandable: false,
+        };
+      }
+
+      if (state === "output-error") {
+        return {
+          title: [
+            { kind: "text", text: "Failed to list" },
+            { kind: "text", text: pathLabel, bold: true },
+          ],
+          blocks: errorText
+            ? [
+                {
+                  type: "text",
+                  text: errorText,
+                },
+              ]
+            : undefined,
+          expandable: false,
+        };
+      }
+
+      if (state !== "output-available") {
+        return null;
+      }
 
       return {
         title: [
@@ -85,6 +122,43 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
       };
     }
     case "tool-opfs_read_file": {
+      if (isPendingState(state)) {
+        const input = (invocation as any).input as { file?: string } | undefined;
+        const filePath = ensureString(input?.file) || "";
+        const fileName = filePath ? extractFileName(filePath) : "(unknown)";
+
+        return {
+          title: [
+            { kind: "text", text: "Reading file" },
+            { kind: "link", text: fileName, filePath: filePath || undefined, href: undefined, variant: "bubble" },
+          ],
+          expandable: false,
+        };
+      }
+      if (state === "output-error") {
+        const input = (invocation as any).input as { file?: string } | undefined;
+        const filePath = ensureString(input?.file) || "";
+        const fileName = filePath ? extractFileName(filePath) : "(unknown)";
+
+        return {
+          title: [
+            { kind: "text", text: "Failed to read file" },
+            { kind: "link", text: fileName, filePath: filePath || undefined, href: undefined, variant: "bubble" },
+          ],
+          blocks: errorText
+            ? [
+                {
+                  type: "text",
+                  text: errorText,
+                },
+              ]
+            : undefined,
+          expandable: false,
+        };
+      }
+      if (state !== "output-available") {
+        return null;
+      }
       const input = (invocation as any).input as { file?: string } | undefined;
       const output = (invocation as any).output as
         | {
@@ -113,10 +187,42 @@ export function renderOpfsTool(invocation: ToolInvocation): RenderResult | null 
     }
     case "tool-opfs_write_file": {
       const input = (invocation as any).input as { file?: string; content?: string; diff?: string } | undefined;
-      const output = (invocation as any).output as { previousContent?: unknown } | undefined;
       const filePath = ensureString(input?.file) || "";
       const fileName = filePath ? extractFileName(filePath) : "(unknown)";
       const language = guessLanguageFromPath(filePath);
+
+      if (isPendingState(state)) {
+        return {
+          title: [
+            { kind: "text", text: "Writing file" },
+            { kind: "link", text: fileName, filePath: filePath || undefined, href: undefined, variant: "bubble" },
+          ],
+          expandable: false,
+        };
+      }
+
+      if (state === "output-error") {
+        return {
+          title: [
+            { kind: "text", text: "Failed to write file" },
+            { kind: "link", text: fileName, filePath: filePath || undefined, href: undefined, variant: "bubble" },
+          ],
+          blocks: errorText
+            ? [
+                {
+                  type: "text",
+                  text: errorText,
+                },
+              ]
+            : undefined,
+          expandable: false,
+        };
+      }
+
+      if (state !== "output-available") {
+        return null;
+      }
+      const output = (invocation as any).output as { previousContent?: unknown } | undefined;
       const originalContent = ensureStringOrEmpty(output?.previousContent);
       const newContent = ensureStringOrEmpty(input?.content);
 
