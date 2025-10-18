@@ -161,7 +161,7 @@ export function createHost(options: HostOptions) {
     );
 
     if (!mres.ok) {
-      const nextState = { manifest: null };
+      const nextState = { manifest: null, watcherCleanup: prevState?.watcherCleanup };
       states.set(pluginId, nextState);
       if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
       emitStatus(`manifest invalid for ${pluginId}: ${mres.error}`, pluginId, mres.details ?? mres);
@@ -208,7 +208,14 @@ export function createHost(options: HostOptions) {
     commands.register(pluginId, manifest.commands, mod.commands);
 
     if (prevState?.moduleUrl) URL.revokeObjectURL(prevState.moduleUrl);
-    const nextState = { manifest, moduleUrl: url, module: mod, plugin, ctx };
+    const nextState = {
+      manifest,
+      moduleUrl: url,
+      module: mod,
+      plugin,
+      ctx,
+      watcherCleanup: prevState?.watcherCleanup,
+    };
     states.set(pluginId, nextState);
     if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
 
