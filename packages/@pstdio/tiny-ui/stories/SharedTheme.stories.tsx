@@ -4,7 +4,8 @@ import type { ChangeEvent, CSSProperties } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import { TinyUI } from "../src/react/tiny-ui";
+import { TinyUI } from "../src/react/components/TinyUI";
+import { TinyUiProvider } from "../src/react/tiny-ui-provider";
 import { TinyUIStatus } from "../src/types";
 import { setupTinyUI } from "../src/setupTinyUI";
 
@@ -366,106 +367,108 @@ const SharedThemeDemo = () => {
   }, []);
 
   return (
-    <div style={containerStyle}>
-      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-        <button onClick={clearCache} type="button">
-          Clear Cache
-        </button>
-      </div>
+    <TinyUiProvider serviceWorkerUrl="/tiny-ui-sw.js">
+      <div style={containerStyle}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button onClick={clearCache} type="button">
+            Clear Cache
+          </button>
+        </div>
 
-      <div
-        style={{
-          display: "grid",
-          gap: 12,
-          gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
-        }}
-      >
-        {TOKEN_CONTROLS.map(({ key, label }) => (
-          <label key={key} style={{ display: "grid", gap: 6, fontSize: 12, fontWeight: 500 }}>
-            <span>{label}</span>
-            <input
-              type="color"
-              value={tokens[key]}
-              onChange={handleTokenChange(key)}
-              style={{
-                width: "100%",
-                minHeight: 38,
-                border: "1px solid rgba(148, 163, 184, 0.35)",
-                borderRadius: 8,
-                padding: 0,
-                background: "transparent",
-              }}
-            />
-            <span style={{ fontFamily: "monospace", fontSize: 11 }}>{tokens[key]}</span>
-          </label>
-        ))}
-      </div>
+        <div
+          style={{
+            display: "grid",
+            gap: 12,
+            gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))",
+          }}
+        >
+          {TOKEN_CONTROLS.map(({ key, label }) => (
+            <label key={key} style={{ display: "grid", gap: 6, fontSize: 12, fontWeight: 500 }}>
+              <span>{label}</span>
+              <input
+                type="color"
+                value={tokens[key]}
+                onChange={handleTokenChange(key)}
+                style={{
+                  width: "100%",
+                  minHeight: 38,
+                  border: "1px solid rgba(148, 163, 184, 0.35)",
+                  borderRadius: 8,
+                  padding: 0,
+                  background: "transparent",
+                }}
+              />
+              <span style={{ fontFamily: "monospace", fontSize: 11 }}>{tokens[key]}</span>
+            </label>
+          ))}
+        </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-        {initialized ? (
-          <>
-            <TinyUI
-              key={`tinyui-a-${rebuildKeyA}`}
-              instanceId={SOURCE_ID_A}
-              sourceId={SOURCE_ID_A}
-              autoCompile
-              skipCache={rebuildKeyA > 0}
-              onStatusChange={onStatusChangeA}
-              onReady={onReadyA}
-              onError={onError}
-              onActionCall={handleActionCall}
-              style={frameStyle}
-            />
-            <TinyUI
-              key={`tinyui-b-${rebuildKeyB}`}
-              instanceId={SOURCE_ID_B}
-              sourceId={SOURCE_ID_B}
-              autoCompile
-              skipCache={rebuildKeyB > 0}
-              onStatusChange={onStatusChangeB}
-              onReady={onReadyB}
-              onError={onError}
-              onActionCall={handleActionCall}
-              style={frameStyle}
-            />
-          </>
-        ) : (
-          <>
-            <div
-              aria-busy="true"
-              style={{
-                ...frameStyle,
-                borderRadius: 12,
-                border: "1px dashed #475569",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#475569",
-              }}
-            >
-              Loading Chakra UI sources...
-            </div>
-            <div
-              aria-busy="true"
-              style={{
-                ...frameStyle,
-                borderRadius: 12,
-                border: "1px dashed #475569",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "#475569",
-              }}
-            >
-              Loading Chakra UI sources...
-            </div>
-          </>
-        )}
-      </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          {initialized ? (
+            <>
+              <TinyUI
+                key={`tinyui-a-${rebuildKeyA}`}
+                instanceId={SOURCE_ID_A}
+                sourceId={SOURCE_ID_A}
+                autoCompile
+                skipCache={rebuildKeyA > 0}
+                onStatusChange={onStatusChangeA}
+                onReady={onReadyA}
+                onError={onError}
+                onActionCall={handleActionCall}
+                style={frameStyle}
+              />
+              <TinyUI
+                key={`tinyui-b-${rebuildKeyB}`}
+                instanceId={SOURCE_ID_B}
+                sourceId={SOURCE_ID_B}
+                autoCompile
+                skipCache={rebuildKeyB > 0}
+                onStatusChange={onStatusChangeB}
+                onReady={onReadyB}
+                onError={onError}
+                onActionCall={handleActionCall}
+                style={frameStyle}
+              />
+            </>
+          ) : (
+            <>
+              <div
+                aria-busy="true"
+                style={{
+                  ...frameStyle,
+                  borderRadius: 12,
+                  border: "1px dashed #475569",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#475569",
+                }}
+              >
+                Loading Chakra UI sources...
+              </div>
+              <div
+                aria-busy="true"
+                style={{
+                  ...frameStyle,
+                  borderRadius: 12,
+                  border: "1px dashed #475569",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#475569",
+                }}
+              >
+                Loading Chakra UI sources...
+              </div>
+            </>
+          )}
+        </div>
 
-      <div aria-live="polite">
-        <strong>Status A:</strong> {statusA} &nbsp; | &nbsp; <strong>Status B:</strong> {statusB}
-        {message ? <div>{message}</div> : null}
+        <div aria-live="polite">
+          <strong>Status A:</strong> {statusA} &nbsp; | &nbsp; <strong>Status B:</strong> {statusB}
+          {message ? <div>{message}</div> : null}
+        </div>
       </div>
-    </div>
+    </TinyUiProvider>
   );
 };
 

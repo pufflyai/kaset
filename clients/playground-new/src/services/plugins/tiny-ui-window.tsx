@@ -3,7 +3,7 @@ import { toaster } from "@/components/ui/toaster";
 import { ROOT } from "@/constant";
 import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
 import { Box, Button, Center, Text } from "@chakra-ui/react";
-import { TinyUI, loadSnapshot, setupTinyUI, type TinyUIActionHandler, type TinyUIStatus } from "@pstdio/tiny-ui";
+import { TinyUI, loadSnapshot, type TinyUIActionHandler, type TinyUIStatus } from "@pstdio/tiny-ui";
 import { getLockfile, registerSources, setLockfile, unregisterVirtualSnapshot } from "@pstdio/tiny-ui-bundler";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -23,16 +23,6 @@ export interface PluginTinyUiWindowProps {
   instanceId: string;
   pluginWindow: PluginDesktopWindowDescriptor;
 }
-
-const buildAssetUrl = (path: string) => {
-  const baseUrl = import.meta.env.BASE_URL || "/";
-  const normalizedBase = baseUrl.endsWith("/") ? baseUrl : `${baseUrl}/`;
-  const normalizedPath = path.startsWith("/") ? path.slice(1) : path;
-  return `${normalizedBase}${normalizedPath}`;
-};
-
-const serviceWorkerUrl = buildAssetUrl("sw.js");
-const runtimeUrl = buildAssetUrl("tiny-ui/runtime.html");
 
 const buildPluginRoot = (pluginsRoot: string, pluginId: string) => {
   const normalized = pluginsRoot.replace(/\/+$/, "");
@@ -89,17 +79,6 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
   const pluginsRoot = useMemo(() => getPluginsRoot(), []);
   const sourceId = `${pluginId}:${surfaceId}`;
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    setupTinyUI({ serviceWorkerUrl, runtimeUrl }).catch((reason) => {
-      const message =
-        reason instanceof Error ? reason.message : "Tiny UI service worker failed to initialize for this window.";
-      console.error("[tiny-ui-window] Failed to initialize Tiny UI", reason);
-      setError(message);
-      setStatus("error");
-    });
-  }, []);
 
   const handleTinyStatusChange = useCallback((nextStatus: TinyUIStatus) => {
     if (nextStatus === "error") return;
@@ -186,6 +165,7 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     (method, params) => opsHandler({ method, params }),
     [opsHandler],
   );
+
   const tinyUiStyle = useMemo(
     () => ({
       width: "100%",

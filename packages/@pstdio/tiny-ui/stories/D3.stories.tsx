@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import { TinyUI } from "../src/react/tiny-ui";
+import { TinyUI } from "../src/react/components/TinyUI";
+import { TinyUiProvider } from "../src/react/tiny-ui-provider";
 import { setupTinyUI } from "../src/setupTinyUI";
 import { TinyUIStatus } from "../src/types";
 
@@ -189,57 +190,59 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 480 }}>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
-          {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
-        </button>
-        <button onClick={handleClearCache} type="button">
-          Clear Cache
-        </button>
-      </div>
-      {initialized ? (
-        <TinyUI
-          key={rebuildKey}
-          instanceId={bundleId}
-          sourceId={bundleId}
-          autoCompile={autoCompile}
-          skipCache={rebuildKey > 0}
-          onStatusChange={handleStatusChange}
-          onReady={handleReady}
-          onError={handleError}
-          onActionCall={handleActionCall}
-          style={{
-            width: "100%",
-            height: 360,
-            borderRadius: 12,
-            padding: 16,
-            display: "flex",
-          }}
-        />
-      ) : (
-        <div
-          style={{
-            width: "100%",
-            height: 360,
-            borderRadius: 12,
-            padding: 16,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "1px dashed #475569",
-            color: "#475569",
-          }}
-          aria-live="polite"
-        >
-          Loading D3 source files...
+    <TinyUiProvider serviceWorkerUrl="/tiny-ui-sw.js">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 480 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
+            {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
+          </button>
+          <button onClick={handleClearCache} type="button">
+            Clear Cache
+          </button>
         </div>
-      )}
-      <div aria-live="polite">
-        <strong>Status:</strong> {status}
-        {message ? <div>{message}</div> : null}
+        {initialized ? (
+          <TinyUI
+            key={rebuildKey}
+            instanceId={bundleId}
+            sourceId={bundleId}
+            autoCompile={autoCompile}
+            skipCache={rebuildKey > 0}
+            onStatusChange={handleStatusChange}
+            onReady={handleReady}
+            onError={handleError}
+            onActionCall={handleActionCall}
+            style={{
+              width: "100%",
+              height: 360,
+              borderRadius: 12,
+              padding: 16,
+              display: "flex",
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: 360,
+              borderRadius: 12,
+              padding: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px dashed #475569",
+              color: "#475569",
+            }}
+            aria-live="polite"
+          >
+            Loading D3 source files...
+          </div>
+        )}
+        <div aria-live="polite">
+          <strong>Status:</strong> {status}
+          {message ? <div>{message}</div> : null}
+        </div>
       </div>
-    </div>
+    </TinyUiProvider>
   );
 };
 

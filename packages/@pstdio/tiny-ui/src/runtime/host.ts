@@ -11,11 +11,16 @@ export interface HostAPI {
 export type TinyHost = ReturnType<typeof createTinyHost>;
 
 export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
+  let lastReadyPayload: { id: string; meta?: unknown } | null = null;
+  let lastErrorPayload: { id: string; message: string; stack?: string } | null = null;
+
   const hostApi: HostAPI = {
     async ready(data) {
+      lastReadyPayload = data;
       internal.onReady?.(data);
     },
     async runtimeError(data) {
+      lastErrorPayload = data;
       internal.onError?.(data);
     },
     async ops(request) {
@@ -42,6 +47,9 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
       assetCleanup = null;
     }
 
+    lastReadyPayload = null;
+    lastErrorPayload = null;
+
     const lockfile = getLockfile() ?? null;
     const importMap = lockfile ? buildImportMap(lockfile) : undefined;
     const prepared = await prepareRuntimeAssets(result);
@@ -63,9 +71,15 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
   return {
     onReady(fn: (data: { id: string; meta?: unknown }) => void) {
       internal.onReady = fn;
+      if (lastReadyPayload) {
+        fn(lastReadyPayload);
+      }
     },
     onError(fn: (data: { id: string; message: string; stack?: string }) => void) {
       internal.onError = fn;
+      if (lastErrorPayload) {
+        fn(lastErrorPayload);
+      }
     },
     onOps(fn: TinyUiOpsHandler) {
       internal.opsHandler = fn;
@@ -78,6 +92,8 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
         assetCleanup();
         assetCleanup = null;
       }
+      lastReadyPayload = null;
+      lastErrorPayload = null;
     },
   };
 }

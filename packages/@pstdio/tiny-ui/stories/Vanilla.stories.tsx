@@ -2,7 +2,8 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
-import { TinyUI } from "../src/react/tiny-ui";
+import { TinyUI } from "../src/react/components/TinyUI";
+import { TinyUiProvider } from "../src/react/tiny-ui-provider";
 import { TinyUIStatus } from "../src/types";
 import { setupTinyUI } from "../src/setupTinyUI";
 
@@ -34,16 +35,16 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
   const [initialized, setInitialized] = useState(false);
   const [rebuildKey, setRebuildKey] = useState(0);
 
+  const serviceWorkerUrl = failureMode === "serviceWorker" ? "/tiny-ui-sw-missing.js" : "/tiny-ui-sw.js";
+  const runtimeUrl = failureMode === "runtimeMissing" ? `${STORY_ROOT}/missing-runtime.html` : undefined;
+
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    const serviceWorkerUrl = failureMode === "serviceWorker" ? "/tiny-ui-sw-missing.js" : "/tiny-ui-sw.js";
-    const runtimeUrl = failureMode === "runtimeMissing" ? `${STORY_ROOT}/missing-runtime.html` : undefined;
 
     setupTinyUI({ serviceWorkerUrl, runtimeUrl }).catch((error) => {
       console.error("[TinyUI Story] Failed to initialize Tiny UI", error);
     });
-  }, [failureMode]);
+  }, [failureMode, runtimeUrl, serviceWorkerUrl]);
 
   const failureExplanation =
     failureMode === "serviceWorker"
@@ -194,56 +195,58 @@ const VanillaDemo = ({ autoCompile = true, failureMode = "none" }: VanillaDemoPr
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 480 }}>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
-          {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
-        </button>
-        <button onClick={handleClearCache} type="button">
-          Clear Cache
-        </button>
-      </div>
-      {initialized ? (
-        <TinyUI
-          key={rebuildKey}
-          instanceId={SOURCE_ID}
-          sourceId={SOURCE_ID}
-          autoCompile={autoCompile}
-          skipCache={rebuildKey > 0}
-          onStatusChange={handleStatusChange}
-          onReady={handleReady}
-          onError={handleError}
-          onActionCall={handleActionCall}
-          style={{
-            height: 320,
-          }}
-        />
-      ) : (
-        <div
-          aria-busy="true"
-          style={{
-            height: 320,
-            border: "1px dashed #475569",
-            borderRadius: 12,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#475569",
-          }}
-        >
-          Loading vanilla source files...
+    <TinyUiProvider serviceWorkerUrl={serviceWorkerUrl} runtimeUrl={runtimeUrl}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 480 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
+            {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
+          </button>
+          <button onClick={handleClearCache} type="button">
+            Clear Cache
+          </button>
         </div>
-      )}
-      {failureExplanation ? (
-        <div>
-          <strong>Expected failure:</strong> {failureExplanation}
+        {initialized ? (
+          <TinyUI
+            key={rebuildKey}
+            instanceId={SOURCE_ID}
+            sourceId={SOURCE_ID}
+            autoCompile={autoCompile}
+            skipCache={rebuildKey > 0}
+            onStatusChange={handleStatusChange}
+            onReady={handleReady}
+            onError={handleError}
+            onActionCall={handleActionCall}
+            style={{
+              height: 320,
+            }}
+          />
+        ) : (
+          <div
+            aria-busy="true"
+            style={{
+              height: 320,
+              border: "1px dashed #475569",
+              borderRadius: 12,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#475569",
+            }}
+          >
+            Loading vanilla source files...
+          </div>
+        )}
+        {failureExplanation ? (
+          <div>
+            <strong>Expected failure:</strong> {failureExplanation}
+          </div>
+        ) : null}
+        <div aria-live="polite">
+          <strong>Status:</strong> {status}
+          {message ? <div>{message}</div> : null}
         </div>
-      ) : null}
-      <div aria-live="polite">
-        <strong>Status:</strong> {status}
-        {message ? <div>{message}</div> : null}
       </div>
-    </div>
+    </TinyUiProvider>
   );
 };
 
