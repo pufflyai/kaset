@@ -61,8 +61,10 @@ export interface HostApi {
   "fs.mkdirp"(path: string): Promise<void>;
 
   // Notifications
-  "logs.statusUpdate"(status: { status: string; detail?: unknown }): Promise<void>;
-  "logs.logError"(error: { message: string }): Promise<void>;
+  "log.statusUpdate"(status: { status: string; detail?: unknown }): Promise<void>;
+  "log.info"(message: string, detail?: unknown): Promise<void>;
+  "log.warn"(message: string, detail?: unknown): Promise<void>;
+  "log.error"(message: string, detail?: unknown): Promise<void>;
 
   // Settings
   "settings.read"<T = unknown>(): Promise<T>;
@@ -78,7 +80,7 @@ export interface PluginContext {
 
 export interface HostOptions {
   root?: string; // PLUGIN_ROOT (defaults to "plugins")
-  dataRoot?: string; // PLUGIN_DATA_ROOT (defaults to root)
+  dataRoot?: string; // PLUGIN_DATA_ROOT (defaults to "plugin_data")
   hostApiVersion?: string; // defaults to "1.0.0"
   watch?: boolean;
   notify?: (level: "info" | "warn" | "error", message: string) => void;

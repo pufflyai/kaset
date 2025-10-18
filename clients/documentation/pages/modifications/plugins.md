@@ -170,14 +170,14 @@ export const commands = {
     await ctx.api["settings.write"]({ ...settings, current: nextTheme });
 
     if (!params.skipNotification) {
-      await ctx.api["logs.statusUpdate"]({ status: "theme.changed", detail: { theme: nextTheme } });
+      await ctx.api["log.statusUpdate"]({ status: "theme.changed", detail: { theme: nextTheme } });
     }
   },
 };
 
 export default {
   async activate(ctx) {
-    await ctx.api["logs.statusUpdate"]({ status: "theme-switcher activated" });
+    await ctx.api["log.statusUpdate"]({ status: "theme-switcher activated" });
   },
   async deactivate() {
     console.info("theme-switcher deactivated");
@@ -190,14 +190,14 @@ export default {
 - `ctx.id` / `ctx.manifest` – plugin metadata.
 - `ctx.api["fs.readFile"](path)` – scoped filesystem helpers from `@pstdio/opfs-utils` (`fs.writeFile`, `fs.deleteFile`, `fs.moveFile`, `fs.exists`, `fs.mkdirp`).
 - `ctx.api["settings.read"]<T>()` / `ctx.api["settings.write"](value)` – persist JSON to `/plugin_data/<id>/.settings.json`, validated against `settingsSchema` when provided.
-- `ctx.api["logs.statusUpdate"]({ status, detail? })` – bridge notifications to the host `notify` callback.
-- `ctx.api["logs.logError"]({ message })` – forward errors to the host notifier.
+- `ctx.api["log.statusUpdate"]({ status, detail? })` – bridge notifications to the host `notify` callback.
+- `ctx.api["log.error"](message)` – forward errors to the host notifier. `ctx.api["log.warn"]` and `ctx.api["log.info"]` surface non-error messages.
 
 `activate(ctx)` runs once per load. `deactivate()` is optional and executes on unload or reload.
 
 ## Notifications & Settings
 
-- **Notifications** – call `ctx.api["logs.statusUpdate"]({ status, detail })` to surface feedback. The host forwards the message to its `notify` handler, so apps can display toasts or log structured output. Use `ctx.api["logs.logError"]({ message })` for error conditions.
+- **Notifications** – call `ctx.api["log.statusUpdate"]({ status, detail })` to surface feedback. The host forwards the message to its `notify` handler, so apps can display toasts or log structured output. Use `ctx.api["log.error"](message)` for error conditions; `ctx.api["log.warn"]` and `ctx.api["log.info"]` are available for additional telemetry.
 - **Settings** – stored at `/plugin_data/<id>/.settings.json`. Reads return `{}` when the file is missing or invalid JSON. Writes are pretty-printed and validated against `settingsSchema` via `ctx.api["settings.write"]`.
 
 ## Tiny AI Tasks Integration

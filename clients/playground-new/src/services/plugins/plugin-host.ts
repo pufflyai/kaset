@@ -12,7 +12,7 @@ import {
   type PluginMetadata,
 } from "@pstdio/tiny-plugins";
 
-export type JSONSchema = Record<string, unknown>;
+export type JSONSchema = Record<string, unknown> | boolean;
 
 type HostCommand = CommandDefinition & { pluginId: string };
 
@@ -48,6 +48,11 @@ type DesktopSurfaceManifest = {
     dependencies?: Record<string, string>;
   };
 };
+
+function isJsonSchema(value: unknown): value is JSONSchema {
+  if (typeof value === "boolean") return true;
+  return typeof value === "object" && value !== null;
+}
 
 export type PluginFilesEvent = { pluginId: string; changes: ChangeRecord[] };
 export type PluginFilesListener = (event: PluginFilesEvent) => void;
@@ -384,13 +389,16 @@ function syncPluginMetadata(entries: PluginMetadata[]) {
 }
 
 function handleManifestUpdate(pluginId: string, manifest: Manifest | null) {
-  if (manifest?.settingsSchema) {
-    pluginSchemas.set(pluginId, manifest.settingsSchema);
+  const schema = manifest?.settingsSchema;
+  const normalizedSchema = isJsonSchema(schema) ? schema : undefined;
+
+  if (normalizedSchema !== undefined) {
+    pluginSchemas.set(pluginId, normalizedSchema);
   } else {
     pluginSchemas.delete(pluginId);
   }
 
-  notifySettingsSubscribers(pluginId, manifest?.settingsSchema);
+  notifySettingsSubscribers(pluginId, normalizedSchema);
 
   const existingDependencies = pluginDependencies.get(pluginId);
   const nextDependencies = manifest?.dependencies ? { ...manifest.dependencies } : undefined;
@@ -448,7 +456,7 @@ function attachHostSubscriptions(instance: TinyPluginHost, generation: number) {
     notifyPluginFileListeners(pluginId, payload);
   });
 
-  const unsubscribeDependencies = instance.onDependencyChange(({ deps }) => {
+  const unsubscribeDependencies = instance.onDependencyChange((deps) => {
     if (generation !== hostGeneration) return;
     mergedDependencies = { ...deps };
     notifyDependencySubscribers();

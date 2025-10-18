@@ -155,8 +155,8 @@ Command handlers receive a lightweight `PluginContext`:
 - `ctx.id` / `ctx.manifest` – plugin identity and validated manifest metadata.
 - `ctx.api["fs.readFile"](path)` – scoped file-system helpers backed by `@pstdio/opfs-utils` (`writeFile`, `deleteFile`, `moveFile`, `exists`, `mkdirp` are also available under the `fs.*` namespace).
 - `ctx.api["settings.read"]()` / `ctx.api["settings.write"](value)` – JSON persistence to `/plugin_data/<id>/.settings.json`.
-- `ctx.api["logs.statusUpdate"]({ status, detail? })` – emit structured status messages surfaced via `host.onStatus`.
-- `ctx.api["logs.logError"]({ message })` – forward plugin errors to the host notifier.
+- `ctx.api["log.statusUpdate"]({ status, detail? })` – emit structured status messages surfaced via `host.onStatus`.
+- `ctx.api["log.error"](message)` / `ctx.api["log.warn"](message)` / `ctx.api["log.info"](message)` – forward plugin logs to the host notifier.
 
 Plugins must export a default object with an `activate(ctx)` function. `deactivate()` is optional and runs on unload.
 

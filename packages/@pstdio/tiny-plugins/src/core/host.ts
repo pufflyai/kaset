@@ -2,7 +2,7 @@ import { ls, type ChangeRecord } from "@pstdio/opfs-utils";
 import { createPluginFs, createPluginDataFs } from "./fs";
 import { Emitter } from "./events";
 import { readManifestStrict } from "./manifest";
-import { listFiles, watchPluginDir } from "./watchers";
+import { listFiles, watchPluginDir, watchPluginsRoot } from "./watchers";
 import { CommandRegistry } from "./commands";
 import { mergeDependencies } from "./dependencies";
 import { createSettings } from "./settings";
@@ -23,6 +23,7 @@ type Events = {
   settingsChange: { pluginId: string; settings: unknown };
   status: StatusUpdate;
   error: Error;
+  pluginsChange: { plugins: PluginMetadata[] };
 };
 
 const DEFAULT_HOST_API_VERSION = "1.0.0";
@@ -35,7 +36,7 @@ function normalizeRoot(value?: string) {
 
 export function createHost(options: HostOptions) {
   const root = normalizeRoot(options.root);
-  const dataRoot = normalizeRoot(options.dataRoot ?? root);
+  const dataRoot = normalizeRoot(options.dataRoot ?? "plugin_data");
   const watch = options.watch ?? true;
   const notify = options.notify;
   const hostApiVersion = options.hostApiVersion ?? DEFAULT_HOST_API_VERSION;
@@ -54,6 +55,7 @@ export function createHost(options: HostOptions) {
       ctx?: PluginContext;
     }
   >();
+  let rootWatcherCleanup: (() => void | Promise<void>) | undefined;
 
   function emitStatus(status: string, pluginId?: string, detail?: unknown) {
     notify?.("info", status);
@@ -69,12 +71,55 @@ export function createHost(options: HostOptions) {
     return [root, pluginId].join("/");
   }
 
-  // --- Host API mapping (scoped to a pluginId) ---
+  function collectMetadata(): PluginMetadata[] {
+    return [...states.entries()]
+      .map(([id, s]) => ({ id, name: s.manifest?.name, version: s.manifest?.version }))
+      .sort((a, b) => a.id.localeCompare(b.id));
+  }
+
+  function emitPluginsChange() {
+    emitter.emit("pluginsChange", { plugins: collectMetadata() });
+  }
+
+  function shouldEmitPluginsChange(
+    prev?: { manifest: Manifest | null },
+    next?: { manifest: Manifest | null },
+  ): boolean {
+    if (!prev && next) return true;
+    if (prev && !next) return true;
+    const prevManifest = prev?.manifest ?? null;
+    const nextManifest = next?.manifest ?? null;
+    if (!prevManifest && !nextManifest) return false;
+    if (!prevManifest || !nextManifest) return true;
+    return prevManifest.name !== nextManifest.name || prevManifest.version !== nextManifest.version;
+  }
+
+  function emitDependenciesChanged() {
+    emitter.emit("dependencyChange", { deps: getPluginDependencies() });
+  }
+
   function buildHostApi(pluginId: string): HostApi {
     const pfs = createPluginFs(root, pluginId);
+
     const settings = createSettings(createPluginDataFs(dataRoot, pluginId), (value) => {
       emitter.emit("settingsChange", { pluginId, settings: value });
     });
+
+    const logPrefix = `[tiny-plugins:${pluginId}]`;
+
+    const forwardLog = (level: "info" | "warn" | "error", message: string, detail?: unknown) => {
+      notify?.(level, message);
+
+      emitter.emit("status", { status: message, detail, pluginId });
+
+      const consoleFn = level === "error" ? console.error : level === "warn" ? console.warn : console.info;
+
+      if (detail !== undefined) {
+        consoleFn(`${logPrefix} ${message}`, detail);
+      } else {
+        consoleFn(`${logPrefix} ${message}`);
+      }
+    };
 
     return {
       // FS
@@ -85,12 +130,18 @@ export function createHost(options: HostOptions) {
       "fs.exists": (path) => pfs.exists(path),
       "fs.mkdirp": (path) => pfs.mkdirp(path),
 
-      // Logs/notifications
-      "logs.statusUpdate": async (status) => {
+      // Notifications
+      "log.statusUpdate": async (status: { status: string; detail?: unknown }) => {
         emitter.emit("status", { status: status.status, detail: status.detail, pluginId });
       },
-      "logs.logError": async (error) => {
-        notify?.("error", error?.message ?? "unknown");
+      "log.info": async (message: string, detail?: unknown) => {
+        forwardLog("info", message, detail);
+      },
+      "log.warn": async (message: string, detail?: unknown) => {
+        forwardLog("warn", message, detail);
+      },
+      "log.error": async (message: string, detail?: unknown) => {
+        forwardLog("error", message, detail);
       },
 
       // Settings
@@ -100,6 +151,7 @@ export function createHost(options: HostOptions) {
   }
 
   async function loadPlugin(pluginId: string) {
+    const prevState = states.get(pluginId);
     const fs = createPluginFs(root, pluginId);
 
     const mres = await readManifestStrict(
@@ -109,7 +161,9 @@ export function createHost(options: HostOptions) {
     );
 
     if (!mres.ok) {
-      states.set(pluginId, { manifest: null });
+      const nextState = { manifest: null };
+      states.set(pluginId, nextState);
+      if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
       emitStatus(`manifest invalid for ${pluginId}: ${mres.error}`, pluginId, mres.details ?? mres);
       emitter.emit("pluginChange", {
         pluginId,
@@ -153,9 +207,10 @@ export function createHost(options: HostOptions) {
     await plugin.activate(ctx);
     commands.register(pluginId, manifest.commands, mod.commands);
 
-    const prev = states.get(pluginId);
-    if (prev?.moduleUrl) URL.revokeObjectURL(prev.moduleUrl);
-    states.set(pluginId, { manifest, moduleUrl: url, module: mod, plugin, ctx });
+    if (prevState?.moduleUrl) URL.revokeObjectURL(prevState.moduleUrl);
+    const nextState = { manifest, moduleUrl: url, module: mod, plugin, ctx };
+    states.set(pluginId, nextState);
+    if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
 
     emitter.emit("pluginChange", {
       pluginId,
@@ -197,7 +252,7 @@ export function createHost(options: HostOptions) {
             changes,
           },
         });
-        emitter.emit("dependencyChange", { deps: getPluginDependencies() });
+        emitDependenciesChanged();
       } catch (e) {
         emitError(e as Error);
       }
@@ -205,6 +260,81 @@ export function createHost(options: HostOptions) {
 
     const s = states.get(pluginId);
     if (s) s.watcherCleanup = cleanup;
+  }
+
+  async function handlePluginRemoval(pluginId: string, changes: ChangeRecord[]) {
+    const state = states.get(pluginId);
+    if (!state) return;
+
+    try {
+      await state.watcherCleanup?.();
+    } catch {
+      /* ignore */
+    }
+
+    const emitChange = shouldEmitPluginsChange(state, undefined);
+    await unloadPlugin(pluginId);
+    if (emitChange) emitPluginsChange();
+
+    const paths = [...new Set(changes.map((change) => change.path.join("/")))];
+    emitter.emit("pluginChange", {
+      pluginId,
+      payload: {
+        paths,
+        manifest: null,
+        files: await listFiles(pluginRootPath(pluginId)),
+        changes,
+      },
+    });
+    emitDependenciesChanged();
+  }
+
+  async function handlePluginAddition(pluginId: string) {
+    if (states.has(pluginId)) return;
+    try {
+      await loadPlugin(pluginId);
+      await startWatching(pluginId);
+      emitDependenciesChanged();
+    } catch (e) {
+      emitError(e as Error);
+    }
+  }
+
+  async function startRootWatcher() {
+    if (!watch || rootWatcherCleanup) return;
+    rootWatcherCleanup = await watchPluginsRoot(root, async (changes: ChangeRecord[]) => {
+      const grouped = new Map<string, ChangeRecord[]>();
+      changes.forEach((change) => {
+        const pluginId = change.path[0];
+        if (!pluginId) return;
+        const existing = grouped.get(pluginId);
+        if (existing) {
+          existing.push(change);
+        } else {
+          grouped.set(pluginId, [change]);
+        }
+      });
+
+      const removals: Array<[string, ChangeRecord[]]> = [];
+      const additions = new Set<string>();
+
+      grouped.forEach((pluginChanges, pluginId) => {
+        if (pluginChanges.some((change) => change.type === "disappeared")) {
+          removals.push([pluginId, pluginChanges]);
+        }
+        if (pluginChanges.some((change) => change.type === "appeared")) {
+          additions.add(pluginId);
+        }
+      });
+
+      for (const [pluginId, pluginChanges] of removals) {
+        await handlePluginRemoval(pluginId, pluginChanges);
+      }
+
+      for (const pluginId of additions) {
+        await handlePluginAddition(pluginId);
+      }
+    });
   }
 
   async function start() {
@@ -225,10 +355,19 @@ export function createHost(options: HostOptions) {
       }
     }
 
-    emitter.emit("dependencyChange", { deps: getPluginDependencies() });
+    await startRootWatcher();
+    emitDependenciesChanged();
   }
 
   async function stop() {
+    try {
+      await rootWatcherCleanup?.();
+    } catch {
+      /* ignore */
+    }
+
+    rootWatcherCleanup = undefined;
+
     for (const [id, s] of states) {
       try {
         await s.watcherCleanup?.();
@@ -256,14 +395,16 @@ export function createHost(options: HostOptions) {
     return emitter.on("dependencyChange", ({ deps }) => cb(deps));
   }
 
+  function onPluginsChange(cb: (plugins: PluginMetadata[]) => void) {
+    return emitter.on("pluginsChange", ({ plugins }) => cb(plugins));
+  }
+
   function onSettingsChange(cb: (pluginId: string, settings: unknown) => void) {
     return emitter.on("settingsChange", ({ pluginId, settings }) => cb(pluginId, settings));
   }
 
   function getMetadata(): PluginMetadata[] {
-    return [...states.entries()]
-      .map(([id, s]) => ({ id, name: s.manifest?.name, version: s.manifest?.version }))
-      .sort((a, b) => a.id.localeCompare(b.id));
+    return collectMetadata();
   }
 
   async function updateSettings<T = unknown>(pluginId: string, value: T) {
@@ -299,6 +440,7 @@ export function createHost(options: HostOptions) {
     // subscriptions
     onPluginChange,
     onDependencyChange,
+    onPluginsChange,
     onSettingsChange,
     onStatus: (cb: (s: StatusUpdate) => void) => emitter.on("status", cb),
     onError: (cb: (e: Error) => void) => emitter.on("error", cb),

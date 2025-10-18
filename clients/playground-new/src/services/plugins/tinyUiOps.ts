@@ -1,7 +1,13 @@
 import { basename, createScopedFs, joinUnderWorkspace, ls, type ScopedFs } from "@pstdio/opfs-utils";
 import { createSettingsAccessor } from "@pstdio/tiny-plugins";
-import type { TinyFsDirSnapshot, TinyFsEntry, TinyUiOpsHandler, TinyUiOpsRequest } from "./types";
+import type {
+  TinyUiOpsHandler as PackageTinyUiOpsHandler,
+  TinyUiOpsRequest as PackageTinyUiOpsRequest,
+} from "@pstdio/tiny-ui";
 import type { WorkspaceFs } from "./workspaceFs";
+
+export type TinyUiOpsRequest = PackageTinyUiOpsRequest;
+export type TinyUiOpsHandler = PackageTinyUiOpsHandler;
 
 type SettingsValidator = Parameters<typeof createSettingsAccessor>[2];
 interface TinyFsEntry {
@@ -19,13 +25,6 @@ interface TinyFsDirSnapshot {
   signature: string;
   generatedAt: number;
 }
-
-export interface TinyUiOpsRequest {
-  method: string;
-  params?: Record<string, unknown>;
-}
-
-export type TinyUiOpsHandler = (request: TinyUiOpsRequest) => Promise<unknown>;
 
 const DATA_ROOT = "data";
 const textDecoder = new TextDecoder();

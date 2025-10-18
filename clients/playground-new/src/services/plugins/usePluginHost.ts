@@ -57,7 +57,7 @@ export function usePluginHost(): UsePluginHostResult {
       setSettings((previous) => {
         const entries = new Map(previous.map((entry) => [entry.pluginId, entry.schema]));
 
-        if (schema) {
+        if (schema !== undefined) {
           entries.set(pluginId, schema);
         } else {
           entries.delete(pluginId);
