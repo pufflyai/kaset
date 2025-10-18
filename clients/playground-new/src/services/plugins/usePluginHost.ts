@@ -1,4 +1,3 @@
-import type { JSONSchema } from "@pstdio/tiny-plugins";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import { useEffect, useState } from "react";
 
@@ -14,6 +13,7 @@ import {
   subscribeToPluginCommands,
   subscribeToPluginSettings,
   type PluginCommand,
+  type JSONSchema,
   writePluginSettings,
 } from "./plugin-host";
 
@@ -57,7 +57,7 @@ export function usePluginHost(): UsePluginHostResult {
       setSettings((previous) => {
         const entries = new Map(previous.map((entry) => [entry.pluginId, entry.schema]));
 
-        if (schema) {
+        if (schema !== undefined) {
           entries.set(pluginId, schema);
         } else {
           entries.delete(pluginId);
