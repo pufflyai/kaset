@@ -27,9 +27,13 @@ A valid `manifest.json` must follow the strict schema:
 - `id` must **equal** the plugin folder name.
 - `"ui.desktop"` is required to make the window.
 
+## Creating Plugins
+
+- When creating editors (e.g. documents, notes, code, images, etc.) their artifacts should live in `/plugin_data/<pluginId>/`, and the plugin should load them via opfs.
+
 ## Plugin Example
 
-> Place these files under `/plugins/<plugin-name>/`.
+> Place these files under `/plugins/<pluginId>/`.
 > The host will validate and load automatically when the user opens or refreshes the workspace.
 
 ### Folder layout
@@ -122,7 +126,7 @@ export function mount(container) {
 
 ---
 
-## Plugin Instructions
+## Plugin Rules
 
 Each plugin can define extra guidance in `/plugins/<pluginId>/rules.md`.
 
