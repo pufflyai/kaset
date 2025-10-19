@@ -9,66 +9,86 @@ You can specify how agents behaves in your webapp by dropping an `agents.md` fil
 Example `agents.md` from the playground:
 
 ```md
-# Agents Guide — Todo Lists (Markdown)
+# Agents Guide
 
-1. assume the user is not technical, avoid technical jargon.
-2. assume the user is asking you for todo related tasks.
-3. operate exclusively on Markdown files that represent todo lists.
+The user has a **demo desktop website** they can expand by vibecoding plugins — small edits in OPFS that hot-reload into visible windows.
 
-## Core Model
+- Assume the user is not technical, avoid technical jargon.
 
-- All todo lists live under the `todos/` folder.
-- Each list is a separate file named `todos/<list_name>.md`.
-- The user refers to lists by `<list_name>` (without the `.md` extension). Map names as:
-  - `my_todo` (or similar) ↔ file `todos/my_todo.md`
-- If no list is specified, use the most relevant existing list if possible, or create a new list with an appropriate name only if no other list is relevant.
-- Don't skip items unless specified.
+## What you can see and edit
 
-## Todo Line Format
+- Plugins live under `/plugins/<pluginId>/`.
+- Each plugin needs a `manifest.json` that defines metadata and entry modules.
+- Persistent data lives under `/plugin_data/<pluginId>/`.
+- Plugins can optionally include a `rules.md` file with plugin-specific instructions that live beside the plugin code.
 
-- A todo item is one line in Markdown checklist form:
-  - Undone: `- [ ] Task text`
-  - Done: `- [x] Task text` (case-insensitive `x`)
-- Only `-` is accepted as the bullet.
-- Only add todo items, no titles.
+## Plugin Instructions
 
-**IMPORTANT** users will not be able to see anything that doesn't follow this format! ALWAYS keep a todo item in a single line.
+Each plugin can define extra guidance in `/plugins/<pluginId>/rules.md`.
+
+- Use this file for plugin-specific behavior, guardrails, and any user-provided rules for that plugin.
+- The Todo demo stores its checklist rules in `/plugins/todo/rules.md`; use it as a reference when creating new plugins.
+```
+
+Example `/plugins/todo/rules.md` from the playground:
+
+```md
+# Todo Plugin Rules
+
+You operate on Markdown files that represent todo lists for this plugin.
+
+## Workspace Layout
+
+- All todo lists live under the `plugin_data/todo/` folder.
+- Each list is a separate file named `plugin_data/todo/<list_name>.md`.
+- The user refers to lists by `<list_name>` (without `.md`).
+- If no list is specified, use the most relevant one or create a new file with an appropriate name.
+- You may update `state.json` to record the currently active list.
+
+## Format
+
+- Undone: `- [ ] Task text`
+- Done: `- [x] Task text`
+- One item per line; only `-` bullets are valid.
+- Non-conforming lines are invisible to the user.
 
 ## Allowed Operations
 
-- Read list: open `todos/<list_name>.md`. If it does not exist, treat as empty until created.
-- Add item: append a new checklist line `- [ ] <text>` if an identical item (case-insensitive by text) does not already exist.
-- Toggle item: flip `[ ]` ↔ `[x]` on the exact matching item line.
-- Reorder items: reorder only checklist lines; keep non-checklist lines and spacing intact.
-- Remove item: delete the exact checklist line; do not disturb unrelated lines.
-- Create list: create `todos/<list_name>.md` (optionally start with a heading and a blank line).
-- Rename list: move/rename file `todos/<old>.md` → `todos/<new>.md`.
+- **Read** list → open file (empty if missing).
+- **Add** → append `- [ ] <text>` if not already present.
+- **Toggle** → flip `[ ]` ↔ `[x]` on the exact matching line.
+- **Reorder** → move only checklist lines.
+- **Remove** → delete the exact line.
+- **Create** → create new list file (optionally start with a `# <title>`).
+- **Rename** → rename `<old>.md` → `<new>.md`.
 
 ## Behavior Requirements
 
-- Change only what is necessary; keep surrounding whitespace and trailing newline.
-- Be idempotent: avoid duplicate checklist lines (compare item text case-insensitively, ignoring leading/trailing spaces).
-- Keep headings and notes untouched unless explicitly asked to modify them.
-- When acknowledging actions, refer to lists by name without `.md` (e.g., “work”, not “work.md”).
+- Edit only what’s needed; keep whitespace and newlines intact.
+- Be idempotent — avoid duplicate lines.
+- Never alter headings or comments unless told to.
+- Refer to lists by plain name (“work”), not the file path.
 
 ## Examples
 
-- “Add ‘Buy milk’ to personal” → ensure `todos/personal.md` exists; append `- [ ] Buy milk` if not present.
-- “Mark ‘Create components’ as done in todo” → flip the checkbox on that line in `todos/todo.md`.
-- “Remove ‘Connect data’ from todo” → delete that checklist line in `todos/todo.md`.
-- “Create a new list chores” → create `todos/chores.md` (optionally starting with `# chores` and a blank line).
-- “Rename planning to roadmap” → rename `todos/planning.md` → `todos/roadmap.md`.
+- “Add ‘Buy milk’ to personal” → append `- [ ] Buy milk` in `personal.md`.
+- “Mark ‘Create components’ as done in todo” → flip its box.
+- “Remove ‘Connect data’ from todo” → delete that line.
+- “Create a new list chores” → create `chores.md`.
+- “Rename planning to roadmap” → rename the file.
 
 ---
 
-Keep track of user specific rules by editing the list below:
-
 ## User Rules (additional rules provided by the user)
+
+- Add user-supplied rules for the todo plugin here.
 ```
+
+Keep track of user specific rules by editing the `## User Rules` section inside the relevant plugin's `rules.md` file.
 
 ## User Rules
 
-Users can also save custom rules for the agent to follow. This is one way they can extend your app's features.
+Users can also save custom rules for the agent to follow. Append them to the plugin-specific `rules.md` so the guidance travels with the plugin.
 
 <div style="position: relative; padding-bottom: 53.541666666666664%; height: 0;"><iframe src="https://www.loom.com/embed/4c66ddf3d17e457f99174eb2f2f66afc?sid=20c357bf-c173-4dfb-ac61-cd53e3710e66" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"></iframe></div>
 
