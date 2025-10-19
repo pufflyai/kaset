@@ -73,8 +73,9 @@ export interface WorkspaceSettings {
   approvalGatedTools?: string[];
   mcpServers: McpServerConfig[];
   activeMcpServerIds?: string[];
-  theme?: ThemePreference;
-  wallpaper?: string;
+  theme: ThemePreference;
+  wallpaper: string;
+  reactScanEnabled: boolean;
 }
 
 export interface WorkspaceState {

@@ -19,6 +19,8 @@ import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
 
 const EMPTY_MESSAGES: UIMessage[] = [];
+const ASSISTANT_UPDATE_DEBOUNCE_MS = 400;
+const ASSISTANT_UPDATE_MAX_WAIT_MS = 800;
 
 interface ConversationAreaWithMessagesProps {
   streaming: boolean;
@@ -94,8 +96,8 @@ export function ConversationHost() {
         (nextMessages: UIMessage[]) => {
           setConversationMessages(conversationId, nextMessages, "conversations/send/assistant");
         },
-        500,
-        { leading: true, trailing: true },
+        ASSISTANT_UPDATE_DEBOUNCE_MS,
+        { leading: true, trailing: true, maxWait: ASSISTANT_UPDATE_MAX_WAIT_MS },
       );
 
       setConversationMessages(conversationId, base, "conversations/send/user");

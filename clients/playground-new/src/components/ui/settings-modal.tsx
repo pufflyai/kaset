@@ -24,8 +24,8 @@ import { ls, readFile } from "@pstdio/opfs-utils";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useRef, useState } from "react";
 import { McpServerCard } from "./mcp-server-card";
-import { PluginSettings } from "./plugin-settings";
 import type { PluginSettingsHandle } from "./plugin-settings";
+import { PluginSettings } from "./plugin-settings";
 
 const TOOL_LABELS: Record<string, string> = {
   opfs_write_file: "Write file",
@@ -84,6 +84,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [wallpapers, setWallpapers] = useState<string[]>([]);
   const [selectedWallpaper, setSelectedWallpaper] = useState<string>("");
   const [wallpaperPreviews, setWallpaperPreviews] = useState<Record<string, string>>({});
+  const [reactScanEnabled, setReactScanEnabled] = useState(false);
   const pluginSettingsRef = useRef<PluginSettingsHandle>(null);
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
@@ -102,6 +103,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setInitialTheme(nextTheme);
 
     setSelectedWallpaper(settings.wallpaper ?? DEFAULT_WALLPAPER);
+    setReactScanEnabled(settings.reactScanEnabled ?? false);
 
     const storedServers = settings.mcpServers;
     const effectiveServers = storedServers ?? [];
@@ -316,7 +318,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         mcpServers: sanitizedServers.map((server) => ({ ...server })),
         activeMcpServerIds: nextActiveIds,
         theme,
-        wallpaper: selectedWallpaper || undefined,
+        wallpaper: selectedWallpaper,
+        reactScanEnabled,
       });
 
       setInitialTheme(theme);
@@ -440,6 +443,19 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                             Dark
                           </Button>
                         </HStack>
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label>Performance Overlay</Field.Label>
+                        <VStack align="stretch" gap="xs">
+                          <Checkbox.Root
+                            checked={reactScanEnabled}
+                            onCheckedChange={(event) => setReactScanEnabled(!!event.checked)}
+                          >
+                            <Checkbox.HiddenInput />
+                            <Checkbox.Control />
+                            <Checkbox.Label>Enable Performance Overlay</Checkbox.Label>
+                          </Checkbox.Root>
+                        </VStack>
                       </Field.Root>
                       <Field.Root>
                         <Field.Label>Desktop Wallpaper</Field.Label>

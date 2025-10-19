@@ -24,5 +24,6 @@ export const DEFAULT_STATE: WorkspaceState = {
     activeMcpServerIds: [],
     theme: "light" satisfies ThemePreference,
     wallpaper: "kaset.png",
+    reactScanEnabled: false,
   },
 };

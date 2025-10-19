@@ -1,7 +1,5 @@
 import "allotment/dist/style.css";
 
-import "@/services/react-scan/init";
-
 import { ChakraProvider } from "@chakra-ui/react";
 import { Buffer } from "buffer";
 import { StrictMode } from "react";
