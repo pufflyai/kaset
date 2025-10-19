@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import type { PluginCommand, PluginHostRuntime, PluginSettingsSchema } from "../runtime/pluginHostRuntime";
 
@@ -77,15 +77,29 @@ export function usePluginHost(runtime: PluginHostRuntime): UsePluginHostResult {
     };
   }, [runtime]);
 
+  const runCommand = useCallback(
+    (pluginId: string, commandId: string, params?: unknown) => runtime.runCommand(pluginId, commandId, params),
+    [runtime],
+  );
+
+  const getDisplayName = useCallback((pluginId: string) => runtime.getPluginDisplayName(pluginId), [runtime]);
+
+  const readSettings = useCallback(<T = unknown>(pluginId: string) => runtime.readSettings<T>(pluginId), [runtime]);
+
+  const writeSettings = useCallback(
+    <T = unknown>(pluginId: string, value: T) => runtime.writeSettings(pluginId, value),
+    [runtime],
+  );
+
   return {
     commands,
     tools,
     settings,
     loading,
     error,
-    runCommand: (pluginId, commandId, params) => runtime.runCommand(pluginId, commandId, params),
-    getDisplayName: (pluginId) => runtime.getPluginDisplayName(pluginId),
-    readSettings: (pluginId) => runtime.readSettings(pluginId),
-    writeSettings: (pluginId, value) => runtime.writeSettings(pluginId, value),
+    runCommand,
+    getDisplayName,
+    readSettings,
+    writeSettings,
   };
 }
