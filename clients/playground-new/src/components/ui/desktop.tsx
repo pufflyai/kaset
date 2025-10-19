@@ -1,4 +1,4 @@
-import { ROOT } from "@/constant";
+import { PLUGIN_DATA_ROOT, ROOT } from "@/constant";
 import {
   buildAdaptiveResultFromColor,
   defaultAdaptiveResult,
@@ -15,17 +15,22 @@ import {
 import {
   ensurePluginHost,
   getPluginDisplayName,
-  subscribeToPluginDesktopSurfaces,
-  type PluginDesktopSurface,
-} from "@/services/plugins/plugin-host";
-import { deletePluginDirectories, downloadPluginBundle } from "@/services/plugins/plugin-management";
-import { PluginTinyUiWindow } from "@/services/plugins/tiny-ui-window";
+  getPluginManifest,
+  getPluginSurfacesSnapshot,
+  getPluginsRoot,
+  subscribeToPluginSurfaces,
+  type PluginSurfacesSnapshot,
+} from "@/services/plugins/host";
+import { deriveDesktopSurfaces, type PluginDesktopSurface } from "@/services/plugins/surfaces";
+import { usePluginSources } from "@/services/plugins/hooks/usePluginSources";
 import { openDesktopApp } from "@/state/actions/desktop";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { Box, Menu, Portal, Text, chakra } from "@chakra-ui/react";
 import type { DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
 import { ls, readFile, watchDirectory } from "@pstdio/opfs-utils";
+import { deletePluginDirectories, downloadPluginBundle } from "@pstdio/tiny-plugins";
+import { setLockfile } from "@pstdio/tiny-ui";
 import { FastAverageColor } from "fast-average-color";
 import { Download, Trash2 } from "lucide-react";
 import type { IconName } from "lucide-react/dynamic";
@@ -33,6 +38,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { DesktopIcon } from "./desktop-icon";
 import { MenuItem } from "./menu-item";
+import { PluginWindow } from "./plugin-window";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
 
@@ -133,12 +139,7 @@ const renderSurfaceWindow = (surface: PluginDesktopSurface, windowId: string) =>
   }
 
   return (
-    <PluginTinyUiWindow
-      pluginId={surface.pluginId}
-      pluginWindow={descriptor}
-      surfaceId={surface.surfaceId}
-      instanceId={windowId}
-    />
+    <PluginWindow pluginId={surface.pluginId} surfaceId={surface.surfaceId} instanceId={windowId} snapshotVersion={1} />
   );
 };
 
@@ -190,6 +191,8 @@ export const Desktop = () => {
 
   const windows = useWorkspaceStore((state) => state.desktop.windows);
   const wallpaper = useWorkspaceStore((state) => state.settings.wallpaper);
+
+  usePluginSources();
 
   useEffect(() => {
     let cancelled = false;
@@ -262,12 +265,35 @@ export const Desktop = () => {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = subscribeToPluginDesktopSurfaces((surfaces) => {
+    ensurePluginHost().then((host) => {
+      host.onDependencyChange(setLockfile);
+    });
+  }, []);
+
+  useEffect(() => {
+    const applySurfaces = (snapshot: PluginSurfacesSnapshot) => {
+      const surfaces = snapshot.flatMap(({ pluginId, surfaces }) => {
+        const displayName = getPluginDisplayName(pluginId) || pluginId;
+        return deriveDesktopSurfaces({
+          pluginId,
+          surfaces,
+          manifest: getPluginManifest(pluginId),
+          displayName,
+        });
+      });
+
       const apps = surfaces
         .map((surface) => createDesktopAppFromSurface(surface))
         .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
+
       setPluginApps(apps);
+    };
+
+    const unsubscribe = subscribeToPluginSurfaces((snapshot) => {
+      applySurfaces(snapshot);
     });
+
+    applySurfaces(getPluginSurfacesSnapshot());
 
     ensurePluginHost().catch((error) => {
       console.error("[desktop] Failed to initialize plugin host", error);
@@ -406,7 +432,13 @@ export const Desktop = () => {
 
   const handleDownloadPlugin = useCallback(async (pluginId: string, label: string) => {
     try {
-      await downloadPluginBundle({ pluginId, label });
+      const pluginsRoot = getPluginsRoot();
+      await downloadPluginBundle({
+        pluginId,
+        label,
+        pluginsRoot,
+        pluginDataRoot: PLUGIN_DATA_ROOT,
+      });
       toaster.create({ type: "success", title: `Preparing download for ${label}` });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -426,7 +458,12 @@ export const Desktop = () => {
     if (!pendingDelete) return;
 
     try {
-      await deletePluginDirectories(pendingDelete.pluginId);
+      const pluginsRoot = getPluginsRoot();
+      await deletePluginDirectories({
+        pluginId: pendingDelete.pluginId,
+        pluginsRoot,
+        pluginDataRoot: PLUGIN_DATA_ROOT,
+      });
       toaster.create({ type: "success", title: `Deleted ${pendingDelete.label}` });
       setPendingDelete(null);
     } catch (error) {

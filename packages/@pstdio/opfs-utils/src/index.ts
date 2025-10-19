@@ -75,6 +75,8 @@ export {
   isWithinRoot,
   joinPath,
   joinUnderWorkspace,
+  normalizeRoot,
+  type NormalizeRootOptions,
   normalizeSegments,
   normalizeRelPath,
   normalizeSlashes,

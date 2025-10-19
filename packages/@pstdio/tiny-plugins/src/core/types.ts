@@ -8,7 +8,7 @@ export interface Manifest {
   id: string;
   name: string;
   version: string; // semver (validated)
-  api: string; // semver range or single version (validated for compatibility)
+  api: string; // fixed host API version string (e.g. "v1")
   entry: string; // module file path within plugin root
 
   description?: string;
@@ -23,7 +23,7 @@ export interface Manifest {
     timeoutMs?: number;
   }>;
   settingsSchema?: unknown; // accepted but not enforced by core
-  ui?: unknown;
+  surfaces?: unknown;
 }
 
 export interface CommandDefinition {
@@ -81,7 +81,7 @@ export interface PluginContext {
 export interface HostOptions {
   root?: string; // PLUGIN_ROOT (defaults to "plugins")
   dataRoot?: string; // PLUGIN_DATA_ROOT (defaults to "plugin_data")
-  hostApiVersion?: string; // defaults to "1.0.0"
+  hostApiVersion?: string; // defaults to "v1"
   watch?: boolean;
   notify?: (level: "info" | "warn" | "error", message: string) => void;
   defaultTimeoutMs?: number;

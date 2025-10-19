@@ -13,14 +13,14 @@ import debounce from "lodash/debounce";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
-import { usePluginHost } from "../../services/plugins/usePluginHost";
+import { usePluginHost } from "../../services/plugins/host";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
 
 const EMPTY_MESSAGES: UIMessage[] = [];
 const ASSISTANT_UPDATE_DEBOUNCE_MS = 400;
-const ASSISTANT_UPDATE_MAX_WAIT_MS = 800;
+const ASSISTANT_UPDATE_MAX_WAIT_MS = 1200;
 
 interface ConversationAreaWithMessagesProps {
   streaming: boolean;

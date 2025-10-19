@@ -9,7 +9,7 @@ export {
   resetStats,
   setLockfile,
 } from "@pstdio/tiny-ui-bundler";
-export { loadSnapshot } from "@pstdio/tiny-ui-bundler/opfs";
+export { loadSnapshot, loadSourceFiles } from "@pstdio/tiny-ui-bundler/opfs";
 export { TinyUI } from "./react/components/TinyUI";
 export type { TinyUIActionHandler, TinyUIProps } from "./react/components/TinyUI";
 export { TinyUiProvider, useTinyUi } from "./react/tiny-ui-provider";

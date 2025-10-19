@@ -1,21 +1,21 @@
-import { ls, type ChangeRecord } from "@pstdio/opfs-utils";
-import { createPluginFs, createPluginDataFs } from "./fs";
-import { Emitter } from "./events";
-import { readManifestStrict } from "./manifest";
-import { listFiles, watchPluginDir, watchPluginsRoot } from "./watchers";
+import { ls, normalizeRoot, type ChangeRecord } from "@pstdio/opfs-utils";
 import { CommandRegistry } from "./commands";
 import { mergeDependencies } from "./dependencies";
+import { Emitter } from "./events";
+import { createPluginDataFs, createPluginFs } from "./fs";
+import { readManifestStrict } from "./manifest";
 import { createSettings } from "./settings";
 import type {
+  HostApi,
   HostOptions,
   Manifest,
+  PluginChangePayload,
+  PluginContext,
   PluginMetadata,
   PluginModule,
-  PluginContext,
-  PluginChangePayload,
   StatusUpdate,
-  HostApi,
 } from "./types";
+import { listFiles, watchPluginDir, watchPluginsRoot } from "./watchers";
 
 type Events = {
   pluginChange: { pluginId: string; payload: PluginChangePayload };
@@ -26,17 +26,11 @@ type Events = {
   pluginsChange: { plugins: PluginMetadata[] };
 };
 
-const DEFAULT_HOST_API_VERSION = "1.0.0";
-
-function normalizeRoot(value?: string) {
-  if (!value) return "plugins";
-  const trimmed = value.trim().replace(/^\/+|\/+$/g, "");
-  return trimmed || "plugins";
-}
+const DEFAULT_HOST_API_VERSION = "v1";
 
 export function createHost(options: HostOptions) {
-  const root = normalizeRoot(options.root);
-  const dataRoot = normalizeRoot(options.dataRoot ?? "plugin_data");
+  const root = normalizeRoot(options.root, { fallback: "plugins" });
+  const dataRoot = normalizeRoot(options.dataRoot, { fallback: "plugin_data" });
   const watch = options.watch ?? true;
   const notify = options.notify;
   const hostApiVersion = options.hostApiVersion ?? DEFAULT_HOST_API_VERSION;
@@ -150,7 +144,8 @@ export function createHost(options: HostOptions) {
     };
   }
 
-  async function loadPlugin(pluginId: string) {
+  async function loadPlugin(pluginId: string, options?: { emitChange?: boolean }) {
+    const shouldEmitChange = options?.emitChange !== false;
     const prevState = states.get(pluginId);
     const fs = createPluginFs(root, pluginId);
 
@@ -163,17 +158,23 @@ export function createHost(options: HostOptions) {
     if (!mres.ok) {
       const nextState = { manifest: null, watcherCleanup: prevState?.watcherCleanup };
       states.set(pluginId, nextState);
+
       if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
+
       emitStatus(`manifest invalid for ${pluginId}: ${mres.error}`, pluginId, mres.details ?? mres);
-      emitter.emit("pluginChange", {
-        pluginId,
-        payload: {
-          paths: [],
-          manifest: null,
-          files: await listFiles(pluginRootPath(pluginId)),
-          changes: undefined,
-        },
-      });
+
+      if (shouldEmitChange) {
+        emitter.emit("pluginChange", {
+          pluginId,
+          payload: {
+            paths: [],
+            manifest: null,
+            files: await listFiles(pluginRootPath(pluginId)),
+            changes: undefined,
+          },
+        });
+      }
+
       return;
     }
 
@@ -189,7 +190,7 @@ export function createHost(options: HostOptions) {
       mod = (await import(/* @vite-ignore */ url)) as PluginModule;
     } catch (e) {
       URL.revokeObjectURL(url);
-      throw new Error(`Failed to import ${pluginId}:${entry} – ${(e as Error).message}`);
+      throw new Error(`Failed to import ${pluginId}:${entry} - ${(e as Error).message}`);
     }
 
     const plugin = mod?.default;
@@ -208,6 +209,7 @@ export function createHost(options: HostOptions) {
     commands.register(pluginId, manifest.commands, mod.commands);
 
     if (prevState?.moduleUrl) URL.revokeObjectURL(prevState.moduleUrl);
+
     const nextState = {
       manifest,
       moduleUrl: url,
@@ -216,18 +218,22 @@ export function createHost(options: HostOptions) {
       ctx,
       watcherCleanup: prevState?.watcherCleanup,
     };
+
     states.set(pluginId, nextState);
+
     if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
 
-    emitter.emit("pluginChange", {
-      pluginId,
-      payload: {
-        paths: [],
-        manifest,
-        files: await listFiles(pluginRootPath(pluginId)),
-        changes: undefined,
-      },
-    });
+    if (shouldEmitChange) {
+      emitter.emit("pluginChange", {
+        pluginId,
+        payload: {
+          paths: [],
+          manifest,
+          files: await listFiles(pluginRootPath(pluginId)),
+          changes: undefined,
+        },
+      });
+    }
   }
 
   async function unloadPlugin(pluginId: string) {
@@ -355,7 +361,7 @@ export function createHost(options: HostOptions) {
 
     for (const id of pluginIds) {
       try {
-        await loadPlugin(id);
+        await loadPlugin(id, { emitChange: false });
         await startWatching(id);
       } catch (e) {
         emitError(e as Error);
@@ -402,10 +408,6 @@ export function createHost(options: HostOptions) {
     return emitter.on("dependencyChange", ({ deps }) => cb(deps));
   }
 
-  function onPluginsChange(cb: (plugins: PluginMetadata[]) => void) {
-    return emitter.on("pluginsChange", ({ plugins }) => cb(plugins));
-  }
-
   function onSettingsChange(cb: (pluginId: string, settings: unknown) => void) {
     return emitter.on("settingsChange", ({ pluginId, settings }) => cb(pluginId, settings));
   }
@@ -447,7 +449,6 @@ export function createHost(options: HostOptions) {
     // subscriptions
     onPluginChange,
     onDependencyChange,
-    onPluginsChange,
     onSettingsChange,
     onStatus: (cb: (s: StatusUpdate) => void) => emitter.on("status", cb),
     onError: (cb: (e: Error) => void) => emitter.on("error", cb),

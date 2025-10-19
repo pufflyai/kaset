@@ -1,5 +1,4 @@
-import { writeFile } from "@pstdio/opfs-utils";
-
+import { normalizeRoot as normalizeRootValue, writeFile } from "@pstdio/opfs-utils";
 import { loadSnapshot } from "@pstdio/tiny-ui-bundler/opfs";
 
 type EntryResolver = string | ((root: string) => string);
@@ -7,11 +6,9 @@ type FilesResolver = Record<string, string> | ((root: string) => Record<string, 
 
 const normalizeRelativePath = (path: string) => path.replace(/^\/+/, "");
 
-export const normalizeRoot = (root: string) => {
-  const normalized = String(root ?? "").replace(/^\/+/, "");
-  if (!normalized) throw new Error("Snapshot root cannot be empty.");
-  return normalized;
-};
+const SNAPSHOT_ROOT_ERROR = "Snapshot root cannot be empty.";
+
+export const normalizeRoot = (root: string) => normalizeRootValue(root, { errorMessage: SNAPSHOT_ROOT_ERROR });
 
 export const now = () =>
   typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
@@ -105,6 +102,7 @@ export const createSnapshotInitializer = ({ entry, files }: SnapshotInitializerO
   return (root: string) => {
     const normalized = normalizeRoot(root);
     let promise = inFlight.get(normalized);
+
     if (!promise) {
       promise = writeSnapshotFiles(root, entry, files).catch((error) => {
         inFlight.delete(normalized);

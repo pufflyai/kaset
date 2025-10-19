@@ -1,4 +1,4 @@
-import { usePluginHost } from "@/services/plugins/usePluginHost";
+import { usePluginHost } from "@/services/plugins/host";
 import { Box, Field, Flex, Text, VStack } from "@chakra-ui/react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { toaster } from "./toaster";

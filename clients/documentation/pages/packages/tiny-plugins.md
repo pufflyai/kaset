@@ -104,7 +104,7 @@ Hosts expect the plugin directory name to match the manifest `id`. When running 
   "id": "theme-switcher",
   "name": "Theme Switcher",
   "version": "0.1.0",
-  "api": "^1.0.0",
+  "api": "v1",
   "entry": "index.js",
   "commands": [
     {
@@ -141,7 +141,7 @@ Hosts expect the plugin directory name to match the manifest `id`. When running 
 
 Manifest notes:
 
-- `api` must satisfy the major version exposed by `HOST_API_VERSION`; incompatible plugins are skipped with an error.
+- `api` must match the exact string exposed by `HOST_API_VERSION` (for example, `v1`); incompatible plugins are skipped with an error.
 - `entry` is resolved relative to the plugin folder and must export a default plugin with an `activate` function.
 - `commands` describe user-facing commands and provide optional parameter schemas and per-command `timeoutMs`.
 - `dependencies` is an optional map of dependency names to URLs. Combine multiple manifest maps with `mergeManifestDependencies`.
@@ -179,7 +179,7 @@ Each tool serialises execution results to a JSON payload, making it easy to forw
 
 ## Utilities & Exports
 
-- `HOST_API_VERSION` – compare against manifest `api` ranges.
+- `HOST_API_VERSION` – fixed plugin API identifier (e.g. `v1`).
 - `mergeManifestDependencies(manifests, options?)` – coalesce dependency URL maps and detect conflicts.
 - Type exports: `HostOptions`, `HostApi`, `Manifest`, `PluginMetadata`, `CommandDefinition`, `PluginChangePayload`, `StatusUpdate`.
 - Helpers: `createToolsForCommands`, `createActionApi`, `createSettingsAccessor`.

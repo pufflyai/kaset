@@ -5,6 +5,7 @@ import {
   isWithinRoot,
   joinPath,
   joinUnderWorkspace,
+  normalizeRoot,
   normalizeSegments,
   normalizeSlashes,
   parentOf,
@@ -109,5 +110,19 @@ describe("joinUnderWorkspace", () => {
 
   it("returns '.' when both inputs are effectively empty", () => {
     expect(joinUnderWorkspace("", "")).toBe(".");
+  });
+});
+
+describe("normalizeRoot", () => {
+  it("normalizes slashes and trims whitespace", () => {
+    expect(normalizeRoot(" //plugins//active/ ")).toBe("plugins/active");
+  });
+
+  it("falls back when input is empty", () => {
+    expect(normalizeRoot(undefined, { fallback: " /plugins/ " })).toBe("plugins");
+  });
+
+  it("throws when configured with an error message", () => {
+    expect(() => normalizeRoot("  ", { errorMessage: "Root required" })).toThrowError("Root required");
   });
 });

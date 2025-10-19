@@ -36,7 +36,7 @@ Plugins can only touch the surfaces that the host runtime exposes. Keep the cont
   "id": "theme-switcher",
   "name": "Theme Switcher",
   "version": "0.2.0",
-  "api": "^1.0.0",
+  "api": "v1",
   "entry": "index.js",
   "commands": [
     {
@@ -73,7 +73,7 @@ Plugins can only touch the surfaces that the host runtime exposes. Keep the cont
 
 Key details:
 
-- `api` must satisfy the semantic range exposed by `HOST_API_VERSION`. Incompatible plugins are skipped with a descriptive error.
+- `api` must match the fixed host API version exposed by `HOST_API_VERSION` (for example, `v1`). Incompatible plugins are skipped with a descriptive error.
 - `entry` points to an ES module relative to the plugin folder. The default export must implement `activate(ctx)`.
 - `commands` declare user-facing actions. Each entry may include parameter schemas and custom timeouts. Missing handlers are logged as warnings.
 - `dependencies` is an optional map of dependency identifiers to URLs. Use `mergeManifestDependencies` to combine dependency maps from multiple manifests.
@@ -88,7 +88,7 @@ Key details:
    Parses manifests and validates against the built-in JSON Schema. The host rejects manifests with unknown fields or invalid structures.
 
 3. **Check compatibility**  
-   Ensures the manifest `api` range includes `HOST_API_VERSION`. Major-version mismatches stop the plugin from loading.
+   Confirms the manifest `api` string matches `HOST_API_VERSION`. A mismatch prevents the plugin from loading.
 
 4. **Load module**  
    Reads `entry`, creates a Blob URL, and `import()`s the module inside the browser context.

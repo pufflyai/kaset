@@ -1,19 +1,50 @@
 export { createHost } from "./core/host";
 export type {
-  HostOptions,
-  PluginMetadata,
-  Manifest,
-  HostApi,
   CommandDefinition,
+  HostApi,
+  HostOptions,
+  Manifest,
   PluginChangePayload,
+  PluginMetadata,
   StatusUpdate,
 } from "./core/types";
 
+export { subscribeToPluginFiles } from "./core/subscriptions";
+export type { PluginFilesChange, PluginFilesListener } from "./core/subscriptions";
 export { usePlugins } from "./react/usePlugins";
 
 export { createToolsForCommands } from "./adapters/tiny-ai-tasks";
-export { createActionApi } from "./ui-bridge/actionApi";
-export { createSettingsAccessor } from "./settingsAccessor";
 export { mergeDependencies as mergeManifestDependencies } from "./core/dependencies";
+export { createSettingsAccessor } from "./core/settings";
 
-export const HOST_API_VERSION = "1.0.0";
+export { usePluginHost } from "./react/usePluginHost";
+export {
+  createPluginHostRuntime,
+  getPluginSurfaces,
+  type PluginCommand,
+  type PluginFilesEvent,
+  type PluginHostRuntime,
+  type PluginHostRuntimeOptions,
+  type PluginSettingsSchema,
+  type PluginSurfaces,
+  type PluginSurfacesEntry,
+  type PluginSurfacesSnapshot,
+} from "./runtime/pluginHostRuntime";
+
+export {
+  buildRelativePath,
+  createZipBlob,
+  createZipFromDirectories,
+  deletePluginDirectories,
+  downloadDirectory,
+  downloadPluginBundle,
+  downloadPluginData,
+  downloadPluginSource,
+  joinZipPath,
+  listDirectoryEntries,
+  pluginDownloadHelpers,
+  sanitizeFileSegment,
+  triggerBlobDownload,
+} from "./helpers/plugin-downloads";
+
+export const HOST_API_VERSION = "v1";

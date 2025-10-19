@@ -1,15 +1,7 @@
-import { PLUGIN_DATA_ROOT } from "@/constant";
 import { deleteDirectory, ls, readFile } from "@pstdio/opfs-utils";
 import { Zip, ZipPassThrough } from "fflate";
 
-import { getPluginsRoot } from "./plugin-host";
-
-interface DownloadOptions {
-  pluginId: string;
-  label?: string;
-}
-
-const sanitizeFileSegment = (value: string) => {
+export const sanitizeFileSegment = (value: string) => {
   const normalized = value
     .replace(/[^a-z0-9-_]+/gi, "-")
     .replace(/-+/g, "-")
@@ -17,20 +9,20 @@ const sanitizeFileSegment = (value: string) => {
   return normalized || "download";
 };
 
-const buildRelativePath = (...segments: Array<string | null | undefined>) =>
+export const buildRelativePath = (...segments: Array<string | null | undefined>) =>
   segments
     .filter((segment): segment is string => Boolean(segment && segment.trim().length > 0))
     .map((segment) => segment.replace(/^\/+|\/+$/g, ""))
     .filter((segment) => segment.length > 0)
     .join("/");
 
-const joinZipPath = (...segments: Array<string | undefined>) =>
+export const joinZipPath = (...segments: Array<string | undefined>) =>
   segments
     .filter((segment): segment is string => Boolean(segment && segment.length > 0))
     .map((segment) => segment.replace(/^\/+|\/+$/g, ""))
     .join("/");
 
-const createZipBlob = async (options: {
+export const createZipBlob = async (options: {
   rootDir: string;
   entries: Awaited<ReturnType<typeof ls>>;
   rootFolder: string;
@@ -47,7 +39,7 @@ const createZipBlob = async (options: {
   });
 };
 
-const createZipFromDirectories = async (options: {
+export const createZipFromDirectories = async (options: {
   rootFolder?: string;
   directories: Array<{
     directoryPath: string;
@@ -132,7 +124,7 @@ const createZipFromDirectories = async (options: {
   return new Blob(blobParts, { type: "application/zip" });
 };
 
-const triggerBlobDownload = (blob: Blob, filename: string) => {
+export const triggerBlobDownload = (blob: Blob, filename: string) => {
   if (typeof document === "undefined") {
     throw new Error("Downloads are only supported in browser environments.");
   }
@@ -151,7 +143,7 @@ const triggerBlobDownload = (blob: Blob, filename: string) => {
   }
 };
 
-const listDirectoryEntries = async (path: string) => {
+export const listDirectoryEntries = async (path: string) => {
   try {
     const entries = await ls(path, {
       maxDepth: Infinity,
@@ -171,7 +163,7 @@ const listDirectoryEntries = async (path: string) => {
   }
 };
 
-const downloadDirectory = async (directoryPath: string, fileName: string) => {
+export const downloadDirectory = async (directoryPath: string, fileName: string) => {
   const entries = await listDirectoryEntries(directoryPath);
   if (!entries) {
     throw new Error(`Directory not found: ${directoryPath}`);
@@ -182,23 +174,29 @@ const downloadDirectory = async (directoryPath: string, fileName: string) => {
   triggerBlobDownload(blob, `${rootFolder}.zip`);
 };
 
-export const downloadPluginSource = async ({ pluginId, label }: DownloadOptions) => {
-  const pluginsRoot = getPluginsRoot();
+export const downloadPluginSource = async (options: { pluginId: string; pluginsRoot: string; label?: string }) => {
+  const { pluginId, pluginsRoot, label } = options;
   const pluginDir = buildRelativePath(pluginsRoot, pluginId);
   const displayName = label ?? pluginId;
   await downloadDirectory(pluginDir, displayName);
 };
 
-export const downloadPluginData = async ({ pluginId, label }: DownloadOptions) => {
-  const pluginDataDir = buildRelativePath(PLUGIN_DATA_ROOT, pluginId);
+export const downloadPluginData = async (options: { pluginId: string; pluginDataRoot: string; label?: string }) => {
+  const { pluginId, pluginDataRoot, label } = options;
+  const pluginDataDir = buildRelativePath(pluginDataRoot, pluginId);
   const displayName = `${label ?? pluginId}-plugin-data`;
   await downloadDirectory(pluginDataDir, displayName);
 };
 
-export const downloadPluginBundle = async ({ pluginId, label }: DownloadOptions) => {
-  const pluginsRoot = getPluginsRoot();
+export const downloadPluginBundle = async (options: {
+  pluginId: string;
+  pluginsRoot: string;
+  pluginDataRoot: string;
+  label?: string;
+}) => {
+  const { pluginId, pluginsRoot, pluginDataRoot, label } = options;
   const pluginDir = buildRelativePath(pluginsRoot, pluginId);
-  const pluginDataDir = buildRelativePath(PLUGIN_DATA_ROOT, pluginId);
+  const pluginDataDir = buildRelativePath(pluginDataRoot, pluginId);
   const displayName = label ?? pluginId;
   const fileBaseName = sanitizeFileSegment(displayName);
 
@@ -227,11 +225,30 @@ export const downloadPluginBundle = async ({ pluginId, label }: DownloadOptions)
   triggerBlobDownload(blob, `${fileBaseName}.zip`);
 };
 
-export const deletePluginDirectories = async (pluginId: string) => {
-  const pluginsRoot = getPluginsRoot();
+export const deletePluginDirectories = async (options: {
+  pluginId: string;
+  pluginsRoot: string;
+  pluginDataRoot: string;
+}) => {
+  const { pluginId, pluginsRoot, pluginDataRoot } = options;
   const pluginDir = buildRelativePath(pluginsRoot, pluginId);
-  const pluginDataDir = buildRelativePath(PLUGIN_DATA_ROOT, pluginId);
+  const pluginDataDir = buildRelativePath(pluginDataRoot, pluginId);
 
   await deleteDirectory(pluginDir);
   await deleteDirectory(pluginDataDir);
+};
+
+export const pluginDownloadHelpers = {
+  sanitizeFileSegment,
+  buildRelativePath,
+  joinZipPath,
+  createZipBlob,
+  createZipFromDirectories,
+  triggerBlobDownload,
+  listDirectoryEntries,
+  downloadDirectory,
+  downloadPluginSource,
+  downloadPluginData,
+  downloadPluginBundle,
+  deletePluginDirectories,
 };

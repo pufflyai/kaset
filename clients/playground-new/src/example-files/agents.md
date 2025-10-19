@@ -25,7 +25,7 @@ A valid `manifest.json` must follow the strict schema:
 
 - Required: `"id"`, `"name"`, `"version"`, `"api"`, `"entry"`.
 - `id` must **equal** the plugin folder name.
-- `"ui.desktop"` is required to make the window.
+- `"surfaces.desktop"` is required to make the window.
 
 ## Creating Plugins
 
@@ -60,7 +60,7 @@ A valid `manifest.json` must follow the strict schema:
     "react-dom/client": "https://esm.sh/react-dom/es2022/client.mjs",
     "react-dom": "https://esm.sh/react-dom/es2022/react-dom.mjs"
   },
-  "ui": {
+  "surfaces": {
     "desktop": {
       "title": "Hello",
       "description": "A simple window showing a todo list.",

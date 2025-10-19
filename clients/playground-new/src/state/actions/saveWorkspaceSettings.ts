@@ -6,18 +6,14 @@ export const saveWorkspaceSettings = (settings: WorkspaceSettings, actionName = 
     (state) => {
       state.settings.apiKey = settings.apiKey || undefined;
       state.settings.baseUrl = settings.baseUrl || undefined;
-      state.settings.modelId = settings.modelId || "gpt-5-mini";
+      state.settings.modelId = settings.modelId || "gpt-5";
       state.settings.approvalGatedTools = settings.approvalGatedTools ? [...settings.approvalGatedTools] : [];
       state.settings.mcpServers = settings.mcpServers.map((server) => ({ ...server }));
       state.settings.activeMcpServerIds =
         settings.activeMcpServerIds && settings.activeMcpServerIds.length > 0 ? [...settings.activeMcpServerIds] : [];
       state.settings.theme = settings.theme ?? "light";
-      state.settings.wallpaper = settings.wallpaper || undefined;
+      state.settings.wallpaper = settings.wallpaper ?? "kaset.png";
       state.settings.reactScanEnabled = settings.reactScanEnabled ?? false;
-
-      if ((state as Record<string, unknown>).selectedMcpServerId) {
-        delete (state as Record<string, unknown>).selectedMcpServerId;
-      }
     },
     false,
     actionName,

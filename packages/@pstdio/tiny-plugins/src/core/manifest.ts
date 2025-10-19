@@ -1,5 +1,5 @@
 import Ajv from "ajv";
-import { parse, valid, validRange, satisfies } from "semver";
+import { valid } from "semver";
 import type { Manifest } from "./types";
 
 export type ManifestResult =
@@ -47,16 +47,12 @@ const schema: Record<string, unknown> = {
 
 const ajv = new Ajv({ allErrors: true });
 const validate = ajv.compile(schema);
+const API_VERSION_PATTERN = /^v[0-9]+$/;
 
-function isApiCompatible(pluginApi: string, hostApi: string): boolean {
-  const range = pluginApi.trim();
-  if (validRange(range, { loose: true })) {
-    return satisfies(hostApi, range, { loose: true });
-  }
-  // if not a range, compare majors of exact versions
-  const p = parse(range, { loose: true });
-  const h = parse(hostApi, { loose: true });
-  return Boolean(p && h && p.major === h.major);
+function normalizeApiVersion(value: string): string | null {
+  const normalized = value.trim();
+  if (!API_VERSION_PATTERN.test(normalized)) return null;
+  return normalized;
 }
 
 export async function readManifestStrict(
@@ -97,8 +93,25 @@ export async function readManifestStrict(
     return { ok: false, error: `manifest.version "${m.version}" is not a valid semver`, warnings };
   }
 
-  // api must be compatible with hostApiVersion
-  if (!isApiCompatible(m.api, hostApiVersion)) {
+  const normalizedPluginApi = normalizeApiVersion(m.api);
+  if (!normalizedPluginApi) {
+    return {
+      ok: false,
+      error: `manifest.api "${m.api}" must match pattern "v<number>"`,
+      warnings,
+    };
+  }
+
+  const normalizedHostApi = normalizeApiVersion(hostApiVersion);
+  if (!normalizedHostApi) {
+    return {
+      ok: false,
+      error: `host API version "${hostApiVersion}" is invalid`,
+      warnings,
+    };
+  }
+
+  if (normalizedPluginApi !== normalizedHostApi) {
     return {
       ok: false,
       error: `manifest.api "${m.api}" is incompatible with host API ${hostApiVersion}`,

@@ -1,8 +1,8 @@
 {
   "id": "todo",
   "name": "Todo",
-  "version": "0.1.0",
-  "api": "^1.0.0",
+  "version": "1.0.0",
+  "api": "v1",
   "entry": "index.js",
   "description": "Example todo plugin that renders a simple desktop window.",
   "dependencies": {
@@ -17,7 +17,7 @@
     "zustand/middleware": "https://esm.sh/zustand@5.0.8/middleware?deps=react@19.1.1",
     "zustand/middleware/immer": "https://esm.sh/zustand@5.0.8/middleware/immer?deps=react@19.1.1"
   },
-  "ui": {
+  "surfaces": {
     "desktop": {
       "title": "Todo",
       "description": "Manage todo lists stored in OPFS.",
