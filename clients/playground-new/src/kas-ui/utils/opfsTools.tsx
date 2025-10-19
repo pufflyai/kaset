@@ -1,7 +1,7 @@
-import type { Block, TitleSegment } from "@/components/ui/timeline";
+import type { Block, TitleSegment } from "../components/primitives/timeline";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { buildDiffTitleSegments, buildFileDiffPreviews } from "./diff";
-import { OpfsLsBlock, OpfsWriteFileBlock } from "../ConversationArea/OpfsToolBlocks";
+import { OpfsLsBlock, OpfsWriteFileBlock } from "../components/conversation/ConversationArea/OpfsToolBlocks";
 
 interface RenderResult {
   title: TitleSegment[];

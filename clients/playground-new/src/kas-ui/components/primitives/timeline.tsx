@@ -1,4 +1,4 @@
-import { getIconComponent, type IconName } from "@/utils/getIcon";
+import { getIconComponent, type IconName } from "../../../utils/getIcon";
 import {
   Avatar,
   Box,
@@ -14,7 +14,7 @@ import {
 import { ChevronUpIcon } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { CodeEditor } from "./code-editor";
+import { CodeEditor } from "../../../components/ui/code-editor";
 import { DiffBubble } from "./diff-bubble";
 import { DiffEditor } from "./diff-editor";
 import { ResourceBadge } from "./resource-badge";

@@ -1,4 +1,4 @@
-import { isOpfsToolIconName, type IconName } from "@/utils/getIcon";
+import { isOpfsToolIconName, type IconName } from "../../utils/getIcon";
 
 const DEFAULT_TOOL_ICON: IconName = "dot";
 

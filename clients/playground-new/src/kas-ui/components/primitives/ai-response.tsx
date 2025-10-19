@@ -1,7 +1,7 @@
 import type { BoxProps } from "@chakra-ui/react";
 import { Box } from "@chakra-ui/react";
 import { memo } from "react";
-import { RichMessage } from "../rich-text/rich-message/rich-message";
+import { RichMessage } from "../../../components/rich-text/rich-message/rich-message";
 
 export interface ResponseProps extends Omit<BoxProps, "children"> {
   children: any;

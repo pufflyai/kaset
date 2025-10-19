@@ -1,4 +1,4 @@
-import type { TitleSegment } from "@/components/ui/timeline";
+import type { TitleSegment } from "../components/primitives/timeline";
 import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 
 export type FileChange = { filePath: string; additions: number; deletions: number };

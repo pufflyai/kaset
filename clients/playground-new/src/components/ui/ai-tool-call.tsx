@@ -3,7 +3,7 @@ import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { getIconComponent } from "@/utils/getIcon";
 import { Box, HStack, Separator, Stack, Text } from "@chakra-ui/react";
 import { CopyIcon } from "lucide-react";
-import { Response } from "./ai-response";
+import { Response } from "@/kas-ui/components/primitives";
 
 const ToolIcon = getIconComponent("plugin");
 const CopyOutputIcon = getIconComponent("copy");

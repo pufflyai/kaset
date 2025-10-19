@@ -1,10 +1,10 @@
-import { Response } from "@/components/ui/ai-response";
-import { ResourceBadge } from "@/components/ui/resource-badge";
-import { TimelineFromJSON } from "@/components/ui/timeline";
+import { Response } from "../../primitives/ai-response";
+import { ResourceBadge } from "../../primitives/resource-badge";
+import { TimelineFromJSON } from "../../primitives/timeline";
 import { Box, Text } from "@chakra-ui/react";
 import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 import type { ReactNode } from "react";
-import { invocationsToTimeline } from "../utils/timeline";
+import { invocationsToTimeline } from "../../../utils/timeline";
 
 interface MessagePartsProps {
   message: UIMessage;

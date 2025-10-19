@@ -15,7 +15,7 @@ import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { usePluginHost } from "../../services/plugins/usePluginHost";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
-import { ConversationArea } from "../conversation/ConversationArea";
+import { ConversationArea } from "@/kas-ui/components/conversation";
 import { ApprovalModal } from "./approval-modal";
 
 const EMPTY_MESSAGES: UIMessage[] = [];

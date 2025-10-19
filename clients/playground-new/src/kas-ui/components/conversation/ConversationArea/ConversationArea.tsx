@@ -1,11 +1,11 @@
-import { ConversationContent, ConversationRoot, ConversationScrollButton } from "@/components/ui/ai-conversation";
-import { ChangeBubble } from "@/components/ui/change-bubble";
-import { SettingsModal } from "@/components/ui/settings-modal";
-import { hasCredentials } from "@/state/actions/hasCredentials";
+import { ConversationContent, ConversationRoot, ConversationScrollButton } from "../../primitives/ai-conversation";
+import { ChangeBubble } from "../../primitives/change-bubble";
+import { SettingsModal } from "../../../../components/ui/settings-modal";
+import { hasCredentials } from "../../../../state/actions/hasCredentials";
 import { Alert, Button, Flex, HStack, Input, Stack, useDisclosure, type FlexProps } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { memo, useCallback, useMemo, useState } from "react";
-import { summarizeConversationChanges } from "../utils/diff";
+import { summarizeConversationChanges } from "../../../utils/diff";
 import { AutoScroll } from "./AutoScroll";
 import { ConversationContextUsage } from "./ConversationContextUsage";
 import { MessageList } from "./MessageList";
