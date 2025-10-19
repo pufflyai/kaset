@@ -12,15 +12,7 @@ import {
   normalizeDesktopFilePath,
   type DesktopOpenFileDetail,
 } from "@/services/desktop/fileApps";
-import {
-  ensurePluginHost,
-  getPluginDisplayName,
-  getPluginManifest,
-  getPluginSurfacesSnapshot,
-  getPluginsRoot,
-  subscribeToPluginSurfaces,
-  type PluginSurfacesSnapshot,
-} from "@/services/plugins/host";
+import { host, type PluginSurfacesSnapshot } from "@/services/plugins/host";
 import { deriveDesktopSurfaces, type PluginDesktopSurface } from "@/services/plugins/surfaces";
 import { usePluginSources } from "@/services/plugins/hooks/usePluginSources";
 import { openDesktopApp } from "@/state/actions/desktop";
@@ -265,19 +257,19 @@ export const Desktop = () => {
   }, []);
 
   useEffect(() => {
-    ensurePluginHost().then((host) => {
-      host.onDependencyChange(setLockfile);
+    host.ensureHost().then((instance) => {
+      instance.onDependencyChange(setLockfile);
     });
   }, []);
 
   useEffect(() => {
     const applySurfaces = (snapshot: PluginSurfacesSnapshot) => {
       const surfaces = snapshot.flatMap(({ pluginId, surfaces }) => {
-        const displayName = getPluginDisplayName(pluginId) || pluginId;
+        const displayName = host.getPluginDisplayName(pluginId) || pluginId;
         return deriveDesktopSurfaces({
           pluginId,
           surfaces,
-          manifest: getPluginManifest(pluginId),
+          manifest: host.getPluginManifest(pluginId),
           displayName,
         });
       });
@@ -289,13 +281,13 @@ export const Desktop = () => {
       setPluginApps(apps);
     };
 
-    const unsubscribe = subscribeToPluginSurfaces((snapshot) => {
+    const unsubscribe = host.subscribeToPluginSurfaces((snapshot) => {
       applySurfaces(snapshot);
     });
 
-    applySurfaces(getPluginSurfacesSnapshot());
+    applySurfaces(host.getPluginSurfaces());
 
-    ensurePluginHost().catch((error) => {
+    host.ensureHost().catch((error) => {
       console.error("[desktop] Failed to initialize plugin host", error);
     });
 
@@ -432,7 +424,7 @@ export const Desktop = () => {
 
   const handleDownloadPlugin = useCallback(async (pluginId: string, label: string) => {
     try {
-      const pluginsRoot = getPluginsRoot();
+      const pluginsRoot = host.getPluginsRoot();
       await downloadPluginBundle({
         pluginId,
         label,
@@ -458,7 +450,7 @@ export const Desktop = () => {
     if (!pendingDelete) return;
 
     try {
-      const pluginsRoot = getPluginsRoot();
+      const pluginsRoot = host.getPluginsRoot();
       await deletePluginDirectories({
         pluginId: pendingDelete.pluginId,
         pluginsRoot,
@@ -654,7 +646,7 @@ export const Desktop = () => {
             }
 
             const pluginId = getPluginIdFromAppId(app.id);
-            const pluginLabel = getPluginDisplayName(pluginId) || pluginId;
+            const pluginLabel = host.getPluginDisplayName(pluginId) || pluginId;
 
             return (
               <>

@@ -1,12 +1,4 @@
-import {
-  ensurePluginHost,
-  getPluginDisplayName,
-  getPluginManifest,
-  getPluginSurfacesSnapshot,
-  getPluginsRoot,
-  subscribeToPluginSurfaces,
-  type PluginSurfacesSnapshot,
-} from "@/services/plugins/host";
+import { host, type PluginSurfacesSnapshot } from "@/services/plugins/host";
 import { deriveDesktopSurfaces, type PluginDesktopSurface } from "@/services/plugins/surfaces";
 import { subscribeToPluginFiles, type PluginFilesChange } from "@pstdio/tiny-plugins";
 import { loadSourceFiles } from "@pstdio/tiny-ui";
@@ -31,11 +23,11 @@ export const usePluginSources = () => {
       const changed = new Set<string>();
       const nextMap = new Map<string, PluginDesktopSurface[]>();
       snapshot.forEach((entry) => {
-        const displayName = getPluginDisplayName(entry.pluginId) || entry.pluginId;
+        const displayName = host.getPluginDisplayName(entry.pluginId) || entry.pluginId;
         const derived = deriveDesktopSurfaces({
           pluginId: entry.pluginId,
           surfaces: entry.surfaces,
-          manifest: getPluginManifest(entry.pluginId),
+          manifest: host.getPluginManifest(entry.pluginId),
           displayName,
         }).filter((surface) => Boolean(surface.window?.entry));
         if (derived.length > 0) {
@@ -71,7 +63,7 @@ export const usePluginSources = () => {
       const surfaces = record?.surfaces;
       if (!surfaces || surfaces.length === 0) return;
 
-      const pluginsRoot = getPluginsRoot();
+      const pluginsRoot = host.getPluginsRoot();
       const pluginRoot = buildPluginRoot(pluginsRoot, pluginId);
 
       const tasks = surfaces
@@ -119,12 +111,12 @@ export const usePluginSources = () => {
       pendingLoads.set(pluginId, loadTask);
     };
 
-    const initialChanges = syncSnapshot(getPluginSurfacesSnapshot());
+    const initialChanges = syncSnapshot(host.getPluginSurfaces());
     initialChanges.forEach((pluginId) => {
       scheduleLoad(pluginId);
     });
 
-    const unsubscribeSurfaces = subscribeToPluginSurfaces((snapshot) => {
+    const unsubscribeSurfaces = host.subscribeToPluginSurfaces((snapshot) => {
       if (disposed) return;
       const changed = syncSnapshot(snapshot);
       changed.forEach((pluginId) => {
@@ -134,10 +126,11 @@ export const usePluginSources = () => {
 
     let unsubscribeFiles: (() => void) | null = null;
 
-    ensurePluginHost()
-      .then((host) => {
+    host
+      .ensureHost()
+      .then((instance) => {
         if (disposed) return;
-        unsubscribeFiles = subscribeToPluginFiles(host, (changes: PluginFilesChange[]) => {
+        unsubscribeFiles = subscribeToPluginFiles(instance, (changes: PluginFilesChange[]) => {
           if (disposed) return;
           const affected = new Set<string>();
 

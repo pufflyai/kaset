@@ -9,11 +9,12 @@ import { setConversationMessages } from "@/state/actions/setConversationMessages
 import type { ApprovalRequest } from "@pstdio/kas";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { shortUID } from "@pstdio/prompt-utils";
+import { usePluginHost } from "@pstdio/tiny-plugins";
 import debounce from "lodash/debounce";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
-import { usePluginHost } from "../../services/plugins/host";
+import { host } from "../../services/plugins/host";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
@@ -54,7 +55,7 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
 
 export function ConversationHost() {
   const { tools: mcpTools } = useMcpService();
-  const { tools: pluginTools } = usePluginHost();
+  const { tools: pluginTools } = usePluginHost(host);
   const [streaming, setStreaming] = useState(false);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);

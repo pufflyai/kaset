@@ -1,10 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  ensurePluginHost,
-  getMergedPluginDependencies,
-  isPluginHostReady,
-  subscribeToPluginDependencies,
-} from "@/services/plugins/host";
+import { host } from "@/services/plugins/host";
 import { setLockfile } from "@pstdio/tiny-ui";
 
 const normalizeLockfile = (dependencies: Record<string, string>) => {
@@ -22,8 +17,8 @@ export const usePluginDependenciesReady = () => {
 
   useEffect(() => {
     let disposed = false;
-    let hostReady = isPluginHostReady();
-    let latestLockfile = hostReady ? normalizeLockfile(getMergedPluginDependencies()) : null;
+    let hostReady = host.isReady();
+    let latestLockfile = hostReady ? normalizeLockfile(host.getMergedPluginDependencies()) : null;
     let hasSnapshot = hostReady;
 
     const commitLockfile = () => {
@@ -37,7 +32,7 @@ export const usePluginDependenciesReady = () => {
       commitLockfile();
     }
 
-    const unsubscribe = subscribeToPluginDependencies((dependencies) => {
+    const unsubscribe = host.subscribeToPluginDependencies((dependencies) => {
       if (disposed) return;
       hasSnapshot = true;
       latestLockfile = normalizeLockfile(dependencies);
@@ -47,7 +42,8 @@ export const usePluginDependenciesReady = () => {
       }
     });
 
-    ensurePluginHost()
+    host
+      .ensureHost()
       .then(() => {
         if (disposed) return;
         hostReady = true;

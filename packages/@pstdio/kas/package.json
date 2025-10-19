@@ -51,9 +51,7 @@
   "dependencies": {
     "@pstdio/opfs-utils": "^0.1.8",
     "@pstdio/prompt-utils": "^0.1.3",
-    "@pstdio/tiny-ai-tasks": "^0.1.3",
-    "@pstdio/tiny-tasks": "^0.1.3",
-    "openai": "^5.15.0"
+    "@pstdio/tiny-ai-tasks": "^0.1.3"
   },
   "publishConfig": {
     "access": "public"

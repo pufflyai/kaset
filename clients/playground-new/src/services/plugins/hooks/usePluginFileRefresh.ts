@@ -1,4 +1,4 @@
-import { ensurePluginHost } from "@/services/plugins/host";
+import { host } from "@/services/plugins/host";
 import debounce from "lodash.debounce";
 import { useEffect, useMemo, useState } from "react";
 
@@ -17,14 +17,13 @@ export const usePluginFilesRefresh = (pluginId: string) => {
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
 
-    ensurePluginHost().then((host) => {
+    host.ensureHost().then((instance) => {
       if (cancelled) return;
 
-      unsubscribe = host.onPluginChange((changedPluginId, payload) => {
+      unsubscribe = instance.onPluginChange((changedPluginId, payload) => {
         if (!payload.changes || payload.changes?.length === 0) return;
         if (changedPluginId !== pluginId) return;
-        console.log(`######### Plugin ${pluginId} files changed, scheduling refresh...`);
-        console.log(payload.paths);
+        // TODO: for some reason this triggers on first render
         scheduleRefresh();
       });
     });
