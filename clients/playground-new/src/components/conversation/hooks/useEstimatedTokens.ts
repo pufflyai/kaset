@@ -79,12 +79,14 @@ export function useEstimatedTokens(messages: UIMessage[], input: string): TokenU
 
       if (trimmed) {
         const history = toBaseMessages(messages);
-        const withCurrent: BaseMessage[] = [...history, { role: "user", content: trimmed } as BaseMessage];
-
         const counter = roughCounter();
+        const historyPromptTokens = counter.count(history);
+        const withCurrent: BaseMessage[] = [...history, { role: "user", content: trimmed } as BaseMessage];
         const estimatedPromptTokens = counter.count(withCurrent);
-        conversationPromptTokens = conversationPromptTokens + estimatedPromptTokens;
-        conversationTotalTokens = conversationTotalTokens + estimatedPromptTokens;
+        const incrementalPromptTokens = Math.max(estimatedPromptTokens - historyPromptTokens, 0);
+
+        conversationPromptTokens += incrementalPromptTokens;
+        conversationTotalTokens += incrementalPromptTokens;
       }
 
       return {
