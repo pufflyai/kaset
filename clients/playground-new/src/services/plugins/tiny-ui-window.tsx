@@ -1,19 +1,16 @@
 import { LoadingState } from "@/components/ui/loading-state";
-import { toaster } from "@/components/ui/toaster";
-import { ROOT } from "@/constant";
-import { requestOpenDesktopFile } from "@/services/desktop/fileApps";
 import { Box, Button, Center, Text } from "@chakra-ui/react";
 import { TinyUI, loadSnapshot, type TinyUIActionHandler, type TinyUIStatus } from "@pstdio/tiny-ui";
 import { getLockfile, registerSources, setLockfile, unregisterVirtualSnapshot } from "@pstdio/tiny-ui-bundler";
+import { createUiOpsAdapter } from "@pstdio/tiny-plugins";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getMergedPluginDependencies,
   getPluginsRoot,
+  ensurePluginHost,
   subscribeToPluginFiles,
   type PluginDesktopWindowDescriptor,
 } from "./plugin-host";
-import { createTinyUiOpsHandler, type TinyUiOpsRequest } from "./tinyUiOps";
-import { createWorkspaceFs } from "./workspaceFs";
 
 type Status = "idle" | "loading" | "ready" | "error";
 
@@ -75,8 +72,10 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   const [snapshotVersion, setSnapshotVersion] = useState(0);
   const [sourceRoot, setSourceRoot] = useState<string | null>(null);
   const [tinyStatus, setTinyStatus] = useState<TinyUIStatus>("initializing");
+  const [opsHandler, setOpsHandler] = useState<
+    ((method: string, params?: Record<string, unknown>) => Promise<unknown>) | null
+  >(null);
   const refreshToken = usePluginFilesRefresh(pluginId);
-  const workspaceFs = useMemo(() => createWorkspaceFs(ROOT), []);
   const pluginsRoot = useMemo(() => getPluginsRoot(), []);
   const sourceId = `${pluginId}:${surfaceId}`;
 
@@ -90,79 +89,14 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
     setStatus("error");
   }, []);
 
-  const notify = useCallback((level: "info" | "warn" | "error", message: string) => {
-    const type = level === "error" ? "error" : level === "warn" ? "warning" : "info";
-    toaster.create({ type, title: message, duration: 5000 });
-  }, []);
-
-  const handleOpenFile = useCallback(
-    async (path: string, options?: { displayName?: string }) => {
-      console.info("[tiny-ui-window] Forwarding open file request to desktop", { pluginId, path, options });
-      requestOpenDesktopFile(path, options);
-    },
-    [pluginId],
-  );
-
-  const forwardRequest = useCallback(
-    async (request: TinyUiOpsRequest) => {
-      console.info("[tiny-ui-window] Received Tiny UI request", {
-        pluginId,
-        method: request.method,
-        params: request.params,
-      });
-      if (request.method === "actions.openFile") {
-        const rawParams = request.params;
-        let path: string | undefined;
-        let displayName: string | undefined;
-
-        if (typeof rawParams === "string") {
-          path = rawParams;
-        } else if (rawParams && typeof rawParams === "object") {
-          const record = rawParams as Record<string, unknown>;
-          if (typeof record.path === "string") {
-            path = record.path;
-          } else if (Array.isArray(record.args) && typeof record.args[0] === "string") {
-            path = record.args[0];
-            const maybeDisplayName = record.args[1];
-            if (maybeDisplayName && typeof maybeDisplayName.displayName === "string") {
-              displayName = maybeDisplayName.displayName;
-            }
-          } else if (typeof record.value === "string") {
-            path = record.value;
-          }
-
-          if (typeof record.displayName === "string") {
-            displayName = record.displayName;
-          }
-        }
-
-        if (!path || !path.trim()) {
-          throw new Error("actions.openFile requires params.path");
-        }
-        await handleOpenFile(path, displayName ? { displayName } : undefined);
-        return { ok: true };
-      }
-
-      throw new Error(`Unknown Tiny UI host request: ${request.method}`);
-    },
-    [handleOpenFile, pluginId],
-  );
-
   const entryPath = pluginWindow.entry;
-  const opsHandler = useMemo(
-    () =>
-      createTinyUiOpsHandler({
-        pluginId,
-        pluginsRoot,
-        workspaceFs,
-        notify,
-        forwardRequest,
-      }),
-    [pluginId, pluginsRoot, workspaceFs, notify, forwardRequest],
-  );
-
   const handleActionCall = useCallback<TinyUIActionHandler>(
-    (method, params) => opsHandler({ method, params }),
+    (method, params) => {
+      if (!opsHandler) {
+        throw new Error("Plugin host not ready");
+      }
+      return opsHandler(method, params as Record<string, unknown> | undefined);
+    },
     [opsHandler],
   );
 
@@ -177,6 +111,35 @@ export const PluginTinyUiWindow = (props: PluginTinyUiWindowProps) => {
   useEffect(() => {
     applyLockfile(getMergedPluginDependencies());
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const host = await ensurePluginHost();
+        const hostApi = host.createHostApiFor(pluginId);
+        const uiOps = createUiOpsAdapter({ hostApi });
+        if (!cancelled) {
+          setOpsHandler(
+            () => (method: string, params?: Record<string, unknown>) => uiOps({ method, params }),
+          );
+        }
+      } catch (err) {
+        console.error("[tiny-ui-window] Failed to initialize plugin host", err);
+        if (cancelled) {
+          return;
+        }
+        const message = err instanceof Error ? err.message : "Failed to initialize plugin host";
+        setError(message);
+        setStatus("error");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      setOpsHandler(null);
+    };
+  }, [pluginId]);
 
   useEffect(() => {
     if (!entryPath) {

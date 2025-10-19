@@ -24,6 +24,7 @@ export interface Manifest {
   }>;
   settingsSchema?: unknown; // accepted but not enforced by core
   ui?: unknown;
+  surfaces?: Record<string, unknown>;
 }
 
 export interface CommandDefinition {
@@ -53,22 +54,22 @@ export interface PluginModule {
 /** One flat, namespaced host API (the exact shape you asked for). */
 export interface HostApi {
   // FS
-  "fs.readFile"(path: string): Promise<Uint8Array>;
-  "fs.writeFile"(path: string, contents: Uint8Array | string): Promise<void>;
-  "fs.deleteFile"(path: string): Promise<void>;
-  "fs.moveFile"(from: string, to: string): Promise<void>;
-  "fs.exists"(path: string): Promise<boolean>;
-  "fs.mkdirp"(path: string): Promise<void>;
+  "fs.readFile"(params: { path: string }): Promise<Uint8Array>;
+  "fs.writeFile"(params: { path: string; contents: Uint8Array | string }): Promise<void>;
+  "fs.deleteFile"(params: { path: string }): Promise<void>;
+  "fs.moveFile"(params: { from: string; to: string }): Promise<void>;
+  "fs.exists"(params: { path: string }): Promise<boolean>;
+  "fs.mkdirp"(params: { path: string }): Promise<void>;
 
   // Notifications
-  "log.statusUpdate"(status: { status: string; detail?: unknown }): Promise<void>;
-  "log.info"(message: string, detail?: unknown): Promise<void>;
-  "log.warn"(message: string, detail?: unknown): Promise<void>;
-  "log.error"(message: string, detail?: unknown): Promise<void>;
+  "log.statusUpdate"(params: { status: string; detail?: unknown }): Promise<void>;
+  "log.info"(params: { message: string; detail?: unknown }): Promise<void>;
+  "log.warn"(params: { message: string; detail?: unknown }): Promise<void>;
+  "log.error"(params: { message: string; detail?: unknown }): Promise<void>;
 
   // Settings
-  "settings.read"<T = unknown>(): Promise<T>;
-  "settings.write"<T = unknown>(value: T): Promise<void>;
+  "settings.read"<T = unknown>(params?: Record<string, never>): Promise<T>;
+  "settings.write"<T = unknown>(params: { value: T }): Promise<void>;
 }
 
 /** Plugin receives only its identity, validated manifest, and the host API. */

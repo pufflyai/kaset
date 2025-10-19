@@ -6,10 +6,12 @@ import {
   createHost,
   createToolsForCommands,
   mergeManifestDependencies,
+  getPluginSurfaces,
   type CommandDefinition,
   type Manifest,
   type PluginChangePayload,
   type PluginMetadata,
+  type PluginSurfacesRaw,
 } from "@pstdio/tiny-plugins";
 
 export type JSONSchema = Record<string, unknown> | boolean;
@@ -54,12 +56,24 @@ function isJsonSchema(value: unknown): value is JSONSchema {
   return typeof value === "object" && value !== null;
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function extractDesktopManifests(raw: PluginSurfacesRaw | undefined): DesktopSurfaceManifest[] {
+  if (!raw) return [];
+  const source = raw.desktop;
+  if (Array.isArray(source)) {
+    return source.filter((item): item is DesktopSurfaceManifest => isRecord(item));
+  }
+  if (isRecord(source)) {
+    return [source as DesktopSurfaceManifest];
+  }
+  return [];
+}
+
 export type PluginFilesEvent = { pluginId: string; changes: ChangeRecord[] };
 export type PluginFilesListener = (event: PluginFilesEvent) => void;
-
-type ManifestWithUi = Manifest & {
-  ui?: Manifest["ui"] & { desktop?: DesktopSurfaceManifest | DesktopSurfaceManifest[] };
-};
 
 export type PluginDesktopSurface = {
   pluginId: string;
@@ -272,14 +286,14 @@ function resolveWindowDescriptor(
 
 function normalizeDesktopSurfaces(
   pluginId: string,
-  manifest: ManifestWithUi,
+  manifest: Manifest,
+  surfacesRaw: PluginSurfacesRaw | undefined,
   fallbackTitle: string,
 ): PluginDesktopSurface[] {
-  const desktopConfig = manifest.ui?.desktop;
-  if (!desktopConfig) return [];
+  const items = extractDesktopManifests(surfacesRaw);
+  if (items.length === 0) return [];
 
   const manifestDependencies = manifest.dependencies;
-  const items = Array.isArray(desktopConfig) ? desktopConfig : [desktopConfig];
   const normalized: PluginDesktopSurface[] = [];
 
   items.forEach((item, index) => {
@@ -420,9 +434,9 @@ function handleManifestUpdate(pluginId: string, manifest: Manifest | null) {
     updateMergedDependencies();
   }
 
-  const manifestWithUi = (manifest ?? undefined) as ManifestWithUi | undefined;
   const fallbackTitle = manifest?.name || pluginMetadata.get(pluginId)?.name || pluginId;
-  const nextSurfaces = manifestWithUi ? normalizeDesktopSurfaces(pluginId, manifestWithUi, fallbackTitle) : [];
+  const surfacesRaw = manifest ? getPluginSurfaces(manifest) : undefined;
+  const nextSurfaces = manifest ? normalizeDesktopSurfaces(pluginId, manifest, surfacesRaw ?? {}, fallbackTitle) : [];
   const previous = pluginDesktopSurfaces.get(pluginId) ?? [];
 
   if (nextSurfaces.length === 0) {

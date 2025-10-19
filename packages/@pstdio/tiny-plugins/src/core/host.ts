@@ -123,30 +123,30 @@ export function createHost(options: HostOptions) {
 
     return {
       // FS
-      "fs.readFile": (path) => pfs.readFile(path),
-      "fs.writeFile": (path, contents) => pfs.writeFile(path, contents),
-      "fs.deleteFile": (path) => pfs.deleteFile(path),
-      "fs.moveFile": (from, to) => pfs.moveFile(from, to),
-      "fs.exists": (path) => pfs.exists(path),
-      "fs.mkdirp": (path) => pfs.mkdirp(path),
+      "fs.readFile": ({ path }) => pfs.readFile(path),
+      "fs.writeFile": ({ path, contents }) => pfs.writeFile(path, contents),
+      "fs.deleteFile": ({ path }) => pfs.deleteFile(path),
+      "fs.moveFile": ({ from, to }) => pfs.moveFile(from, to),
+      "fs.exists": ({ path }) => pfs.exists(path),
+      "fs.mkdirp": ({ path }) => pfs.mkdirp(path),
 
       // Notifications
-      "log.statusUpdate": async (status: { status: string; detail?: unknown }) => {
-        emitter.emit("status", { status: status.status, detail: status.detail, pluginId });
+      "log.statusUpdate": async ({ status, detail }) => {
+        emitter.emit("status", { status, detail, pluginId });
       },
-      "log.info": async (message: string, detail?: unknown) => {
+      "log.info": async ({ message, detail }) => {
         forwardLog("info", message, detail);
       },
-      "log.warn": async (message: string, detail?: unknown) => {
+      "log.warn": async ({ message, detail }) => {
         forwardLog("warn", message, detail);
       },
-      "log.error": async (message: string, detail?: unknown) => {
+      "log.error": async ({ message, detail }) => {
         forwardLog("error", message, detail);
       },
 
       // Settings
-      "settings.read": () => settings.read(),
-      "settings.write": (value) => settings.write(value),
+      "settings.read": <T = unknown>() => settings.read<T>(),
+      "settings.write": <T = unknown>({ value }: { value: T }) => settings.write(value),
     };
   }
 
@@ -416,7 +416,7 @@ export function createHost(options: HostOptions) {
 
   async function updateSettings<T = unknown>(pluginId: string, value: T) {
     const api = buildHostApi(pluginId);
-    await api["settings.write"](value);
+    await api["settings.write"]({ value });
   }
 
   async function readSettings<T = unknown>(pluginId: string) {

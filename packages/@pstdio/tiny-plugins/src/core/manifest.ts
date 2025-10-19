@@ -24,6 +24,7 @@ const schema: Record<string, unknown> = {
       additionalProperties: { type: "string", minLength: 1 },
     },
     ui: {},
+    surfaces: { type: "object", additionalProperties: true },
     commands: {
       type: "array",
       items: {
