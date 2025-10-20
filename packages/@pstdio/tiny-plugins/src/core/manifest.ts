@@ -6,10 +6,10 @@ export type ManifestResult =
   | { ok: true; manifest: Manifest; warnings: string[] }
   | { ok: false; error: string; details?: unknown; warnings: string[] };
 
-const schema: Record<string, unknown> = {
+const schema = {
   $schema: "http://json-schema.org/draft-07/schema#",
   type: "object",
-  additionalProperties: true, // allow future growth but enforce required core fields
+  additionalProperties: true,
   required: ["id", "name", "version", "api", "entry"],
   properties: {
     id: { type: "string", minLength: 1 },
@@ -23,7 +23,7 @@ const schema: Record<string, unknown> = {
       propertyNames: { type: "string", minLength: 1 },
       additionalProperties: { type: "string", minLength: 1 },
     },
-    ui: {},
+    surfaces: {},
     commands: {
       type: "array",
       items: {

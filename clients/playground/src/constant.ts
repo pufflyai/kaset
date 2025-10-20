@@ -11,7 +11,7 @@ export const APPROVAL_GATED_TOOL_IDS = [
   "opfs_move_file",
 ] as const;
 
-export const DEFAULT_APPROVAL_GATED_TOOLS = [...APPROVAL_GATED_TOOL_IDS];
+export const DEFAULT_APPROVAL_GATED_TOOLS = [];
 
 export const examplePrompts = [
   "What can you do?",

@@ -399,6 +399,12 @@ void hello("world");
 
 ## 10. Keep files shorter than 350 lines
 
-## 11. Don't be overly defensive, Keep it Simple Stupid
+Large files are harder to read, review, and maintain. Keeping each file under 350 lines encourages modular design, easier debugging, and faster onboarding for new contributors. If a file grows too large, consider breaking it into smaller, focused modules or components.
+
+## 11. Don’t be overly defensive — Keep It Simple, Stupid (KISS)
+
+Avoid unnecessary complexity or excessive defensive coding. Code should be as simple and direct as possible while remaining clear and correct. Prefer readability and maintainability over cleverness. The simplest working solution is usually the best one.
 
 ## 12. Keep tests next to the file they test
+
+Tests should live alongside the code they validate. This makes it easier to find, update, and run relevant tests when modifying code. For example, if you have a file agent.py, its corresponding test file should be test_agent.py in the same directory.

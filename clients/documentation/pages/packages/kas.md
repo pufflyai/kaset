@@ -142,14 +142,6 @@ Creates an approval gate for controlling tool access.
 
 **Returns:** Object with `check` method for validating tool usage.
 
-### `DEFAULT_APPROVAL_GATED_TOOLS`
-
-Array of tool names requiring approval by default. You can import and extend/modify this list:
-
-```ts
-import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
-```
-
 ### `defaultSystemPrompt`
 
 The default system prompt string used by the agent. Import to customize or extend:

@@ -30,6 +30,7 @@ A valid `manifest.json` must follow the strict schema:
 ## Creating Plugins
 
 - When creating editors (e.g. documents, notes, code, images, etc.) their artifacts should live in `/plugin_data/<pluginId>/`, and the plugin should load them via opfs.
+- **do not use `<form>` tags**: the plugins will run inside a sandboxed iframe. Browser form submissions will fail, so prefer alternative UI patterns (buttons, inputs, custom handlers, etc.).
 
 ## Plugin Example
 
