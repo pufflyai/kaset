@@ -161,23 +161,23 @@ All subscription helpers return an unsubscribe function for cleanup.
 
 export const commands = {
   async "theme.next"(ctx, params = {}) {
-    const settings = await ctx.api["settings.read"]();
+    const settings = await ctx.api.call("settings.read");
     const themes = Array.isArray(settings.themes) && settings.themes.length > 0 ? settings.themes : ["light", "dark"];
     const current = typeof settings.current === "string" ? settings.current : themes[0];
     const nextIndex = (themes.indexOf(current) + 1) % themes.length;
     const nextTheme = themes[nextIndex];
 
-    await ctx.api["settings.write"]({ ...settings, current: nextTheme });
+    await ctx.api.call("settings.write", { value: { ...settings, current: nextTheme } });
 
     if (!params.skipNotification) {
-      await ctx.api["log.statusUpdate"]({ status: "theme.changed", detail: { theme: nextTheme } });
+      await ctx.api.call("log.statusUpdate", { status: "theme.changed", detail: { theme: nextTheme } });
     }
   },
 };
 
 export default {
   async activate(ctx) {
-    await ctx.api["log.statusUpdate"]({ status: "theme-switcher activated" });
+    await ctx.api.call("log.statusUpdate", { status: "theme-switcher activated" });
   },
   async deactivate() {
     console.info("theme-switcher deactivated");
@@ -188,17 +188,17 @@ export default {
 ### `PluginContext` Surface
 
 - `ctx.id` / `ctx.manifest` – plugin metadata.
-- `ctx.api["fs.readFile"](path)` – scoped filesystem helpers from `@pstdio/opfs-utils` (`fs.writeFile`, `fs.deleteFile`, `fs.moveFile`, `fs.exists`, `fs.mkdirp`).
-- `ctx.api["settings.read"]<T>()` / `ctx.api["settings.write"](value)` – persist JSON to `/plugin_data/<id>/.settings.json`, validated against `settingsSchema` when provided.
-- `ctx.api["log.statusUpdate"]({ status, detail? })` – bridge notifications to the host `notify` callback.
-- `ctx.api["log.error"](message)` – forward errors to the host notifier. `ctx.api["log.warn"]` and `ctx.api["log.info"]` surface non-error messages.
+- `ctx.api.call("fs.readFile", { path })` – scoped filesystem helpers from `@pstdio/opfs-utils` (`fs.writeFile`, `fs.deleteFile`, `fs.moveFile`, `fs.exists`, `fs.mkdirp` follow the same shape).
+- `ctx.api.call("settings.read")` / `ctx.api.call("settings.write", { value })` – persist JSON to `/plugin_data/<id>/.settings.json`, validated against `settingsSchema` when provided.
+- `ctx.api.call("log.statusUpdate", { status, detail? })` – bridge notifications to the host `notify` callback.
+- `ctx.api.call("log.error", { message })` – forward errors to the host notifier. `log.warn` and `log.info` accept `{ message, detail? }`.
 
 `activate(ctx)` runs once per load. `deactivate()` is optional and executes on unload or reload.
 
 ## Notifications & Settings
 
-- **Notifications** – call `ctx.api["log.statusUpdate"]({ status, detail })` to surface feedback. The host forwards the message to its `notify` handler, so apps can display toasts or log structured output. Use `ctx.api["log.error"](message)` for error conditions; `ctx.api["log.warn"]` and `ctx.api["log.info"]` are available for additional telemetry.
-- **Settings** – stored at `/plugin_data/<id>/.settings.json`. Reads return `{}` when the file is missing or invalid JSON. Writes are pretty-printed and validated against `settingsSchema` via `ctx.api["settings.write"]`.
+- **Notifications** – call `ctx.api.call("log.statusUpdate", { status, detail })` to surface feedback. The host forwards the message to its `notify` handler, so apps can display toasts or log structured output. Use `ctx.api.call("log.error", { message })` for error conditions; `log.warn` and `log.info` accept `{ message, detail? }` for additional telemetry.
+- **Settings** – stored at `/plugin_data/<id>/.settings.json`. Reads return `{}` when the file is missing or invalid JSON. Writes are pretty-printed and validated against `settingsSchema` via `ctx.api.call("settings.write", { value })`.
 
 ## Tiny AI Tasks Integration
 

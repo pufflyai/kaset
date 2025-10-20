@@ -62,9 +62,9 @@ Call `start()` once to read every plugin directory, validate manifests, import t
 - **Subscriptions** – `onPluginChange`, `onDependencyChange`, `onSettingsChange`, `onStatus`, `onError`.
 - **Queries** – `getMetadata()`, `getPluginDependencies()`, `listCommands()`.
 - **Actions** – `runCommand(pluginId, commandId, params?)`, `updateSettings(pluginId, value)`, `readSettings(pluginId)`.
-- **UI bridge** – `createHostApiFor(pluginId)` returns the same host API handed to plugins during `activate()`. [`@pstdio/tiny-ui`](../tiny-ui/README.md) calls this helper inside its iframe bridge so UI surfaces share the exact capabilities.
+- **UI bridge** – `createHostApiFor(pluginId)` returns the same host API handed to plugins during `activate()`. [`@pstdio/tiny-ui`](../tiny-ui/README.md) calls this helper inside its iframe bridge so UI surfaces share the exact capabilities via `api.call(method, params?)`.
 
-Each plugin-facing API includes:
+Each plugin-facing API is exposed through `ctx.api.call(method, params?)` and includes:
 
 - `fs.*` methods scoped to the plugin's directory (`readFile`, `writeFile`, `deleteFile`, `moveFile`, `exists`, `mkdirp`).
 - `log.*` helpers (`statusUpdate`, `info`, `warn`, `error`) that forward to the host's `notify` callback and emit runtime events.

@@ -1,5 +1,5 @@
 export default {
   async activate(ctx) {
-    await ctx.api["log.info"]("hello-kaset plugin activated");
+    await ctx.api.call("log.info", { message: "Hello Kaset plugin activated" });
   },
 };
