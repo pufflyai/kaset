@@ -92,7 +92,7 @@ A valid `manifest.json` must follow the strict schema:
 ```js
 export default {
   async activate(ctx) {
-    await ctx.api["log.info"]("hello plugin activated");
+    await ctx.api.call("log.info", { message: "hello plugin activated" });
   },
 };
 ```
@@ -124,6 +124,25 @@ export function mount(container) {
 >
 > - `manifest.id` must match the folder name or loading fails.
 > - you don't have to use react for the UI
+
+---
+
+## Host Methods
+
+Use `ctx.api.call(method, params?)` to interact with the host. Available methods:
+
+- `fs.readFile` – `{ path }` → `Uint8Array`
+- `fs.writeFile` – `{ path, contents }`
+- `fs.deleteFile` – `{ path }`
+- `fs.moveFile` – `{ from, to }`
+- `fs.exists` – `{ path }` → `boolean`
+- `fs.mkdirp` – `{ path }`
+- `log.statusUpdate` – `{ status, detail? }`
+- `log.info` – `{ message, detail? }`
+- `log.warn` – `{ message, detail? }`
+- `log.error` – `{ message, detail? }`
+- `settings.read` – no params → returns saved settings
+- `settings.write` – `{ value }`
 
 ---
 

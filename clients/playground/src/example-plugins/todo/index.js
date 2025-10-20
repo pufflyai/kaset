@@ -1,5 +1,5 @@
 export default {
   async activate(ctx) {
-    await ctx.api["log.info"]("Todo plugin activated");
+    await ctx.api.call("log.info", { message: "Todo plugin activated" });
   },
 };

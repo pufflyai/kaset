@@ -1,7 +1,7 @@
 {
   "id": "hello-kaset",
   "name": "Hello Kaset",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "api": "v1",
   "entry": "index.js",
   "description": "Hello Kaset plugin for OPFS.",

@@ -51,24 +51,59 @@ export interface PluginModule {
 }
 
 /** One flat, namespaced host API (the exact shape you asked for). */
+export type HostApiMethod =
+  | "fs.readFile"
+  | "fs.writeFile"
+  | "fs.deleteFile"
+  | "fs.moveFile"
+  | "fs.exists"
+  | "fs.mkdirp"
+  | "log.statusUpdate"
+  | "log.info"
+  | "log.warn"
+  | "log.error"
+  | "settings.read"
+  | "settings.write";
+
+export type HostApiParams = {
+  "fs.readFile": { path: string };
+  "fs.writeFile": { path: string; contents: Uint8Array | string };
+  "fs.deleteFile": { path: string };
+  "fs.moveFile": { from: string; to: string };
+  "fs.exists": { path: string };
+  "fs.mkdirp": { path: string };
+  "log.statusUpdate": { status: string; detail?: unknown };
+  "log.info": { message: string; detail?: unknown };
+  "log.warn": { message: string; detail?: unknown };
+  "log.error": { message: string; detail?: unknown };
+  "settings.read": undefined;
+  "settings.write": { value: unknown };
+};
+
+export type HostApiResult = {
+  "fs.readFile": Uint8Array;
+  "fs.writeFile": void;
+  "fs.deleteFile": void;
+  "fs.moveFile": void;
+  "fs.exists": boolean;
+  "fs.mkdirp": void;
+  "log.statusUpdate": void;
+  "log.info": void;
+  "log.warn": void;
+  "log.error": void;
+  "settings.read": unknown;
+  "settings.write": void;
+};
+
+export type HostApiHandlerMap = {
+  [M in HostApiMethod]: (params: HostApiParams[M]) => Promise<HostApiResult[M]>;
+};
+
 export interface HostApi {
-  // FS
-  "fs.readFile"(path: string): Promise<Uint8Array>;
-  "fs.writeFile"(path: string, contents: Uint8Array | string): Promise<void>;
-  "fs.deleteFile"(path: string): Promise<void>;
-  "fs.moveFile"(from: string, to: string): Promise<void>;
-  "fs.exists"(path: string): Promise<boolean>;
-  "fs.mkdirp"(path: string): Promise<void>;
-
-  // Notifications
-  "log.statusUpdate"(status: { status: string; detail?: unknown }): Promise<void>;
-  "log.info"(message: string, detail?: unknown): Promise<void>;
-  "log.warn"(message: string, detail?: unknown): Promise<void>;
-  "log.error"(message: string, detail?: unknown): Promise<void>;
-
-  // Settings
-  "settings.read"<T = unknown>(): Promise<T>;
-  "settings.write"<T = unknown>(value: T): Promise<void>;
+  call<M extends HostApiMethod>(
+    method: M,
+    ...args: HostApiParams[M] extends undefined ? [params?: HostApiParams[M]] : [params: HostApiParams[M]]
+  ): Promise<HostApiResult[M]>;
 }
 
 /** Plugin receives only its identity, validated manifest, and the host API. */

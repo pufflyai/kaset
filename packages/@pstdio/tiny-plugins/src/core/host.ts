@@ -7,6 +7,10 @@ import { readManifestStrict } from "./manifest";
 import { createSettings } from "./settings";
 import type {
   HostApi,
+  HostApiHandlerMap,
+  HostApiMethod,
+  HostApiParams,
+  HostApiResult,
   HostOptions,
   Manifest,
   PluginChangePayload,
@@ -115,33 +119,39 @@ export function createHost(options: HostOptions) {
       }
     };
 
-    return {
-      // FS
-      "fs.readFile": (path) => pfs.readFile(path),
-      "fs.writeFile": (path, contents) => pfs.writeFile(path, contents),
-      "fs.deleteFile": (path) => pfs.deleteFile(path),
-      "fs.moveFile": (from, to) => pfs.moveFile(from, to),
-      "fs.exists": (path) => pfs.exists(path),
-      "fs.mkdirp": (path) => pfs.mkdirp(path),
-
-      // Notifications
-      "log.statusUpdate": async (status: { status: string; detail?: unknown }) => {
-        emitter.emit("status", { status: status.status, detail: status.detail, pluginId });
+    const handlers: HostApiHandlerMap = {
+      "fs.readFile": async ({ path }) => pfs.readFile(path),
+      "fs.writeFile": async ({ path, contents }) => pfs.writeFile(path, contents),
+      "fs.deleteFile": async ({ path }) => pfs.deleteFile(path),
+      "fs.moveFile": async ({ from, to }) => pfs.moveFile(from, to),
+      "fs.exists": async ({ path }) => pfs.exists(path),
+      "fs.mkdirp": async ({ path }) => pfs.mkdirp(path),
+      "log.statusUpdate": async ({ status, detail }) => {
+        emitter.emit("status", { status, detail, pluginId });
       },
-      "log.info": async (message: string, detail?: unknown) => {
+      "log.info": async ({ message, detail }) => {
         forwardLog("info", message, detail);
       },
-      "log.warn": async (message: string, detail?: unknown) => {
+      "log.warn": async ({ message, detail }) => {
         forwardLog("warn", message, detail);
       },
-      "log.error": async (message: string, detail?: unknown) => {
+      "log.error": async ({ message, detail }) => {
         forwardLog("error", message, detail);
       },
-
-      // Settings
-      "settings.read": () => settings.read(),
-      "settings.write": (value) => settings.write(value),
+      "settings.read": async (_params: HostApiParams["settings.read"]) => settings.read(),
+      "settings.write": async ({ value }) => settings.write(value),
     };
+
+    const call = async <M extends HostApiMethod>(
+      method: M,
+      ...args: HostApiParams[M] extends undefined ? [params?: HostApiParams[M]] : [params: HostApiParams[M]]
+    ): Promise<HostApiResult[M]> => {
+      const handler = handlers[method];
+      const params = (args.length > 0 ? args[0] : undefined) as HostApiParams[M];
+      return handler(params);
+    };
+
+    return { call } satisfies HostApi;
   }
 
   async function loadPlugin(pluginId: string, options?: { emitChange?: boolean }) {
@@ -418,12 +428,12 @@ export function createHost(options: HostOptions) {
 
   async function updateSettings<T = unknown>(pluginId: string, value: T) {
     const api = buildHostApi(pluginId);
-    await api["settings.write"](value);
+    await api.call("settings.write", { value });
   }
 
   async function readSettings<T = unknown>(pluginId: string) {
     const api = buildHostApi(pluginId);
-    return api["settings.read"]<T>();
+    return api.call("settings.read") as Promise<T>;
   }
 
   async function runCommand<T = unknown>(pluginId: string, commandId: string, params?: unknown): Promise<T | void> {

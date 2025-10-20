@@ -1,7 +1,7 @@
 {
   "id": "todo",
   "name": "Todo",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "api": "v1",
   "entry": "index.js",
   "description": "Example todo plugin that renders a simple desktop window.",

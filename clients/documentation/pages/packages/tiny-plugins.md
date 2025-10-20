@@ -78,7 +78,7 @@ await host.stop();
 - `listCommands()` – enumerate all registered commands (`pluginId`, `id`, `title`, ...).
 - `runCommand(pluginId, commandId, params?)` – execute a plugin command directly.
 - `readSettings(pluginId)` / `updateSettings(pluginId, value)` – persist JSON settings under `/plugin_data/<id>/.settings.json`.
-- `createHostApiFor(pluginId)` – expose the string-keyed host API (fs/logs/settings) for Tiny UI bridges.
+- `createHostApiFor(pluginId)` – expose the `api.call(method, params?)` bridge (fs/logs/settings) for Tiny UI surfaces.
 
 All subscriptions return an unsubscribe function for teardown.
 
@@ -160,10 +160,10 @@ Manifest notes:
 Command handlers receive a lightweight `PluginContext`:
 
 - `ctx.id` / `ctx.manifest` – plugin identity and validated manifest metadata.
-- `ctx.api["fs.readFile"](path)` – scoped file-system helpers backed by `@pstdio/opfs-utils` (`writeFile`, `deleteFile`, `moveFile`, `exists`, `mkdirp` are also available under the `fs.*` namespace).
-- `ctx.api["settings.read"]()` / `ctx.api["settings.write"](value)` – JSON persistence to `/plugin_data/<id>/.settings.json`.
-- `ctx.api["log.statusUpdate"]({ status, detail? })` – emit structured status messages surfaced via `host.onStatus`.
-- `ctx.api["log.error"](message)` / `ctx.api["log.warn"](message)` / `ctx.api["log.info"](message)` – forward plugin logs to the host notifier.
+- `ctx.api.call("fs.readFile", { path })` – scoped file-system helpers backed by `@pstdio/opfs-utils` (`fs.writeFile`, `fs.deleteFile`, `fs.moveFile`, `fs.exists`, `fs.mkdirp` follow the same pattern).
+- `ctx.api.call("settings.read")` / `ctx.api.call("settings.write", { value })` – JSON persistence to `/plugin_data/<id>/.settings.json`.
+- `ctx.api.call("log.statusUpdate", { status, detail? })` – emit structured status messages surfaced via `host.onStatus`.
+- `ctx.api.call("log.error", { message })` / `ctx.api.call("log.warn", { message, detail? })` / `ctx.api.call("log.info", { message, detail? })` – forward plugin logs to the host notifier.
 
 Plugins must export a default object with an `activate(ctx)` function. `deactivate()` is optional and runs on unload.
 

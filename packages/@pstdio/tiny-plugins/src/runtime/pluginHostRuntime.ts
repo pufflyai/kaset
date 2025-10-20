@@ -257,7 +257,7 @@ export function createPluginHostRuntime(options: PluginHostRuntimeOptions = {}):
   async function readManifestSnapshot(instance: Host, pluginId: string): Promise<Manifest | null> {
     try {
       const api = instance.createHostApiFor(pluginId);
-      const contents = await api["fs.readFile"]("manifest.json");
+      const contents = await api.call("fs.readFile", { path: "manifest.json" });
       const text = new TextDecoder().decode(contents);
       const manifest = JSON.parse(text) as Manifest;
       if (manifest?.id !== pluginId) return null;
