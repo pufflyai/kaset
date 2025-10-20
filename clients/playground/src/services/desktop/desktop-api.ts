@@ -1,7 +1,7 @@
-import { openDesktopFilePreview } from "@/state/actions/desktop";
+import { requestOpenDesktopFile } from "./desktop-file-icons";
 
 export const desktopAPI = {
   "desktop.openFilePreview": (payload: { path: string }) => {
-    openDesktopFilePreview(payload.path);
+    requestOpenDesktopFile(payload.path);
   },
 };
