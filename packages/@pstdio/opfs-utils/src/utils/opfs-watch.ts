@@ -39,15 +39,24 @@ export async function watchDirectory(
   const ignoreFn = toIgnoreFn(ignore);
 
   // Snapshot map: "relative/path" -> metadata
-  let prev = new Map<string, { size: number; mtime: number; kind: "file" | "directory" }>();
+  let prev: Map<string, { size: number; mtime: number; kind: "file" | "directory" }> | null = null;
 
   async function snap() {
     const cur = new Map<string, { size: number; mtime: number; kind: "file" | "directory" }>();
     await walkFs(dirPath, cur, { recursive, ignoreFn });
     const changes: ChangeRecord[] = [];
 
+    if (prev === null) {
+      if (!emitInitial) {
+        prev = cur;
+        return;
+      }
+    }
+
+    const prevSnapshot = prev ?? new Map<string, { size: number; mtime: number; kind: "file" | "directory" }>();
+
     for (const [path, meta] of cur) {
-      const before = prev.get(path);
+      const before = prevSnapshot.get(path);
       if (!before) {
         changes.push({
           type: "appeared",
@@ -67,7 +76,7 @@ export async function watchDirectory(
       }
     }
 
-    for (const [path] of prev) {
+    for (const [path] of prevSnapshot) {
       if (!cur.has(path)) {
         changes.push({ type: "disappeared", path: path.split("/") });
       }
