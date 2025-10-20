@@ -1,5 +1,5 @@
 import { MenuItem } from "@/components/ui/menu-item";
-import { getIconComponent } from "@/utils/getIcon";
+import { getIconComponent } from "@/kas-ui";
 import { Box, IconButton, Menu } from "@chakra-ui/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useLexicalEditable } from "@lexical/react/useLexicalEditable";

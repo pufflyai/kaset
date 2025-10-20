@@ -29,7 +29,7 @@ import {
 } from "lucide-react";
 import { type ReactNode } from "react";
 import { SettingsModal } from "../../components/ui/settings-modal";
-import { Tooltip } from "../../components/ui/tooltip";
+import { Tooltip } from "@/kas-ui";
 import { resetPlayground } from "../../services/playground/reset";
 import { CommitHistory } from "./commit-history";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";

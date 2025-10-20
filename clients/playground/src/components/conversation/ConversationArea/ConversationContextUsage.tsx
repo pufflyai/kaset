@@ -1,6 +1,6 @@
-import { Tooltip } from "@/components/ui/tooltip";
-import { getModelPricing, type ModelPricing } from "@/models";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import { Tooltip } from "@/kas-ui";
+import { getModelPricing, type ModelPricing } from "../../../models.ts";
+import { useWorkspaceStore } from "../../../state/WorkspaceProvider.tsx";
 import { Button, ProgressCircle, Stack, Text } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { useEffect, useState } from "react";

@@ -1,6 +1,5 @@
-import { MessageContent, MessageRoot } from "@/components/ui/ai-message";
-import { EmptyState } from "@/components/ui/empty-state";
-import { hasCredentials } from "@/state/actions/hasCredentials";
+import { EmptyState, MessageContent, MessageRoot } from "@/kas-ui";
+import { hasCredentials } from "../../../state/actions/hasCredentials.ts";
 import type { UIMessage, ToolInvocation } from "@pstdio/kas/kas-ui";
 import { Box, Button, Link, Text, VStack } from "@chakra-ui/react";
 import { CassetteTapeIcon } from "lucide-react";
