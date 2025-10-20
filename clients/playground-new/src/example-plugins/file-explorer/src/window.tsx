@@ -9,30 +9,15 @@ const CHANNEL_NAME = "file-explorer:open-folder";
 type OpenFileAction = (path: string, options?: { displayName?: string }) => Promise<void> | void;
 
 interface DesktopHost {
-  actions?: {
-    openFile?: OpenFileAction;
-  };
-  fs?: {
-    readFile?(path: string): Promise<Uint8Array>;
-  };
-  settings?: {
-    read?(): Promise<unknown>;
-  };
+  call: (actionId: string, payload: any) => Promise<any>;
 }
 
 interface FileExplorerWindowProps {
-  host?: DesktopHost | null;
   onOpenFile?: OpenFileAction;
 }
 
-declare global {
-  interface Window {
-    __tinyUiHost__?: DesktopHost;
-  }
-}
-
 function FileExplorerWindow(props: FileExplorerWindowProps) {
-  const { host, onOpenFile } = props;
+  const { onOpenFile } = props;
   const [requestedPath, setRequestedPath] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,32 +39,6 @@ function FileExplorerWindow(props: FileExplorerWindowProps) {
     };
   }, []);
 
-  useEffect(() => {
-    const readSettings = host?.settings?.read;
-    if (typeof readSettings !== "function") return;
-
-    let active = true;
-
-    const loadLastPath = async () => {
-      try {
-        const record = (await readSettings()) as { lastOpenedFolder?: unknown } | null | undefined;
-        if (!active) return;
-
-        if (typeof record?.lastOpenedFolder === "string") setRequestedPath(record.lastOpenedFolder);
-      } catch (error) {
-        console.warn("[file-explorer] Failed to read last opened folder", error);
-      }
-    };
-
-    loadLastPath().catch((error) => {
-      console.warn("[file-explorer] Failed to initialize last opened folder", error);
-    });
-
-    return () => {
-      active = false;
-    };
-  }, [host]);
-
   return (
     <Flex height="100%" bg="background.dark" color="foreground.inverse" direction="column">
       <FileExplorer rootDir={ROOT_DIR} requestedPath={requestedPath} onOpenFile={onOpenFile} />
@@ -90,21 +49,17 @@ function FileExplorerWindow(props: FileExplorerWindowProps) {
 export function mount(container: Element | null, host?: DesktopHost | null) {
   if (!container) throw new Error("file-explorer mount target is not available");
 
+  const openFileAction = (path: string) => {
+    host?.call("desktop.openFilePreview", { path });
+  };
+
   const target = container as HTMLElement;
   target.innerHTML = "";
   const root = createRoot(target);
-  const resolvedHost = host ?? window.__tinyUiHost__ ?? null;
-  const openFileAction = resolvedHost?.actions?.openFile;
-  console.info("[file-explorer] Mounting window", {
-    hasHost: Boolean(resolvedHost),
-    hasOpenFileAction: typeof openFileAction === "function",
-    hostKeys: resolvedHost ? Object.keys(resolvedHost) : null,
-  });
-  console.info("[file-explorer] Host received", resolvedHost);
 
   root.render(
     <ChakraProvider value={defaultSystem}>
-      <FileExplorerWindow host={resolvedHost} onOpenFile={openFileAction} />
+      <FileExplorerWindow onOpenFile={openFileAction} />
     </ChakraProvider>,
   );
 

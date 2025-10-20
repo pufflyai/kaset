@@ -1,3 +1,8 @@
+import {
+  ROOT_FILE_PREFIX,
+  createDesktopFileApp,
+  normalizeDesktopFilePath,
+} from "@/services/desktop/desktop-file-icons";
 import { shortUID } from "@pstdio/prompt-utils";
 import type { DesktopApp, DesktopWindow, Position, Size } from "../types";
 import { useWorkspaceStore } from "../WorkspaceProvider";
@@ -17,6 +22,8 @@ const cloneBounds = (position: Position, size: Size) => ({
   position: clonePosition(position),
   size: cloneSize(size),
 });
+
+const filePreviewApps = new Map<string, DesktopApp>();
 
 export const openDesktopApp = (app: DesktopApp) => {
   useWorkspaceStore.setState(
@@ -54,6 +61,49 @@ export const openDesktopApp = (app: DesktopApp) => {
     false,
     "desktop/open-app",
   );
+};
+
+interface OpenFilePreviewOptions {
+  displayName?: string;
+  fallbackApp?: DesktopApp;
+}
+
+interface OpenFilePreviewResult {
+  app: DesktopApp;
+  created: boolean;
+}
+
+export const openDesktopFilePreview = (
+  path: string,
+  options?: OpenFilePreviewOptions,
+): OpenFilePreviewResult | null => {
+  if (typeof path !== "string") return null;
+
+  const normalizedPath = normalizeDesktopFilePath(path);
+  const appId = `${ROOT_FILE_PREFIX}${normalizedPath}`;
+  const existing = filePreviewApps.get(appId);
+
+  if (existing) {
+    openDesktopApp(existing);
+    return { app: existing, created: false };
+  }
+
+  const fallbackApp = options?.fallbackApp;
+  let app: DesktopApp | undefined;
+  let created = false;
+
+  if (fallbackApp && fallbackApp.id === appId) {
+    app = fallbackApp;
+  } else {
+    const displayName = typeof options?.displayName === "string" ? options.displayName : undefined;
+    app = createDesktopFileApp({ path: normalizedPath, name: displayName });
+    created = true;
+  }
+
+  filePreviewApps.set(appId, app);
+  openDesktopApp(app);
+
+  return { app, created };
 };
 
 export const focusDesktopWindow = (windowId: string) => {

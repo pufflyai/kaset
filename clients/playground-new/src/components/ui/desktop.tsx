@@ -11,32 +11,29 @@ import {
   getRootFilePathFromAppId,
   normalizeDesktopFilePath,
   type DesktopOpenFileDetail,
-} from "@/services/desktop/fileApps";
-import { host, type PluginSurfacesSnapshot } from "@/services/plugins/host";
-import { deriveDesktopSurfaces, type PluginDesktopSurface } from "@/services/plugins/surfaces";
+} from "@/services/desktop/desktop-file-icons";
 import { usePluginSources } from "@/services/plugins/hooks/usePluginSources";
-import { openDesktopApp } from "@/state/actions/desktop";
-import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp, type Size } from "@/state/types";
+import { host, type PluginSurfacesSnapshot } from "@/services/plugins/host";
+import { deriveDesktopSurfaces } from "@/services/plugins/surfaces";
+import { openDesktopApp, openDesktopFilePreview } from "@/state/actions/desktop";
+import { type DesktopApp, type Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Box, Menu, Portal, Text, chakra } from "@chakra-ui/react";
+import { Box, Menu, Portal, chakra } from "@chakra-ui/react";
 import type { DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
 import { ls, readFile, watchDirectory } from "@pstdio/opfs-utils";
 import { deletePluginDirectories, downloadPluginBundle } from "@pstdio/tiny-plugins";
 import { setLockfile } from "@pstdio/tiny-ui";
 import { FastAverageColor } from "fast-average-color";
 import { Download, Trash2 } from "lucide-react";
-import type { IconName } from "lucide-react/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { DesktopIcon } from "./desktop-icon";
 import { MenuItem } from "./menu-item";
-import { PluginWindow } from "./plugin-window";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
+import { createDesktopApp } from "@/services/desktop/helpers/createDesktopApp";
 
 // WILL FIX: vibe-coded mess
-
-const DEFAULT_WINDOW_SIZE = { width: 840, height: 620 };
 
 type LsEntryResult = Awaited<ReturnType<typeof ls>>[number];
 
@@ -90,73 +87,6 @@ const triggerBlobDownload = (blob: Blob, filename: string) => {
   } finally {
     URL.revokeObjectURL(url);
   }
-};
-
-const normalizeSize = (
-  value: { width: number; height: number } | undefined,
-  fallback: { width: number; height: number },
-) => {
-  if (!value) return { ...fallback };
-  const width = Number(value.width);
-  const height = Number(value.height);
-  if (!Number.isFinite(width) || !Number.isFinite(height)) return { ...fallback };
-  return { width, height };
-};
-
-const normalizePosition = (value?: { x: number; y: number }) => {
-  if (!value) return undefined;
-  const x = Number(value.x);
-  const y = Number(value.y);
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return undefined;
-  return { x, y };
-};
-
-const renderSurfaceWindow = (surface: PluginDesktopSurface, windowId: string) => {
-  const descriptor = surface.window;
-
-  if (!descriptor) {
-    return (
-      <Box padding="md">
-        <Text fontSize="sm">This plugin surface does not define a window entry.</Text>
-      </Box>
-    );
-  }
-
-  if (!descriptor.entry) {
-    return (
-      <Box padding="md">
-        <Text fontSize="sm">This plugin window is missing an entry file.</Text>
-      </Box>
-    );
-  }
-
-  return (
-    <PluginWindow pluginId={surface.pluginId} surfaceId={surface.surfaceId} instanceId={windowId} snapshotVersion={1} />
-  );
-};
-
-const createDesktopAppFromSurface = (surface: PluginDesktopSurface): DesktopApp => {
-  const icon = (surface.icon as IconName | undefined) ?? DEFAULT_DESKTOP_APP_ICON;
-  const defaultSize = normalizeSize(surface.defaultSize, DEFAULT_WINDOW_SIZE);
-  const defaultPosition = normalizePosition(surface.defaultPosition);
-  const description = surface.description ?? `Surface provided by ${surface.pluginId}`;
-  const singleton = surface.singleton ?? true;
-
-  const app: DesktopApp = {
-    id: `${surface.pluginId}/${surface.surfaceId}`,
-    title: surface.title,
-    icon,
-    description,
-    defaultSize,
-    singleton,
-    render: (windowId: string) => renderSurfaceWindow(surface, windowId),
-  };
-
-  if (defaultPosition) {
-    app.defaultPosition = defaultPosition;
-  }
-
-  return app;
 };
 
 export const Desktop = () => {
@@ -275,7 +205,7 @@ export const Desktop = () => {
       });
 
       const apps = surfaces
-        .map((surface) => createDesktopAppFromSurface(surface))
+        .map((surface) => createDesktopApp(surface))
         .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
 
       setPluginApps(apps);
@@ -352,29 +282,29 @@ export const Desktop = () => {
       const displayName = typeof detail?.displayName === "string" ? detail.displayName : undefined;
       console.info("[desktop] Received open file event", { normalizedPath, displayName });
 
-      let targetApp = appsByIdRef.current.get(`${ROOT_FILE_PREFIX}${normalizedPath}`);
+      const fallbackApp = appsByIdRef.current.get(`${ROOT_FILE_PREFIX}${normalizedPath}`);
+      const result = openDesktopFilePreview(rawPath, { displayName, fallbackApp });
 
-      if (!targetApp) {
-        const nextApp = createDesktopFileApp({ path: normalizedPath, name: displayName });
-        targetApp = nextApp;
-        console.info("[desktop] Creating new desktop app for file", { appId: nextApp.id });
-        registerEphemeralFileApp(nextApp);
-      } else {
-        console.info("[desktop] Reusing existing desktop app for file", { appId: targetApp.id });
+      if (!result) {
+        console.warn("[desktop] Failed to open file preview", { normalizedPath });
+        return;
       }
 
-      if (!targetApp) return;
+      if (result.created) {
+        console.info("[desktop] Registered new desktop app for file", { appId: result.app.id });
+        registerEphemeralFileApp(result.app);
+      } else {
+        console.info("[desktop] Reusing existing desktop app for file", { appId: result.app.id });
+      }
 
-      console.info("[desktop] Opening desktop window", { appId: targetApp.id });
-      setSelectedAppId(targetApp.id);
-      openDesktopApp(targetApp);
+      setSelectedAppId(result.app.id);
     };
 
     window.addEventListener(OPEN_DESKTOP_FILE_EVENT, handleOpenFile as EventListener);
     return () => {
       window.removeEventListener(OPEN_DESKTOP_FILE_EVENT, handleOpenFile as EventListener);
     };
-  }, [registerEphemeralFileApp, setSelectedAppId]);
+  }, [registerEphemeralFileApp, setSelectedAppId, openDesktopFilePreview]);
 
   const getAppById = useCallback((appId: string) => appsById.get(appId), [appsById]);
 
@@ -690,7 +620,7 @@ export const Desktop = () => {
       <DeleteConfirmationModal
         open={Boolean(pendingDelete)}
         onClose={handleCancelDelete}
-        onDelete={async () => handleConfirmDelete()}
+        onDelete={handleConfirmDelete}
         headline="Delete Plugin"
         notificationText={
           pendingDelete

@@ -1,3 +1,4 @@
+import { desktopAPI } from "@/services/desktop/desktop-api";
 import { usePluginDependenciesReady } from "@/services/plugins/hooks/usePluginDependenciesReady";
 import { usePluginFilesRefresh } from "@/services/plugins/hooks/usePluginFileRefresh";
 import { Box, Button, Center, Text } from "@chakra-ui/react";
@@ -48,6 +49,11 @@ export const PluginWindow = (props: PluginWindowProps) => {
     setStatus("error");
   }, []);
 
+  const handleActionCall = useCallback((actionId: string, payload: any) => {
+    console.log("Plugin action called:", actionId, payload);
+    desktopAPI[actionId as keyof typeof desktopAPI]?.(payload);
+  }, []);
+
   if (status === "idle" || !dependenciesReady) {
     return null;
   }
@@ -88,6 +94,7 @@ export const PluginWindow = (props: PluginWindowProps) => {
         autoCompile
         onStatusChange={handleTinyStatusChange}
         onError={handleTinyError}
+        onActionCall={handleActionCall}
         style={style}
       />
       {showOverlay && (

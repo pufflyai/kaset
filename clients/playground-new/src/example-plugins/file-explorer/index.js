@@ -54,8 +54,6 @@ export const commands = {
 
     const normalized = normalizePathInput(input);
 
-    console.log("[file-explorer] openFolder", { normalized });
-
     const delivered = notifyChannel(normalized);
     if (!delivered) {
       ctx.commands?.notify?.(
