@@ -6,6 +6,39 @@ title: Changelog
 
 All notable changes to Kaset are documented here. This monorepo contains multiple packages under the `@pstdio` scope.
 
+## 2025-10-20
+
+### Added
+
+- [@pstdio/tiny-ui-bundler] **NEW PACKAGE**: In-browser bundler with cache manifest for Tiny UI plugins (v0.1.1).
+  - Compile OPFS snapshots with esbuild-wasm directly in the browser
+  - Service worker integration for cached compilation and bundle serving
+  - Support for lockfile-based import maps and deterministic dependency resolution
+  - Cache API integration for instant bundle loading with stable hash-based keys
+  - Complete tooling for micro-frontend and plugin development workflows
+
+### Changed
+
+- **Major version bump to 0.2.0** for core packages with enhanced functionality:
+  - [@pstdio/kas] Updated to v0.2.0 - Browser-first coding agent with improved capabilities
+  - [@pstdio/opfs-utils] Updated to v0.2.0 - Enhanced OPFS utilities with performance improvements
+  - [@pstdio/opfs-hooks] Updated to v0.2.0 - React hooks with improved state management and store bindings
+  - [@pstdio/opfs-sync] Updated to v0.2.0 - Enhanced synchronization between OPFS and remote storage providers
+  - [@pstdio/tiny-ai-tasks] Updated to v0.2.0 - Improved AI workflows and tool-using agents with better adapters
+  - [@pstdio/tiny-tasks] Updated to v0.2.0 - Enhanced composable, interrupt-friendly workflows with better runtime support
+  - [@pstdio/tiny-plugins] Updated to v0.2.0 - Improved plugin runtime with enhanced manifest validation and command execution
+  - [@pstdio/tiny-ui] Updated to v0.2.0 - Enhanced browser micro-frontend runtime with better compilation and sandboxing
+
+### Documentation
+
+- [documentation] Comprehensive refresh of tiny-plugins export coverage and API documentation
+- [documentation] Enhanced package documentation across all @pstdio packages with updated examples and usage guides
+
+### Maintained
+
+- [@pstdio/describe-context] Updated to v0.1.9 - Incremental improvements to folder analysis and context generation
+- [@pstdio/prompt-utils] Maintained at v0.1.4 - Stable prompt and JSON utilities
+
 ## 2025-10-08
 
 ### Added
