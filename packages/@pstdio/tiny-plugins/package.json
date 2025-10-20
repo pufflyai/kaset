@@ -54,7 +54,7 @@
     "@pstdio/opfs-utils": "^0.2.0",
     "@pstdio/tiny-ai-tasks": "^0.2.0",
     "ajv": "^8.17.1",
-    "esbuild-wasm": "^0.25.10",
+    "esbuild-wasm": "^0.25.11",
     "semver": "^7.7.3"
   },
   "peerDependencies": {

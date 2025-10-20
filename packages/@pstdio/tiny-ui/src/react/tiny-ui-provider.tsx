@@ -4,7 +4,7 @@ import { setupTinyUI, type SetupTinyUIOptions } from "../setupTinyUI";
 import type { TinyUIStatus } from "../types";
 import { useServiceWorkerStatus } from "./useServiceWorkerStatus";
 
-const DEFAULT_ESBUILD_WASM_URL = "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm";
+const DEFAULT_ESBUILD_WASM_URL = "https://unpkg.com/esbuild-wasm@0.25.11/esbuild.wasm";
 
 interface TinyUiProviderProps extends SetupTinyUIOptions {
   children: ReactNode;
