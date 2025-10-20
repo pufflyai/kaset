@@ -1,7 +1,6 @@
-import { ConversationContent, ConversationRoot, ConversationScrollButton } from "@/components/ui/ai-conversation";
-import { ChangeBubble } from "@/components/ui/change-bubble";
-import { SettingsModal } from "@/components/ui/settings-modal";
-import { hasCredentials } from "@/state/actions/hasCredentials";
+import { ChangeBubble, ConversationContent, ConversationRoot, ConversationScrollButton } from "@/kas-ui";
+import { SettingsModal } from "../../ui/settings-modal.tsx";
+import { hasCredentials } from "../../../state/actions/hasCredentials.ts";
 import { Alert, Button, Flex, HStack, Input, Stack, useDisclosure, type FlexProps } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { memo, useCallback, useMemo, useState } from "react";

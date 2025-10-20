@@ -1,4 +1,4 @@
-import { getIconComponent } from "@/utils/getIcon";
+import { getIconComponent } from "../utils/getIcon.ts";
 import type { HTMLChakraProps, IconButtonProps } from "@chakra-ui/react";
 import { AbsoluteCenter, chakra, IconButton } from "@chakra-ui/react";
 import { useCallback } from "react";

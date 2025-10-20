@@ -1,5 +1,4 @@
-import { DiffEditor } from "@/components/ui/diff-editor";
-import { ResourceBadge } from "@/components/ui/resource-badge";
+import { DiffEditor, ResourceBadge } from "@/kas-ui";
 import { Card, Stack, Text } from "@chakra-ui/react";
 
 export interface OpfsLsBlockProps {

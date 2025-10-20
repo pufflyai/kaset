@@ -1,4 +1,4 @@
-import { getIconComponent, type IconName } from "@/utils/getIcon";
+import { getIconComponent, type IconName } from "../utils/getIcon.ts";
 import {
   Avatar,
   Box,
@@ -14,10 +14,10 @@ import {
 import { ChevronUpIcon } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { CodeEditor } from "./code-editor";
-import { DiffBubble } from "./diff-bubble";
-import { DiffEditor } from "./diff-editor";
-import { ResourceBadge } from "./resource-badge";
+import { CodeEditor } from "../../components/ui/code-editor.tsx";
+import { DiffBubble } from "../../components/ui/diff-bubble.tsx";
+import { DiffEditor } from "./diff-editor.tsx";
+import { ResourceBadge } from "./resource-badge.tsx";
 
 export const Timeline = ChakraTimeline;
 
