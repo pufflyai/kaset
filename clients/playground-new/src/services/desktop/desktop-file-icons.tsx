@@ -123,6 +123,8 @@ export const createDesktopFileApp = (options: DesktopFileAppOptions): DesktopApp
 
   const imageFile = isImageFileName(displayName);
 
+  console.log("[desktop] Creating file app", { imageFile });
+
   return {
     id: `${ROOT_FILE_PREFIX}${normalizedPath}`,
     title: displayName,
