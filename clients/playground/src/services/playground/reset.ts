@@ -1,5 +1,6 @@
 import { ROOT } from "@/constant";
 import { deleteDirectoryContents, ls } from "@pstdio/opfs-utils";
+import { CACHE_NAME } from "@pstdio/tiny-ui";
 
 import { setupPlayground } from "./setup";
 
@@ -30,6 +31,14 @@ export async function resetPlayground(options: ResetOptions = {}) {
     await deleteDirectoryContents(normalizedRoot);
   } catch (error) {
     console.warn(`Failed to delete contents during reset at ${normalizedRoot}`, error);
+  }
+
+  try {
+    if ("caches" in globalThis) {
+      await caches.delete(CACHE_NAME);
+    }
+  } catch (error) {
+    console.warn("Failed to clear Tiny UI caches during reset", error);
   }
 
   const setupResult = await setupPlayground({ rootDir: normalizedRoot, overwrite: true });
