@@ -76,6 +76,14 @@ Includes: `TinyUI`, `compile`, `loadSnapshot`, `createTinyHost`
 
 ---
 
+### [@pstdio/tiny-ui-bundler](/packages/tiny-ui-bundler)
+
+**Runtime asset and bundling pipeline** — Manage Tiny UI's service worker, cache storage, and import maps while compiling plugin sources entirely in the browser.
+
+Includes: `registerSources`, `compile`, `setLockfile`, `prepareRuntimeAssets`
+
+---
+
 ### [describe-context](/packages/describe-context)
 
 **Code context generation** — Transform folder structures into LLM-friendly Markdown documentation.
