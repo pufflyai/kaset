@@ -1,4 +1,4 @@
-import { APPROVAL_GATED_TOOL_IDS, ROOT } from "@/constant";
+import { APPROVAL_GATED_TOOL_IDS, DEFAULT_WALLPAPER, ROOT } from "@/constant";
 import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
 import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
 import type { McpServerConfig, ThemePreference } from "@/state/types";
@@ -46,7 +46,6 @@ const SETTINGS_SECTIONS: Array<{ id: SettingsSectionId; label: string }> = [
 ];
 
 const MobileSectionSelect = chakra("select");
-const DEFAULT_WALLPAPER = `${ROOT}/wallpaper/kaset.png`;
 
 const toBlobPart = (bytes: Uint8Array) => {
   if (bytes.buffer instanceof ArrayBuffer) {
