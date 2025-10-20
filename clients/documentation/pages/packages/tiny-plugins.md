@@ -125,6 +125,12 @@ Hosts expect the plugin directory name to match the manifest `id`. When running 
   "dependencies": {
     "theme-utils": "/deps/theme-utils.js"
   },
+  "surfaces": {
+    "palette": {
+      "icon": "theme",
+      "label": "Switch theme"
+    }
+  },
   "settingsSchema": {
     "type": "object",
     "properties": {
@@ -145,6 +151,7 @@ Manifest notes:
 - `entry` is resolved relative to the plugin folder and must export a default plugin with an `activate` function.
 - `commands` describe user-facing commands and provide optional parameter schemas and per-command `timeoutMs`.
 - `dependencies` is an optional map of dependency names to URLs. Combine multiple manifest maps with `mergeManifestDependencies`.
+- `surfaces` is an optional JSON object mirrored by `createPluginHostRuntime`. Subscribers receive these entries through `getPluginSurfaces()` and `subscribeToPluginSurfaces()`.
 - `settingsSchema` is validated with AJV. Invalid writes throw a `settings` command error.
 - Extra properties are rejected by the schema to keep manifests predictable.
 
@@ -177,15 +184,89 @@ const tools = createToolsForCommands(host.listCommands(), (pluginId, commandId, 
 
 Each tool serialises execution results to a JSON payload, making it easy to forward plugin interactions through streaming agent pipelines built on `@pstdio/tiny-ai-tasks`.
 
-## Utilities & Exports
+## Export Reference
 
-- `HOST_API_VERSION` – fixed plugin API identifier (e.g. `v1`).
+- `createHost(options?)` – build the low-level host used throughout this guide.
+- `createPluginHostRuntime(options?)` – bootstrap a memoised runtime snapshot that mirrors plugin metadata, commands, settings schemas, dependency maps, and custom surfaces.
+- `usePluginHost(options?)` / `usePlugins(options?)` – React hooks that manage the runtime lifecycle and surface live metadata.
+- `subscribeToPluginFiles(pluginId, listener)` – stream batched file system change events for a specific plugin.
+- `createToolsForCommands(commands, runner)` – adapt validated commands into Tiny AI Tasks tools.
 - `mergeManifestDependencies(manifests, options?)` – coalesce dependency URL maps and detect conflicts.
-- Type exports: `HostOptions`, `HostApi`, `Manifest`, `PluginMetadata`, `CommandDefinition`, `PluginChangePayload`, `StatusUpdate`.
-- Helpers: `createToolsForCommands`, `createActionApi`, `createSettingsAccessor`.
+- `createSettingsAccessor(host)` – read and persist plugin settings from outside the host instance.
+- Download helpers: `pluginDownloadHelpers`, `downloadPluginBundle`, `downloadPluginData`, `downloadPluginSource`, `createZipFromDirectories`, `createZipBlob`, `downloadDirectory`, `deletePluginDirectories`, `listDirectoryEntries`, `triggerBlobDownload`, `sanitizeFileSegment`, `joinZipPath`, `buildRelativePath`.
+- Type exports: `HostOptions`, `HostApi`, `Manifest`, `PluginMetadata`, `CommandDefinition`, `PluginChangePayload`, `StatusUpdate`, `PluginFilesEvent`, `PluginHostRuntime`, and more.
+- Constant: `HOST_API_VERSION` – fixed plugin API identifier (e.g. `v1`).
+
+### Runtime snapshot with `createPluginHostRuntime`
+
+`createPluginHostRuntime` builds on `createHost` and keeps a cached snapshot of everything your UI needs to render plugin state. It subscribes to manifests, commands, dependency maps, and custom surfaces and replays the latest snapshot to every subscriber.
+
+```ts
+import { createPluginHostRuntime } from "@pstdio/tiny-plugins";
+
+const runtime = createPluginHostRuntime({ root: "plugins" });
+
+const commands = runtime.getPluginCommands();
+const surfaces = runtime.getPluginSurfaces();
+
+runtime.subscribeToPluginSurfaces((snapshot) => {
+  renderSurfaces(snapshot);
+});
+```
+
+The runtime lazily initialises the underlying host, batches manifest updates, and deduplicates surface snapshots so UI listeners only rerender when data changes.
+
+### React hooks
+
+`usePluginHost` owns a runtime instance for the lifetime of your component tree and exposes a memoised value you can pass to other hooks. `usePlugins` consumes that runtime and returns live metadata, commands, dependencies, and surface snapshots for display.
+
+```tsx
+import { usePluginHost, usePlugins } from "@pstdio/tiny-plugins";
+
+function PluginPalette() {
+  const hostRuntime = usePluginHost({ root: "plugins" });
+  const { commands, surfaces } = usePlugins(hostRuntime);
+
+  return <Palette commands={commands} surfaces={surfaces} />;
+}
+```
+
+Both hooks automatically start and stop the host, making them safe to use in nested components or application shells.
+
+### File-subscription batching
+
+`subscribeToPluginFiles` delivers deduplicated change batches for a plugin, emitting structured `PluginFilesEvent` records even when the underlying file watcher only reports a path string.
+
+```ts
+import { subscribeToPluginFiles } from "@pstdio/tiny-plugins";
+
+const unsubscribe = subscribeToPluginFiles("theme-switcher", (event) => {
+  event.changes.forEach(({ type, path }) => {
+    console.debug("file change", type, path.join("/"));
+  });
+});
+
+// later
+unsubscribe();
+```
+
+Use it alongside the runtime to trigger targeted refreshes after edits, OPFS syncs, or plugin hot reloads.
+
+### Download utilities
+
+The download helpers bundle plugin source, data, and dependency directories into shareable ZIP archives. They normalise relative paths, filter unsafe segments, and return `Blob` objects ready for download.
+
+```ts
+import { pluginDownloadHelpers } from "@pstdio/tiny-plugins";
+
+const { downloadPluginBundle } = pluginDownloadHelpers({ root: "plugins", dataRoot: "plugin_data" });
+
+await downloadPluginBundle({ pluginId: "theme-switcher" });
+```
+
+You can also call the lower-level helpers (`createZipFromDirectories`, `downloadDirectory`, `triggerBlobDownload`, etc.) to compose bespoke export workflows.
 
 ## Compatibility
 
 - Requires environments with OPFS access (modern Chromium-based browsers) or a compatible `@pstdio/opfs-utils` adapter.
 - Node 22+ is recommended for tooling that loads plugins server-side.
-- Fetch support is optional but required for `ctx.net.fetch`. Provide a polyfill when running outside the browser.
