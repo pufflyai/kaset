@@ -55,7 +55,7 @@ export {
   type ProcessSingleFileOptions,
 } from "./utils/opfs-files";
 export { grep } from "./utils/opfs-grep";
-export { formatTree, ls } from "./utils/opfs-ls";
+export { formatTree, ls, type LsEntry } from "./utils/opfs-ls";
 export {
   pickAndUploadFilesToDirectory,
   uploadFilesToDirectory,
@@ -75,6 +75,8 @@ export {
   isWithinRoot,
   joinPath,
   joinUnderWorkspace,
+  normalizeRoot,
+  type NormalizeRootOptions,
   normalizeSegments,
   normalizeRelPath,
   normalizeSlashes,

@@ -5,6 +5,7 @@ import { truncateToBudget, createSummarizer } from "./summarizeHistory";
 import { roughCounter } from "./token";
 import type { ExtendedMessage } from "../messages/bus";
 import { createLLMTask } from "../llm/createLLMTask";
+import { messageContentToString } from "../utils/messageTypes";
 
 vi.mock("openai", () => ({ default: vi.fn() }));
 const MockedOpenAI: any = OpenAI;
@@ -66,6 +67,11 @@ describe("createSummarizer", () => {
     }
     expect(create).toHaveBeenCalledTimes(1);
     expect(compacted?.[0].role).toBe("system");
-    expect(compacted?.some((m) => m.role === "developer" && m.content?.includes("SUM") && m.meta?.summary)).toBe(true);
+    const hasSummary = compacted?.some((m) => {
+      if (m.role !== "developer") return false;
+      const text = messageContentToString(m.content);
+      return text.includes("SUM") && !!m.meta?.summary;
+    });
+    expect(hasSummary).toBe(true);
   });
 });

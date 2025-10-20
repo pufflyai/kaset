@@ -20,6 +20,8 @@
 
       const IMPORT_MAP_ID = "tiny-importmap";
       const STYLE_FLAG = "data-tiny-style";
+      const INLINE_STYLE_FLAG = "data-tiny-inline-style";
+      const inlineStyleKeys = new Set();
 
       const el = (sel) => document.querySelector(sel);
       const container = (sel) => el(sel) ?? el("#root") ?? document.body;
@@ -50,6 +52,27 @@
         }
       }
 
+      // fallback when service worker is skipped
+      function ensureInlineStyles(entries) {
+        if (!Array.isArray(entries) || entries.length === 0) return;
+        for (const entry of entries) {
+          if (!entry || typeof entry.cssText !== "string" || !entry.cssText) continue;
+          const key = typeof entry.id === "string" && entry.id ? entry.id : entry.cssText;
+          if (key && inlineStyleKeys.has(key)) continue;
+
+          const styleEl = document.createElement("style");
+          styleEl.type = "text/css";
+          styleEl.textContent = entry.cssText;
+
+          if (key) {
+            styleEl.setAttribute(INLINE_STYLE_FLAG, key);
+            inlineStyleKeys.add(key);
+          }
+
+          document.head.appendChild(styleEl);
+        }
+      }
+
       /** Runtime API exposed to the host */
       const runtimeApi = {
         /**
@@ -62,6 +85,7 @@
 
             ensureImportMap(init.importMap);
             ensureStyles(init.styles);
+            ensureInlineStyles(init.inlineStyles);
 
             if (typeof init.moduleUrl !== "string" || !init.moduleUrl) {
               throw new Error("Missing or invalid moduleUrl");
@@ -77,110 +101,19 @@
               throw new Error(`Entry export '${exportName}' is not a function`);
             }
 
-            const mountEl = container(init.mountSelector ?? "#root");
-
             if (!remote || typeof remote.ops !== "function") {
               throw new Error("Tiny UI host does not expose remote.ops");
             }
 
-            const invoke = (method, params) => {
-              if (typeof method !== "string" || !method.trim()) {
-                throw new Error("Tiny UI host call requires a method string");
-              }
-              return remote.ops({ method, params });
-            };
-
-            const toParams = (args) => {
-              if (!args || args.length === 0) return {};
-              if (args.length === 1) {
-                const single = args[0];
-                if (single && typeof single === "object") return single;
-                return { value: single };
-              }
-              const [first, second, ...rest] = args;
-              if (typeof first === "string" && second && typeof second === "object") {
-                return { path: first, ...second, rest };
-              }
-              return { args };
-            };
-
-            const createNamespaceProxy = (prefix) =>
-              new Proxy(
-                {},
-                {
-                  get(_target, prop) {
-                    if (typeof prop !== "string") return undefined;
-                    return (...args) => invoke(prefix ? `${prefix}.${prop}` : prop, toParams(args));
-                  },
-                },
-              );
-
             const host = {
-              fs: {
-                readFile(path) {
-                  return invoke("fs.readFile", { path });
-                },
-                writeFile(path, data) {
-                  return invoke("fs.writeFile", { path, data });
-                },
-                ls(dir = "") {
-                  return invoke("fs.ls", { dir });
-                },
-                dirSnapshot(dir = "") {
-                  return remote.ops({ method: "fs.dirSnapshot", params: { dir } });
-                },
-                deleteFile(path) {
-                  return invoke("fs.deleteFile", { path });
-                },
-                downloadFile(path, filename) {
-                  return invoke("fs.downloadFile", { path, filename });
-                },
-                exists(path) {
-                  return remote.ops({ method: "fs.exists", params: { path } });
-                },
-                mkdirp(path) {
-                  return remote.ops({ method: "fs.mkdirp", params: { path } });
-                },
-                moveFile(from, to) {
-                  return remote.ops({ method: "fs.moveFile", params: { from, to } });
-                },
-                readJSON(path) {
-                  return remote.ops({ method: "fs.readJSON", params: { path } });
-                },
-                writeJSON(path, value, pretty = false) {
-                  return remote.ops({ method: "fs.writeJSON", params: { path, value, pretty } });
-                },
-              },
-              workspace: {
-                read(path) {
-                  return invoke("workspace.read", { path });
-                },
-                readFile(path) {
-                  return invoke("workspace.readFile", { path });
-                },
-              },
-              settings: {
-                read() {
-                  return invoke("settings.read", {});
-                },
-                write(value) {
-                  return invoke("settings.write", { value });
-                },
-              },
-              commands: {
-                notify(level, message) {
-                  return invoke("commands.notify", { level, message });
-                },
-              },
-              call(method, params) {
-                return invoke(method, params);
+              call: (method, params) => {
+                remote.ops({ method, params });
               },
             };
-
-            host.actions = createNamespaceProxy("actions");
 
             console.log("[tiny-ui-runtime] mounting entry", host);
 
+            const mountEl = container(init.mountSelector ?? "#root");
             await entry(mountEl, host, init.runtimeOptions ?? {});
             await remote.ready({ id: init.id, meta: init.meta });
           } catch (err) {

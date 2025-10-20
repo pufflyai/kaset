@@ -1,10 +1,10 @@
 import { task } from "../runtime";
-import { ToolCall } from "../utils/messageTypes";
+import { ToolCall, ToolMessage } from "../utils/messageTypes";
 import { toolNotFound, invalidToolCall } from "../utils/errors";
 import type { Tool } from "./Tool";
 
 export interface ToolResult<T = unknown> {
-  messages: Array<{ role: "tool"; tool_call_id: string; content: string }>;
+  messages: ToolMessage[];
   error?: unknown;
   data?: T;
 }

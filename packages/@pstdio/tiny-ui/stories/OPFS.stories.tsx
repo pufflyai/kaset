@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { CACHE_NAME } from "../src/constant";
-import { setLockfile } from "../src/core/idb";
-import type { CompileResult } from "../src/esbuild/types";
-import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
-import { TinyUIStatus } from "../src/react/types";
+import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
+import { TinyUI } from "../src/react/components/TinyUI";
+import { TinyUiProvider } from "../src/react/tiny-ui-provider";
+import { TinyUIStatus } from "../src/types";
+import { setupTinyUI } from "../src/setupTinyUI";
 
-import { createSnapshotInitializer, now } from "./files/helpers";
+import { calculateLifecycleTimings, createSnapshotInitializer, formatLifecycleTimings, now } from "./files/helpers";
 import NOTEPAD_ENTRY_SOURCE from "./files/OPFS/index.tsx?raw";
 import NOTEPAD_APP_SOURCE from "./files/OPFS/NotepadApp.tsx?raw";
 
@@ -37,14 +37,23 @@ interface OpfsNotepadDemoProps {
 }
 
 const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
-  const uiRef = useRef<TinyUIHandle | null>(null);
+  const initializingStartedAtRef = useRef<number | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
+  const handshakeStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [rebuildKey, setRebuildKey] = useState(0);
 
   useLayoutEffect(() => {
     setLockfile(LOCKFILE);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setupTinyUI({ serviceWorkerUrl: "/tiny-ui-sw.js" }).catch((error) => {
+      console.error("[TinyUI Story] Failed to initialize Tiny UI", error);
+    });
   }, []);
 
   useEffect(() => {
@@ -54,6 +63,10 @@ const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
     setStatus("initializing");
     setMessage("Loading OPFS notepad source files into OPFS...");
 
+    registerSources([{ id: SOURCE_ID, root: STORY_ROOT, entry: ENTRY_PATH }]);
+    initializingStartedAtRef.current = now();
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     ensureSnapshotReady(STORY_ROOT)
       .then(() => {
         if (cancelled) return;
@@ -77,44 +90,82 @@ const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
 
   const handleStatusChange = useCallback((next: TinyUIStatus) => {
     setStatus(next);
+
+    if (next === "initializing") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
+      compileStartedAtRef.current = null;
+      handshakeStartedAtRef.current = null;
+      setMessage("Loading OPFS notepad source files into OPFS...");
+      return;
+    }
+
+    if (next === "service-worker-ready") {
+      setMessage("Tiny UI service worker ready. Preparing OPFS notepad bundle...");
+      return;
+    }
+
     if (next === "compiling") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
       compileStartedAtRef.current = now();
+      handshakeStartedAtRef.current = null;
       setMessage("Compiling OPFS notepad bundle...");
+      return;
+    }
+
+    if (next === "handshaking") {
+      if (handshakeStartedAtRef.current === null) {
+        handshakeStartedAtRef.current = now();
+      }
+      setMessage("Handshaking with the Tiny UI runtime...");
     }
   }, []);
 
   const handleReady = useCallback((result: CompileResult) => {
-    const startedAt = compileStartedAtRef.current;
+    const completedAt = now();
+    const lifecycleLabel = formatLifecycleTimings(
+      calculateLifecycleTimings({
+        initStart: initializingStartedAtRef.current,
+        compileStart: compileStartedAtRef.current,
+        handshakeStart: handshakeStartedAtRef.current,
+        completedAt,
+      }),
+    );
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
-    const duration = typeof startedAt === "number" ? Math.max(0, Math.round(now() - startedAt)) : null;
-    const timingLabel = duration !== null ? ` in ${duration}ms` : "";
     const cacheLabel = result.fromCache ? " (from cache)" : "";
 
     setStatus("ready");
-    setMessage(`OPFS notepad bundle ready${timingLabel}${cacheLabel}.`);
+    setMessage(`OPFS notepad bundle ready${lifecycleLabel}${cacheLabel}.`);
   }, []);
 
   const handleError = useCallback((error: Error) => {
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setStatus("error");
     setMessage(error.message);
   }, []);
 
   const handleRebuild = useCallback(() => {
     if (!initialized) return;
-
-    uiRef.current?.rebuild().catch((error) => {
-      const normalized = error instanceof Error ? error : new Error("Failed to rebuild bundle");
-      setStatus("error");
-      setMessage(normalized.message);
-    });
+    initializingStartedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
+    setRebuildKey((value) => value + 1);
   }, [initialized]);
 
   const handleClearCache = useCallback(async () => {
     if (typeof caches === "undefined") return;
 
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
     try {
       setMessage("Clearing bundle cache...");
@@ -128,52 +179,60 @@ const OpfsNotepadDemo = ({ autoCompile = true }: OpfsNotepadDemoProps) => {
     }
   }, []);
 
+  const handleActionCall = useCallback(async (method: string, params?: Record<string, unknown>) => {
+    console.warn("[TinyUI Story] Unhandled host request", { method, params });
+    throw new Error(`Story host does not implement '${method}'`);
+  }, []);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 520 }}>
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
-          {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
-        </button>
-        <button onClick={handleClearCache} type="button">
-          Clear Cache
-        </button>
-      </div>
-      {initialized ? (
-        <TinyUI
-          ref={uiRef}
-          root={STORY_ROOT}
-          id={SOURCE_ID}
-          autoCompile={autoCompile}
-          serviceWorkerUrl="/tiny-ui-sw.js"
-          onStatusChange={handleStatusChange}
-          onReady={handleReady}
-          onError={handleError}
-          style={{
-            height: 520,
-          }}
-        />
-      ) : (
-        <div
-          aria-live="polite"
-          style={{
-            height: 520,
-            borderRadius: 12,
-            padding: 16,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "1px dashed #475569",
-            color: "#475569",
-          }}
-        >
-          Loading OPFS notepad source files...
+    <TinyUiProvider serviceWorkerUrl="/tiny-ui-sw.js">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: 520 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
+            {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
+          </button>
+          <button onClick={handleClearCache} type="button">
+            Clear Cache
+          </button>
         </div>
-      )}
-      <div aria-live="polite">
-        <strong>Status:</strong> {status}
-        {message ? <div>{message}</div> : null}
+        {initialized ? (
+          <TinyUI
+            key={rebuildKey}
+            instanceId={SOURCE_ID}
+            sourceId={SOURCE_ID}
+            autoCompile={autoCompile}
+            skipCache={rebuildKey > 0}
+            onStatusChange={handleStatusChange}
+            onReady={handleReady}
+            onError={handleError}
+            onActionCall={handleActionCall}
+            style={{
+              height: 520,
+            }}
+          />
+        ) : (
+          <div
+            aria-live="polite"
+            style={{
+              height: 520,
+              borderRadius: 12,
+              padding: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px dashed #475569",
+              color: "#475569",
+            }}
+          >
+            Loading OPFS notepad source files...
+          </div>
+        )}
+        <div aria-live="polite">
+          <strong>Status:</strong> {status}
+          {message ? <div>{message}</div> : null}
+        </div>
       </div>
-    </div>
+    </TinyUiProvider>
   );
 };
 

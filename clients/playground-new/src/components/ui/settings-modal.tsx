@@ -1,4 +1,4 @@
-import { ROOT } from "@/constant";
+import { APPROVAL_GATED_TOOL_IDS, ROOT } from "@/constant";
 import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
 import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
 import type { McpServerConfig, ThemePreference } from "@/state/types";
@@ -20,13 +20,12 @@ import {
   chakra,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
 import { ls, readFile } from "@pstdio/opfs-utils";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useRef, useState } from "react";
 import { McpServerCard } from "./mcp-server-card";
-import { PluginSettings } from "./plugin-settings";
 import type { PluginSettingsHandle } from "./plugin-settings";
+import { PluginSettings } from "./plugin-settings";
 
 const TOOL_LABELS: Record<string, string> = {
   opfs_write_file: "Write file",
@@ -74,7 +73,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [baseUrl, setBaseUrl] = useState<string>("");
   const [model, setModel] = useState<string>("gpt-5");
   const [showKey, setShowKey] = useState<boolean>(false);
-  const [approvalTools, setApprovalTools] = useState<string[]>([...DEFAULT_APPROVAL_GATED_TOOLS]);
+  const [approvalTools, setApprovalTools] = useState<string[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
   const [activeMcpServerIds, setActiveMcpServerIds] = useState<string[]>([]);
   const [showServerTokens, setShowServerTokens] = useState<Record<string, boolean>>({});
@@ -85,6 +84,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [wallpapers, setWallpapers] = useState<string[]>([]);
   const [selectedWallpaper, setSelectedWallpaper] = useState<string>("");
   const [wallpaperPreviews, setWallpaperPreviews] = useState<Record<string, string>>({});
+  const [reactScanEnabled, setReactScanEnabled] = useState(false);
   const pluginSettingsRef = useRef<PluginSettingsHandle>(null);
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
@@ -95,13 +95,15 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     setApiKey(settings.apiKey ?? "");
     setBaseUrl(settings.baseUrl ?? "");
     setModel(settings.modelId || "gpt-5");
-    setApprovalTools(settings.approvalGatedTools || [...DEFAULT_APPROVAL_GATED_TOOLS]);
+    const gatedTools = settings.approvalGatedTools ? [...settings.approvalGatedTools] : [...APPROVAL_GATED_TOOL_IDS];
+    setApprovalTools(gatedTools);
 
     const nextTheme = settings.theme ?? "light";
     setTheme(nextTheme);
     setInitialTheme(nextTheme);
 
     setSelectedWallpaper(settings.wallpaper ?? DEFAULT_WALLPAPER);
+    setReactScanEnabled(settings.reactScanEnabled ?? false);
 
     const storedServers = settings.mcpServers;
     const effectiveServers = storedServers ?? [];
@@ -316,7 +318,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         mcpServers: sanitizedServers.map((server) => ({ ...server })),
         activeMcpServerIds: nextActiveIds,
         theme,
-        wallpaper: selectedWallpaper || undefined,
+        wallpaper: selectedWallpaper,
+        reactScanEnabled,
       });
 
       setInitialTheme(theme);
@@ -442,6 +445,19 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                         </HStack>
                       </Field.Root>
                       <Field.Root>
+                        <Field.Label>Performance Overlay</Field.Label>
+                        <VStack align="stretch" gap="xs">
+                          <Checkbox.Root
+                            checked={reactScanEnabled}
+                            onCheckedChange={(event) => setReactScanEnabled(!!event.checked)}
+                          >
+                            <Checkbox.HiddenInput />
+                            <Checkbox.Control />
+                            <Checkbox.Label>Enable Performance Overlay</Checkbox.Label>
+                          </Checkbox.Root>
+                        </VStack>
+                      </Field.Root>
+                      <Field.Root>
                         <Field.Label>Desktop Wallpaper</Field.Label>
                         <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap="sm">
                           {wallpapers.map((wallpaper) => {
@@ -505,7 +521,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                     <Flex gap="xs" direction="column" width="100%">
                       <Text>Approval-gated tools</Text>
                       <VStack align="stretch">
-                        {DEFAULT_APPROVAL_GATED_TOOLS.map((tool) => (
+                        {APPROVAL_GATED_TOOL_IDS.map((tool) => (
                           <Checkbox.Root
                             key={tool}
                             checked={approvalTools.includes(tool)}

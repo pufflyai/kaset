@@ -11,7 +11,7 @@
 
 - Build and ship third-party plugin UIs entirely in the browser—no server build step required.
 - Publish compiled bundles to the Cache API and serve them through a dedicated service worker + runtime iframe.
-- Hand plugins a typed `host` bridge for filesystem, workspace reads, settings, and notifications through a single RPC surface.
+- Hand plugins a typed `host` bridge via a single `onActionCall` RPC surface.
 - Reuse the Tiny Plugins lockfile/import-map tooling so bare specifiers resolve deterministically.
 
 ## 🏁 Quick start
@@ -29,19 +29,21 @@ Expose the runtime HTML and service worker from your app origin. With Vite (or a
 ```ts
 // host/bootstrap.ts
 import runtimeUrl from "@pstdio/tiny-ui/dist/runtime.html?url";
-import serviceWorkerUrl from "@pstdio/tiny-ui/dist/sw.js?url";
+import serviceWorkerUrl from "@pstdio/tiny-ui-bundler/dist/sw.js?url";
+import { setupTinyUI } from "@pstdio/tiny-ui";
 
-navigator.serviceWorker.register(serviceWorkerUrl).catch(console.error);
+void setupTinyUI({ runtimeUrl, serviceWorkerUrl }).catch(console.error);
 ```
 
-If your bundler cannot import assets as URLs, copy `dist/runtime.html` and `dist/sw.js` to `/tiny-ui/runtime.html` and `/tiny-ui-sw.js` in your public folder.
+If your bundler cannot import assets as URLs, copy `@pstdio/tiny-ui/dist/runtime.html` and `@pstdio/tiny-ui-bundler/dist/sw.js` to `/tiny-ui/runtime.html` and `/tiny-ui-sw.js`, then call `setupTinyUI({ runtimeUrl: "/tiny-ui/runtime.html", serviceWorkerUrl: "/tiny-ui-sw.js" })` during your app bootstrap.
 
 ### 2. Register a virtual project snapshot
 
 Load the plugin source tree (for example, from OPFS) and cache it with Tiny UI. The compile step reads this snapshot when it builds the bundle.
 
 ```ts
-import { loadSnapshot, setLockfile } from "@pstdio/tiny-ui";
+import { compile, loadSnapshot, setLockfile } from "@pstdio/tiny-ui";
+import { registerSources } from "@pstdio/tiny-ui-bundler";
 
 setLockfile({
   react: "https://esm.sh/react@19.1.0/es2022/react.mjs",
@@ -54,7 +56,8 @@ const source = {
   entrypoint: "/index.tsx",
 };
 
-await loadSourceFiles(source);
+await loadSnapshot(source.root, source.entrypoint);
+registerSources([{ id: source.id, root: source.root, entry: source.entrypoint }]);
 
 const result = await compile(source.id, {
   wasmURL: "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm",
@@ -65,18 +68,67 @@ console.log(result.hash, result.url, result.assets);
 
 > `setLockfile` is global for the current page. Every Tiny UI instance shares the same dependency map, so merge all required bare specifiers into one object before calling it. Extra entries only increase the import map JSON size—browsers download the actual modules only when a bundle imports them.
 
-`loadSourceFiles` is a convenience helper that registers the source metadata and walks the OPFS folder to register a virtual snapshot. If you already manage snapshots yourself, you can still call `registerSources` and `registerVirtualSnapshot` directly.
+`loadSnapshot` reads OPFS into a virtual snapshot. Call `registerSources` once per plugin to tie the snapshot to a source ID before compiling.
+
+### 3. Wrap React trees with `TinyUiProvider`
+
+`TinyUiProvider` wires up the runtime iframe and service worker exactly once for your React tree. The provider also exposes a `compile` helper via `useTinyUi()` so you can trigger builds manually when needed.
+
+```tsx
+import { TinyUiProvider, TinyUI } from "@pstdio/tiny-ui";
+import { registerSources } from "@pstdio/tiny-ui-bundler";
+import runtimeUrl from "@pstdio/tiny-ui/dist/runtime.html?url";
+import serviceWorkerUrl from "@pstdio/tiny-ui-bundler/dist/sw.js?url";
+
+const hostApi = {
+  "actions.log": (params?: Record<string, unknown>) => {
+    console.log("[weather-ui]", params?.message ?? "<no message>");
+    return { ok: true };
+  },
+};
+
+registerSources([{ id: "weather-ui", root: "/plugins/weather-ui" }]);
+
+function PluginFrame() {
+  return (
+    <TinyUiProvider runtimeUrl={runtimeUrl} serviceWorkerUrl={serviceWorkerUrl}>
+      <TinyUI
+        instanceId="weather-ui-runtime"
+        sourceId="weather-ui"
+        autoCompile
+        onStatusChange={(status) => console.log("Tiny UI status", status)}
+        onError={(error) => console.error(error)}
+        onActionCall={(method, params) => {
+          const handler = hostApi[method as keyof typeof hostApi];
+          if (!handler) {
+            throw new Error(`Unhandled Tiny UI host method: ${method}`);
+          }
+
+          return handler(params as Record<string, unknown> | undefined);
+        }}
+      />
+    </TinyUiProvider>
+  );
+}
+```
+
+- `TinyUiProvider` accepts the same `serviceWorkerUrl` and `runtimeUrl` options you would pass to `setupTinyUI`. You can also override `wasmURL` to point at a self-hosted `esbuild-wasm` binary.
+- `instanceId` uniquely identifies the iframe host session (handy when rendering multiple instances).
+- `sourceId` must match the ID you registered via `registerSources` when seeding the snapshot.
+- Use `onActionCall` to forward `remote.ops` requests to your application API. Return a value or promise just like any async function.
+- Call `useTinyUi()` inside your React components to trigger manual compiles (`const { compile } = useTinyUi();`). Combine it with `useTinyUIServiceWorker()` to read the shared service worker lifecycle (status, readiness, errors).
 
 ### 4. Boot a raw iframe
 
-You can host Tiny UI manually by wiring an iframe straight to the Tiny UI runtime.
+Use the lower-level host APIs when you are not rendering the React wrapper. You can wire an iframe straight to the Tiny UI runtime and call `setupTinyUI` yourself during application bootstrap.
 
 ```html
 <button id="load-plugin">Load plugin</button>
 <iframe id="tiny-ui-iframe" title="tiny-ui" style="width: 100%; height: 420px; border: 1px solid #ccc;"></iframe>
 
 <script type="module">
-  import { compile, createIframeOps, createTinyHost, loadSourceFiles, setLockfile } from "@pstdio/tiny-ui";
+  import { compile, createTinyHost, loadSnapshot, setLockfile } from "@pstdio/tiny-ui";
+  import { registerSources } from "@pstdio/tiny-ui-bundler";
 
   const iframe = document.getElementById("tiny-ui-iframe");
   const button = document.getElementById("load-plugin");
@@ -92,14 +144,29 @@ You can host Tiny UI manually by wiring an iframe straight to the Tiny UI runtim
     "react-dom/client": "https://esm.sh/react-dom@19.1.0/es2022/client.mjs",
   });
 
+  const hostApi = {
+    "actions.log": async (params) => {
+      console.log("[weather-ui] log", params?.message ?? "<no message>");
+      return { ok: true };
+    },
+  };
+
   button.addEventListener("click", async () => {
+    await loadSnapshot(source.root, source.entrypoint);
+    registerSources([{ id: source.id, root: source.root, entry: source.entrypoint }]);
+
     const host = await createTinyHost(iframe, source.id);
 
-    host.onOps(createIframeOps({ pluginsRoot: "/plugins", pluginId: source.id }));
+    host.onOps(async ({ method, params }) => {
+      const handler = hostApi[method];
+      if (!handler) {
+        throw new Error(`Unknown Tiny UI host method: ${method}`);
+      }
+      return handler(params);
+    });
+
     host.onReady(({ meta }) => console.log("Plugin ready", meta));
     host.onError(({ message }) => console.error("Plugin failed", message));
-
-    await loadSourceFiles(source);
 
     const compileResult = await compile(source.id, {
       wasmURL: "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm",
@@ -110,67 +177,30 @@ You can host Tiny UI manually by wiring an iframe straight to the Tiny UI runtim
 </script>
 ```
 
-### 5. Render the React wrapper
+### 5. Handle `remote.ops` requests
 
-```tsx
-import { TinyUI } from "@pstdio/tiny-ui";
-
-function PluginFrame() {
-  return (
-    <TinyUI
-      id="weather-ui"
-      root="/plugins/weather-ui"
-      serviceWorkerUrl={serviceWorkerUrl}
-      runtimeUrl={runtimeUrl}
-      onReady={(result) => console.log("Bundle ready", result)}
-      onError={(error) => console.error(error)}
-    />
-  );
-}
-```
-
-- `id` is the stable bundle identifier Tiny UI uses when publishing and caching bundles—keep it unique per plugin.
-- `root` is the same root path used in `loadSnapshot`.
-- Tiny UI auto-compiles when the service worker is ready. Call the imperative `rebuild()` handle to recompile on demand.
-
-### 6. Bridge host capabilities (optional but recommended)
-
-Pass `bridge` to `<TinyUI />` to allow plugins to talk to the host via `remote.ops`.
-
-```tsx
-import { createIframeOps, createWorkspaceFs } from "@pstdio/tiny-ui";
-
-const bridge = {
-  pluginsRoot: "/plugins",
-  pluginId: "weather-ui",
-  notify: (level, message) => console.info(`[${level}] ${message}`),
-  workspaceFs: createWorkspaceFs("/workspace"),
-};
-
-<TinyUI
-  id="weather-ui"
-  root="/plugins/weather-ui"
-  serviceWorkerUrl={serviceWorkerUrl}
-  runtimeUrl={runtimeUrl}
-  bridge={bridge}
-/>;
-```
-
-Inside the iframe runtime, plugins receive a `host` object with:
-
-- `host.fs.readFile/writeFile/ls/deleteFile/downloadFile`
-- `host.workspace.read/readFile`
-- `host.settings.read/write`
+Plugins communicate with the host by calling `remote.ops` (for example through `host.actions.*`). Your React wrapper receives each call through `onActionCall(method, params)`. Forward the request to whatever API surface your application exposes, and return a result or throw to reject the call.
 
 ### Manual host integration with precompiled bundle
 
 ```ts
-import { createIframeOps, createTinyHost } from "@pstdio/tiny-ui";
+import { createTinyHost } from "@pstdio/tiny-ui";
 
 const iframe = document.querySelector("iframe#plugin")!;
 const host = await createTinyHost(iframe, "sql-explorer");
 
-host.onOps(createIframeOps({ pluginsRoot: "/plugins", pluginId: "sql-explorer" }));
+const hostApi = {
+  "actions.log": (params?: Record<string, unknown>) => {
+    console.log("[sql-explorer]", params?.message ?? "<no message>");
+    return { ok: true };
+  },
+};
+
+host.onOps(async ({ method, params }) => {
+  const handler = hostApi[method as keyof typeof hostApi];
+  if (!handler) throw new Error(`Unhandled Tiny UI host method: ${method}`);
+  return handler(params as Record<string, unknown> | undefined);
+});
 
 host.onReady(({ meta }) => console.log("Plugin ready", meta));
 host.onError(({ message }) => console.error("Plugin failed", message));
@@ -180,22 +210,30 @@ const compileResult = await fetch("/precompiled/sql-explorer.json").then((res) =
 await host.sendInit(compileResult);
 ```
 
-- `host.commands.notify`
-
-All filesystem mutations are scoped to `/plugins/<pluginId>/data`, and workspace reads remain read-only.
-
 ### Instant iframe boot from the cache manifest
 
 If you previously compiled a plugin and the service worker still holds the bundle, you can skip `compile` entirely and boot straight from the cache manifest.
 
 ```ts
-import { compile, createIframeOps, createTinyHost, getCachedBundle } from "@pstdio/tiny-ui";
+import { compile, createTinyHost, getCachedBundle, loadSnapshot } from "@pstdio/tiny-ui";
+import { registerSources } from "@pstdio/tiny-ui-bundler";
 
 const pluginId = "sql-explorer";
 const iframe = document.querySelector("iframe#plugin")!;
 const host = await createTinyHost(iframe, pluginId);
 
-host.onOps(createIframeOps({ pluginsRoot: "/plugins", pluginId }));
+const hostApi = {
+  "actions.log": (params?: Record<string, unknown>) => {
+    console.log("[sql-explorer]", params?.message ?? "<no message>");
+    return { ok: true };
+  },
+};
+
+host.onOps(async ({ method, params }) => {
+  const handler = hostApi[method as keyof typeof hostApi];
+  if (!handler) throw new Error(`Unhandled Tiny UI host method: ${method}`);
+  return handler(params as Record<string, unknown> | undefined);
+});
 
 let result = await getCachedBundle(pluginId);
 
@@ -206,7 +244,8 @@ if (!result) {
     entrypoint: "/index.tsx",
   };
 
-  await loadSourceFiles(source);
+  await loadSnapshot(source.root, source.entrypoint);
+  registerSources([{ id: source.id, root: source.root, entry: source.entrypoint }]);
 
   result = await compile(pluginId, {
     wasmURL: "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm",
@@ -224,11 +263,25 @@ await host.sendInit(result);
 ### Load OPFS files once, reuse across reloads
 
 ```ts
-import { loadSnapshot, TinyUI, CACHE_NAME } from "@pstdio/tiny-ui";
+import { CACHE_NAME, TinyUI, loadSnapshot, setupTinyUI } from "@pstdio/tiny-ui";
+import { registerSources } from "@pstdio/tiny-ui-bundler";
 
 async function bootPlugin() {
+  void setupTinyUI({ serviceWorkerUrl: "/tiny-ui-sw.js" }).catch(console.error);
+
   await loadSnapshot("plugins/notepad", "/index.tsx");
-  render(<TinyUI id="notepad" root="/plugins/notepad" serviceWorkerUrl="/tiny-ui-sw.js" />);
+  registerSources([{ id: "notepad", root: "/plugins/notepad" }]);
+
+  render(
+    <TinyUI
+      instanceId="notepad-host"
+      sourceId="notepad"
+      onActionCall={(method, params) => {
+        console.log("Unhandled request", method, params);
+        return { ok: true };
+      }}
+    />,
+  );
 }
 
 async function invalidateBundles() {
@@ -239,14 +292,40 @@ async function invalidateBundles() {
 
 ## 📖 API
 
-- `TinyUI(props)` – React component that compiles snapshots and boots the runtime iframe. Accepts `bridge`, lifecycle callbacks, and `autoCompile`.
-- `TinyUIHandle` – ref object exposing `rebuild()`.
-- `TinyUIStatus` – status union (`"initializing" | "idle" | "compiling" | "ready" | "error"`).
+### Bootstrap
+
+- `setupTinyUI(options)` – configure Tiny UI once per page (registers the service worker, sets the runtime URL, and primes global state). Use this when integrating the vanilla host APIs directly.
+- `setupServiceWorker(options)` – lower-level helper to register only the service worker.
+- `getTinyUIRuntimePath()` – current runtime iframe URL resolved from `setupTinyUI`.
+- `TinyUiProvider(props)` – React context provider that wraps your tree, calls `setupTinyUI` under the hood, and exposes a memoised `compile` helper. Accepts `serviceWorkerUrl`, `runtimeUrl`, and optional overrides like `wasmURL` for the `esbuild-wasm` binary.
+
+### React Hooks & Components
+
+- `TinyUI(props)` – React component that compiles snapshots and boots the runtime iframe. Accepts lifecycle callbacks, `autoCompile`, and an `onActionCall` handler for host RPCs.
+- `TinyUIStatus` – status union (`"idle" | "initializing" | "service-worker-ready" | "compiling" | "handshaking" | "ready" | "error"`).
+- `useTinyUi()` – access the provider context (`compile`, `status`, `serviceWorkerReady`, `error`) from any descendant of `TinyUiProvider`.
+- `useTinyUIServiceWorker()` – React hook that exposes the shared service worker lifecycle (`status`, `serviceWorkerReady`, and `error`).
+
+### Snapshot Management
+
 - `registerVirtualSnapshot(root, snapshot)` / `unregisterVirtualSnapshot(root)` – cache the in-memory file tree Tiny UI will compile.
 - `loadSnapshot(folder, entry)` – convenience helper that reads OPFS into a snapshot and registers it.
+- `loadSourceFiles({ id, root, entrypoint })` – OPFS helper that reads a plugin directory and returns file metadata for registration.
+
+### Build & Compilation
+
+- `compile(id, options)` – compile a registered snapshot using esbuild-wasm and cache the result.
+- `getCachedBundle(id)` – retrieve a previously compiled bundle from cache.
+
+### Lockfile & Import Maps
+
 - `setLockfile(lockfile)` / `getLockfile()` / `resetStats()` / `getStats()` – manage remote module metadata and runtime counters.
 - `buildImportMap(lockfile)` – convert a lockfile into an import map for the runtime iframe.
+
+### Low-Level Host Integration
+
 - `createTinyHost(iframe, id)` – low-level host connector exposing `sendInit`, `onReady`, `onError`, `onOps`, and `disconnect`.
-- `createIframeOps(options)` – build a typed `remote.ops` handler that wires scoped plugin storage, workspace reads, settings, and notifications.
-- `createWorkspaceFs(root)` – wrap OPFS access for workspace reads.
+
+### Constants
+
 - `CACHE_NAME`, `getRuntimeHtmlPath()`, `getVirtualPrefix()`, `getManifestUrl()` – helpers that mirror the service worker config.

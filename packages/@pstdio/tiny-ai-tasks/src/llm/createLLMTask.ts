@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { task } from "../runtime";
 import type { Tool } from "../tools/Tool";
 import { toOpenAITools } from "../tools/toOpenAITools";
-import type { AssistantMessage, BaseMessage } from "../utils/messageTypes";
+import type { AssistantMessage, BaseMessage, MessageContentPart } from "../utils/messageTypes";
 
 type ChatCompletionTool = any;
 type ChatCompletionMessageParam = any;
@@ -27,7 +27,7 @@ export function createLLMTask(opts: LLMTaskOptions) {
   const openai = new OpenAI({
     ...(apiKey ? { apiKey } : {}),
     ...(baseUrl ? { baseURL: baseUrl } : {}),
-    ...(dangerouslyAllowBrowser ? { dangerouslyAllowBrowser: true } : {}),
+    ...(dangerouslyAllowBrowser ? { dangerouslyAllowBrowser } : {}),
   });
 
   return task(
@@ -48,21 +48,59 @@ export function createLLMTask(opts: LLMTaskOptions) {
         stream: true,
         // Ask OpenAI to include usage in the final stream event
         // See: https://platform.openai.com/docs/api-reference/streaming
-        stream_options: { include_usage: true } as any,
+        stream_options: { include_usage: true },
         ...(temperature !== undefined ? { temperature } : {}),
         ...(reasoning ? { reasoning_effort: reasoning.effort } : {}),
         ...(toolDefs.length ? { tools: toolDefs } : {}),
       });
 
       const assistant: AssistantMessage = { role: "assistant", content: "" };
+      let contentParts: MessageContentPart[] | undefined;
+      let textBuffer = "";
       let usage: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined;
 
-      for await (const chunk of stream as any) {
+      for await (const chunk of stream) {
         const delta = chunk.choices?.[0]?.delta ?? {};
 
         if (delta.content !== undefined) {
-          const part = delta.content ?? "";
-          assistant.content = (assistant.content || "") + part;
+          if (Array.isArray(delta.content)) {
+            const normalized = delta.content
+              .map((part) => {
+                if (!part || typeof part !== "object") return undefined;
+                if (typeof part.type !== "string") return undefined;
+
+                const clone: MessageContentPart = { ...part };
+                if (clone.type === "text" && typeof clone.text !== "string") {
+                  clone.text = clone.text == null ? "" : String(clone.text);
+                }
+
+                return clone;
+              })
+              .filter(Boolean) as MessageContentPart[];
+
+            if (normalized.length) {
+              if (!contentParts) {
+                contentParts = textBuffer ? [{ type: "text", text: textBuffer }] : [];
+                textBuffer = "";
+              }
+
+              for (const part of normalized) contentParts.push(part);
+              assistant.content = contentParts;
+            }
+          } else {
+            const chunkText =
+              typeof delta.content === "string" ? delta.content : delta.content != null ? String(delta.content) : "";
+
+            if (contentParts) {
+              if (chunkText) {
+                contentParts.push({ type: "text", text: chunkText });
+                assistant.content = contentParts;
+              }
+            } else {
+              textBuffer += chunkText;
+              assistant.content = textBuffer;
+            }
+          }
         }
 
         if (delta.tool_calls) {
@@ -101,7 +139,9 @@ export function createLLMTask(opts: LLMTaskOptions) {
 
         const clone: AssistantMessage = {
           role: "assistant",
-          content: assistant.content,
+          content: Array.isArray(assistant.content)
+            ? assistant.content.map((part) => ({ ...part }))
+            : assistant.content,
           tool_calls: assistant.tool_calls?.map((c) => ({
             id: c.id,
             type: c.type,
@@ -116,7 +156,7 @@ export function createLLMTask(opts: LLMTaskOptions) {
 
       const final: AssistantMessage = {
         role: "assistant",
-        content: assistant.content,
+        content: Array.isArray(assistant.content) ? assistant.content.map((part) => ({ ...part })) : assistant.content,
         tool_calls: assistant.tool_calls?.map((c) => ({
           id: c.id,
           type: c.type,

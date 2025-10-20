@@ -28,10 +28,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./sw": {
-      "types": "./dist/sw.d.ts",
-      "import": "./dist/sw.js"
-    },
     "./runtime.html": "./dist/runtime.html"
   },
   "files": [
@@ -66,7 +62,7 @@
   "dependencies": {
     "@pstdio/opfs-utils": "*",
     "@pstdio/tiny-plugins": "*",
-    "esbuild-wasm": "^0.25.10",
+    "@pstdio/tiny-ui-bundler": "*",
     "rimless": "^0.6.0"
   },
   "peerDependencies": {

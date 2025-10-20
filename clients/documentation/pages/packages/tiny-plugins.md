@@ -26,10 +26,12 @@ npm i @pstdio/tiny-plugins
 ## Host Lifecycle
 
 ```ts
-import { createPluginHost } from "@pstdio/tiny-plugins";
+import { createHost } from "@pstdio/tiny-plugins";
 
-const host = createPluginHost({
+const host = createHost({
   root: "plugins",
+  dataRoot: "plugin-data",
+  watch: true,
   notify(level, message) {
     console[level === "error" ? "error" : "info"](`[plugin] ${message}`);
   },
@@ -37,39 +39,46 @@ const host = createPluginHost({
 
 await host.start();
 
-const stopSync = host.subscribePlugins((plugins) => {
-  renderPluginPalette(plugins);
+const offPluginChange = host.onPluginChange((pluginId, { paths, manifest }) => {
+  renderPluginPalette(host.getMetadata());
+  console.debug(`[plugin] ${pluginId} changed`, paths, manifest?.version);
 });
 
-host.subscribePluginFiles("theme-switcher", ({ changes }) => {
-  highlightEditorChanges(changes);
+const offDependencies = host.onDependencyChange(({ deps }) => {
+  refreshDependencyInspector(deps);
 });
 
-const runThemeNext = host.runPluginCommand("theme-switcher", "theme.next");
-await runThemeNext({ skipAnimation: true });
+const commands = host.listCommands();
+console.info(
+  "registered commands",
+  commands.map((c) => `${c.pluginId}:${c.id}`),
+);
 
-const settings = await host.readPluginSettings("theme-switcher");
-await host.writePluginSettings("theme-switcher", { ...settings, current: "dark" });
+await host.runCommand("theme-switcher", "theme.next", { skipAnimation: true });
 
+const settings = await host.readSettings<{ current?: string }>("theme-switcher");
+await host.updateSettings("theme-switcher", { ...settings, current: "dark" });
+
+offPluginChange();
+offDependencies();
 await host.stop();
-stopSync();
 ```
 
-`createPluginHost` automatically watches the plugin root (default `plugins`) when `watch` is not disabled. It preloads every discovered plugin on `start()`, keeps manifests and commands in sync, and cleans up all timers, watchers, and object URLs when `stop()` is called.
+`createHost` automatically watches the plugin root (default `plugins`) when `watch` is enabled. It preloads every discovered plugin on `start()`, keeps manifests and commands in sync, and cleans up timers, watchers, and object URLs when `stop()` is called.
 
 ## API Surface
 
 - `start()` / `stop()` – control the lifecycle of the host and all loaded plugins.
-- `isReady()` – check whether `start()` completed.
-- `listPlugins()` / `subscribePlugins(cb)` – inspect plugin metadata and react to changes.
-- `listCommands()` – retrieve all registered commands with their `pluginId`.
-- `listPluginCommands(pluginId)` – narrow the command list to a single plugin.
-- `runPluginCommand(pluginId, commandId)` – get a callable that validates params and executes the command under timeout control.
-- `readPluginSettings(pluginId)` / `writePluginSettings(pluginId, value)` – persist JSON settings to `/plugin_data/<id>/.settings.json`, validating against the manifest schema when available.
-- `readPluginManifest(pluginId)` – access the last loaded manifest copy.
-- `subscribePluginManifest(pluginId, cb)` / `subscribeManifests(cb)` – track manifest updates.
-- `subscribePluginFiles(pluginId, cb)` – receive OPFS change events for a plugin directory.
-- `doesPluginExist(pluginId)` – check whether a plugin directory currently exists.
+- `onPluginChange(cb)` – observe manifest snapshots, changed file paths, and full file listings per plugin.
+- `onDependencyChange(cb)` – receive the merged dependency map across all loaded plugins.
+- `onSettingsChange(cb)` – react to persisted settings updates triggered by plugins or the host.
+- `onStatus(cb)` / `onError(cb)` – surface host notifications to your UI.
+- `getMetadata()` – retrieve the current plugin metadata snapshot.
+- `getPluginDependencies()` – inspect the merged dependency map.
+- `listCommands()` – enumerate all registered commands (`pluginId`, `id`, `title`, ...).
+- `runCommand(pluginId, commandId, params?)` – execute a plugin command directly.
+- `readSettings(pluginId)` / `updateSettings(pluginId, value)` – persist JSON settings under `/plugin_data/<id>/.settings.json`.
+- `createHostApiFor(pluginId)` – expose the string-keyed host API (fs/logs/settings) for Tiny UI bridges.
 
 All subscriptions return an unsubscribe function for teardown.
 
@@ -95,7 +104,7 @@ Hosts expect the plugin directory name to match the manifest `id`. When running 
   "id": "theme-switcher",
   "name": "Theme Switcher",
   "version": "0.1.0",
-  "api": "^1.0.0",
+  "api": "v1",
   "entry": "index.js",
   "commands": [
     {
@@ -132,7 +141,7 @@ Hosts expect the plugin directory name to match the manifest `id`. When running 
 
 Manifest notes:
 
-- `api` must satisfy the major version exposed by `HOST_API_VERSION`; incompatible plugins are skipped with an error.
+- `api` must match the exact string exposed by `HOST_API_VERSION` (for example, `v1`); incompatible plugins are skipped with an error.
 - `entry` is resolved relative to the plugin folder and must export a default plugin with an `activate` function.
 - `commands` describe user-facing commands and provide optional parameter schemas and per-command `timeoutMs`.
 - `dependencies` is an optional map of dependency names to URLs. Combine multiple manifest maps with `mergeManifestDependencies`.
@@ -143,12 +152,11 @@ Manifest notes:
 
 Command handlers receive a lightweight `PluginContext`:
 
-- `ctx.id` / `ctx.manifest` – plugin identity and manifest metadata.
-- `ctx.log.{info|warn|error}` – namespaced logging helpers.
-- `ctx.commands.notify(level, message)` – send structured notifications back to the host `notify` callback.
-- `ctx.fs` – scoped file-system helpers backed by `@pstdio/opfs-utils` (`readFile`, `writeFile`, `deleteFile`, `moveFile`, `exists`, `mkdirp`, `readJSON`, `writeJSON`).
-- `ctx.settings.{read, write}` – JSON persistence to `/plugin_data/<id>/.settings.json` with schema validation when declared.
-- `ctx.net.fetch(url, init?)` – uses the global `fetch` implementation when available.
+- `ctx.id` / `ctx.manifest` – plugin identity and validated manifest metadata.
+- `ctx.api["fs.readFile"](path)` – scoped file-system helpers backed by `@pstdio/opfs-utils` (`writeFile`, `deleteFile`, `moveFile`, `exists`, `mkdirp` are also available under the `fs.*` namespace).
+- `ctx.api["settings.read"]()` / `ctx.api["settings.write"](value)` – JSON persistence to `/plugin_data/<id>/.settings.json`.
+- `ctx.api["log.statusUpdate"]({ status, detail? })` – emit structured status messages surfaced via `host.onStatus`.
+- `ctx.api["log.error"](message)` / `ctx.api["log.warn"](message)` / `ctx.api["log.info"](message)` – forward plugin logs to the host notifier.
 
 Plugins must export a default object with an `activate(ctx)` function. `deactivate()` is optional and runs on unload.
 
@@ -157,23 +165,24 @@ Plugins must export a default object with an `activate(ctx)` function. `deactiva
 Translate plugin commands into Tiny AI Tasks tools to expose them to LLM agents:
 
 ```ts
-import { createPluginHost, createToolsForCommands } from "@pstdio/tiny-plugins";
+import { createHost, createToolsForCommands } from "@pstdio/tiny-plugins";
 
-const host = createPluginHost();
+const host = createHost({ root: "plugins", dataRoot: "plugin-data" });
 await host.start();
 
-const tools = createToolsForCommands(host.listCommands(), (pluginId, commandId, params) => {
-  return host.runPluginCommand(pluginId, commandId)(params);
-});
+const tools = createToolsForCommands(host.listCommands(), (pluginId, commandId, params) =>
+  host.runCommand(pluginId, commandId, params),
+);
 ```
 
 Each tool serialises execution results to a JSON payload, making it easy to forward plugin interactions through streaming agent pipelines built on `@pstdio/tiny-ai-tasks`.
 
 ## Utilities & Exports
 
-- `HOST_API_VERSION` – compare against manifest `api` ranges.
+- `HOST_API_VERSION` – fixed plugin API identifier (e.g. `v1`).
 - `mergeManifestDependencies(manifests, options?)` – coalesce dependency URL maps and detect conflicts.
-- Type exports: `PluginHost`, `HostOptions`, `CommandDefinition`, `RegisteredCommand`, `Manifest`, `PluginContext`, and more.
+- Type exports: `HostOptions`, `HostApi`, `Manifest`, `PluginMetadata`, `CommandDefinition`, `PluginChangePayload`, `StatusUpdate`.
+- Helpers: `createToolsForCommands`, `createActionApi`, `createSettingsAccessor`.
 
 ## Compatibility
 

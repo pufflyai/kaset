@@ -1,17 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { CACHE_NAME } from "../src/constant";
-import { setLockfile } from "../src/core/idb";
-import type { CompileResult } from "../src/esbuild/types";
-import { TinyUI, type TinyUIHandle } from "../src/react/tiny-ui";
-import { TinyUIStatus } from "../src/react/types";
+import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
+import { TinyUI } from "../src/react/components/TinyUI";
+import { TinyUiProvider } from "../src/react/tiny-ui-provider";
+import { setupTinyUI } from "../src/setupTinyUI";
+import { TinyUIStatus } from "../src/types";
 
-import { createSnapshotInitializer, now } from "./files/helpers";
-import D3_ENTRY_SOURCE from "./files/D3/index.js?raw";
-import SPIRAL_SOURCE from "./files/D3/animations/createSpiral.js?raw";
 import BARS_SOURCE from "./files/D3/animations/createPulseBars.js?raw";
+import SPIRAL_SOURCE from "./files/D3/animations/createSpiral.js?raw";
 import GRID_SOURCE from "./files/D3/animations/createWaveGrid.js?raw";
+import D3_ENTRY_SOURCE from "./files/D3/index.js?raw";
+import { calculateLifecycleTimings, createSnapshotInitializer, formatLifecycleTimings, now } from "./files/helpers";
 
 const STORY_ROOT = "/stories/tiny-d3";
 const SOURCE_ID = "tiny-ui-d3";
@@ -43,15 +43,24 @@ interface D3DemoProps {
 }
 
 const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE_ID }: D3DemoProps) => {
-  const uiRef = useRef<TinyUIHandle | null>(null);
+  const initializingStartedAtRef = useRef<number | null>(null);
   const compileStartedAtRef = useRef<number | null>(null);
+  const handshakeStartedAtRef = useRef<number | null>(null);
   const [status, setStatus] = useState<TinyUIStatus>("initializing");
   const [message, setMessage] = useState<string | null>("Loading D3 source files into OPFS...");
   const [initialized, setInitialized] = useState(false);
+  const [rebuildKey, setRebuildKey] = useState(0);
 
   useLayoutEffect(() => {
     setLockfile(LOCKFILE);
   }, [LOCKFILE]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setupTinyUI({ serviceWorkerUrl: "/tiny-ui-sw.js" }).catch((error) => {
+      console.error("[TinyUI Story] Failed to initialize Tiny UI", error);
+    });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +68,11 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
     setInitialized(false);
     setStatus("initializing");
     setMessage("Loading D3 source files into OPFS...");
+
+    registerSources([{ id: bundleId, root: sourceRoot, entry: ENTRY_PATH }]);
+    initializingStartedAtRef.current = now();
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
     ensureSnapshotReady(sourceRoot)
       .then(() => {
@@ -77,47 +91,86 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
     return () => {
       cancelled = true;
     };
-  }, [sourceRoot]);
+  }, [bundleId, sourceRoot]);
 
   const handleStatusChange = useCallback((next: TinyUIStatus) => {
     setStatus(next);
+
+    if (next === "initializing") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
+      compileStartedAtRef.current = null;
+      handshakeStartedAtRef.current = null;
+      setMessage("Loading D3 source files into OPFS...");
+      return;
+    }
+
+    if (next === "service-worker-ready") {
+      setMessage("Tiny UI service worker ready. Preparing D3 bundle...");
+      return;
+    }
+
     if (next === "compiling") {
+      if (initializingStartedAtRef.current === null) {
+        initializingStartedAtRef.current = now();
+      }
       compileStartedAtRef.current = now();
+      handshakeStartedAtRef.current = null;
       setMessage("Compiling D3 bundle with esbuild-wasm...");
+      return;
+    }
+
+    if (next === "handshaking") {
+      if (handshakeStartedAtRef.current === null) {
+        handshakeStartedAtRef.current = now();
+      }
+      setMessage("Handshaking with the Tiny UI runtime...");
     }
   }, []);
 
   const handleReady = useCallback((result: CompileResult) => {
-    const startedAt = compileStartedAtRef.current;
+    const completedAt = now();
+    const lifecycleLabel = formatLifecycleTimings(
+      calculateLifecycleTimings({
+        initStart: initializingStartedAtRef.current,
+        compileStart: compileStartedAtRef.current,
+        handshakeStart: handshakeStartedAtRef.current,
+        completedAt,
+      }),
+    );
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
-    const duration = typeof startedAt === "number" ? Math.max(0, Math.round(now() - startedAt)) : null;
-    const timingLabel = duration !== null ? ` in ${duration}ms` : "";
     const cacheLabel = result.fromCache ? " (from cache)" : "";
 
-    setMessage(`D3 animations ready${timingLabel}${cacheLabel}.`);
+    setStatus("ready");
+    setMessage(`D3 animations ready${lifecycleLabel}${cacheLabel}.`);
   }, []);
 
   const handleError = useCallback((error: Error) => {
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
     setStatus("error");
     setMessage(error.message);
   }, []);
 
   const handleRebuild = useCallback(() => {
     if (!initialized) return;
-
-    uiRef.current?.rebuild().catch((error) => {
-      const normalized = error instanceof Error ? error : new Error("Failed to rebuild bundle");
-      setStatus("error");
-      setMessage(normalized.message);
-    });
+    initializingStartedAtRef.current = null;
+    compileStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
+    setRebuildKey((value) => value + 1);
   }, [initialized]);
 
   const handleClearCache = useCallback(async () => {
     if (typeof caches === "undefined") return;
 
     compileStartedAtRef.current = null;
+    initializingStartedAtRef.current = null;
+    handshakeStartedAtRef.current = null;
 
     try {
       setMessage("Clearing bundle cache...");
@@ -131,57 +184,65 @@ const D3Demo = ({ autoCompile = true, sourceRoot = STORY_ROOT, bundleId = SOURCE
     }
   }, []);
 
+  const handleActionCall = useCallback(async (method: string, params?: Record<string, unknown>) => {
+    console.warn("[TinyUI Story] Unhandled host request", { method, params });
+    throw new Error(`Story host does not implement '${method}'`);
+  }, []);
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 480 }}>
-      <div style={{ display: "flex", gap: 8 }}>
-        <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
-          {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
-        </button>
-        <button onClick={handleClearCache} type="button">
-          Clear Cache
-        </button>
-      </div>
-      {initialized ? (
-        <TinyUI
-          ref={uiRef}
-          root={sourceRoot}
-          id={bundleId}
-          autoCompile={autoCompile}
-          serviceWorkerUrl="/tiny-ui-sw.js"
-          onStatusChange={handleStatusChange}
-          onReady={handleReady}
-          onError={handleError}
-          style={{
-            width: "100%",
-            height: 360,
-            borderRadius: 12,
-            padding: 16,
-            display: "flex",
-          }}
-        />
-      ) : (
-        <div
-          style={{
-            width: "100%",
-            height: 360,
-            borderRadius: 12,
-            padding: 16,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            border: "1px dashed #475569",
-            color: "#475569",
-          }}
-          aria-live="polite"
-        >
-          Loading D3 source files...
+    <TinyUiProvider serviceWorkerUrl="/tiny-ui-sw.js">
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, width: "100%", maxWidth: 480 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button disabled={status === "compiling" || !initialized} onClick={handleRebuild} type="button">
+            {!initialized ? "Preparing..." : status === "compiling" ? "Compiling..." : "Rebuild"}
+          </button>
+          <button onClick={handleClearCache} type="button">
+            Clear Cache
+          </button>
         </div>
-      )}
-      <div aria-live="polite">
-        <strong>Status:</strong> {status}
-        {message ? <div>{message}</div> : null}
+        {initialized ? (
+          <TinyUI
+            key={rebuildKey}
+            instanceId={bundleId}
+            sourceId={bundleId}
+            autoCompile={autoCompile}
+            skipCache={rebuildKey > 0}
+            onStatusChange={handleStatusChange}
+            onReady={handleReady}
+            onError={handleError}
+            onActionCall={handleActionCall}
+            style={{
+              width: "100%",
+              height: 360,
+              borderRadius: 12,
+              padding: 16,
+              display: "flex",
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: "100%",
+              height: 360,
+              borderRadius: 12,
+              padding: 16,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "1px dashed #475569",
+              color: "#475569",
+            }}
+            aria-live="polite"
+          >
+            Loading D3 source files...
+          </div>
+        )}
+        <div aria-live="polite">
+          <strong>Status:</strong> {status}
+          {message ? <div>{message}</div> : null}
+        </div>
       </div>
-    </div>
+    </TinyUiProvider>
   );
 };
 
@@ -206,19 +267,5 @@ type Story = StoryObj<typeof D3Demo>;
 export const Playground: Story = {
   args: {
     autoCompile: true,
-  },
-};
-
-export const ManualCompile: Story = {
-  name: "Manual Compile",
-  args: {
-    autoCompile: false,
-  },
-  parameters: {
-    docs: {
-      description: {
-        story: "Disable autoCompile to compile the animations on demand, mirroring production rebuild flows.",
-      },
-    },
   },
 };

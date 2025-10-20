@@ -7,13 +7,15 @@ import { GithubCorner } from "./components/ui/github-corner";
 import { Toaster } from "./components/ui/toaster";
 import { TopBar } from "./components/ui/top-bar";
 import { setupPlayground } from "./services/playground/setup";
+import { updateReactScanState } from "./services/react-scan/init";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
 import { applyThemePreference } from "./theme/applyThemePreference";
 
 export function App() {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
   const [mobilePane, setMobilePane] = useState<"conversation" | "desktop">("conversation");
-  const themePreference = useWorkspaceStore((state) => state.settings.theme ?? "light");
+  const themePreference = useWorkspaceStore((state) => state.settings.theme);
+  const reactScanEnabled = useWorkspaceStore((state) => state.settings.reactScanEnabled);
 
   useEffect(() => {
     setupPlayground();
@@ -22,6 +24,10 @@ export function App() {
   useEffect(() => {
     applyThemePreference(themePreference);
   }, [themePreference]);
+
+  useEffect(() => {
+    updateReactScanState(reactScanEnabled);
+  }, [reactScanEnabled]);
 
   useEffect(() => {
     if (!isMobile) {

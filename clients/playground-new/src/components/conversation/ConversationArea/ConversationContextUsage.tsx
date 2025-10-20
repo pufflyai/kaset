@@ -1,13 +1,13 @@
 import { Tooltip } from "@/components/ui/tooltip";
 import { getModelPricing, type ModelPricing } from "@/models";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import type { Message } from "@/types";
 import { Button, ProgressCircle, Stack, Text } from "@chakra-ui/react";
+import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { useEffect, useState } from "react";
 import { useEstimatedTokens } from "../hooks/useEstimatedTokens";
 
 interface ConversationContextUsageProps {
-  messages: Message[];
+  messages: UIMessage[];
   input: string;
 }
 

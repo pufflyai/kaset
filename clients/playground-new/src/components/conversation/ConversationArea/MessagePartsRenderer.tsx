@@ -1,13 +1,13 @@
 import { Response } from "@/components/ui/ai-response";
 import { ResourceBadge } from "@/components/ui/resource-badge";
 import { TimelineFromJSON } from "@/components/ui/timeline";
-import type { Message, ToolInvocation } from "@/types";
 import { Box, Text } from "@chakra-ui/react";
+import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 import type { ReactNode } from "react";
 import { invocationsToTimeline } from "../utils/timeline";
 
 interface MessagePartsProps {
-  message: Message;
+  message: UIMessage;
   streaming?: boolean;
   onOpenFile?: (filePath: string) => void;
 }

@@ -54,8 +54,6 @@ export const commands = {
 
     const normalized = normalizePathInput(input);
 
-    console.log("[file-explorer] openFolder", { normalized });
-
     const delivered = notifyChannel(normalized);
     if (!delivered) {
       ctx.commands?.notify?.(
@@ -67,7 +65,7 @@ export const commands = {
 };
 
 export default {
-  async activate({ log }) {
-    log.info("File Explorer plugin activated");
+  async activate(ctx) {
+    await ctx.api["log.info"]("File Explorer plugin activated");
   },
 };

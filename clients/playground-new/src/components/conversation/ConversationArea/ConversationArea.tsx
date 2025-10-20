@@ -2,8 +2,8 @@ import { ConversationContent, ConversationRoot, ConversationScrollButton } from 
 import { ChangeBubble } from "@/components/ui/change-bubble";
 import { SettingsModal } from "@/components/ui/settings-modal";
 import { hasCredentials } from "@/state/actions/hasCredentials";
-import type { Message } from "@/types";
 import { Alert, Button, Flex, HStack, Input, Stack, useDisclosure, type FlexProps } from "@chakra-ui/react";
+import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { memo, useCallback, useMemo, useState } from "react";
 import { summarizeConversationChanges } from "../utils/diff";
 import { AutoScroll } from "./AutoScroll";
@@ -11,7 +11,7 @@ import { ConversationContextUsage } from "./ConversationContextUsage";
 import { MessageList } from "./MessageList";
 
 interface ConversationAreaProps extends FlexProps {
-  messages: Message[];
+  messages: UIMessage[];
   streaming: boolean;
   onSendMessage?: (text: string, fileNames?: string[]) => void;
   onSelectFile?: (filePath: string) => void;
@@ -22,7 +22,7 @@ interface ConversationAreaProps extends FlexProps {
 }
 
 interface ConversationMessagesProps {
-  messages: Message[];
+  messages: UIMessage[];
   streaming: boolean;
   onSelectFile?: (filePath: string) => void;
   onUseExample?: (text: string) => void;

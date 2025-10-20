@@ -1,5 +1,5 @@
 import type { TitleSegment } from "@/components/ui/timeline";
-import type { Message, ToolInvocation } from "@/types";
+import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 
 export type FileChange = { filePath: string; additions: number; deletions: number };
 
@@ -14,10 +14,13 @@ function normalizeHeaderPath(input?: string | null): string | null {
   const token = input.split("\t")[0].trim();
   if (token === "/dev/null") return null;
 
-  if (token.startsWith("a/") || token.startsWith("b/")) {
-    return token.slice(2);
+  let normalized = token;
+  if (normalized.startsWith("a/") || normalized.startsWith("b/")) {
+    normalized = normalized.slice(2);
   }
-  return token;
+
+  normalized = normalized.replace(/^\/+/, "").replace(/\\/g, "/");
+  return normalized;
 }
 
 export function parseUnifiedDiff(diffText?: string): FileChange[] {
@@ -123,7 +126,84 @@ export function buildDiffTitleSegments(inv: ToolInvocation): TitleSegment[] {
   }));
 }
 
-export function summarizeConversationChanges(messages: Message[]): {
+export type FileDiffPreview = { filePath: string; original: string; modified: string };
+
+export function buildFileDiffPreviews(diffText?: string): FileDiffPreview[] {
+  if (!diffText || typeof diffText !== "string") return [];
+
+  const lines = diffText.split(/\r?\n/);
+  const previews: FileDiffPreview[] = [];
+
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i] || "";
+    if (!line.startsWith("--- ")) {
+      i += 1;
+      continue;
+    }
+
+    const oldHeader = normalizeHeaderPath(line.slice(4));
+    const next = lines[i + 1] || "";
+    if (!next.startsWith("+++ ")) {
+      i += 1;
+      continue;
+    }
+
+    const newHeader = normalizeHeaderPath(next.slice(4));
+    const filePath = newHeader ?? oldHeader ?? "";
+    i += 2;
+
+    const original: string[] = [];
+    const modified: string[] = [];
+
+    while (i < lines.length) {
+      const current = lines[i] || "";
+      if (current.startsWith("--- ") || current.startsWith("diff --git ")) break;
+
+      if (current.startsWith("@@")) {
+        i += 1;
+        while (i < lines.length) {
+          const body = lines[i] || "";
+          if (
+            body.startsWith("--- ") ||
+            body.startsWith("@@") ||
+            body.startsWith("diff --git ") ||
+            (!body.startsWith(" ") && !body.startsWith("+") && !body.startsWith("-") && body.trim() !== "")
+          ) {
+            break;
+          }
+
+          if (body.startsWith(" ")) {
+            const text = body.slice(1);
+            original.push(text);
+            modified.push(text);
+          } else if (body.startsWith("-")) {
+            original.push(body.slice(1));
+          } else if (body.startsWith("+")) {
+            modified.push(body.slice(1));
+          }
+
+          i += 1;
+        }
+
+        if (original.length > 0 || modified.length > 0) {
+          original.push("");
+          modified.push("");
+        }
+
+        continue;
+      }
+
+      i += 1;
+    }
+
+    previews.push({ filePath, original: original.join("\n"), modified: modified.join("\n") });
+  }
+
+  return previews;
+}
+
+export function summarizeConversationChanges(messages: UIMessage[]): {
   additions: number;
   deletions: number;
   fileCount: number;

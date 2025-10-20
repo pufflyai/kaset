@@ -1,5 +1,10 @@
 import { stripAnsi } from "../shared";
 
+export interface NormalizeRootOptions {
+  fallback?: string;
+  errorMessage?: string;
+}
+
 /**
  * Split a POSIX-like path into normalized segments.
  * - trims whitespace
@@ -33,6 +38,28 @@ export function normalizeRelPath(p: string) {
   // from colored CLI output or copy/paste.
   const cleaned = stripAnsi(p);
   return cleaned.replace(/\\/g, "/").replace(/^\/+/, "").trim();
+}
+
+function sanitizeRootCandidate(value: string) {
+  return normalizeSlashes(normalizeRelPath(value));
+}
+
+export function normalizeRoot(value?: string | null, options?: NormalizeRootOptions) {
+  const candidate = typeof value === "string" ? value : "";
+  const normalized = sanitizeRootCandidate(candidate);
+
+  if (normalized) return normalized;
+
+  if (options?.fallback) {
+    const fallback = sanitizeRootCandidate(options.fallback);
+    if (fallback) return fallback;
+  }
+
+  if (options?.errorMessage) {
+    throw new Error(options.errorMessage);
+  }
+
+  return "";
 }
 
 /** Join two path segments with normalization. */

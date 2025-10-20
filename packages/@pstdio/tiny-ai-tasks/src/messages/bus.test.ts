@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { filterHistory, mergeHistory, toBaseMessages, type ExtendedMessage } from "./bus";
+import { filterHistory, mergeHistory, busToBaseMessages, type ExtendedMessage } from "./bus";
 
 describe("filterHistory", () => {
   const base: ExtendedMessage[] = [
@@ -46,7 +46,7 @@ describe("mergeHistory", () => {
 
   it("toBaseMessages drops meta only", () => {
     const src: ExtendedMessage[] = [{ role: "user", content: "x", meta: { hidden: true, tags: ["t"] } }];
-    const out = toBaseMessages(src);
+    const out = busToBaseMessages(src);
     expect((out[0] as any).meta).toBeUndefined();
     expect(out[0].role).toBe("user");
   });

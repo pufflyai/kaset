@@ -1,4 +1,4 @@
-import type { Message } from "@/types";
+import type { UIMessage } from "@pstdio/kas/kas-ui";
 import type { IconName } from "lucide-react/dynamic";
 import type { ReactNode } from "react";
 
@@ -54,7 +54,7 @@ export interface DesktopState {
 export interface Conversation {
   id: string;
   name: string;
-  messages: Message[];
+  messages: UIMessage[];
 }
 
 export interface McpServerConfig {
@@ -73,8 +73,9 @@ export interface WorkspaceSettings {
   approvalGatedTools?: string[];
   mcpServers: McpServerConfig[];
   activeMcpServerIds?: string[];
-  theme?: ThemePreference;
-  wallpaper?: string;
+  theme: ThemePreference;
+  wallpaper: string;
+  reactScanEnabled: boolean;
 }
 
 export interface WorkspaceState {

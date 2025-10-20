@@ -1,8 +1,8 @@
 {
   "id": "hello-kaset",
   "name": "Hello Kaset",
-  "version": "0.1.0",
-  "api": "^1.0.0",
+  "version": "1.0.0",
+  "api": "v1",
   "entry": "index.js",
   "description": "Hello Kaset plugin for OPFS.",
   "dependencies": {
@@ -25,7 +25,7 @@
     }
   },
   "commands": [],
-  "ui": {
+  "surfaces": {
     "desktop": {
       "title": "Hello Kaset",
       "description": "A simple Hello Kaset plugin.",

@@ -1,7 +1,8 @@
 import type { TimelineDoc, TitleSegment } from "@/components/ui/timeline";
-import type { ToolInvocation } from "@/types";
-import { buildDiffTitleSegments } from "./diff";
+import type { ToolInvocation } from "@pstdio/kas/kas-ui";
+import { buildDiffTitleSegments, buildFileDiffPreviews } from "./diff";
 import { toolTypeToIconName } from "./toolIcon";
+import { renderOpfsTool } from "./opfsTools";
 
 const toJson = (value: any) => {
   try {
@@ -26,93 +27,6 @@ function guessLanguageFromPath(filePath?: string): string | undefined {
   return undefined;
 }
 
-type FileDiffPreview = { filePath: string; original: string; modified: string };
-
-function buildFileDiffPreviews(diffText?: string): FileDiffPreview[] {
-  if (!diffText || typeof diffText !== "string") return [];
-
-  const lines = diffText.split(/\r?\n/);
-  const previews: FileDiffPreview[] = [];
-
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i] || "";
-    if (line.startsWith("--- ")) {
-      const oldHeader = line.slice(4).split("\t")[0].trim();
-      const next = lines[i + 1] || "";
-      if (!next.startsWith("+++ ")) {
-        i += 1;
-        continue;
-      }
-      const newHeader = next.slice(4).split("\t")[0].trim();
-
-      // Normalize a/ b/ prefixes and /dev/null
-      const norm = (p: string) =>
-        p === "/dev/null"
-          ? null
-          : p
-              .replace(/^([ab]\/)*/, "")
-              .replace(/^\/+/, "")
-              .replace(/\\/g, "/");
-
-      const oldPath = norm(oldHeader);
-      const newPath = norm(newHeader);
-      const filePath = newPath ?? oldPath ?? "";
-      i += 2;
-
-      const orig: string[] = [];
-      const mod: string[] = [];
-
-      while (i < lines.length) {
-        const l = lines[i] || "";
-        if (l.startsWith("--- ") || l.startsWith("diff --git ")) break;
-        if (l.startsWith("@@")) {
-          // Start of a hunk: we simply accumulate hunk body lines below
-          i += 1;
-          while (i < lines.length) {
-            const body = lines[i] || "";
-            if (
-              body.startsWith("--- ") ||
-              body.startsWith("@@") ||
-              body.startsWith("diff --git ") ||
-              (!body.startsWith(" ") && !body.startsWith("+") && !body.startsWith("-") && body.trim() !== "")
-            ) {
-              break;
-            }
-
-            if (body.startsWith(" ")) {
-              const t = body.slice(1);
-              orig.push(t);
-              mod.push(t);
-            } else if (body.startsWith("-")) {
-              orig.push(body.slice(1));
-            } else if (body.startsWith("+")) {
-              mod.push(body.slice(1));
-            }
-
-            i += 1;
-          }
-          // Add blank line separator between hunks for readability
-          if (orig.length > 0 || mod.length > 0) {
-            orig.push("");
-            mod.push("");
-          }
-          continue;
-        }
-
-        // Skip non-hunk lines until next file or hunk
-        i += 1;
-      }
-
-      previews.push({ filePath, original: orig.join("\n"), modified: mod.join("\n") });
-      continue;
-    }
-    i += 1;
-  }
-
-  return previews;
-}
-
 export function invocationsToTimeline(invocations: ToolInvocation[], opts?: { labeledBlocks?: boolean }): TimelineDoc {
   const labeled = opts?.labeledBlocks ?? false;
 
@@ -120,6 +34,21 @@ export function invocationsToTimeline(invocations: ToolInvocation[], opts?: { la
     items: invocations.map((inv) => {
       const toolLabel = (inv.type || "tool").replace(/^tool-/, "");
       const isError = (inv as any).state === "output-error";
+
+      const custom = renderOpfsTool(inv);
+      if (custom) {
+        return {
+          id: inv.toolCallId,
+          indicator: {
+            type: "icon" as const,
+            icon: toolTypeToIconName((inv as any).type),
+            color: isError ? "foreground.feedback.alert" : undefined,
+          },
+          title: custom.title,
+          blocks: custom.blocks,
+          expandable: custom.expandable,
+        };
+      }
 
       const diffSegments = buildDiffTitleSegments(inv);
       const blocks: NonNullable<TimelineDoc["items"][number]["blocks"]> = [];

@@ -142,6 +142,8 @@ export const ImagePreview = (props: ImagePreviewProps) => {
     };
   }, [filePath]);
 
+  console.log("Rendering ImagePreview:", { filePath, loading, error, imageUrl });
+
   return (
     <Box height="100%" display="flex" flexDirection="column" bg="background.primary">
       <Box paddingX="md">

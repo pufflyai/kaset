@@ -1,8 +1,9 @@
-import { usePluginHost } from "@/services/plugins/usePluginHost";
+import { host } from "@/services/plugins/host";
 import { Box, Field, Flex, Text, VStack } from "@chakra-ui/react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { toaster } from "./toaster";
 import { CodeEditor } from "./code-editor";
+import { usePluginHost } from "@pstdio/tiny-plugins";
 
 interface PluginFormState {
   text: string;
@@ -32,7 +33,7 @@ function serializeSettings(value: unknown) {
 export const PluginSettings = forwardRef<PluginSettingsHandle, PluginSettingsProps>((props, ref) => {
   const { isOpen } = props;
 
-  const { settings: pluginSettings, readSettings, writeSettings, getDisplayName } = usePluginHost();
+  const { settings: pluginSettings, readSettings, writeSettings, getDisplayName } = usePluginHost(host);
   const [pluginForms, setPluginForms] = useState<Record<string, PluginFormState>>({});
   const [pluginLoading, setPluginLoading] = useState(false);
 

@@ -7,18 +7,21 @@ import { getSelectedConversationId } from "@/state/actions/getSelectedConversati
 import { hasCredentials } from "@/state/actions/hasCredentials";
 import { setConversationMessages } from "@/state/actions/setConversationMessages";
 import type { ApprovalRequest } from "@pstdio/kas";
+import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { shortUID } from "@pstdio/prompt-utils";
+import { usePluginHost } from "@pstdio/tiny-plugins";
 import debounce from "lodash/debounce";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
-import { usePluginHost } from "../../services/plugins/usePluginHost";
+import { host } from "../../services/plugins/host";
 import { useWorkspaceStore } from "../../state/WorkspaceProvider";
-import type { Message } from "../../types";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
 
-const EMPTY_MESSAGES: Message[] = [];
+const EMPTY_MESSAGES: UIMessage[] = [];
+const ASSISTANT_UPDATE_DEBOUNCE_MS = 400;
+const ASSISTANT_UPDATE_MAX_WAIT_MS = 1200;
 
 interface ConversationAreaWithMessagesProps {
   streaming: boolean;
@@ -52,7 +55,7 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
 
 export function ConversationHost() {
   const { tools: mcpTools } = useMcpService();
-  const { tools: pluginTools } = usePluginHost();
+  const { tools: pluginTools } = usePluginHost(host);
   const [streaming, setStreaming] = useState(false);
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
@@ -81,7 +84,7 @@ export function ConversationHost() {
 
       if (!conversationId || !conversation) return;
 
-      const userMessage: Message = {
+      const userMessage: UIMessage = {
         id: shortUID(),
         role: "user",
         parts: [{ type: "text", text }],
@@ -91,11 +94,11 @@ export function ConversationHost() {
       const base = [...current, userMessage];
 
       const applyConversationUpdate = debounce(
-        (nextMessages: Message[]) => {
+        (nextMessages: UIMessage[]) => {
           setConversationMessages(conversationId, nextMessages, "conversations/send/assistant");
         },
-        500,
-        { leading: true, trailing: true },
+        ASSISTANT_UPDATE_DEBOUNCE_MS,
+        { leading: true, trailing: true, maxWait: ASSISTANT_UPDATE_MAX_WAIT_MS },
       );
 
       setConversationMessages(conversationId, base, "conversations/send/user");
@@ -110,7 +113,7 @@ export function ConversationHost() {
       } catch (err) {
         applyConversationUpdate.flush();
 
-        const assistantError: Message = {
+        const assistantError: UIMessage = {
           id: shortUID(),
           role: "assistant",
           parts: [

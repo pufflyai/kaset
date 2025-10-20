@@ -1,4 +1,4 @@
-import { DEFAULT_APPROVAL_GATED_TOOLS } from "@pstdio/kas";
+import { DEFAULT_APPROVAL_GATED_TOOLS } from "../constant";
 import type { ThemePreference, WorkspaceState } from "./types";
 
 export const DEFAULT_STATE: WorkspaceState = {
@@ -24,5 +24,6 @@ export const DEFAULT_STATE: WorkspaceState = {
     activeMcpServerIds: [],
     theme: "light" satisfies ThemePreference,
     wallpaper: "kaset.png",
+    reactScanEnabled: false,
   },
 };

@@ -1,4 +1,5 @@
 import type { BaseMessage } from "../utils/messageTypes";
+import { messageContentToString } from "../utils/messageTypes";
 
 export interface TokenCounter {
   count(messages: BaseMessage[]): number;
@@ -19,7 +20,7 @@ export function roughCounter(): TokenCounter {
 
       for (const m of messages as any[]) {
         const roleLen = m.role?.length ?? 0;
-        const contentLen = ((m.content ?? "") as string).length;
+        const contentLen = messageContentToString(m.content ?? "").length;
 
         total += PER_MESSAGE_OVERHEAD;
         total += Math.ceil((roleLen + contentLen) / AVG_CHARS_PER_TOKEN);

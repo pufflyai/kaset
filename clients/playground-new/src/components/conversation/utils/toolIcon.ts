@@ -1,8 +1,14 @@
-import type { IconName } from "@/utils/getIcon";
+import { isOpfsToolIconName, type IconName } from "@/utils/getIcon";
+
+const DEFAULT_TOOL_ICON: IconName = "dot";
 
 export const toolTypeToIconName = (type?: string): IconName => {
-  if (!type) return "plugin";
+  if (!type) return DEFAULT_TOOL_ICON;
+
   const t = type.replace(/^tool-/, "");
+
+  if (isOpfsToolIconName(t)) return t;
+
   switch (t) {
     case "search":
       return "search";
@@ -12,6 +18,6 @@ export const toolTypeToIconName = (type?: string): IconName => {
     case "file":
       return "file";
     default:
-      return "plugin";
+      return DEFAULT_TOOL_ICON;
   }
 };

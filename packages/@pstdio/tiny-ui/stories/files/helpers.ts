@@ -1,23 +1,81 @@
-import { writeFile } from "@pstdio/opfs-utils";
-
-import { loadSnapshot } from "../../src/fs/loadSnapshot";
+import { normalizeRoot as normalizeRootValue, writeFile } from "@pstdio/opfs-utils";
+import { loadSnapshot } from "@pstdio/tiny-ui-bundler/opfs";
 
 type EntryResolver = string | ((root: string) => string);
 type FilesResolver = Record<string, string> | ((root: string) => Record<string, string>);
 
 const normalizeRelativePath = (path: string) => path.replace(/^\/+/, "");
 
-export const normalizeRoot = (root: string) => {
-  const normalized = String(root ?? "").replace(/^\/+/, "");
-  if (!normalized) throw new Error("Snapshot root cannot be empty.");
-  return normalized;
-};
+const SNAPSHOT_ROOT_ERROR = "Snapshot root cannot be empty.";
+
+export const normalizeRoot = (root: string) => normalizeRootValue(root, { errorMessage: SNAPSHOT_ROOT_ERROR });
 
 export const now = () =>
   typeof performance !== "undefined" && typeof performance.now === "function" ? performance.now() : Date.now();
 
 const resolve = <T>(value: T | ((root: string) => T), root: string): T =>
   typeof value === "function" ? (value as (r: string) => T)(root) : value;
+
+const toDuration = (start: number | null, end: number) =>
+  typeof start === "number" ? Math.max(0, Math.round(end - start)) : null;
+
+export interface LifecycleTimings {
+  total: number | null;
+  initialize: number | null;
+  compile: number | null;
+  handshake: number | null;
+}
+
+export const calculateLifecycleTimings = ({
+  initStart,
+  compileStart,
+  handshakeStart,
+  completedAt,
+}: {
+  initStart: number | null;
+  compileStart: number | null;
+  handshakeStart: number | null;
+  completedAt: number;
+}): LifecycleTimings => {
+  const total = toDuration(initStart, completedAt);
+  const handshake = toDuration(handshakeStart, completedAt);
+
+  let compile: number | null = null;
+  if (typeof compileStart === "number") {
+    const compileEnd = typeof handshakeStart === "number" ? handshakeStart : completedAt;
+    compile = Math.max(0, Math.round(compileEnd - compileStart));
+  }
+
+  let initialize: number | null = null;
+  if (typeof initStart === "number" && typeof compileStart === "number") {
+    initialize = Math.max(0, Math.round(compileStart - initStart));
+  } else if (total !== null) {
+    const compileValue = compile ?? 0;
+    const handshakeValue = handshake ?? 0;
+    const remainder = total - compileValue - handshakeValue;
+    initialize = Math.max(0, remainder);
+  }
+
+  return { total, initialize, compile, handshake };
+};
+
+export const formatLifecycleTimings = ({ total, initialize, compile, handshake }: LifecycleTimings) => {
+  if (total === null) return "";
+
+  const details: string[] = [];
+  if (initialize !== null) {
+    details.push(`initialize ${initialize}ms`);
+  }
+  if (compile !== null) {
+    details.push(`compile ${compile}ms`);
+  }
+  if (handshake !== null) {
+    details.push(`handshake ${handshake}ms`);
+  }
+
+  const detailSuffix = details.length > 0 ? ` (${details.join(", ")})` : "";
+  return ` in ${total}ms${detailSuffix}`;
+};
 
 export const writeSnapshotFiles = async (root: string, entry: EntryResolver, files: FilesResolver) => {
   const folder = normalizeRoot(root);
@@ -44,6 +102,7 @@ export const createSnapshotInitializer = ({ entry, files }: SnapshotInitializerO
   return (root: string) => {
     const normalized = normalizeRoot(root);
     let promise = inFlight.get(normalized);
+
     if (!promise) {
       promise = writeSnapshotFiles(root, entry, files).catch((error) => {
         inFlight.delete(normalized);

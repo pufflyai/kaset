@@ -397,4 +397,8 @@ hello("world");
 void hello("world");
 ```
 
-## 10. Keep files shorter than 400 lines
+## 10. Keep files shorter than 350 lines
+
+## 11. Don't be overly defensive, Keep it Simple Stupid
+
+## 12. Keep tests next to the file they test

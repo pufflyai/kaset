@@ -1,5 +1,4 @@
-import { toMessageHistory } from "@pstdio/kas";
-import type { Message } from "@/types";
+import { toBaseMessages, type UIMessage } from "@pstdio/kas/kas-ui";
 import { roughCounter, type BaseMessage } from "@pstdio/tiny-ai-tasks";
 import { useMemo } from "react";
 
@@ -31,7 +30,7 @@ const getRunTotal = (run: RunUsage): number => {
   return prompt + completion;
 };
 
-export function useEstimatedTokens(messages: Message[], input: string): TokenUsageSummary {
+export function useEstimatedTokens(messages: UIMessage[], input: string): TokenUsageSummary {
   return useMemo(() => {
     const runs: RunUsage[] = [];
     let currentRun: RunUsage | null = null;
@@ -77,14 +76,17 @@ export function useEstimatedTokens(messages: Message[], input: string): TokenUsa
       let conversationTotalTokens = getRunTotal(lastRun);
 
       const trimmed = input.trim();
-      if (trimmed) {
-        const history = toMessageHistory(messages);
-        const withCurrent: BaseMessage[] = [...history, { role: "user", content: trimmed } as BaseMessage];
 
+      if (trimmed) {
+        const history = toBaseMessages(messages);
         const counter = roughCounter();
+        const historyPromptTokens = counter.count(history);
+        const withCurrent: BaseMessage[] = [...history, { role: "user", content: trimmed } as BaseMessage];
         const estimatedPromptTokens = counter.count(withCurrent);
-        conversationPromptTokens = estimatedPromptTokens;
-        conversationTotalTokens = estimatedPromptTokens;
+        const incrementalPromptTokens = Math.max(estimatedPromptTokens - historyPromptTokens, 0);
+
+        conversationPromptTokens += incrementalPromptTokens;
+        conversationTotalTokens += incrementalPromptTokens;
       }
 
       return {
@@ -107,7 +109,7 @@ export function useEstimatedTokens(messages: Message[], input: string): TokenUsa
       } satisfies TokenUsageSummary;
     }
 
-    const history = toMessageHistory(messages);
+    const history = toBaseMessages(messages);
     const withCurrent: BaseMessage[] = [...history, { role: "user", content: trimmed } as BaseMessage];
 
     const counter = roughCounter();

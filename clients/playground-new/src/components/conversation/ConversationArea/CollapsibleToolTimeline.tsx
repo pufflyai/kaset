@@ -1,8 +1,8 @@
 import { TimelineFromJSON, type TimelineDoc } from "@/components/ui/timeline";
-import type { ToolInvocation } from "@/types";
 import { Box, HStack, Text } from "@chakra-ui/react";
+import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { ChevronUpIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { invocationsToTimeline } from "../utils/timeline";
 
 export function CollapsibleToolTimeline({
@@ -14,7 +14,18 @@ export function CollapsibleToolTimeline({
   onOpenFile?: (filePath: string) => void;
   completed?: boolean;
 }) {
-  const [open, setOpen] = useState<boolean>(false);
+  const [open, setOpen] = useState<boolean>(() => !completed);
+  const previousCompletedRef = useRef(completed);
+
+  useEffect(() => {
+    if (completed && !previousCompletedRef.current) {
+      setOpen(false);
+    } else if (!completed && previousCompletedRef.current) {
+      setOpen(true);
+    }
+
+    previousCompletedRef.current = completed;
+  }, [completed]);
   const toggle = () => setOpen((v) => !v);
 
   const data: TimelineDoc | null = useMemo(() => {
