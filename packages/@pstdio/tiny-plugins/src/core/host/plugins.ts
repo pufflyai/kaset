@@ -71,10 +71,10 @@ export async function loadPlugin(
 
   let nextState: (HostState & { manifest: Manifest; moduleUrl: string; ctx: PluginContext }) | undefined;
 
-  if (runtime.workerEnabled && runtime.workerScriptUrl) {
+  if (runtime.workerEnabled) {
     let bridge;
     try {
-      bridge = await createWorkerBridge(pluginId, runtime.workerScriptUrl, api);
+      bridge = await createWorkerBridge(pluginId, api);
       const ready = await bridge.init(manifest, url);
 
       const handlers: Record<string, (c: PluginContext, params?: unknown) => Promise<unknown> | unknown> = {};

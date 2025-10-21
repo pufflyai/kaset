@@ -67,9 +67,7 @@ function getInitializedState(): InitializedWorkerState {
   if (!state.ctx) missingFields.push("ctx");
   if (!state.remote) missingFields.push("remote");
   if (missingFields.length > 0) {
-    throw new Error(
-      `Plugin worker is not initialized. Missing field(s): ${missingFields.join(", ")}`
-    );
+    throw new Error(`Plugin worker is not initialized. Missing field(s): ${missingFields.join(", ")}`);
   }
   return state as InitializedWorkerState;
 }
@@ -195,4 +193,4 @@ const workerApi: WorkerApi = {
   },
 };
 
-await guest.connect(workerApi);
+guest.connect(workerApi);

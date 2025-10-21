@@ -56,7 +56,6 @@ export interface HostRuntime {
   notify?: NotifyFn;
   hostApiVersion: string;
   workerEnabled: boolean;
-  workerScriptUrl: URL | null;
 
   emitter: Emitter<Events>;
   commands: CommandRegistry;

@@ -1,4 +1,5 @@
 import { host as rimlessHost } from "rimless";
+import PluginWorkerConstructor from "../../runtime/pluginWorker.ts?worker&inline";
 import type { HostApi, HostApiMethod, HostApiParams, Manifest } from "../types";
 import type { WorkerBridge, WorkerConnection } from "./internalTypes";
 
@@ -24,8 +25,8 @@ function toWorkerError(error: unknown, fallback: string): Error {
   return new Error(typeof error === "string" ? error : fallback);
 }
 
-export async function createWorkerBridge(pluginId: string, scriptUrl: URL, api: HostApi): Promise<WorkerBridge> {
-  const worker = new Worker(scriptUrl, { type: "module" });
+export async function createWorkerBridge(pluginId: string, api: HostApi): Promise<WorkerBridge> {
+  const worker = new PluginWorkerConstructor({ name: pluginId });
 
   const hostHandlers = {
     async callHostApi<M extends HostApiMethod>({ method, params }: HostApiCallPayload<M>) {

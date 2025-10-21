@@ -18,10 +18,6 @@ export function createHost(options: HostOptions) {
   const hostApiVersion = options.hostApiVersion ?? DEFAULT_HOST_API_VERSION;
   const workerEnabled = typeof Worker !== "undefined";
 
-  const workerScriptUrl = workerEnabled
-    ? new URL(/* @vite-ignore */ "../../runtime/pluginWorker.ts", import.meta.url)
-    : null;
-
   const emitter = new Emitter<Events>();
   const commands = new CommandRegistry(options.defaultTimeoutMs);
   const states: HostRuntime["states"] = new Map();
@@ -34,7 +30,6 @@ export function createHost(options: HostOptions) {
     notify,
     hostApiVersion,
     workerEnabled,
-    workerScriptUrl,
     emitter,
     commands,
     states,
