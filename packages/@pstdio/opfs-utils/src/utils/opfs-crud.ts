@@ -185,30 +185,32 @@ async function deleteDirectoryContentsInternal(relPath: string): Promise<void> {
 
   const fs = await getFs();
 
-  for (const name of entries) {
-    const childRel = joinPath(normalized, name);
-    const childAbs = `/${normalizeRelPath(childRel)}`;
+  await Promise.all(
+    entries.map(async (name) => {
+      const childRel = joinPath(normalized, name);
+      const childAbs = `/${normalizeRelPath(childRel)}`;
 
-    let stat: any;
-    try {
-      stat = await fs.promises.stat(childAbs);
-    } catch (error: any) {
-      const code = error?.code;
-      const errName = error?.name;
-      if (code === "ENOENT" || code === 1 || errName === "NotFoundError" || errName === "NotFound") {
-        continue;
+      let stat: any;
+      try {
+        stat = await fs.promises.stat(childAbs);
+      } catch (error: any) {
+        const code = error?.code;
+        const errName = error?.name;
+        if (code === "ENOENT" || code === 1 || errName === "NotFoundError" || errName === "NotFound") {
+          return;
+        }
+        throw error;
       }
-      throw error;
-    }
 
-    if (stat.isDirectory?.()) {
-      await deleteDirectoryContentsInternal(childRel);
-      await removeDirectory(childRel);
-      continue;
-    }
+      if (stat.isDirectory?.()) {
+        await deleteDirectoryContentsInternal(childRel);
+        await removeDirectory(childRel);
+        return;
+      }
 
-    await safeDelete(childRel);
-  }
+      await safeDelete(childRel);
+    }),
+  );
 }
 
 export const deleteDirectoryContents = async (path: string): Promise<void> => {
