@@ -1,9 +1,5 @@
 import { PLUGIN_DATA_ROOT, ROOT } from "@/constant";
-import {
-  buildAdaptiveResultFromColor,
-  defaultAdaptiveResult,
-  type AdaptiveWallpaperResult,
-} from "@/hooks/useAdaptiveWallpaperSample";
+import { useDesktopWallpaper } from "@/hooks/useDesktopWallpaper";
 import {
   OPEN_DESKTOP_FILE_EVENT,
   ROOT_FILE_PREFIX,
@@ -23,7 +19,6 @@ import type { DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
 import { ls, readFile, watchDirectory } from "@pstdio/opfs-utils";
 import { deletePluginDirectories, downloadPluginBundle } from "@pstdio/tiny-plugins";
 import { setLockfile } from "@pstdio/tiny-ui";
-import { FastAverageColor } from "fast-average-color";
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
@@ -32,6 +27,7 @@ import { MenuItem } from "./menu-item";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
 import { createDesktopApp } from "@/services/desktop/helpers/createDesktopApp";
+import { isNotFoundError, toBlobPart } from "@/utils/opfs";
 
 // WILL FIX: vibe-coded mess
 
@@ -40,12 +36,6 @@ type LsEntryResult = Awaited<ReturnType<typeof ls>>[number];
 const joinRootPath = (relative: string) => {
   const trimmed = relative.replace(/^\/+/, "");
   return trimmed ? `${ROOT}/${trimmed}` : ROOT;
-};
-
-const isNotFoundError = (error: unknown) => {
-  if (!error) return false;
-  const info = error as { name?: string; code?: string | number };
-  return info?.name === "NotFoundError" || info?.code === "ENOENT" || info?.code === 1;
 };
 
 const createRootFileApps = (entries: LsEntryResult[]): DesktopApp[] =>
@@ -58,16 +48,6 @@ const createRootFileApps = (entries: LsEntryResult[]): DesktopApp[] =>
       }),
     )
     .sort((a, b) => a.title.localeCompare(b.title, undefined, { sensitivity: "base" }));
-
-const toBlobPart = (bytes: Uint8Array) => {
-  if (bytes.buffer instanceof ArrayBuffer) {
-    const { buffer, byteOffset, byteLength } = bytes;
-    return buffer.slice(byteOffset, byteOffset + byteLength);
-  }
-
-  const clone = new Uint8Array(bytes);
-  return clone.buffer;
-};
 
 const triggerBlobDownload = (blob: Blob, filename: string) => {
   if (typeof document === "undefined") {
@@ -98,21 +78,12 @@ export const Desktop = () => {
   const [pluginApps, setPluginApps] = useState<DesktopApp[]>([]);
   const ephemeralFileAppsRef = useRef<Map<string, DesktopApp>>(new Map());
   const [ephemeralFileAppsVersion, setEphemeralFileAppsVersion] = useState(0);
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
-  const [wallpaperElement, setWallpaperElement] = useState<HTMLImageElement | null>(null);
-  const [averageColor, setAverageColor] = useState<string | null>(null);
   const [pendingDelete, setPendingDelete] = useState<{ pluginId: string; label: string } | null>(null);
-  const iconPalette = useMemo<AdaptiveWallpaperResult>(() => {
-    if (!averageColor) {
-      return defaultAdaptiveResult;
-    }
-
-    return buildAdaptiveResultFromColor(averageColor, 3, 0.4, defaultAdaptiveResult);
-  }, [averageColor]);
-  const averageColorFacRef = useRef<FastAverageColor | null>(null);
 
   const windows = useWorkspaceStore((state) => state.desktop.windows);
   const wallpaper = useWorkspaceStore((state) => state.settings.wallpaper);
+
+  const { backgroundImageUrl, handleWallpaperRef, iconPalette } = useDesktopWallpaper(wallpaper);
 
   usePluginSources();
 
@@ -425,112 +396,6 @@ export const Desktop = () => {
   useEffect(() => {
     containerSizeRef.current = containerSize;
   }, [containerSize]);
-
-  useEffect(() => {
-    return () => {
-      averageColorFacRef.current?.destroy();
-      averageColorFacRef.current = null;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!wallpaperElement || !backgroundImageUrl) {
-      setAverageColor(null);
-      return;
-    }
-
-    if (!averageColorFacRef.current && typeof window !== "undefined") {
-      averageColorFacRef.current = new FastAverageColor();
-    }
-
-    const fac = averageColorFacRef.current;
-    if (!fac) {
-      setAverageColor(null);
-      return;
-    }
-
-    let cancelled = false;
-
-    const computeAverage = () => {
-      fac
-        .getColorAsync(wallpaperElement, { algorithm: "sqrt" })
-        .then((result) => {
-          if (cancelled) return;
-
-          setAverageColor((current) => (current === result.hex ? current : result.hex));
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setAverageColor(null);
-          }
-        });
-    };
-
-    const handleLoad = () => {
-      computeAverage();
-    };
-
-    const resizeObserver =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(() => {
-            computeAverage();
-          })
-        : null;
-
-    if (resizeObserver) {
-      resizeObserver.observe(wallpaperElement);
-    }
-
-    if ("complete" in wallpaperElement) {
-      wallpaperElement.addEventListener("load", handleLoad);
-    }
-
-    computeAverage();
-
-    return () => {
-      cancelled = true;
-      resizeObserver?.disconnect();
-      if ("complete" in wallpaperElement) {
-        wallpaperElement.removeEventListener("load", handleLoad);
-      }
-    };
-  }, [wallpaperElement, backgroundImageUrl]);
-
-  useEffect(() => {
-    let objectUrl: string | null = null;
-
-    const loadWallpaper = async () => {
-      if (!wallpaper) {
-        setBackgroundImageUrl(null);
-        setWallpaperElement(null);
-        return;
-      }
-
-      try {
-        const fileData = await readFile(wallpaper, { encoding: null });
-
-        const blob = new Blob([toBlobPart(fileData)], { type: "image/png" });
-        objectUrl = URL.createObjectURL(blob);
-        setBackgroundImageUrl(objectUrl);
-      } catch (error) {
-        console.error("Failed to load wallpaper:", error);
-        setBackgroundImageUrl(null);
-        setWallpaperElement(null);
-      }
-    };
-
-    loadWallpaper();
-
-    return () => {
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
-      }
-    };
-  }, [wallpaper]);
-
-  const handleWallpaperRef = useCallback((node: HTMLImageElement | null) => {
-    setWallpaperElement(node);
-  }, []);
 
   return (
     <Box ref={containerRef} position="relative" height="100%" width="100%" overflow="hidden">
