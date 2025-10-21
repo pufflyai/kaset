@@ -59,8 +59,17 @@ type InitializedWorkerState = Required<
 const state: Mutable<WorkerState> = {};
 
 function getInitializedState(): InitializedWorkerState {
-  if (!state.pluginId || !state.manifest || !state.module || !state.plugin || !state.ctx || !state.remote) {
-    throw new Error("Plugin worker is not initialized");
+  const missingFields: string[] = [];
+  if (!state.pluginId) missingFields.push("pluginId");
+  if (!state.manifest) missingFields.push("manifest");
+  if (!state.module) missingFields.push("module");
+  if (!state.plugin) missingFields.push("plugin");
+  if (!state.ctx) missingFields.push("ctx");
+  if (!state.remote) missingFields.push("remote");
+  if (missingFields.length > 0) {
+    throw new Error(
+      `Plugin worker is not initialized. Missing field(s): ${missingFields.join(", ")}`
+    );
   }
   return state as InitializedWorkerState;
 }
