@@ -1,4 +1,3 @@
-import type { UIMessage } from "@pstdio/kas/kas-ui";
 import type { IconName } from "lucide-react/dynamic";
 import type { ReactNode } from "react";
 
@@ -51,12 +50,6 @@ export interface DesktopState {
   nextZIndex: number;
 }
 
-export interface Conversation {
-  id: string;
-  name: string;
-  messages: UIMessage[];
-}
-
 export interface McpServerConfig {
   id: string;
   name: string;
@@ -80,8 +73,6 @@ export interface WorkspaceSettings {
 
 export interface WorkspaceState {
   version: string;
-  conversations: Record<string, Conversation>;
-  selectedConversationId: string;
   desktop: DesktopState;
   settings: WorkspaceSettings;
 }

@@ -1,7 +1,6 @@
 import { ChangeBubble, ConversationContent, ConversationRoot, ConversationScrollButton } from "@/kas-ui";
-import { SettingsModal } from "../../ui/settings-modal.tsx";
-import { hasCredentials } from "../../../state/actions/hasCredentials.ts";
-import { Alert, Button, Flex, HStack, Input, Stack, useDisclosure, type FlexProps } from "@chakra-ui/react";
+import type { ModelPricing } from "@/models";
+import { Alert, Button, Flex, HStack, Input, Stack, type FlexProps } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { memo, useCallback, useMemo, useState } from "react";
 import { summarizeConversationChanges } from "../utils/diff";
@@ -18,6 +17,10 @@ interface ConversationAreaProps extends FlexProps {
   availableFiles?: Array<string>;
   canSend?: boolean;
   examplePrompts?: string[];
+  credentialsReady: boolean;
+  onOpenSettings?: () => void;
+  modelId?: string | null;
+  modelPricing?: ModelPricing;
 }
 
 interface ConversationMessagesProps {
@@ -26,10 +29,11 @@ interface ConversationMessagesProps {
   onSelectFile?: (filePath: string) => void;
   onUseExample?: (text: string) => void;
   examplePrompts?: string[];
+  credentialsReady: boolean;
 }
 
 const ConversationMessages = memo(function ConversationMessages(props: ConversationMessagesProps) {
-  const { messages, streaming, onSelectFile, onUseExample, examplePrompts } = props;
+  const { messages, streaming, onSelectFile, onUseExample, examplePrompts, credentialsReady } = props;
 
   return (
     <ConversationRoot>
@@ -41,6 +45,7 @@ const ConversationMessages = memo(function ConversationMessages(props: Conversat
           onOpenFile={onSelectFile}
           examplePrompts={examplePrompts}
           onUseExample={onUseExample}
+          credentialsReady={credentialsReady}
         />
       </ConversationContent>
       <ConversationScrollButton />
@@ -49,10 +54,21 @@ const ConversationMessages = memo(function ConversationMessages(props: Conversat
 });
 
 export const ConversationArea = (props: ConversationAreaProps) => {
-  const { messages, streaming, onSendMessage, onSelectFile, canSend = true, examplePrompts = [], ...rest } = props;
+  const {
+    messages,
+    streaming,
+    onSendMessage,
+    onSelectFile,
+    canSend = true,
+    examplePrompts = [],
+    credentialsReady,
+    onOpenSettings,
+    modelId,
+    modelPricing,
+    ...rest
+  } = props;
   const [input, setInput] = useState("");
 
-  const settings = useDisclosure();
   const conversationChanges = useMemo(() => summarizeConversationChanges(messages), [messages]);
   const showChangeBubble = conversationChanges.fileCount > 0;
 
@@ -63,7 +79,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
       onSendMessage?.(trimmed);
       setInput("");
     },
-    [canSend, onSendMessage, setInput],
+    [canSend, onSendMessage],
   );
 
   const handleSend = () => {
@@ -81,6 +97,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
         onSelectFile={onSelectFile}
         onUseExample={handleUseExample}
         examplePrompts={examplePrompts}
+        credentialsReady={credentialsReady}
       />
 
       <Flex p="sm" borderTopWidth="1px" borderColor="border.secondary">
@@ -94,16 +111,16 @@ export const ConversationArea = (props: ConversationAreaProps) => {
                 streaming={streaming}
               />
             )}
-            <ConversationContextUsage messages={messages} input={input} />
+            <ConversationContextUsage messages={messages} input={input} modelId={modelId} modelPricing={modelPricing} />
           </Flex>
 
-          {!hasCredentials() && (
+          {!credentialsReady && (
             <Alert.Root status="warning">
               <Alert.Indicator />
               <Alert.Content>
                 <Alert.Title fontWeight="bold">Connection details missing</Alert.Title>
                 <Alert.Description>Add your API key or set a Base URL to enable chat.</Alert.Description>
-                <Button size="xs" variant="solid" onClick={settings.onOpen}>
+                <Button size="xs" variant="solid" onClick={onOpenSettings} disabled={!onOpenSettings}>
                   Open Settings
                 </Button>
               </Alert.Content>
@@ -128,7 +145,6 @@ export const ConversationArea = (props: ConversationAreaProps) => {
           </HStack>
         </Stack>
       </Flex>
-      <SettingsModal isOpen={settings.open} onClose={settings.onClose} />
     </Flex>
   );
 };

@@ -1,33 +1,28 @@
 import { Tooltip } from "@/kas-ui";
 import { getModelPricing, type ModelPricing } from "../../../models.ts";
-import { useWorkspaceStore } from "../../../state/WorkspaceProvider.tsx";
 import { Button, ProgressCircle, Stack, Text } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
-import { useEffect, useState } from "react";
 import { useEstimatedTokens } from "../hooks/useEstimatedTokens";
 
 interface ConversationContextUsageProps {
   messages: UIMessage[];
   input: string;
+  modelId?: string | null;
+  modelPricing?: ModelPricing;
 }
 
 export const ConversationContextUsage = (props: ConversationContextUsageProps) => {
-  const { messages, input } = props;
+  const { messages, input, modelId, modelPricing } = props;
 
   const tokenUsage = useEstimatedTokens(messages, input);
   const conversationTotalTokens = tokenUsage.conversationTotalTokens;
   const conversationPromptTokens = tokenUsage.conversationPromptTokens;
 
-  const [modelPricing, setModelPricing] = useState<ModelPricing | undefined>(undefined);
-  const modelId = useWorkspaceStore((state) => state.settings.modelId);
-
-  useEffect(() => {
-    setModelPricing(getModelPricing(modelId || undefined));
-  }, [modelId]);
+  const pricing = modelPricing ?? getModelPricing(modelId || undefined);
 
   const contextTokenUsage = conversationPromptTokens > 0 ? conversationPromptTokens : conversationTotalTokens;
   const contextTokenUsageDisplay = contextTokenUsage.toLocaleString();
-  const contextWindowTokens = modelPricing?.contextWindow;
+  const contextWindowTokens = pricing?.contextWindow;
   const contextUsagePercent =
     contextWindowTokens && contextWindowTokens > 0 ? Math.min((contextTokenUsage / contextWindowTokens) * 100, 100) : 0;
 

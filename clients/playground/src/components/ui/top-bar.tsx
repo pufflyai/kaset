@@ -1,9 +1,6 @@
 import { ROOT } from "@/constant";
-import { createConversation } from "@/state/actions/createConversation";
-import { deleteAllConversations as deleteAllConversationsAction } from "@/state/actions/deleteAllConversations";
+import { createConversation, deleteAllConversations, selectConversation, useConversationStore } from "@/kas-ui";
 import { resetWorkspace } from "@/state/actions/resetWorkspace";
-import { selectConversation } from "@/state/actions/selectConversation";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import {
   Box,
   Drawer,
@@ -28,7 +25,6 @@ import {
   Trash2 as TrashIcon,
 } from "lucide-react";
 import { type ReactNode } from "react";
-import { SettingsModal } from "../../components/ui/settings-modal";
 import { Tooltip } from "@/kas-ui";
 import { resetPlayground } from "../../services/playground/reset";
 import { CommitHistory } from "./commit-history";
@@ -41,15 +37,15 @@ interface TopBarProps {
 
 export function TopBar(props: TopBarProps) {
   const { mobileCenterContent } = props;
-  const { open: isOpen, onOpen, onClose } = useDisclosure();
   const deleteAll = useDisclosure();
   const resetProject = useDisclosure();
   const versionHistory = useDisclosure();
-  const conversations = useWorkspaceStore((s) => s.conversations);
-  const selectedId = useWorkspaceStore((s) => s.selectedConversationId);
+  const conversations = useConversationStore((s) => s.conversations);
+  const selectedId = useConversationStore((s) => s.selectedConversationId);
+  const chatSettings = useConversationStore((s) => s.chatSettings);
 
   const handleDeleteAllConversations = () => {
-    deleteAllConversationsAction();
+    deleteAllConversations();
   };
 
   const handleResetProject = async () => {
@@ -59,6 +55,7 @@ export function TopBar(props: TopBarProps) {
       console.error("Failed to reset playground files", error);
     }
 
+    deleteAllConversations();
     resetWorkspace();
   };
 
@@ -149,17 +146,16 @@ export function TopBar(props: TopBarProps) {
           </Menu.Positioner>
         </Menu.Root>
         <Tooltip content="New Conversation">
-          <IconButton aria-label="New" size="xs" variant="ghost" onClick={createConversation}>
+          <IconButton aria-label="New" size="xs" variant="ghost" onClick={() => createConversation()}>
             <EditIcon size={16} />
           </IconButton>
         </Tooltip>
       </HStack>
       <Tooltip content="Settings">
-        <IconButton aria-label="Settings" size="xs" variant="ghost" onClick={onOpen}>
+        <IconButton aria-label="Settings" size="xs" variant="ghost" onClick={() => chatSettings.onOpenSettings?.()}>
           <SettingsIcon size={16} />
         </IconButton>
       </Tooltip>
-      <SettingsModal isOpen={isOpen} onClose={onClose} />
       <DeleteConfirmationModal
         open={deleteAll.open}
         onClose={deleteAll.onClose}

@@ -1,23 +1,27 @@
+import {
+  appendConversationMessages,
+  getConversation,
+  getConversationMessages,
+  getSelectedConversationId,
+  setConversationMessages,
+  updateChatSettings,
+  useConversationStore,
+} from "@/kas-ui";
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
-import { appendConversationMessages } from "@/state/actions/appendConversationMessages";
-import { getConversation } from "@/state/actions/getConversation";
-import { getConversationMessages } from "@/state/actions/getConversationMessages";
-import { getSelectedConversationId } from "@/state/actions/getSelectedConversationId";
-import { hasCredentials } from "@/state/actions/hasCredentials";
-import { setConversationMessages } from "@/state/actions/setConversationMessages";
 import type { ApprovalRequest } from "@pstdio/kas";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { shortUID } from "@pstdio/prompt-utils";
 import { usePluginHost } from "@pstdio/tiny-plugins";
 import debounce from "lodash/debounce";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDisclosure } from "@chakra-ui/react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { host } from "../../services/plugins/host";
-import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
+import { SettingsModal } from "./settings-modal";
 
 const EMPTY_MESSAGES: UIMessage[] = [];
 const ASSISTANT_UPDATE_DEBOUNCE_MS = 400;
@@ -25,7 +29,6 @@ const ASSISTANT_UPDATE_MAX_WAIT_MS = 1200;
 
 interface ConversationAreaWithMessagesProps {
   streaming: boolean;
-  canSend: boolean;
   examplePrompts: string[];
   onSendMessage: (text: string, fileNames?: string[]) => void | Promise<void>;
   onSelectFile?: (filePath: string) => void;
@@ -34,12 +37,13 @@ interface ConversationAreaWithMessagesProps {
 const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
   props: ConversationAreaWithMessagesProps,
 ) {
-  const { streaming, canSend, examplePrompts, onSendMessage, onSelectFile } = props;
-  const messages = useWorkspaceStore((s) =>
-    s.selectedConversationId
-      ? (s.conversations[s.selectedConversationId!]?.messages ?? EMPTY_MESSAGES)
-      : EMPTY_MESSAGES,
-  );
+  const { streaming, examplePrompts, onSendMessage, onSelectFile } = props;
+  const messages = useConversationStore((state) => {
+    const id = state.selectedConversationId;
+    return id ? (state.conversations[id]?.messages ?? EMPTY_MESSAGES) : EMPTY_MESSAGES;
+  });
+  const chatSettings = useConversationStore((state) => state.chatSettings);
+  const canSend = chatSettings.credentialsReady && !streaming;
 
   return (
     <ConversationArea
@@ -49,6 +53,10 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
       examplePrompts={examplePrompts}
       onSendMessage={onSendMessage}
       onSelectFile={onSelectFile}
+      credentialsReady={chatSettings.credentialsReady}
+      onOpenSettings={chatSettings.onOpenSettings}
+      modelId={chatSettings.modelId}
+      modelPricing={chatSettings.modelPricing}
     />
   );
 });
@@ -60,6 +68,14 @@ export function ConversationHost() {
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
   const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
+  const settings = useDisclosure();
+  const chatConfig = useConversationStore((state) => ({
+    modelId: state.chatSettings.modelId,
+    apiKey: state.chatSettings.apiKey,
+    baseUrl: state.chatSettings.baseUrl,
+    approvalGatedTools: state.chatSettings.approvalGatedTools,
+  }));
+  const { modelId, apiKey, baseUrl, approvalGatedTools } = chatConfig;
 
   useEffect(() => {
     setApprovalHandler(
@@ -76,6 +92,13 @@ export function ConversationHost() {
       approvalResolve.current?.(false);
     };
   }, []);
+
+  useEffect(() => {
+    updateChatSettings({ onOpenSettings: settings.onOpen });
+    return () => {
+      updateChatSettings({ onOpenSettings: undefined });
+    };
+  }, [settings.onOpen]);
 
   const handleSendMessage = useCallback(
     async (text: string) => {
@@ -95,17 +118,25 @@ export function ConversationHost() {
 
       const applyConversationUpdate = debounce(
         (nextMessages: UIMessage[]) => {
-          setConversationMessages(conversationId, nextMessages, "conversations/send/assistant");
+          setConversationMessages(conversationId, nextMessages);
         },
         ASSISTANT_UPDATE_DEBOUNCE_MS,
         { leading: true, trailing: true, maxWait: ASSISTANT_UPDATE_MAX_WAIT_MS },
       );
 
-      setConversationMessages(conversationId, base, "conversations/send/user");
+      setConversationMessages(conversationId, base);
 
       try {
         setStreaming(true);
-        for await (const updated of sendMessage(conversationId, base, toolset)) {
+        for await (const updated of sendMessage(conversationId, base, {
+          tools: toolset,
+          chatSettings: {
+            modelId,
+            apiKey,
+            baseUrl,
+            approvalGatedTools,
+          },
+        })) {
           applyConversationUpdate(updated);
         }
 
@@ -126,14 +157,14 @@ export function ConversationHost() {
 
         const id = getSelectedConversationId();
         if (id) {
-          appendConversationMessages(id, [assistantError], "conversations/send/error");
+          appendConversationMessages(id, [assistantError]);
         }
       } finally {
         applyConversationUpdate.cancel();
         setStreaming(false);
       }
     },
-    [toolset],
+    [toolset, modelId, apiKey, baseUrl, approvalGatedTools],
   );
 
   const handleSelectFile = useCallback((_: string) => {}, []);
@@ -142,7 +173,6 @@ export function ConversationHost() {
     <>
       <ConversationAreaWithMessages
         streaming={streaming}
-        canSend={hasCredentials() && !streaming}
         examplePrompts={examplePrompts}
         onSendMessage={handleSendMessage}
         onSelectFile={handleSelectFile}
@@ -160,6 +190,7 @@ export function ConversationHost() {
           approvalResolve.current = null;
         }}
       />
+      <SettingsModal isOpen={settings.open} onClose={settings.onClose} />
     </>
   );
 }

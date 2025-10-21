@@ -1,5 +1,4 @@
 import { ROOT } from "@/constant";
-import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
 import { createApprovalGate, createKasAgent } from "@pstdio/kas";
 import type { UIConversation } from "@pstdio/kas/kas-ui";
 import { decorateWithThought, toBaseMessages, toConversationUI, withClosedThoughts } from "@pstdio/kas/kas-ui";
@@ -11,8 +10,19 @@ import { requestApproval } from "./approval";
 
 const rootDir = ROOT;
 
-export async function* sendMessage(_conversationId: string, messages: UIConversation, extraTools: Tool[] = []) {
-  const { modelId, approvalGatedTools, apiKey, baseUrl } = getWorkspaceSettings();
+interface SendMessageOptions {
+  tools?: Tool[];
+  chatSettings: {
+    modelId: string | null;
+    apiKey?: string;
+    baseUrl?: string;
+    approvalGatedTools?: string[];
+  };
+}
+
+export async function* sendMessage(_conversationId: string, messages: UIConversation, options: SendMessageOptions) {
+  const { tools: extraTools = [], chatSettings } = options;
+  const { modelId, approvalGatedTools = [], apiKey, baseUrl } = chatSettings;
 
   const approvalGate = createApprovalGate({ approvalGatedTools, requestApproval });
 
@@ -24,7 +34,7 @@ export async function* sendMessage(_conversationId: string, messages: UIConversa
   const tools: Tool<any, any>[] = [...OPFSTools, ...desktopTools, ...extraTools];
 
   const agent = createKasAgent({
-    model: modelId,
+    model: modelId ?? "gpt-5",
     tools,
     apiKey: apiKey ?? "PLACEHOLDER_KEY",
     ...(baseUrl ? { baseURL: baseUrl } : {}),
