@@ -14,14 +14,16 @@ import {
   Portal,
   Separator,
   Spacer,
+  Span,
   useDisclosure,
 } from "@chakra-ui/react";
 import {
   CassetteTapeIcon,
   Check as CheckIcon,
+  ChevronDownIcon,
   EditIcon,
+  EraserIcon,
   ExternalLink as ExternalLinkIcon,
-  GitCommitVerticalIcon,
   HistoryIcon,
   RotateCcw,
   Settings as SettingsIcon,
@@ -76,14 +78,36 @@ export function TopBar(props: TopBarProps) {
       <HStack gap="2xs">
         <Menu.Root>
           <Menu.Trigger asChild>
-            <Box cursor="pointer" aria-label="Kaset menu">
-              <CassetteTapeIcon />
+            <Box>
+              <Tooltip content="Main Menu">
+                <Span
+                  cursor="pointer"
+                  aria-label="Kaset menu"
+                  display="flex"
+                  alignItems="center"
+                  gap="2xs"
+                  fontWeight="medium"
+                >
+                  <CassetteTapeIcon />
+                  <ChevronDownIcon size={12} />
+                </Span>
+              </Tooltip>
             </Box>
           </Menu.Trigger>
           <Menu.Positioner>
             <Menu.Content bg="background.primary">
               <Menu.ItemGroup>
                 <Menu.ItemGroupLabel>Kaset Playground</Menu.ItemGroupLabel>
+                <MenuItem
+                  primaryLabel="Undo Changes"
+                  leftIcon={<EraserIcon size={16} />}
+                  onClick={versionHistory.onOpen}
+                />
+                <MenuItem primaryLabel="Edit Settings" leftIcon={<SettingsIcon size={16} />} onClick={onOpen} />
+              </Menu.ItemGroup>
+              <Separator marginY="2xs" />
+              <Menu.ItemGroup>
+                <Menu.ItemGroupLabel>Learn More</Menu.ItemGroupLabel>
                 <MenuItem
                   primaryLabel="Documentation"
                   leftIcon={<ExternalLinkIcon size={16} />}
@@ -95,6 +119,20 @@ export function TopBar(props: TopBarProps) {
                   onClick={() =>
                     window.open("https://github.com/pufflyai/kaset/discussions", "_blank", "noopener,noreferrer")
                   }
+                />
+              </Menu.ItemGroup>
+              <Separator marginY="2xs" />
+              <Menu.ItemGroup>
+                <Menu.ItemGroupLabel>Danger Zone</Menu.ItemGroupLabel>
+                <MenuItem
+                  primaryLabel="Delete all conversations"
+                  leftIcon={<TrashIcon size={16} />}
+                  onClick={deleteAll.onOpen}
+                />
+                <MenuItem
+                  primaryLabel={`Reset playground`}
+                  leftIcon={<RotateCcw size={16} />}
+                  onClick={resetProject.onOpen}
                 />
               </Menu.ItemGroup>
             </Menu.Content>
@@ -117,23 +155,6 @@ export function TopBar(props: TopBarProps) {
           </Menu.Trigger>
           <Menu.Positioner>
             <Menu.Content bg="background.primary">
-              <MenuItem
-                primaryLabel="View version history"
-                leftIcon={<GitCommitVerticalIcon size={16} />}
-                onClick={versionHistory.onOpen}
-              />
-              <Separator marginY="sm" />
-              <MenuItem
-                primaryLabel={`Reset playground`}
-                leftIcon={<RotateCcw size={16} />}
-                onClick={resetProject.onOpen}
-              />
-              <MenuItem
-                primaryLabel="Delete all conversations"
-                leftIcon={<TrashIcon size={16} />}
-                onClick={deleteAll.onOpen}
-              />
-              <Separator marginY="sm" />
               {Object.values(conversations).length === 0 && <MenuItem primaryLabel="No conversations" isDisabled />}
               {Object.values(conversations).map((conversation) => (
                 <MenuItem
@@ -154,11 +175,6 @@ export function TopBar(props: TopBarProps) {
           </IconButton>
         </Tooltip>
       </HStack>
-      <Tooltip content="Settings">
-        <IconButton aria-label="Settings" size="xs" variant="ghost" onClick={onOpen}>
-          <SettingsIcon size={16} />
-        </IconButton>
-      </Tooltip>
       <SettingsModal isOpen={isOpen} onClose={onClose} />
       <DeleteConfirmationModal
         open={deleteAll.open}
