@@ -1,4 +1,4 @@
-import { APPROVAL_GATED_TOOL_IDS, DEFAULT_WALLPAPER, ROOT } from "@/constant";
+import { APPROVAL_GATED_TOOL_IDS, DEFAULT_THEME, DEFAULT_WALLPAPER, ROOT } from "@/constant";
 import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
 import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
 import type { McpServerConfig, ThemePreference } from "@/state/types";
@@ -78,8 +78,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [showServerTokens, setShowServerTokens] = useState<Record<string, boolean>>({});
   const [savingSettings, setSavingSettings] = useState(false);
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("kas");
-  const [theme, setTheme] = useState<ThemePreference>("light");
-  const [initialTheme, setInitialTheme] = useState<ThemePreference>("light");
+  const [theme, setTheme] = useState<ThemePreference>(DEFAULT_THEME);
+  const [initialTheme, setInitialTheme] = useState<ThemePreference>(DEFAULT_THEME);
   const [wallpapers, setWallpapers] = useState<string[]>([]);
   const [selectedWallpaper, setSelectedWallpaper] = useState<string>("");
   const [wallpaperPreviews, setWallpaperPreviews] = useState<Record<string, string>>({});
@@ -97,7 +97,7 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     const gatedTools = settings.approvalGatedTools ? [...settings.approvalGatedTools] : [...APPROVAL_GATED_TOOL_IDS];
     setApprovalTools(gatedTools);
 
-    const nextTheme = settings.theme ?? "light";
+    const nextTheme = settings.theme;
     setTheme(nextTheme);
     setInitialTheme(nextTheme);
 

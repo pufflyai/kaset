@@ -2,6 +2,7 @@ export const ROOT = "playground";
 export const PLUGIN_ROOT = `${ROOT}/plugins`;
 export const PLUGIN_DATA_ROOT = `${ROOT}/plugin_data`;
 export const DEFAULT_WALLPAPER = `${ROOT}/wallpaper/kaset.png`;
+export const DEFAULT_THEME = "dark";
 
 export const APPROVAL_GATED_TOOL_IDS = [
   "opfs_write_file",

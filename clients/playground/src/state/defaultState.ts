@@ -1,5 +1,5 @@
-import { DEFAULT_APPROVAL_GATED_TOOLS, DEFAULT_WALLPAPER } from "../constant";
-import type { ThemePreference, WorkspaceState } from "./types";
+import { DEFAULT_APPROVAL_GATED_TOOLS, DEFAULT_THEME, DEFAULT_WALLPAPER } from "../constant";
+import type { WorkspaceState } from "./types";
 
 export const DEFAULT_STATE: WorkspaceState = {
   version: "1.0",
@@ -22,7 +22,7 @@ export const DEFAULT_STATE: WorkspaceState = {
     approvalGatedTools: [...DEFAULT_APPROVAL_GATED_TOOLS],
     mcpServers: [],
     activeMcpServerIds: [],
-    theme: "light" satisfies ThemePreference,
+    theme: DEFAULT_THEME,
     wallpaper: DEFAULT_WALLPAPER,
     reactScanEnabled: false,
   },
