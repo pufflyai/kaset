@@ -129,7 +129,6 @@ export interface HostOptions {
   watch?: boolean;
   notify?: (level: "info" | "warn" | "error", message: string) => void;
   defaultTimeoutMs?: number;
-  useWorkers?: boolean;
 }
 
 export type PluginChangePayload = {

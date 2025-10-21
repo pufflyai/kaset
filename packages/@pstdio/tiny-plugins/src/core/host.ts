@@ -60,7 +60,7 @@ export function createHost(options: HostOptions) {
   const watch = options.watch ?? true;
   const notify = options.notify;
   const hostApiVersion = options.hostApiVersion ?? DEFAULT_HOST_API_VERSION;
-  const workerEnabled = Boolean(options.useWorkers && typeof Worker !== "undefined");
+  const workerEnabled = typeof Worker !== "undefined";
   const workerScriptUrl = workerEnabled
     ? new URL(/* @vite-ignore */ "./runtime/pluginWorker.ts", import.meta.url)
     : null;

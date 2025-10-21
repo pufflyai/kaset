@@ -52,7 +52,9 @@ type WorkerState = {
   remote?: HostBridgeRemote;
 };
 
-type InitializedWorkerState = Required<Pick<WorkerState, "pluginId" | "manifest" | "module" | "plugin" | "ctx" | "remote">>;
+type InitializedWorkerState = Required<
+  Pick<WorkerState, "pluginId" | "manifest" | "module" | "plugin" | "ctx" | "remote">
+>;
 
 const state: Mutable<WorkerState> = {};
 
