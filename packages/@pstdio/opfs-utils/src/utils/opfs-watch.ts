@@ -63,7 +63,7 @@ export async function watchDirectory(
           path: path.split("/"),
           size: meta.size,
           lastModified: meta.mtime,
-          handleKind: meta.kind as any,
+          handleKind: meta.kind,
         });
       } else if (before.size !== meta.size || before.mtime !== meta.mtime) {
         changes.push({
@@ -71,7 +71,7 @@ export async function watchDirectory(
           path: path.split("/"),
           size: meta.size,
           lastModified: meta.mtime,
-          handleKind: meta.kind as any,
+          handleKind: meta.kind,
         });
       }
     }
@@ -86,7 +86,7 @@ export async function watchDirectory(
     prev = cur;
   }
 
-  if (emitInitial) await snap();
+  await snap();
 
   let timer = setInterval(snap, intervalMs);
 
