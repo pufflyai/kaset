@@ -1,7 +1,9 @@
-import type { ChangeRecord } from "@pstdio/opfs-utils";
+import type { ChangeRecord, LsEntry, LsOptions } from "@pstdio/opfs-utils";
 
 export type JSONValue = unknown;
 export type JSONRecord = Record<string, JSONValue>;
+
+export type FsScope = "plugin" | "data" | "workspace";
 
 /** Strict enough to be reliable; still allows unknown extra props via additionalProperties in schema */
 export interface Manifest {
@@ -58,6 +60,8 @@ export const HOST_API_METHODS = [
   "fs.moveFile",
   "fs.exists",
   "fs.mkdirp",
+  "fs.ls",
+  "fs.getScopeRoot",
   "log.statusUpdate",
   "log.info",
   "log.warn",
@@ -75,12 +79,14 @@ export const isHostApiMethod = (value: string): value is HostApiMethod => {
 };
 
 export type HostApiParams = {
-  "fs.readFile": { path: string };
-  "fs.writeFile": { path: string; contents: Uint8Array | string };
-  "fs.deleteFile": { path: string };
-  "fs.moveFile": { from: string; to: string };
-  "fs.exists": { path: string };
-  "fs.mkdirp": { path: string };
+  "fs.readFile": { path: string; scope?: FsScope };
+  "fs.writeFile": { path: string; contents: Uint8Array | string; scope?: FsScope };
+  "fs.deleteFile": { path: string; scope?: FsScope };
+  "fs.moveFile": { from: string; to: string; scope?: FsScope };
+  "fs.exists": { path: string; scope?: FsScope };
+  "fs.mkdirp": { path: string; scope?: FsScope };
+  "fs.ls": { path?: string; scope?: FsScope; options?: LsOptions };
+  "fs.getScopeRoot": { scope?: FsScope };
   "log.statusUpdate": { status: string; detail?: unknown };
   "log.info": { message: string; detail?: unknown };
   "log.warn": { message: string; detail?: unknown };
@@ -96,6 +102,8 @@ export type HostApiResult = {
   "fs.moveFile": void;
   "fs.exists": boolean;
   "fs.mkdirp": void;
+  "fs.ls": LsEntry[];
+  "fs.getScopeRoot": string;
   "log.statusUpdate": void;
   "log.info": void;
   "log.warn": void;

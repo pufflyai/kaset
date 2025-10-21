@@ -1,11 +1,14 @@
-import { deleteFile, ensureDirExists, ls, readFile, writeFile } from "../opfs";
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import type { FsScope } from "@pstdio/tiny-plugins";
+import type { TinyUiHost } from "../host";
 import type { TodoItem, TodoStore } from "./types";
 
-export const ROOT = "playground";
-export const TODO_LISTS_DIR = `${ROOT}/plugin_data/todo`;
+const TODO_SCOPE: FsScope = "data";
+export const TODO_LISTS_DIR = "lists";
+
+const textDecoder = new TextDecoder();
 
 function parseMarkdownTodos(md: string): TodoItem[] {
   const lines = md.split("\n");
@@ -49,7 +52,21 @@ function replaceTodoTextAtLine(md: string, lineIndex: number, nextText: string):
   return lines.join("\n");
 }
 
-export const createTodoStore = () =>
+const joinListPath = (name: string) => (TODO_LISTS_DIR ? `${TODO_LISTS_DIR}/${name}` : name);
+
+const decodeText = (bytes: Uint8Array) => textDecoder.decode(bytes);
+
+const listMarkdownFiles = async (host: TinyUiHost) => {
+  const entries = await host.call<Array<{ name: string }>>("fs.ls", {
+    path: TODO_LISTS_DIR,
+    scope: TODO_SCOPE,
+    options: { maxDepth: 1, kinds: ["file"], include: ["*.md"] },
+  });
+
+  return entries.map((entry) => entry.name);
+};
+
+export const createTodoStore = (host: TinyUiHost) =>
   create<TodoStore>()(
     devtools(
       immer((set, get) => {
@@ -76,10 +93,9 @@ export const createTodoStore = () =>
 
             try {
               setState({ error: null }, "todo/refreshLists:resetError");
-              await ensureDirExists(TODO_LISTS_DIR, true);
+              await host.call("fs.mkdirp", { path: TODO_LISTS_DIR, scope: TODO_SCOPE });
 
-              const entries = await ls(TODO_LISTS_DIR, { maxDepth: 1, kinds: ["file"], include: ["*.md"] });
-              const names = entries.map((entry) => entry.name).sort((a, b) => a.localeCompare(b));
+              const names = (await listMarkdownFiles(host)).sort((a, b) => a.localeCompare(b));
               const nextSelected = names.includes(previousSelected ?? "") ? previousSelected : (names[0] ?? null);
 
               setState(
@@ -99,10 +115,11 @@ export const createTodoStore = () =>
             }
           },
           readAndParse: async (fileName: string) => {
-            const path = `${TODO_LISTS_DIR}/${fileName}`;
+            const path = joinListPath(fileName);
 
             try {
-              const md = await readFile(path);
+              const bytes = await host.call<Uint8Array>("fs.readFile", { path, scope: TODO_SCOPE });
+              const md = decodeText(bytes);
 
               setState(
                 {
@@ -130,10 +147,10 @@ export const createTodoStore = () =>
             if (!raw) return;
 
             const name = raw.toLowerCase().endsWith(".md") ? raw : `${raw}.md`;
-            const path = `${TODO_LISTS_DIR}/${name}`;
+            const path = joinListPath(name);
 
             try {
-              await writeFile(path, "- [ ] New item\n");
+              await host.call("fs.writeFile", { path, contents: "- [ ] New item\n", scope: TODO_SCOPE });
               setState({ newListName: "" }, "todo/addList:resetNewListName");
 
               await get().refreshLists();
@@ -143,10 +160,10 @@ export const createTodoStore = () =>
             }
           },
           removeList: async (name: string) => {
-            const path = `${TODO_LISTS_DIR}/${name}`;
+            const path = joinListPath(name);
 
             try {
-              await deleteFile(path);
+              await host.call("fs.deleteFile", { path, scope: TODO_SCOPE });
 
               if (get().selectedList === name) {
                 setState({ selectedList: null, content: null, items: [] }, "todo/removeList:clearSelected");
@@ -179,7 +196,7 @@ export const createTodoStore = () =>
             setState({ content: next, items: parseMarkdownTodos(next) }, "todo/setChecked:update");
 
             try {
-              await writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
+              await host.call("fs.writeFile", { path: joinListPath(selectedList), contents: next, scope: TODO_SCOPE });
             } catch (error) {
               setState(
                 {
@@ -205,7 +222,7 @@ export const createTodoStore = () =>
             setState({ content: next, items: parseMarkdownTodos(next), newItemText: "" }, "todo/addItem:apply");
 
             try {
-              await writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
+              await host.call("fs.writeFile", { path: joinListPath(selectedList), contents: next, scope: TODO_SCOPE });
             } catch (error) {
               setState(
                 {
@@ -231,7 +248,7 @@ export const createTodoStore = () =>
             setState({ content: next, items: parseMarkdownTodos(next) }, "todo/removeItem:apply");
 
             try {
-              await writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
+              await host.call("fs.writeFile", { path: joinListPath(selectedList), contents: next, scope: TODO_SCOPE });
             } catch (error) {
               setState(
                 {
@@ -258,7 +275,7 @@ export const createTodoStore = () =>
             );
 
             try {
-              await writeFile(`${TODO_LISTS_DIR}/${selectedList}`, next);
+              await host.call("fs.writeFile", { path: joinListPath(selectedList), contents: next, scope: TODO_SCOPE });
             } catch (error) {
               setState(
                 {
@@ -272,7 +289,7 @@ export const createTodoStore = () =>
           },
           initialize: async () => {
             try {
-              await ensureDirExists(TODO_LISTS_DIR, true);
+              await host.call("fs.mkdirp", { path: TODO_LISTS_DIR, scope: TODO_SCOPE });
 
               await get().refreshLists();
             } catch (error) {
