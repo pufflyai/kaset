@@ -51,19 +51,28 @@ export interface PluginModule {
 }
 
 /** One flat, namespaced host API (the exact shape you asked for). */
-export type HostApiMethod =
-  | "fs.readFile"
-  | "fs.writeFile"
-  | "fs.deleteFile"
-  | "fs.moveFile"
-  | "fs.exists"
-  | "fs.mkdirp"
-  | "log.statusUpdate"
-  | "log.info"
-  | "log.warn"
-  | "log.error"
-  | "settings.read"
-  | "settings.write";
+export const HOST_API_METHODS = [
+  "fs.readFile",
+  "fs.writeFile",
+  "fs.deleteFile",
+  "fs.moveFile",
+  "fs.exists",
+  "fs.mkdirp",
+  "log.statusUpdate",
+  "log.info",
+  "log.warn",
+  "log.error",
+  "settings.read",
+  "settings.write",
+] as const;
+
+export type HostApiMethod = (typeof HOST_API_METHODS)[number];
+
+const HOST_API_METHOD_SET = new Set<string>(HOST_API_METHODS);
+
+export const isHostApiMethod = (value: string): value is HostApiMethod => {
+  return HOST_API_METHOD_SET.has(value);
+};
 
 export type HostApiParams = {
   "fs.readFile": { path: string };

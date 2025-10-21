@@ -1,6 +1,6 @@
-import { desktopAPI } from "@/services/desktop/desktop-api";
 import { usePluginDependenciesReady } from "@/services/plugins/hooks/usePluginDependenciesReady";
 import { usePluginFilesRefresh } from "@/services/plugins/hooks/usePluginFileRefresh";
+import { usePluginActionHandler } from "@/services/plugins/hooks/usePluginActionHandler";
 import { Box, Button, Center, Text } from "@chakra-ui/react";
 import { TinyUI, type TinyUIStatus } from "@pstdio/tiny-ui";
 import { useCallback, useState } from "react";
@@ -49,10 +49,7 @@ export const PluginWindow = (props: PluginWindowProps) => {
     setStatus("error");
   }, []);
 
-  const handleActionCall = useCallback((actionId: string, payload: any) => {
-    console.log("Plugin action called:", actionId, payload);
-    desktopAPI[actionId as keyof typeof desktopAPI]?.(payload);
-  }, []);
+  const handleActionCall = usePluginActionHandler(pluginId);
 
   if (status === "idle" || !dependenciesReady) {
     return null;
