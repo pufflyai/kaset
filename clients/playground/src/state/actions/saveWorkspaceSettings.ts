@@ -1,4 +1,4 @@
-import { DEFAULT_WALLPAPER } from "../../constant";
+import { DEFAULT_THEME, DEFAULT_WALLPAPER } from "../../constant";
 import { useWorkspaceStore } from "../WorkspaceProvider";
 import type { WorkspaceSettings } from "../types";
 
@@ -12,7 +12,7 @@ export const saveWorkspaceSettings = (settings: WorkspaceSettings, actionName = 
       state.settings.mcpServers = settings.mcpServers.map((server) => ({ ...server }));
       state.settings.activeMcpServerIds =
         settings.activeMcpServerIds && settings.activeMcpServerIds.length > 0 ? [...settings.activeMcpServerIds] : [];
-      state.settings.theme = settings.theme ?? "light";
+      state.settings.theme = settings.theme ?? DEFAULT_THEME;
       state.settings.wallpaper = settings.wallpaper ?? DEFAULT_WALLPAPER;
       state.settings.reactScanEnabled = settings.reactScanEnabled ?? false;
     },

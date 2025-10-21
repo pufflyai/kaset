@@ -141,10 +141,10 @@ export function MessageList({ messages, streaming, onOpenFile, onUseExample, exa
         <EmptyState
           icon={<CassetteTapeIcon />}
           title="Welcome to the Kaset playground!"
-          description="Kaset [ka'set] is an experimental open source toolkit to add coding agents directly into your webapp."
+          description="Kaset [ka'set] is an experimental open source toolkit to make your webapps agentic and customizable by your users."
         >
           <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
-            Why? Check out our{" "}
+            Check out our{" "}
             <Link color="blue" href="https://kaset.dev">
               documentation
             </Link>
@@ -153,7 +153,7 @@ export function MessageList({ messages, streaming, onOpenFile, onUseExample, exa
           {hasCredentials() && (
             <VStack gap="sm" mt="sm" align="stretch">
               <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
-                Try one of these example prompts to get see it in action:
+                Try one of these example prompts to see what it can do:
               </Text>
               {examplesToShow.map((p) => (
                 <Button key={p} variant="outline" size="sm" onClick={() => handleUseExample(p)}>
