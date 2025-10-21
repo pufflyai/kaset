@@ -39,22 +39,31 @@ export async function watchDirectory(
   const ignoreFn = toIgnoreFn(ignore);
 
   // Snapshot map: "relative/path" -> metadata
-  let prev = new Map<string, { size: number; mtime: number; kind: "file" | "directory" }>();
+  let prev: Map<string, { size: number; mtime: number; kind: "file" | "directory" }> | null = null;
 
   async function snap() {
     const cur = new Map<string, { size: number; mtime: number; kind: "file" | "directory" }>();
     await walkFs(dirPath, cur, { recursive, ignoreFn });
     const changes: ChangeRecord[] = [];
 
+    if (prev === null) {
+      if (!emitInitial) {
+        prev = cur;
+        return;
+      }
+    }
+
+    const prevSnapshot = prev ?? new Map<string, { size: number; mtime: number; kind: "file" | "directory" }>();
+
     for (const [path, meta] of cur) {
-      const before = prev.get(path);
+      const before = prevSnapshot.get(path);
       if (!before) {
         changes.push({
           type: "appeared",
           path: path.split("/"),
           size: meta.size,
           lastModified: meta.mtime,
-          handleKind: meta.kind as any,
+          handleKind: meta.kind,
         });
       } else if (before.size !== meta.size || before.mtime !== meta.mtime) {
         changes.push({
@@ -62,12 +71,12 @@ export async function watchDirectory(
           path: path.split("/"),
           size: meta.size,
           lastModified: meta.mtime,
-          handleKind: meta.kind as any,
+          handleKind: meta.kind,
         });
       }
     }
 
-    for (const [path] of prev) {
+    for (const [path] of prevSnapshot) {
       if (!cur.has(path)) {
         changes.push({ type: "disappeared", path: path.split("/") });
       }
@@ -77,7 +86,7 @@ export async function watchDirectory(
     prev = cur;
   }
 
-  if (emitInitial) await snap();
+  await snap();
 
   let timer = setInterval(snap, intervalMs);
 
@@ -149,8 +158,8 @@ async function walkFs(
         const fake: any = { kind: "file" };
         if (opts.ignoreFn(rel.split("/"), fake)) continue;
         out.set(rel, {
-          size: Number((st as any).size ?? 0),
-          mtime: Number((st as any).mtimeMs ?? 0),
+          size: Number(st.size ?? 0),
+          mtime: Number(st.mtimeMs ?? 0),
           kind: "file",
         });
       }
