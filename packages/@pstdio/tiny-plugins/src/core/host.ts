@@ -1,3 +1,4 @@
+import { host as rimlessHost } from "rimless";
 import { ls, normalizeRoot, type ChangeRecord } from "@pstdio/opfs-utils";
 import { CommandRegistry } from "./commands";
 import { mergeDependencies } from "./dependencies";
@@ -20,6 +21,7 @@ import type {
   StatusUpdate,
 } from "./types";
 import { listFiles, watchPluginDir, watchPluginsRoot } from "./watchers";
+import type { Connection } from "rimless";
 
 type Events = {
   pluginChange: { pluginId: string; payload: PluginChangePayload };
@@ -32,12 +34,36 @@ type Events = {
 
 const DEFAULT_HOST_API_VERSION = "v1";
 
+type HostApiCallPayload<M extends HostApiMethod = HostApiMethod> = {
+  method: M;
+  params: HostApiParams[M];
+};
+
+type WorkerRemoteSchema = {
+  init(payload: { pluginId: string; manifest: Manifest; moduleUrl: string }): Promise<{ commandIds: string[] }>;
+  runCommand(payload: { commandId: string; params?: unknown }): Promise<unknown>;
+  shutdown(): Promise<void>;
+};
+
+type WorkerConnection = Connection & { remote: WorkerRemoteSchema };
+
+interface WorkerBridge {
+  init(manifest: Manifest, moduleUrl: string): Promise<{ commandIds: string[] }>;
+  runCommand(commandId: string, params?: unknown): Promise<unknown>;
+  shutdown(): Promise<void>;
+  close(): void;
+}
+
 export function createHost(options: HostOptions) {
   const root = normalizeRoot(options.root, { fallback: "plugins" });
   const dataRoot = normalizeRoot(options.dataRoot, { fallback: "plugin_data" });
   const watch = options.watch ?? true;
   const notify = options.notify;
   const hostApiVersion = options.hostApiVersion ?? DEFAULT_HOST_API_VERSION;
+  const workerEnabled = Boolean(options.useWorkers && typeof Worker !== "undefined");
+  const workerScriptUrl = workerEnabled
+    ? new URL(/* @vite-ignore */ "./runtime/pluginWorker.ts", import.meta.url)
+    : null;
 
   const emitter = new Emitter<Events>();
   const commands = new CommandRegistry(options.defaultTimeoutMs);
@@ -51,6 +77,7 @@ export function createHost(options: HostOptions) {
       plugin?: PluginModule["default"];
       watcherCleanup?: () => void | Promise<void>;
       ctx?: PluginContext;
+      worker?: WorkerBridge;
     }
   >();
   let rootWatcherCleanup: (() => void | Promise<void>) | undefined;
@@ -154,6 +181,110 @@ export function createHost(options: HostOptions) {
     return { call } satisfies HostApi;
   }
 
+  function toWorkerError(error: unknown, fallback: string): Error {
+    if (error instanceof Error) return error;
+    if (error && typeof error === "object" && "message" in error) {
+      const message =
+        typeof (error as { message: unknown }).message === "string" ? (error as { message: string }).message : fallback;
+      const err = new Error(message);
+      if ("name" in error && typeof (error as { name: unknown }).name === "string") {
+        err.name = (error as { name: string }).name;
+      }
+      if ("stack" in error && typeof (error as { stack: unknown }).stack === "string") {
+        err.stack = (error as { stack: string }).stack;
+      }
+      return err;
+    }
+    return new Error(typeof error === "string" ? error : fallback);
+  }
+
+  async function createWorkerBridge(pluginId: string, scriptUrl: URL, api: HostApi): Promise<WorkerBridge> {
+    const worker = new Worker(scriptUrl, { type: "module" });
+
+    const hostHandlers = {
+      async callHostApi<M extends HostApiMethod>({ method, params }: HostApiCallPayload<M>) {
+        return api.call(method, params);
+      },
+    };
+
+    let connection: WorkerConnection;
+    try {
+      connection = (await rimlessHost.connect(worker, hostHandlers)) as WorkerConnection;
+    } catch (error) {
+      worker.terminate();
+      throw toWorkerError(error, `Failed to establish worker connection for ${pluginId}`);
+    }
+
+    let closed = false;
+    let shutdownPromise: Promise<void> | null = null;
+
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      connection.close();
+    };
+
+    const init = async (manifest: Manifest, moduleUrl: string) => {
+      try {
+        return await connection.remote.init({ pluginId, manifest, moduleUrl });
+      } catch (error) {
+        throw toWorkerError(error, `Failed to initialize worker for ${pluginId}`);
+      }
+    };
+
+    const runCommand = async (commandId: string, params?: unknown) => {
+      try {
+        return await connection.remote.runCommand({ commandId, params });
+      } catch (error) {
+        throw toWorkerError(error, `Failed to run command ${commandId} for ${pluginId}`);
+      }
+    };
+
+    const shutdown = async () => {
+      if (!shutdownPromise) {
+        shutdownPromise = connection.remote
+          .shutdown()
+          .catch((error) => {
+            throw toWorkerError(error, `Worker shutdown failed for ${pluginId}`);
+          })
+          .finally(() => {
+            close();
+          });
+      }
+      return shutdownPromise;
+    };
+
+    return {
+      init,
+      runCommand,
+      shutdown,
+      close,
+    } satisfies WorkerBridge;
+  }
+
+  async function disposeWorkerBridge(pluginId: string, bridge: WorkerBridge | undefined, moduleUrl?: string) {
+    if (!bridge) {
+      if (moduleUrl) URL.revokeObjectURL(moduleUrl);
+      return;
+    }
+
+    try {
+      await bridge.shutdown();
+    } catch (error) {
+      console.warn(`[tiny-plugins] Worker shutdown error for ${pluginId}`, error);
+    } finally {
+      bridge.close();
+    }
+
+    if (moduleUrl) URL.revokeObjectURL(moduleUrl);
+  }
+
+  function runCommandWithWorker(pluginId: string, commandId: string, params?: unknown) {
+    const state = states.get(pluginId);
+    if (!state?.worker) throw new Error(`Worker for ${pluginId} is not available`);
+    return state.worker.runCommand(commandId, params);
+  }
+
   async function loadPlugin(pluginId: string, options?: { emitChange?: boolean }) {
     const shouldEmitChange = options?.emitChange !== false;
     const prevState = states.get(pluginId);
@@ -195,41 +326,89 @@ export function createHost(options: HostOptions) {
     const blob = new Blob([code], { type: "text/javascript" });
     const url = URL.createObjectURL(blob);
 
-    let mod: PluginModule;
-    try {
-      mod = (await import(/* @vite-ignore */ url)) as PluginModule;
-    } catch (e) {
-      URL.revokeObjectURL(url);
-      throw new Error(`Failed to import ${pluginId}:${entry} - ${(e as Error).message}`);
-    }
-
-    const plugin = mod?.default;
-    if (!plugin || typeof plugin.activate !== "function") {
-      URL.revokeObjectURL(url);
-      throw new Error(`Plugin ${pluginId} default export must implement activate()`);
-    }
-
     const ctx: PluginContext = {
       id: pluginId,
       manifest,
       api: buildHostApi(pluginId),
     };
 
-    await plugin.activate(ctx);
-    commands.register(pluginId, manifest.commands, mod.commands);
+    let nextState:
+      | {
+          manifest: Manifest;
+          moduleUrl: string;
+          module?: PluginModule;
+          plugin?: PluginModule["default"];
+          ctx: PluginContext;
+          watcherCleanup?: () => void | Promise<void>;
+          worker?: WorkerBridge;
+        }
+      | undefined;
 
-    if (prevState?.moduleUrl) URL.revokeObjectURL(prevState.moduleUrl);
+    if (workerEnabled && workerScriptUrl) {
+      let bridge: WorkerBridge | undefined;
+      try {
+        bridge = await createWorkerBridge(pluginId, workerScriptUrl, ctx.api);
+        const readyResult = await bridge.init(manifest, url);
 
-    const nextState = {
-      manifest,
-      moduleUrl: url,
-      module: mod,
-      plugin,
-      ctx,
-      watcherCleanup: prevState?.watcherCleanup,
-    };
+        const handlers: Record<string, (ctx: PluginContext, params?: unknown) => Promise<unknown | void> | unknown> =
+          {};
+        readyResult.commandIds.forEach((commandId) => {
+          handlers[commandId] = (_ctx, params) => runCommandWithWorker(pluginId, commandId, params);
+        });
+
+        commands.register(pluginId, manifest.commands, handlers);
+
+        nextState = {
+          manifest,
+          moduleUrl: url,
+          ctx,
+          watcherCleanup: prevState?.watcherCleanup,
+          worker: bridge,
+        };
+      } catch (error) {
+        await disposeWorkerBridge(pluginId, bridge, url);
+        throw toWorkerError(error, `Failed to initialize worker for ${pluginId}:${entry}`);
+      }
+    } else {
+      let mod: PluginModule;
+      try {
+        mod = (await import(/* @vite-ignore */ url)) as PluginModule;
+      } catch (e) {
+        URL.revokeObjectURL(url);
+        throw new Error(`Failed to import ${pluginId}:${entry} - ${(e as Error).message}`);
+      }
+
+      const plugin = mod?.default;
+      if (!plugin || typeof plugin.activate !== "function") {
+        URL.revokeObjectURL(url);
+        throw new Error(`Plugin ${pluginId} default export must implement activate()`);
+      }
+
+      await plugin.activate(ctx);
+      commands.register(pluginId, manifest.commands, mod.commands);
+
+      nextState = {
+        manifest,
+        moduleUrl: url,
+        module: mod,
+        plugin,
+        ctx,
+        watcherCleanup: prevState?.watcherCleanup,
+      };
+    }
+
+    if (!nextState) {
+      URL.revokeObjectURL(url);
+      throw new Error(`Failed to initialize state for ${pluginId}`);
+    }
 
     states.set(pluginId, nextState);
+
+    if (prevState?.worker) {
+      await disposeWorkerBridge(pluginId, prevState.worker, prevState.moduleUrl);
+    } else if (prevState?.moduleUrl) {
+      URL.revokeObjectURL(prevState.moduleUrl);
+    }
 
     if (shouldEmitPluginsChange(prevState, nextState)) emitPluginsChange();
 
@@ -254,7 +433,11 @@ export function createHost(options: HostOptions) {
     } catch (e) {
       console.warn(`[tiny-plugins] deactivate error for ${pluginId}`, e);
     }
-    if (s?.moduleUrl) URL.revokeObjectURL(s.moduleUrl);
+    if (s?.worker) {
+      await disposeWorkerBridge(pluginId, s.worker, s.moduleUrl);
+    } else if (s?.moduleUrl) {
+      URL.revokeObjectURL(s.moduleUrl);
+    }
     states.delete(pluginId);
   }
 
