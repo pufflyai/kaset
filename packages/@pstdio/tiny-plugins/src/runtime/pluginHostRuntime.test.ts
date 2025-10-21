@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Manifest, PluginChangePayload } from "../core/types";
+import type { HostApi, Manifest, PluginChangePayload } from "../core/types";
 
 vi.mock("@pstdio/opfs-utils", () => ({
   normalizeRoot: vi.fn(
@@ -213,12 +213,17 @@ function createHostFixture(manifest: Manifest) {
     runCommand: vi.fn(async () => {}),
     readSettings: vi.fn(async () => ({})),
     updateSettings: vi.fn(async () => {}),
-    createHostApiFor: vi.fn(() => ({
-      "fs.readFile": vi.fn(async (path: string) => {
-        if (path !== "manifest.json") throw new Error(`Unexpected path: ${path}`);
-        return new TextEncoder().encode(JSON.stringify(manifest));
-      }),
-    })),
+    createHostApiFor: vi.fn(() => {
+      const api = {
+        call: vi.fn(async (method: string, params?: { path?: string }) => {
+          if (method !== "fs.readFile") throw new Error(`Unexpected method: ${method}`);
+          const path = params?.path;
+          if (path !== "manifest.json") throw new Error(`Unexpected path: ${path}`);
+          return new TextEncoder().encode(JSON.stringify(manifest));
+        }),
+      };
+      return api as HostApi;
+    }),
   };
 
   return {
