@@ -3,7 +3,7 @@ import { CommandRegistry } from "../commands";
 import { Emitter } from "../events";
 import type { HostOptions, PluginChangePayload, StatusUpdate } from "../types";
 import { watchPluginsRoot } from "../watchers";
-import { collectMetadata, getPluginDependencies } from "./utils";
+import { collectMetadata, deriveWorkspaceRoot, getPluginDependencies } from "./utils";
 import type { Events, HostRuntime, LifecycleHooks } from "./internalTypes";
 import { handlePluginAddition, handlePluginRemoval, loadPlugin, startPluginWatcher, unloadPlugin } from "./plugins";
 import { buildHostApi } from "./hostApi";
@@ -16,6 +16,7 @@ export function createHost(options: HostOptions) {
   const watch = options.watch ?? true;
   const notify = options.notify;
   const hostApiVersion = options.hostApiVersion ?? DEFAULT_HOST_API_VERSION;
+  const workspaceRoot = deriveWorkspaceRoot(root, dataRoot);
   const workerEnabled = typeof Worker !== "undefined";
 
   const emitter = new Emitter<Events>();
@@ -26,6 +27,7 @@ export function createHost(options: HostOptions) {
   const runtime: HostRuntime = {
     root,
     dataRoot,
+    workspaceRoot,
     watch,
     notify,
     hostApiVersion,
@@ -159,12 +161,12 @@ export function createHost(options: HostOptions) {
   }
 
   async function updateSettings<T = unknown>(pluginId: string, value: T) {
-    const api = buildHostApi({ root, dataRoot, pluginId, notify, emitter });
+    const api = buildHostApi({ root, dataRoot, workspaceRoot, pluginId, notify, emitter });
     await api.call("settings.write", { value });
   }
 
   async function readSettings<T = unknown>(pluginId: string) {
-    const api = buildHostApi({ root, dataRoot, pluginId, notify, emitter });
+    const api = buildHostApi({ root, dataRoot, workspaceRoot, pluginId, notify, emitter });
     return api.call("settings.read") as Promise<T>;
   }
 
@@ -175,7 +177,7 @@ export function createHost(options: HostOptions) {
   }
 
   function createHostApiFor(pluginId: string) {
-    return buildHostApi({ root, dataRoot, pluginId, notify, emitter });
+    return buildHostApi({ root, dataRoot, workspaceRoot, pluginId, notify, emitter });
   }
 
   return {
