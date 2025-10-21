@@ -4,10 +4,9 @@ let initialized = false;
 
 export const updateReactScanState = (enabled: boolean) => {
   if (!initialized) {
-    scan({ showToolbar: enabled });
+    scan();
     initialized = true;
-    return;
   }
 
-  setOptions({ showToolbar: enabled });
+  setOptions({ showToolbar: enabled, enabled: false });
 };
