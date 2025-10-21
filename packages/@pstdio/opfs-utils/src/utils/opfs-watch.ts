@@ -158,8 +158,8 @@ async function walkFs(
         const fake: any = { kind: "file" };
         if (opts.ignoreFn(rel.split("/"), fake)) continue;
         out.set(rel, {
-          size: Number((st as any).size ?? 0),
-          mtime: Number((st as any).mtimeMs ?? 0),
+          size: Number(st.size ?? 0),
+          mtime: Number(st.mtimeMs ?? 0),
           kind: "file",
         });
       }
