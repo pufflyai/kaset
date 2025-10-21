@@ -1,7 +1,12 @@
 export { createHost } from "./core/host";
+export { HOST_API_METHODS, isHostApiMethod } from "./core/types";
+
 export type {
   CommandDefinition,
   HostApi,
+  HostApiMethod,
+  HostApiParams,
+  HostApiResult,
   HostOptions,
   Manifest,
   PluginChangePayload,

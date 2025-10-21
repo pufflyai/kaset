@@ -2,7 +2,14 @@ import { normalizeRoot, type ChangeRecord } from "@pstdio/opfs-utils";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import { createToolsForCommands } from "../adapters/tiny-ai-tasks";
 import { createHost } from "../core/host";
-import type { CommandDefinition, HostOptions, Manifest, PluginChangePayload, PluginMetadata } from "../core/types";
+import type {
+  CommandDefinition,
+  HostApi,
+  HostOptions,
+  Manifest,
+  PluginChangePayload,
+  PluginMetadata,
+} from "../core/types";
 
 type Host = ReturnType<typeof createHost>;
 type HostCommand = CommandDefinition & { pluginId: string };
@@ -34,6 +41,7 @@ export interface PluginHostRuntime {
   isReady(): boolean;
   getPluginsRoot(): string;
   setPluginsRoot(root: string): Promise<void>;
+  createHostApi(pluginId: string): Promise<HostApi>;
   getPluginCommands(): PluginCommand[];
   getPluginTools(): Tool[];
   subscribeToPluginCommands(listener: (commands: PluginCommand[]) => void): () => void;
@@ -431,6 +439,10 @@ export function createPluginHostRuntime(options: PluginHostRuntimeOptions = {}):
     isReady: () => hostReady,
     getPluginsRoot: () => pluginsRoot,
     setPluginsRoot,
+    createHostApi: async (pluginId) => {
+      const instance = await ensureHost();
+      return instance.createHostApiFor(pluginId);
+    },
     getPluginCommands: () => collectPluginCommands(),
     getPluginTools: () => [...pluginTools],
     subscribeToPluginCommands: (listener) => {

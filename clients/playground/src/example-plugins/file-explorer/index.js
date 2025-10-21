@@ -55,11 +55,10 @@ export const commands = {
     const normalized = normalizePathInput(input);
 
     const delivered = notifyChannel(normalized);
+
     if (!delivered) {
-      ctx.commands?.notify?.(
-        "warn",
-        normalized ? `Open File Explorer manually to view ${normalized}` : "Open File Explorer manually",
-      );
+      const message = normalized ? `Open File Explorer manually to view ${normalized}` : "Open File Explorer manually";
+      await ctx.api.call("log.warn", { message });
     }
   },
 };
