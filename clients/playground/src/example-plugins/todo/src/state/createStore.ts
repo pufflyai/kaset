@@ -1,14 +1,104 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import type { FsScope } from "@pstdio/tiny-plugins";
-import type { TinyUiHost } from "../host";
+import type { FsScope, TinyUiHost } from "../host";
 import type { TodoItem, TodoStore } from "./types";
 
 const TODO_SCOPE: FsScope = "data";
 export const TODO_LISTS_DIR = "lists";
 
 const textDecoder = new TextDecoder();
+const HOST_CALL_MAX_ATTEMPTS = 5;
+const HOST_CALL_RETRY_DELAY_MS = 80;
+const RETRYABLE_HOST_ERROR_PATTERNS = [
+  /Tiny UI host ops handler not registered/i,
+  /message port closed before a response was received/i,
+  /connection (?:is )?(?:closing|closed)/i,
+  /target frame has been detached/i,
+];
+
+const wait = (ms: number) =>
+  new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+
+function getErrorMessage(error: unknown) {
+  if (!error) return "";
+  if (typeof error === "string") return error;
+  const record = error as { message?: unknown };
+  if (typeof record.message === "string") return record.message;
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+function isRetryableHostError(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+  const { name } = error as { name?: unknown };
+  if (name === "NotFoundError") return false;
+  const message = getErrorMessage(error);
+  if (!message) return false;
+  return RETRYABLE_HOST_ERROR_PATTERNS.some((pattern) => pattern.test(message));
+}
+
+async function callHost<T>(
+  host: TinyUiHost,
+  method: string,
+  params?: Record<string, unknown>,
+  attempt = 0,
+): Promise<T> {
+  try {
+    return await host.call<T>(method, params);
+  } catch (error) {
+    if (attempt >= HOST_CALL_MAX_ATTEMPTS - 1 || !isRetryableHostError(error)) {
+      throw error;
+    }
+
+    await wait(HOST_CALL_RETRY_DELAY_MS * (attempt + 1));
+    return callHost<T>(host, method, params, attempt + 1);
+  }
+}
+
+// IN THE FUTURE WE SHOULD NOT SERIALIZE/DE-SERIALIZE ARRAY BUFFERS LIKE THIS
+// WE NEED TO UPGRADE RIMLESS
+
+function isNodeBufferLike(value: unknown): value is { type: "Buffer"; data: number[] } {
+  if (!value || typeof value !== "object") return false;
+  if (Array.isArray(value)) return false;
+  const record = value as { type?: unknown; data?: unknown };
+  return record.type === "Buffer" && Array.isArray(record.data);
+}
+
+function toUint8Array(value: unknown): Uint8Array {
+  if (value instanceof Uint8Array) return value;
+
+  if (value instanceof ArrayBuffer) {
+    return new Uint8Array(value);
+  }
+
+  if (ArrayBuffer.isView(value)) {
+    const view = value as ArrayBufferView;
+    return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
+  }
+
+  if (Array.isArray(value)) {
+    return Uint8Array.from(value);
+  }
+
+  if (isNodeBufferLike(value)) {
+    return Uint8Array.from(value.data);
+  }
+
+  throw new Error("Unsupported file contents");
+}
+
+function decodeFileContents(value: unknown): string {
+  if (typeof value === "string") return value;
+  const bytes = toUint8Array(value);
+  return textDecoder.decode(bytes);
+}
 
 function parseMarkdownTodos(md: string): TodoItem[] {
   const lines = md.split("\n");
@@ -54,10 +144,8 @@ function replaceTodoTextAtLine(md: string, lineIndex: number, nextText: string):
 
 const joinListPath = (name: string) => (TODO_LISTS_DIR ? `${TODO_LISTS_DIR}/${name}` : name);
 
-const decodeText = (bytes: Uint8Array) => textDecoder.decode(bytes);
-
 const listMarkdownFiles = async (host: TinyUiHost) => {
-  const entries = await host.call<Array<{ name: string }>>("fs.ls", {
+  const entries = await callHost<Array<{ name: string }>>(host, "fs.ls", {
     path: TODO_LISTS_DIR,
     scope: TODO_SCOPE,
     options: { maxDepth: 1, kinds: ["file"], include: ["*.md"] },
@@ -93,7 +181,7 @@ export const createTodoStore = (host: TinyUiHost) =>
 
             try {
               setState({ error: null }, "todo/refreshLists:resetError");
-              await host.call("fs.mkdirp", { path: TODO_LISTS_DIR, scope: TODO_SCOPE });
+              await callHost(host, "fs.mkdirp", { path: TODO_LISTS_DIR, scope: TODO_SCOPE });
 
               const names = (await listMarkdownFiles(host)).sort((a, b) => a.localeCompare(b));
               const nextSelected = names.includes(previousSelected ?? "") ? previousSelected : (names[0] ?? null);
@@ -118,8 +206,8 @@ export const createTodoStore = (host: TinyUiHost) =>
             const path = joinListPath(fileName);
 
             try {
-              const bytes = await host.call<Uint8Array>("fs.readFile", { path, scope: TODO_SCOPE });
-              const md = decodeText(bytes);
+              const contents = await callHost(host, "fs.readFile", { path, scope: TODO_SCOPE });
+              const md = decodeFileContents(contents);
 
               setState(
                 {
@@ -150,7 +238,7 @@ export const createTodoStore = (host: TinyUiHost) =>
             const path = joinListPath(name);
 
             try {
-              await host.call("fs.writeFile", { path, contents: "- [ ] New item\n", scope: TODO_SCOPE });
+              await callHost(host, "fs.writeFile", { path, contents: "- [ ] New item\n", scope: TODO_SCOPE });
               setState({ newListName: "" }, "todo/addList:resetNewListName");
 
               await get().refreshLists();
@@ -163,7 +251,7 @@ export const createTodoStore = (host: TinyUiHost) =>
             const path = joinListPath(name);
 
             try {
-              await host.call("fs.deleteFile", { path, scope: TODO_SCOPE });
+              await callHost(host, "fs.deleteFile", { path, scope: TODO_SCOPE });
 
               if (get().selectedList === name) {
                 setState({ selectedList: null, content: null, items: [] }, "todo/removeList:clearSelected");
@@ -196,7 +284,11 @@ export const createTodoStore = (host: TinyUiHost) =>
             setState({ content: next, items: parseMarkdownTodos(next) }, "todo/setChecked:update");
 
             try {
-              await host.call("fs.writeFile", { path: joinListPath(selectedList), contents: next, scope: TODO_SCOPE });
+              await callHost(host, "fs.writeFile", {
+                path: joinListPath(selectedList),
+                contents: next,
+                scope: TODO_SCOPE,
+              });
             } catch (error) {
               setState(
                 {
@@ -222,7 +314,11 @@ export const createTodoStore = (host: TinyUiHost) =>
             setState({ content: next, items: parseMarkdownTodos(next), newItemText: "" }, "todo/addItem:apply");
 
             try {
-              await host.call("fs.writeFile", { path: joinListPath(selectedList), contents: next, scope: TODO_SCOPE });
+              await callHost(host, "fs.writeFile", {
+                path: joinListPath(selectedList),
+                contents: next,
+                scope: TODO_SCOPE,
+              });
             } catch (error) {
               setState(
                 {
@@ -248,7 +344,11 @@ export const createTodoStore = (host: TinyUiHost) =>
             setState({ content: next, items: parseMarkdownTodos(next) }, "todo/removeItem:apply");
 
             try {
-              await host.call("fs.writeFile", { path: joinListPath(selectedList), contents: next, scope: TODO_SCOPE });
+              await callHost(host, "fs.writeFile", {
+                path: joinListPath(selectedList),
+                contents: next,
+                scope: TODO_SCOPE,
+              });
             } catch (error) {
               setState(
                 {
@@ -275,7 +375,11 @@ export const createTodoStore = (host: TinyUiHost) =>
             );
 
             try {
-              await host.call("fs.writeFile", { path: joinListPath(selectedList), contents: next, scope: TODO_SCOPE });
+              await callHost(host, "fs.writeFile", {
+                path: joinListPath(selectedList),
+                contents: next,
+                scope: TODO_SCOPE,
+              });
             } catch (error) {
               setState(
                 {
@@ -289,7 +393,7 @@ export const createTodoStore = (host: TinyUiHost) =>
           },
           initialize: async () => {
             try {
-              await host.call("fs.mkdirp", { path: TODO_LISTS_DIR, scope: TODO_SCOPE });
+              await callHost(host, "fs.mkdirp", { path: TODO_LISTS_DIR, scope: TODO_SCOPE });
 
               await get().refreshLists();
             } catch (error) {

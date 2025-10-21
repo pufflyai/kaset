@@ -1,8 +1,7 @@
 import { Box, Breadcrumb, Flex, Text } from "@chakra-ui/react";
-import type { FsScope } from "@pstdio/tiny-plugins";
 import { FileText, FolderClosed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import type { TinyUiHost } from "../host";
+import type { FsScope, TinyUiHost } from "../host";
 import { useFsTree, type FsNode } from "../hooks/fs";
 
 interface FileExplorerProps {
@@ -158,17 +157,13 @@ export function FileExplorer(props: FileExplorerProps) {
               }}
               onClick={() => {
                 if (directory) {
-                  console.info("[file-explorer] Navigating into directory", { id: node.id });
                   setCurrentPath(node.id);
                   return;
                 }
 
-                console.info("[file-explorer] Requesting host to open file", { id: node.id, name: node.name });
                 const result = onOpenFile?.(node.id, { displayName: node.name });
                 if (result instanceof Promise) {
-                  result.catch((error) => {
-                    console.error("[file-explorer] Failed to open file", error);
-                  });
+                  result.catch(() => undefined);
                 }
               }}
             >

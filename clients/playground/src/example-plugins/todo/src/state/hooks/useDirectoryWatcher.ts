@@ -16,30 +16,14 @@ export function useDirectoryWatcher(store: StoreApi<TodoStore>) {
 
       try {
         await store.getState().refreshLists();
-      } catch (error) {
-        if (!cancelled) {
-          console.warn("Todo refresh error", error);
-        }
       } finally {
         running = false;
       }
     };
 
-    (async () => {
-      try {
-        await store.getState().initialize();
-      } catch (error) {
-        console.warn("Todo initialization error", error);
-      }
-    })();
-
     if (typeof window !== "undefined" && typeof window.setInterval === "function") {
       intervalId = window.setInterval(() => {
-        refreshSafely().catch((error) => {
-          if (!cancelled) {
-            console.warn("Todo polling error", error);
-          }
-        });
+        refreshSafely().catch(() => undefined);
       }, POLL_INTERVAL_MS);
     }
 

@@ -39,7 +39,7 @@ const notifyChannel = (path) => {
     channel.close();
     return true;
   } catch (error) {
-    console.warn("[file-explorer] Failed to notify window via BroadcastChannel", error);
+    ctx.api.call("log.warn", { message: "[file-explorer] Failed to notify window via BroadcastChannel" });
     return false;
   }
 };

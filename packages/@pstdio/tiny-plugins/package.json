@@ -43,6 +43,7 @@
     "@types/picomatch": "^4.0.2",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
+    "@types/semver": "^7.7.1",
     "jsdom": "^26.1.0",
     "storybook": "^9.1.2",
     "storybook-addon-vis": "^2.1.2",

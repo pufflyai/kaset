@@ -281,7 +281,7 @@ export function TodoList() {
 
               {error && (
                 <Text fontSize="sm" color="red.400">
-                  {String(error)}
+                  {JSON.stringify(error, null, 2)}
                 </Text>
               )}
             </Box>

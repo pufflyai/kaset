@@ -5,7 +5,6 @@ import {
   ROOT_FILE_PREFIX,
   createDesktopFileApp,
   getRootFilePathFromAppId,
-  normalizeDesktopFilePath,
   type DesktopOpenFileDetail,
 } from "@/services/desktop/desktop-file-icons";
 import { usePluginSources } from "@/services/plugins/hooks/usePluginSources";
@@ -249,7 +248,7 @@ export const Desktop = () => {
         return;
       }
 
-      const normalizedPath = normalizeDesktopFilePath(rawPath);
+      const normalizedPath = rawPath;
       const displayName = typeof detail?.displayName === "string" ? detail.displayName : undefined;
       console.info("[desktop] Received open file event", { normalizedPath, displayName });
 

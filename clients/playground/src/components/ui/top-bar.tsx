@@ -1,4 +1,4 @@
-import { ROOT } from "@/constant";
+import { Tooltip } from "@/kas-ui";
 import { createConversation } from "@/state/actions/createConversation";
 import { deleteAllConversations as deleteAllConversationsAction } from "@/state/actions/deleteAllConversations";
 import { resetWorkspace } from "@/state/actions/resetWorkspace";
@@ -31,7 +31,6 @@ import {
 } from "lucide-react";
 import { type ReactNode } from "react";
 import { SettingsModal } from "../../components/ui/settings-modal";
-import { Tooltip } from "@/kas-ui";
 import { resetPlayground } from "../../services/playground/reset";
 import { CommitHistory } from "./commit-history";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
@@ -187,9 +186,9 @@ export function TopBar(props: TopBarProps) {
         open={resetProject.open}
         onClose={resetProject.onClose}
         onDelete={handleResetProject}
-        headline={`Reset playground`}
-        notificationText={`Remove all files under "${ROOT}" and restore default files?`}
-        buttonText="Reset project"
+        headline={`Reset Playground`}
+        notificationText={`Delete all files and restore default files? This actions cannot be undone.`}
+        buttonText="Reset"
         closeOnInteractOutside={false}
       />
       <Drawer.Root open={versionHistory.open} onOpenChange={handleVersionHistoryChange}>

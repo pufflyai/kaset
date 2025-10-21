@@ -1,7 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
-import type { FsScope } from "@pstdio/tiny-plugins";
-import type { LsEntry } from "@pstdio/opfs-utils";
-import type { TinyUiHost } from "../host";
+import { useEffect, useState } from "react";
+import type { FsScope, TinyUiHost } from "../host";
 
 export interface FsNode {
   id: string;
@@ -9,191 +7,138 @@ export interface FsNode {
   children?: FsNode[];
 }
 
-const textDecoder = new TextDecoder();
+type LsEntry = { path: string; kind: "file" | "directory" };
 
-const normalizePath = (path: string | null | undefined) => {
-  if (!path) return "";
-  return path
+const POLL_INTERVAL_MS = 2000;
+
+const norm = (s?: string | null) =>
+  (s || "")
     .split("/")
-    .map((segment) => segment.trim())
-    .filter((segment) => segment.length > 0)
+    .map((x) => x.trim())
+    .filter(Boolean)
     .join("/");
+
+const join = (a: string, b: string) => {
+  const A = norm(a),
+    B = norm(b);
+  return A && B ? `${A}/${B}` : A || B || "/";
 };
 
-const joinPaths = (base: string, relative: string) => {
-  const normalizedBase = normalizePath(base);
-  const normalizedRelative = normalizePath(relative);
-  if (!normalizedBase) return normalizedRelative;
-  if (!normalizedRelative) return normalizedBase;
-  return `${normalizedBase}/${normalizedRelative}`;
+const base = (p?: string | null) => {
+  const n = norm(p);
+  return n ? n.split("/").pop()! : "/";
 };
 
-const deriveNameFromPath = (path: string) => {
-  const normalized = normalizePath(path);
-  if (!normalized) return "/";
-  const segments = normalized.split("/");
-  return segments[segments.length - 1] || "/";
-};
-
-const createRootNode = (absoluteId: string, label: string): FsNode => ({
-  id: absoluteId || "/",
-  name: label || "/",
-  children: [],
-});
-
-const sortTree = (node: FsNode) => {
-  if (!Array.isArray(node.children)) return;
-
-  node.children.sort((a, b) => {
-    const aIsDir = Array.isArray(a.children);
-    const bIsDir = Array.isArray(b.children);
-    if (aIsDir !== bIsDir) return aIsDir ? -1 : 1;
-    return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
-  });
-
-  for (const child of node.children) {
-    if (Array.isArray(child.children)) sortTree(child);
-  }
+const absRoot = (scopeRoot?: string | null, root?: string | null) => {
+  const s = norm(scopeRoot),
+    r = norm(root);
+  if (!r) return s || "/";
+  if (!s) return r;
+  return r === s || r.startsWith(`${s}/`) ? r : `${s}/${r}`;
 };
 
 const buildTree = (entries: LsEntry[], rootId: string, rootName: string): FsNode => {
-  const root = createRootNode(rootId, rootName);
-  const nodeMap = new Map<string, FsNode>();
-  nodeMap.set("", root);
+  const root: FsNode = { id: rootId || "/", name: rootName || "/", children: [] };
+  const dirs = new Map<string, FsNode>([["", root]]);
 
-  const ensureDirectory = (relative: string) => {
-    const normalized = normalizePath(relative);
-    if (!normalized) return root;
-
-    const segments = normalized.split("/");
-    let parentKey = "";
-    let parentNode = root;
-
-    for (const segment of segments) {
-      const currentKey = parentKey ? `${parentKey}/${segment}` : segment;
-      let node = nodeMap.get(currentKey);
-
-      if (!node) {
-        node = { id: joinPaths(rootId, currentKey), name: segment, children: [] };
-        nodeMap.set(currentKey, node);
-        parentNode.children = parentNode.children ?? [];
-        parentNode.children.push(node);
+  const ensureDir = (rel: string) => {
+    const key = norm(rel);
+    if (!key) return root;
+    let path = "";
+    for (const seg of key.split("/")) {
+      path = path ? `${path}/${seg}` : seg;
+      if (!dirs.has(path)) {
+        const node: FsNode = { id: join(rootId, path), name: seg, children: [] };
+        const parent = dirs.get(path.split("/").slice(0, -1).join("/")) || root;
+        (parent.children ||= []).push(node);
+        dirs.set(path, node);
       }
-
-      if (!Array.isArray(node.children)) {
-        node.children = [];
-      }
-
-      parentNode = node;
-      parentKey = currentKey;
     }
-
-    return parentNode;
+    return dirs.get(key)!;
   };
 
-  for (const entry of entries) {
-    const relativePath = normalizePath(entry.path);
-
-    if (entry.kind === "directory") {
-      ensureDirectory(relativePath);
+  const files = new Set<string>();
+  for (const e of entries) {
+    const rel = norm(e.path);
+    if (!rel) continue;
+    if (e.kind === "directory") {
+      ensureDir(rel);
       continue;
     }
-
-    if (!relativePath) continue;
-
-    const segments = relativePath.split("/");
-    const fileName = segments.pop() ?? relativePath;
-    const parentRelative = segments.join("/");
-    const parentNode = ensureDirectory(parentRelative);
-    const absoluteId = joinPaths(rootId, relativePath);
-
-    parentNode.children = parentNode.children ?? [];
-    if (!parentNode.children.some((child) => child.id === absoluteId)) {
-      parentNode.children.push({ id: absoluteId, name: fileName });
+    const parts = rel.split("/");
+    const file = parts.pop()!;
+    const parent = ensureDir(parts.join("/"));
+    const id = join(rootId, rel);
+    if (!files.has(id)) {
+      (parent.children ||= []).push({ id, name: file });
+      files.add(id);
     }
   }
 
-  sortTree(root);
+  const sort = (n: FsNode) => {
+    n.children?.sort(
+      (a, b) =>
+        Number(!!b.children) - Number(!!a.children) || a.name.localeCompare(b.name, undefined, { sensitivity: "base" }),
+    );
+    n.children?.forEach(sort);
+  };
+  sort(root);
   return root;
 };
 
 export function useFsTree(host: TinyUiHost, rootDir: string, scope: FsScope) {
-  const normalizedRoot = useMemo(() => normalizePath(rootDir), [rootDir]);
-  const fallbackRoot = useMemo(() => {
-    const id = normalizedRoot || "/";
-    const name = deriveNameFromPath(normalizedRoot);
-    return createRootNode(id, name);
-  }, [normalizedRoot]);
-
-  const [tree, setTree] = useState<FsNode>(fallbackRoot);
+  const root = norm(rootDir);
+  const fallback: FsNode = { id: root || "/", name: base(root), children: [] };
+  const [tree, setTree] = useState<FsNode>(fallback);
+  const recursiveDepth = Number.MAX_SAFE_INTEGER;
 
   useEffect(() => {
     let cancelled = false;
-    setTree(fallbackRoot);
+    let running = false;
+    let intervalId: number | null = null;
 
-    const loadTree = async () => {
+    const refreshSafely = async () => {
+      if (cancelled || running) return;
+      running = true;
+
       let scopeRoot = "";
-      try {
-        scopeRoot = await host.call<string>("fs.getScopeRoot", { scope });
-        const absoluteRoot = joinPaths(scopeRoot, normalizedRoot);
-        const rootName = deriveNameFromPath(normalizedRoot || scopeRoot);
-        const entries = await host.call<LsEntry[]>("fs.ls", {
-          ...(normalizedRoot ? { path: normalizedRoot } : {}),
-          scope,
-          options: { maxDepth: Infinity },
-        });
 
-        if (cancelled) return;
-        const nextTree = buildTree(entries, absoluteRoot || "/", rootName);
-        setTree(nextTree);
-      } catch (error) {
-        if (cancelled) return;
-        console.warn("[file-explorer] Failed to load filesystem tree via host", error);
-        const fallbackId = joinPaths(scopeRoot, normalizedRoot) || normalizedRoot || scopeRoot || "/";
-        const fallbackName = deriveNameFromPath(normalizedRoot || scopeRoot);
-        setTree(createRootNode(fallbackId || "/", fallbackName));
+      try {
+        scopeRoot = await host.call("fs.getScopeRoot", { scope });
+        // host.call serializes payloads via JSON, so avoid Infinity (serializes to null) for recursive listing.
+        const entries: LsEntry[] = await host.call("fs.ls", {
+          path: root,
+          scope,
+          options: { maxDepth: recursiveDepth },
+        });
+        if (!cancelled) {
+          setTree(buildTree(entries, absRoot(scopeRoot, root), base(root || scopeRoot)));
+        }
+      } catch {
+        if (!cancelled) {
+          setTree({ id: absRoot(scopeRoot, root), name: base(root || scopeRoot), children: [] });
+        }
+      } finally {
+        running = false;
       }
     };
 
-    loadTree();
+    setTree(fallback);
+    refreshSafely().catch(() => undefined);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [host, normalizedRoot, scope, fallbackRoot]);
-
-  return tree;
-}
-
-export function useFileContent(host: TinyUiHost, filePath: string | null | undefined, scope: FsScope = "workspace") {
-  const normalizedPath = useMemo(() => normalizePath(filePath), [filePath]);
-  const [content, setContent] = useState("");
-
-  useEffect(() => {
-    if (!normalizedPath) {
-      setContent("");
-      return;
+    if (typeof window !== "undefined" && typeof window.setInterval === "function") {
+      intervalId = window.setInterval(() => {
+        refreshSafely().catch(() => undefined);
+      }, POLL_INTERVAL_MS);
     }
 
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const bytes = await host.call<Uint8Array>("fs.readFile", { path: normalizedPath, scope });
-        if (cancelled) return;
-        setContent(textDecoder.decode(bytes));
-      } catch (error) {
-        if (!cancelled) {
-          console.warn("[file-explorer] Failed to read file via host", error);
-          setContent("");
-        }
-      }
-    })();
-
     return () => {
       cancelled = true;
+      if (intervalId != null && typeof window !== "undefined" && typeof window.clearInterval === "function") {
+        window.clearInterval(intervalId);
+      }
     };
-  }, [host, normalizedPath, scope]);
+  }, [host, root, scope]);
 
-  return { content };
+  return tree;
 }

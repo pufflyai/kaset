@@ -1,8 +1,7 @@
 import { ChakraProvider, Flex, defaultSystem } from "@chakra-ui/react";
-import type { FsScope } from "@pstdio/tiny-plugins";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import type { TinyUiHost } from "./host";
+import type { FsScope, TinyUiHost } from "./host";
 import { FileExplorer } from "./components/file-explorer";
 
 const ROOT_DIR = "playground";
@@ -57,15 +56,13 @@ export function mount(container: Element | null, host?: TinyUiHost | null) {
   if (!host) throw new Error("file-explorer requires the Tiny UI host bridge");
 
   const openFileAction = (path: string) => {
-    host.call("desktop.openFilePreview", { path }).catch((error) => {
-      console.error("[file-explorer] Failed to open file preview", error);
-    });
+    host.call("desktop.openFilePreview", { path }).catch(() => undefined);
   };
 
-  const target = container as HTMLElement;
+  const target = container;
   target.innerHTML = "";
-  const root = createRoot(target);
 
+  const root = createRoot(target);
   root.render(
     <ChakraProvider value={defaultSystem}>
       <FileExplorerWindow host={host} onOpenFile={openFileAction} />
@@ -73,7 +70,6 @@ export function mount(container: Element | null, host?: TinyUiHost | null) {
   );
 
   return () => {
-    console.info("[file-explorer] Unmounting window");
     root.unmount();
   };
 }
