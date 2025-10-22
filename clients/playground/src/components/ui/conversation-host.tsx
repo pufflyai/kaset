@@ -7,7 +7,7 @@ import { getSelectedConversationId } from "@/state/actions/getSelectedConversati
 import { hasCredentials } from "@/state/actions/hasCredentials";
 import { setConversationMessages } from "@/state/actions/setConversationMessages";
 import type { ApprovalRequest } from "@pstdio/kas";
-import type { UIMessage } from "@pstdio/kas/kas-ui";
+import type { ToolInvocationUIPart, UIMessage } from "@pstdio/kas/kas-ui";
 import { shortUID } from "@pstdio/prompt-utils";
 import { usePluginHost } from "@pstdio/tiny-plugins";
 import debounce from "lodash/debounce";
@@ -22,6 +22,43 @@ import { ApprovalModal } from "./approval-modal";
 const EMPTY_MESSAGES: UIMessage[] = [];
 const ASSISTANT_UPDATE_DEBOUNCE_MS = 400;
 const ASSISTANT_UPDATE_MAX_WAIT_MS = 1200;
+
+function markInFlightToolInvocationsAsError(messages: UIMessage[], errorText: string) {
+  return messages.map((message) => {
+    if (message.role !== "assistant") return message;
+
+    let changed = false;
+    const parts = message.parts.map((part) => {
+      if ((part as ToolInvocationUIPart).type !== "tool-invocation") return part;
+
+      const toolPart = part as ToolInvocationUIPart;
+      const toolInvocation = toolPart.toolInvocation;
+      if (!("state" in toolInvocation)) return part;
+
+      const state = toolInvocation.state;
+
+      if (state !== "input-available" && state !== "input-streaming") return part;
+
+      changed = true;
+      return {
+        ...toolPart,
+        toolInvocation: {
+          ...toolInvocation,
+          state: "output-error",
+          errorText,
+          providerExecuted: false,
+        },
+      } satisfies ToolInvocationUIPart;
+    });
+
+    if (!changed) return message;
+
+    return {
+      ...message,
+      parts,
+    };
+  });
+}
 
 interface ConversationAreaWithMessagesProps {
   streaming: boolean;
@@ -113,19 +150,24 @@ export function ConversationHost() {
       } catch (err) {
         applyConversationUpdate.flush();
 
+        const errorText = err instanceof Error ? err.message : String(err);
         const assistantError: UIMessage = {
           id: shortUID(),
           role: "assistant",
           parts: [
             {
               type: "text",
-              text: `Sorry, I couldn't process that. ${err instanceof Error ? err.message : String(err)}`,
+              text: `Sorry, I couldn't process that. ${errorText}`,
             },
           ],
         };
 
         const id = getSelectedConversationId();
         if (id) {
+          const latestMessages = getConversationMessages(id);
+          const updatedMessages = markInFlightToolInvocationsAsError(latestMessages, errorText);
+
+          setConversationMessages(id, updatedMessages, "conversations/send/error");
           appendConversationMessages(id, [assistantError], "conversations/send/error");
         }
       } finally {

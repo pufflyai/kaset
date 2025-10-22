@@ -203,6 +203,37 @@ describe("toBaseMessages", () => {
     expect(history[4]).toEqual({ role: "assistant", content: "Tool run complete" });
   });
 
+  it("serializes tool invocation errors with failure payloads", () => {
+    const errorInvocation: ToolInvocation = {
+      type: "tool-search",
+      toolCallId: "call-error-1",
+      state: "output-error",
+      input: { query: "status" },
+      errorText: "Search failed",
+    };
+
+    const conversation: UIConversation = [createToolInvocationMessage("assistant-tool-error", errorInvocation)];
+
+    const history = toBaseMessages(conversation);
+
+    expect(history).toHaveLength(2);
+    expect(history[0]).toMatchObject({
+      role: "assistant",
+      tool_calls: [
+        {
+          id: "call-error-1",
+          type: "function",
+        },
+      ],
+    });
+
+    expect(history[1]).toMatchObject({
+      role: "tool",
+      tool_call_id: "call-error-1",
+    });
+    expect(JSON.parse((history[1] as any).content)).toEqual({ success: false, error: "Search failed" });
+  });
+
   it("skips empty text messages", () => {
     const conversation: UIConversation = [
       {
