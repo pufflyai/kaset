@@ -33,14 +33,14 @@ const extractPath = (params) => {
 
 // NOTE: the webworker won't be able to broadcast messages to the plugin ui once tiny ui uses cross-origin isolation
 // tiny-plugin must then provide some mechanism for the webworker to call the iframe
-const notifyChannel = (path) => {
+const notifyChannel = (ctx, path) => {
   if (typeof BroadcastChannel === "undefined") return false;
   try {
     const channel = new BroadcastChannel(CHANNEL_NAME);
     channel.postMessage({ type: "open-folder", path });
     channel.close();
     return true;
-  } catch (error) {
+  } catch {
     ctx.api.call("log.warn", { message: "[file-explorer] Failed to notify window via BroadcastChannel" });
     return false;
   }
@@ -55,7 +55,7 @@ export const commands = {
     }
 
     const normalized = normalizePathInput(input);
-    const delivered = notifyChannel(normalized);
+    const delivered = notifyChannel(ctx, normalized);
 
     if (!delivered) {
       const message = normalized ? `Open File Explorer manually to view ${normalized}` : "Open File Explorer manually";
