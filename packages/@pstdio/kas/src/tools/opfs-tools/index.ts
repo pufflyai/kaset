@@ -2,7 +2,6 @@ import { Tool } from "@pstdio/tiny-ai-tasks";
 import { ApprovalGate } from "../../approval";
 import { opfs_delete_file, opfs_delete_file_definition } from "./opfs-delete-file";
 import { opfs_download_file, opfs_download_file_definition } from "./opfs-download-file";
-import { opfs_grep, opfs_grep_definition } from "./opfs-grep";
 import { opfs_ls, opfs_ls_definition } from "./opfs-ls";
 import { opfs_move_file, opfs_move_file_definition } from "./opfs-move-file";
 import { opfs_patch, opfs_patch_definition } from "./opfs-patch";
@@ -22,7 +21,6 @@ export const createOpfsTools = (options: CreateOpfsToolsOptions) => {
   return [
     Tool(opfs_shell({ rootDir, approvalGate }), opfs_shell_definition),
     Tool(opfs_ls({ rootDir, approvalGate }), opfs_ls_definition),
-    Tool(opfs_grep({ rootDir, approvalGate }), opfs_grep_definition),
     Tool(opfs_read_file({ rootDir, approvalGate }), opfs_read_file_definition),
     Tool(opfs_write_file({ rootDir, approvalGate }), opfs_write_file_definition),
     Tool(opfs_delete_file({ rootDir, approvalGate }), opfs_delete_file_definition),

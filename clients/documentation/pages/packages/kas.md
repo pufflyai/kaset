@@ -181,8 +181,7 @@ KAS agents come with these OPFS tools:
 
 ### Search & Analysis
 
-- **opfs_grep** - Search file contents
-- **opfs_shell** - Run read-only shell commands (streams output)
+- **opfs_shell** - Run read-only shell commands (grep, ls, find, etc.) and stream output
 
 ⚠️ = Requires approval by default
 
@@ -199,7 +198,7 @@ const agent = createKasAgent({
   workspaceDir: "/project",
   requestApproval: async ({ tool, workspaceDir, detail }) => {
     // Always allow read operations
-    if (tool.includes("read") || tool.includes("list") || tool.includes("grep")) {
+    if (tool.includes("read") || tool.includes("list") || tool.includes("shell")) {
       return true;
     }
 

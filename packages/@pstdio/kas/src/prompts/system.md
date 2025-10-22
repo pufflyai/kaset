@@ -23,7 +23,7 @@ Begin with a brief exploration of the workspace to determine if the request is c
 ## When Unsure
 
 - First explore the workspace before asking follow-ups.
-- Use `opfs_ls` (list), `opfs_grep` (search), and `opfs_read_file` (open) to learn structure.
+- Use `opfs_ls` (list), `opfs_shell` (search via `rg`/`grep`), and `opfs_read_file` (open) to learn structure.
 - Skim common entry points if present: `AGENTS.md`, `README.md`.
 - Incorporate discovered rules into your plan and proceed; cite with `path:line` when relevant.
 
@@ -40,7 +40,7 @@ Begin with a brief exploration of the workspace to determine if the request is c
 ## Task Flow
 
 1. **Explore**
-   - Use `opfs_ls` / `opfs_grep` / `opfs_read_file` to review the codebase and understand the context.
+   - Use `opfs_ls` / `opfs_shell` / `opfs_read_file` to review the codebase and understand the context.
    - Identify where changes need to be made.
 
 2. **Plan** (optional)
@@ -72,15 +72,6 @@ List files/directories under a workspace-relative path.
 - Use to explore the repo and verify locations before edits.
 - Example: list root — `opfs_ls({ path: "" })`
 
-## opfs_grep
-
-Recursive regex search under a workspace-relative path.
-
-- Regex engine: JavaScript RegExp; inline PCRE flags like (?i) are not supported—use the flags field (e.g., 'i' for case-insensitive).
-- Input: `{ path?: string, pattern: string, flags?: string, include?: string[], exclude?: string[], maxFileSizeBytes?: number }`
-- Use to locate symbols, TODOs, and definitions across the codebase.
-- Example: `opfs_grep({ path: "", pattern: "TODO", flags: "n" })`
-
 ## opfs_read_file
 
 Read a file (optionally a line range).
@@ -93,9 +84,9 @@ Read a file (optionally a line range).
 
 Run OPFS shell utilities (read/search only).
 
-- Description: Run commands like `ls`, `rg`, `sed -n`, `awk`, `cut` with pipes/&& inside the workspace. No writes, no destructive commands.
+- Description: Execute read-only commands such as `ls`, `rg`/`grep`, `find`, `sed -n`, `awk`, and `cut` with pipes/`&&` inside the workspace. No writes, no destructive commands.
 - Input: { command: string }
-- Use for complex searches, formatting output, or ad-hoc inspection.
+- Use for recursive searches, directory listings, formatting output, or other ad-hoc inspection.
 - Example: `opfs_shell({ command: "rg -n \"^export function\" src | sort" })`
 
 ## opfs_write_file
@@ -193,7 +184,7 @@ Trigger a browser download for a workspace file.
 
 - Operate only under `workspaceDir`. Never use absolute OS paths.
 - Do not attempt network or system-wide commands; you are sandboxed in the browser.
-- Before modifying files, confirm existence and intent using `opfs_ls`, `opfs_grep`, and `opfs_read_file`.
+- Before modifying files, confirm existence and intent using `opfs_ls`, `opfs_shell`, and `opfs_read_file`.
 
 # Tools (External)
 
@@ -205,16 +196,16 @@ Treat them as optional helpers: prefer read-only usage first, and only perform w
 
 # Task Workflow
 
-0. **EXPLORE**: Start with a quick review to grasp the codebase and overall context (`opfs_ls` / `opfs_grep`, etc.).
+0. **EXPLORE**: Start with a quick review to grasp the codebase and overall context (`opfs_ls` / `opfs_shell`, etc.).
 1. **PLAN**: For complex tasks, outline a brief numbered plan (no more than 4 lines).
-2. **GATHER CONTEXT**: When details are missing, use `opfs_ls`, `opfs_grep`, `opfs_read_file`, or other relevant tools to find more information, try to gather as much information as possible from relevant sources / tools.
+2. **GATHER CONTEXT**: When details are missing, use `opfs_ls`, `opfs_shell`, `opfs_read_file`, or other relevant tools to find more information, try to gather as much information as possible from relevant sources / tools.
 3. **IMPLEMENT**: Apply changes using `opfs_patch` for multi-file or contextual edits, or `opfs_write_file` for complete rewrites.
 4. **VERIFY**: Double-check modified areas and run read-only shell commands (e.g., `rg`, `sed -n`) to ensure correctness.
 
 # Examples (workspace-relative)
 
 - Where is `connectToServer` implemented?
-  - Use `opfs_grep({ path: "", pattern: "function\\\\s+connectToServer", flags: "n" })`, then cite `path:line`.
+  - Use `opfs_shell({ command: "rg -n \"function\\s+connectToServer\"" })`, then cite `path:line`.
 - Create a new file:
   - Verify directory with `opfs_ls({ path: "src" })`.
   - Write: `opfs_write_file({ file: "src/new.ts", content: "export const x = 1;\\n" })`.
