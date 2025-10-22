@@ -1,10 +1,9 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import type { FsScope, TinyUiHost } from "../host";
+import type { TinyUiHost } from "../host";
 import type { TodoItem, TodoStore } from "./types";
 
-const TODO_SCOPE: FsScope = "data";
 export const TODO_LISTS_DIR = "lists";
 
 const textDecoder = new TextDecoder();
@@ -95,7 +94,6 @@ const joinListPath = (name: string) => (TODO_LISTS_DIR ? `${TODO_LISTS_DIR}/${na
 const listMarkdownFiles = async (host: TinyUiHost) => {
   const entries = await host.call<Array<{ name: string }>>("fs.ls", {
     path: TODO_LISTS_DIR,
-    scope: TODO_SCOPE,
     options: { maxDepth: 1, kinds: ["file"], include: ["*.md"] },
   });
 
@@ -129,7 +127,7 @@ export const createTodoStore = (host: TinyUiHost) =>
 
             try {
               setState({ error: null }, "todo/refreshLists:resetError");
-              await host.call("fs.mkdirp", { path: TODO_LISTS_DIR, scope: TODO_SCOPE });
+              await host.call("fs.mkdirp", { path: TODO_LISTS_DIR });
 
               const names = (await listMarkdownFiles(host)).sort((a, b) => a.localeCompare(b));
               const nextSelected = names.includes(previousSelected ?? "") ? previousSelected : (names[0] ?? null);
@@ -154,7 +152,7 @@ export const createTodoStore = (host: TinyUiHost) =>
             const path = joinListPath(fileName);
 
             try {
-              const contents = await host.call("fs.readFile", { path, scope: TODO_SCOPE });
+              const contents = await host.call("fs.readFile", { path });
               const md = decodeFileContents(contents);
 
               setState(
@@ -186,7 +184,7 @@ export const createTodoStore = (host: TinyUiHost) =>
             const path = joinListPath(name);
 
             try {
-              await host.call("fs.writeFile", { path, contents: "- [ ] New item\n", scope: TODO_SCOPE });
+              await host.call("fs.writeFile", { path, contents: "- [ ] New item\n" });
               setState({ newListName: "" }, "todo/addList:resetNewListName");
 
               await get().refreshLists();
@@ -199,7 +197,7 @@ export const createTodoStore = (host: TinyUiHost) =>
             const path = joinListPath(name);
 
             try {
-              await host.call("fs.deleteFile", { path, scope: TODO_SCOPE });
+              await host.call("fs.deleteFile", { path });
 
               if (get().selectedList === name) {
                 setState({ selectedList: null, content: null, items: [] }, "todo/removeList:clearSelected");
@@ -235,7 +233,6 @@ export const createTodoStore = (host: TinyUiHost) =>
               await host.call("fs.writeFile", {
                 path: joinListPath(selectedList),
                 contents: next,
-                scope: TODO_SCOPE,
               });
             } catch (error) {
               setState(
@@ -265,7 +262,6 @@ export const createTodoStore = (host: TinyUiHost) =>
               await host.call("fs.writeFile", {
                 path: joinListPath(selectedList),
                 contents: next,
-                scope: TODO_SCOPE,
               });
             } catch (error) {
               setState(
@@ -295,7 +291,6 @@ export const createTodoStore = (host: TinyUiHost) =>
               await host.call("fs.writeFile", {
                 path: joinListPath(selectedList),
                 contents: next,
-                scope: TODO_SCOPE,
               });
             } catch (error) {
               setState(
@@ -326,7 +321,6 @@ export const createTodoStore = (host: TinyUiHost) =>
               await host.call("fs.writeFile", {
                 path: joinListPath(selectedList),
                 contents: next,
-                scope: TODO_SCOPE,
               });
             } catch (error) {
               setState(
@@ -341,7 +335,7 @@ export const createTodoStore = (host: TinyUiHost) =>
           },
           initialize: async () => {
             try {
-              await host.call("fs.mkdirp", { path: TODO_LISTS_DIR, scope: TODO_SCOPE });
+              await host.call("fs.mkdirp", { path: TODO_LISTS_DIR });
 
               await get().refreshLists();
             } catch (error) {

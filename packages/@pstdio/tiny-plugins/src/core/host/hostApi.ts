@@ -1,10 +1,10 @@
 import { createScopedFs, joinUnderWorkspace, ls, normalizeRelPath, normalizeSegments } from "@pstdio/opfs-utils";
+import type { Emitter } from "../events";
 import { createPluginDataFs, createPluginFs } from "../fs";
 import { createSettings } from "../settings";
-import type { Emitter } from "../events";
 import type { FsScope, HostApi, HostApiHandlerMap, HostApiMethod, HostApiParams, HostApiResult } from "../types";
-import { pluginDataPath, pluginRootPath } from "./utils";
 import type { Events } from "./internalTypes";
+import { pluginDataPath, pluginRootPath } from "./utils";
 
 export function buildHostApi({
   root,
@@ -21,8 +21,8 @@ export function buildHostApi({
   notify?: (level: "info" | "warn" | "error", message: string) => void;
   emitter: Emitter<Events>;
 }): HostApi {
-  const pluginBase = normalizeSegments(pluginRootPath(root, pluginId)).join("/");
   const dataBase = normalizeSegments(pluginDataPath(dataRoot, pluginId)).join("/");
+  const pluginBase = normalizeSegments(pluginRootPath(root, pluginId)).join("/");
   const workspaceBase = normalizeSegments(workspaceRoot).join("/");
 
   const pfs = createPluginFs(root, pluginId);
@@ -48,19 +48,21 @@ export function buildHostApi({
   };
 
   const getScopeBase = (scope: FsScope | undefined) => {
+    if (scope === "plugin") return pluginBase;
     if (scope === "data") return dataBase;
     if (scope === "workspace") return workspaceBase;
-    return pluginBase;
+    return dataBase;
   };
 
   const getFsForScope = (scope: FsScope | undefined) => {
+    if (scope === "plugin") return pfs;
     if (scope === "data") return dataFs;
     if (scope === "workspace") return workspaceFs;
-    return pfs;
+    return dataFs;
   };
 
   const assertWritableScope = (scope: FsScope | undefined) => {
-    if (scope === "workspace") {
+    if (scope === "workspace" || scope === "plugin") {
       throw new Error("Workspace scope does not support write operations");
     }
   };
@@ -100,7 +102,7 @@ export function buildHostApi({
     if (normalizedAbsolute.startsWith(`${base}/`)) {
       return normalizedAbsolute.slice(base.length + 1);
     }
-    throw new Error(`Path '${absolute}' is outside of the ${scope ?? "plugin"} scope`);
+    throw new Error(`Path '${absolute}' is outside of the ${scope ?? "data"} scope`);
   };
 
   const handlers: HostApiHandlerMap = {
@@ -144,7 +146,6 @@ export function buildHostApi({
       return await ls(absolute, options ?? {});
     },
     "fs.getScopeRoot": async ({ scope }) => getScopeBase(scope),
-
     "log.statusUpdate": async ({ status, detail }) => {
       emitter.emit("status", { status, detail, pluginId });
     },
