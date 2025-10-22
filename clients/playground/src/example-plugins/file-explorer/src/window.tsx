@@ -51,7 +51,7 @@ function FileExplorerWindow(props: FileExplorerWindowProps) {
   );
 }
 
-export function mount(container: Element | null, host?: TinyUiHost | null) {
+export function mount(container: Element | null, host: TinyUiHost | null) {
   if (!container) throw new Error("file-explorer mount target is not available");
   if (!host) throw new Error("file-explorer requires the Tiny UI host bridge");
 

@@ -1,8 +1,8 @@
 import { ChakraProvider, defaultSystem } from "@chakra-ui/react";
 import { createRoot } from "react-dom/client";
 import type { TinyUiHost } from "./host";
-import { TodoList } from "./component";
 import { TodoProvider } from "./state/TodoProvider";
+import { TodoList } from "./todo-list";
 
 interface TodoWindowProps {
   host: TinyUiHost;

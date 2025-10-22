@@ -2,7 +2,7 @@ import { Box, Breadcrumb, Flex, Text } from "@chakra-ui/react";
 import { FileText, FolderClosed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { FsScope, TinyUiHost } from "../host";
-import { useFsTree, type FsNode } from "../hooks/fs";
+import { useFsTree, type FsNode } from "../hooks/useFsTree";
 
 interface FileExplorerProps {
   host: TinyUiHost;
@@ -86,7 +86,6 @@ export function FileExplorer(props: FileExplorerProps) {
 
   const currentNode = maps.nodeMap.get(currentPath) ?? fsTree;
   const breadcrumbs = useMemo(() => createBreadcrumbs(currentNode.id, maps), [currentNode.id, maps]);
-
   const entries = currentNode.children ?? [];
 
   return (

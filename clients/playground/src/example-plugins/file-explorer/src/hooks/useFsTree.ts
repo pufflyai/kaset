@@ -93,12 +93,12 @@ export function useFsTree(host: TinyUiHost, rootDir: string, scope: FsScope) {
   const recursiveDepth = Number.MAX_SAFE_INTEGER;
 
   useEffect(() => {
-    let cancelled = false;
     let running = false;
-    let intervalId: number | null = null;
+    let interval = null;
 
     const refreshSafely = async () => {
-      if (cancelled || running) return;
+      if (running) return;
+
       running = true;
 
       let scopeRoot = "";
@@ -111,32 +111,22 @@ export function useFsTree(host: TinyUiHost, rootDir: string, scope: FsScope) {
           scope,
           options: { maxDepth: recursiveDepth },
         });
-        if (!cancelled) {
-          setTree(buildTree(entries, absRoot(scopeRoot, root), base(root || scopeRoot)));
-        }
-      } catch {
-        if (!cancelled) {
-          setTree({ id: absRoot(scopeRoot, root), name: base(root || scopeRoot), children: [] });
-        }
+
+        setTree(buildTree(entries, absRoot(scopeRoot, root), base(root || scopeRoot)));
+      } catch (error) {
+        console.log("file-explorer: failed to refresh fs tree", error);
+        setTree({ id: absRoot(scopeRoot, root), name: base(root || scopeRoot), children: [] });
       } finally {
         running = false;
       }
     };
 
-    setTree(fallback);
-    refreshSafely().catch(() => undefined);
+    refreshSafely();
 
-    if (typeof window !== "undefined" && typeof window.setInterval === "function") {
-      intervalId = window.setInterval(() => {
-        refreshSafely().catch(() => undefined);
-      }, POLL_INTERVAL_MS);
-    }
+    interval = setInterval(refreshSafely, POLL_INTERVAL_MS);
 
     return () => {
-      cancelled = true;
-      if (intervalId != null && typeof window !== "undefined" && typeof window.clearInterval === "function") {
-        window.clearInterval(intervalId);
-      }
+      clearInterval(interval);
     };
   }, [host, root, scope]);
 

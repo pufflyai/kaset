@@ -31,6 +31,8 @@ const extractPath = (params) => {
   return "";
 };
 
+// NOTE: the webworker won't be able to broadcast messages to the plugin ui once tiny ui uses cross-origin isolation
+// tiny-plugin must then provide some mechanism for the webworker to call the iframe
 const notifyChannel = (path) => {
   if (typeof BroadcastChannel === "undefined") return false;
   try {
@@ -53,7 +55,6 @@ export const commands = {
     }
 
     const normalized = normalizePathInput(input);
-
     const delivered = notifyChannel(normalized);
 
     if (!delivered) {

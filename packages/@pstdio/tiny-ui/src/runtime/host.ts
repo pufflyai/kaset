@@ -10,34 +10,31 @@ export interface HostAPI {
 
 export type TinyHost = ReturnType<typeof createTinyHost>;
 
-export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
-  let lastReadyPayload: { id: string; meta?: unknown } | null = null;
-  let lastErrorPayload: { id: string; message: string; stack?: string } | null = null;
+export interface CreateTinyHostCallbacks {
+  onReady?(data: { id: string; meta?: unknown }): void;
+  onError?(data: { id: string; message: string; stack?: string }): void;
+  onOps?: TinyUiOpsHandler;
+}
+
+export async function createTinyHost(iframe: HTMLIFrameElement, id: string, callbacks: CreateTinyHostCallbacks = {}) {
+  const current = { ...callbacks };
 
   const hostApi: HostAPI = {
     async ready(data) {
-      lastReadyPayload = data;
-      internal.onReady?.(data);
+      current.onReady?.(data);
     },
     async runtimeError(data) {
-      lastErrorPayload = data;
-      internal.onError?.(data);
+      current.onError?.(data);
     },
     async ops(request) {
-      if (!internal.opsHandler) {
+      if (!current.onOps) {
         throw new Error("Tiny UI host ops handler not registered");
       }
-      return internal.opsHandler(request);
+      return current.onOps(request);
     },
   };
 
   const conn = await host.connect(iframe, hostApi);
-
-  const internal: {
-    onReady?: (data: { id: string; meta?: unknown }) => void;
-    onError?: (data: { id: string; message: string; stack?: string }) => void;
-    opsHandler?: TinyUiOpsHandler;
-  } = {};
 
   let assetCleanup: (() => void) | null = null;
 
@@ -46,9 +43,6 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
       assetCleanup();
       assetCleanup = null;
     }
-
-    lastReadyPayload = null;
-    lastErrorPayload = null;
 
     const lockfile = getLockfile() ?? null;
     const importMap = lockfile ? buildImportMap(lockfile) : undefined;
@@ -69,31 +63,13 @@ export async function createTinyHost(iframe: HTMLIFrameElement, id: string) {
   }
 
   return {
-    onReady(fn: (data: { id: string; meta?: unknown }) => void) {
-      internal.onReady = fn;
-      if (lastReadyPayload) {
-        fn(lastReadyPayload);
-      }
-    },
-    onError(fn: (data: { id: string; message: string; stack?: string }) => void) {
-      internal.onError = fn;
-      if (lastErrorPayload) {
-        fn(lastErrorPayload);
-      }
-    },
-    onOps(fn: TinyUiOpsHandler) {
-      internal.opsHandler = fn;
-    },
     sendInit,
     disconnect() {
       conn.remote.disconnect?.();
-      internal.opsHandler = undefined;
       if (assetCleanup) {
         assetCleanup();
         assetCleanup = null;
       }
-      lastReadyPayload = null;
-      lastErrorPayload = null;
     },
   };
 }
