@@ -24,7 +24,6 @@ import {
   FileImage,
   FileJson,
   FilePen,
-  FileSearch,
   FileSpreadsheet,
   FileText,
   FileUp,
@@ -40,7 +39,6 @@ import {
 const opfsToolIconMap = {
   opfs_shell: Terminal,
   opfs_ls: ListTree,
-  opfs_grep: FileSearch,
   opfs_read_file: FileText,
   opfs_write_file: FilePen,
   opfs_delete_file: Trash2,
