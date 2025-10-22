@@ -131,18 +131,24 @@ export function mount(container) {
 
 Use `ctx.api.call(method, params?)` to interact with the host. Available methods:
 
-- `fs.readFile` – `{ path }` → `Uint8Array`
-- `fs.writeFile` – `{ path, contents }`
-- `fs.deleteFile` – `{ path }`
-- `fs.moveFile` – `{ from, to }`
-- `fs.exists` – `{ path }` → `boolean`
-- `fs.mkdirp` – `{ path }`
-- `log.statusUpdate` – `{ status, detail? }`
-- `log.info` – `{ message, detail? }`
-- `log.warn` – `{ message, detail? }`
-- `log.error` – `{ message, detail? }`
-- `settings.read` – no params → returns saved settings
-- `settings.write` – `{ value }`
+```ts
+ctx.api.call('fs.readFile', { path: string }): Uint8Array
+ctx.api.call('fs.writeFile', { path: string, contents: string }): void
+ctx.api.call('fs.deleteFile', { path: string }):void
+ctx.api.call('fs.moveFile', { from: string, to: string }):void
+ctx.api.call('fs.exists', { path: string }):boolean
+ctx.api.call('fs.mkdirp', { path: string }):void
+
+ctx.api.call('log.statusUpdate', { status: string, detail?: string }):{ ok: boolean }
+ctx.api.call('log.info', { message: string, detail?: string }):{ ok: boolean }
+ctx.api.call('log.warn', { message: string, detail?: string }):{ ok: boolean }
+ctx.api.call('log.error', { message: string, detail?: string }):{ ok: boolean }
+
+ctx.api.call('settings.read'):Record<string, any>
+ctx.api.call('settings.write', { value: Record<string, any> }):void
+```
+
+Host file APIs read from and write to /plugin_data/<pluginId>/ unless you pass a different scope.
 
 ---
 
