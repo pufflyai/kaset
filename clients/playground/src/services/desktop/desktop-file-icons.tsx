@@ -93,13 +93,6 @@ const getDisplayName = (path: string, override?: string) => {
   return last && last.trim() ? last.trim() : path;
 };
 
-const ensurePath = (path: string) => {
-  const trimmed = (path ?? "").trim().replace(/^\/+/, "").replace(/\/+$/, "");
-  if (!trimmed) return ROOT;
-  if (trimmed === ROOT || trimmed.startsWith(`${ROOT}/`)) return trimmed;
-  return `${ROOT}/${trimmed}`;
-};
-
 export interface DesktopFileAppOptions {
   path: string;
   name?: string;
@@ -111,10 +104,8 @@ export interface DesktopOpenFileDetail {
   displayName?: string;
 }
 
-export const normalizeDesktopFilePath = (path: string) => ensurePath(path);
-
 export const createDesktopFileApp = (options: DesktopFileAppOptions): DesktopApp => {
-  const normalizedPath = ensurePath(options.path);
+  const normalizedPath = options.path;
   const displayName = getDisplayName(normalizedPath, options.name);
   const description =
     typeof options.description === "string" && options.description.trim()
@@ -149,9 +140,7 @@ export const getRootFilePathFromAppId = (appId: string): string | null => {
 export const requestOpenDesktopFile = (path: string, options?: { displayName?: string }) => {
   if (typeof window === "undefined") return;
 
-  const detail: DesktopOpenFileDetail = {
-    path: ensurePath(path),
-  };
+  const detail: DesktopOpenFileDetail = { path };
 
   const displayName = options?.displayName;
   if (typeof displayName === "string" && displayName.trim()) {

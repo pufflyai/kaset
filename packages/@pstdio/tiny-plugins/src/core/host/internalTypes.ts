@@ -52,6 +52,7 @@ export type HostState = {
 export interface HostRuntime {
   root: string;
   dataRoot: string;
+  workspaceRoot: string;
   watch: boolean;
   notify?: NotifyFn;
   hostApiVersion: string;

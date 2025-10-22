@@ -1,8 +1,4 @@
-import {
-  ROOT_FILE_PREFIX,
-  createDesktopFileApp,
-  normalizeDesktopFilePath,
-} from "@/services/desktop/desktop-file-icons";
+import { ROOT_FILE_PREFIX, createDesktopFileApp } from "@/services/desktop/desktop-file-icons";
 import { shortUID } from "@pstdio/prompt-utils";
 import type { DesktopApp, DesktopWindow, Position, Size } from "../types";
 import { useWorkspaceStore } from "../WorkspaceProvider";
@@ -77,10 +73,7 @@ export const openDesktopFilePreview = (
   path: string,
   options?: OpenFilePreviewOptions,
 ): OpenFilePreviewResult | null => {
-  if (typeof path !== "string") return null;
-
-  const normalizedPath = normalizeDesktopFilePath(path);
-  const appId = `${ROOT_FILE_PREFIX}${normalizedPath}`;
+  const appId = `${ROOT_FILE_PREFIX}${path}`;
   const existing = filePreviewApps.get(appId);
 
   if (existing) {
@@ -96,7 +89,7 @@ export const openDesktopFilePreview = (
     app = fallbackApp;
   } else {
     const displayName = typeof options?.displayName === "string" ? options.displayName : undefined;
-    app = createDesktopFileApp({ path: normalizedPath, name: displayName });
+    app = createDesktopFileApp({ path, name: displayName });
     created = true;
   }
 

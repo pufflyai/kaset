@@ -62,6 +62,7 @@ export async function loadPlugin(
   const api = buildHostApi({
     root: runtime.root,
     dataRoot: runtime.dataRoot,
+    workspaceRoot: runtime.workspaceRoot,
     pluginId,
     notify: runtime.notify,
     emitter: runtime.emitter,

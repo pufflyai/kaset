@@ -1,10 +1,13 @@
 import { Box, Breadcrumb, Flex, Text } from "@chakra-ui/react";
 import { FileText, FolderClosed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useFsTree, type FsNode } from "../hooks/fs";
+import type { FsScope, TinyUiHost } from "../host";
+import { useFsTree, type FsNode } from "../hooks/useFsTree";
 
 interface FileExplorerProps {
+  host: TinyUiHost;
   rootDir: string;
+  scope?: FsScope;
   requestedPath?: string | null;
   onOpenFile?: (path: string, options?: { displayName?: string }) => Promise<void> | void;
 }
@@ -40,8 +43,8 @@ const createBreadcrumbs = (currentId: string, maps: ReturnType<typeof buildMaps>
 };
 
 export function FileExplorer(props: FileExplorerProps) {
-  const { rootDir, onOpenFile, requestedPath } = props;
-  const fsTree = useFsTree(rootDir);
+  const { host, rootDir, scope = "workspace", onOpenFile, requestedPath } = props;
+  const fsTree = useFsTree(host, rootDir, scope);
 
   const maps = useMemo(() => buildMaps(fsTree), [fsTree]);
   const [currentPath, setCurrentPath] = useState<string>(fsTree.id);
@@ -83,7 +86,6 @@ export function FileExplorer(props: FileExplorerProps) {
 
   const currentNode = maps.nodeMap.get(currentPath) ?? fsTree;
   const breadcrumbs = useMemo(() => createBreadcrumbs(currentNode.id, maps), [currentNode.id, maps]);
-
   const entries = currentNode.children ?? [];
 
   return (
@@ -154,17 +156,13 @@ export function FileExplorer(props: FileExplorerProps) {
               }}
               onClick={() => {
                 if (directory) {
-                  console.info("[file-explorer] Navigating into directory", { id: node.id });
                   setCurrentPath(node.id);
                   return;
                 }
 
-                console.info("[file-explorer] Requesting host to open file", { id: node.id, name: node.name });
                 const result = onOpenFile?.(node.id, { displayName: node.name });
                 if (result instanceof Promise) {
-                  result.catch((error) => {
-                    console.error("[file-explorer] Failed to open file", error);
-                  });
+                  result.catch(() => undefined);
                 }
               }}
             >

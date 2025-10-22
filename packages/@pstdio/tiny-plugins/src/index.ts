@@ -8,6 +8,7 @@ export type {
   HostApiParams,
   HostApiResult,
   HostOptions,
+  FsScope,
   Manifest,
   PluginChangePayload,
   PluginMetadata,

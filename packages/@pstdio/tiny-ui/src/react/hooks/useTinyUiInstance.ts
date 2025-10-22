@@ -39,12 +39,6 @@ export interface UseTinyUiInstanceResult {
   recompile(forceRecompile?: boolean): Promise<void>;
 }
 
-/**
- * One hook to rule them all: owns iframe↔host lifecycle, compiles sources, and handshakes.
- * - Stable callbacks via useLatest (no re-wiring of listeners).
- * - Provider status/error are forwarded once (deduped).
- * - `recompile()` exposes manual rebuilds; autocompile supported.
- */
 export function useTinyUiInstance(options: UseTinyUiInstanceOptions): UseTinyUiInstanceResult {
   const {
     instanceId,
@@ -67,7 +61,7 @@ export function useTinyUiInstance(options: UseTinyUiInstanceOptions): UseTinyUiI
   const onStatusRef = useLatest(onStatusChange);
   const onReadyRef = useLatest(onReady);
   const onErrorRef = useLatest(onError);
-  const onActionRef = useLatest(onActionCall);
+  const onActionCallRef = useLatest(onActionCall);
 
   const lastForwardedStatus = useRef<TinyUIStatus | null>(null);
   useEffect(() => {
@@ -91,7 +85,26 @@ export function useTinyUiInstance(options: UseTinyUiInstanceOptions): UseTinyUiI
     if (!iframe) return;
 
     let disposed = false;
-    const promise = createTinyHost(iframe, instanceId);
+    const promise = createTinyHost(iframe, instanceId, {
+      onReady: () => {
+        onStatusRef.current?.("ready");
+        const result = resultRef.current;
+        if (result) onReadyRef.current?.(result);
+      },
+      onError: ({ message, stack }) => {
+        const err = new Error(message);
+        if (stack) err.stack = stack;
+        onStatusRef.current?.("error");
+        onErrorRef.current?.(err);
+      },
+      onOps: async (req) => {
+        const handler = onActionCallRef.current;
+        if (!handler) {
+          throw new Error(`Tiny UI host cannot handle request for method '${req.method}'`);
+        }
+        return handler(req.method, req.params);
+      },
+    });
     connectPromiseRef.current = promise;
 
     promise
@@ -102,27 +115,6 @@ export function useTinyUiInstance(options: UseTinyUiInstanceOptions): UseTinyUiI
         }
 
         hostRef.current = host;
-
-        host.onReady(() => {
-          onStatusRef.current?.("ready");
-          const result = resultRef.current;
-          if (result) onReadyRef.current?.(result);
-        });
-
-        host.onError(({ message, stack }) => {
-          const err = new Error(message);
-          if (stack) err.stack = stack;
-          onStatusRef.current?.("error");
-          onErrorRef.current?.(err);
-        });
-
-        host.onOps(async (req) => {
-          const handler = onActionRef.current;
-          if (!handler) {
-            throw new Error(`Tiny UI host cannot handle request for method '${req.method}'`);
-          }
-          return handler(req.method, req.params);
-        });
       })
       .catch((e) => {
         if (disposed) return;
@@ -137,7 +129,7 @@ export function useTinyUiInstance(options: UseTinyUiInstanceOptions): UseTinyUiI
       hostRef.current = null;
       if (host) host.disconnect();
     };
-  }, [instanceId, onActionRef, onErrorRef, onReadyRef, onStatusRef]);
+  }, [instanceId, onActionCallRef, onErrorRef, onReadyRef, onStatusRef]);
 
   const ensureHost = useCallback(async () => {
     if (hostRef.current) return hostRef.current;

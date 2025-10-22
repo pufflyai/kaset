@@ -155,18 +155,17 @@ Use the lower-level host APIs when you are not rendering the React wrapper. You 
     await loadSnapshot(source.root, source.entrypoint);
     registerSources([{ id: source.id, root: source.root, entry: source.entrypoint }]);
 
-    const host = await createTinyHost(iframe, source.id);
-
-    host.onOps(async ({ method, params }) => {
-      const handler = hostApi[method];
-      if (!handler) {
-        throw new Error(`Unknown Tiny UI host method: ${method}`);
-      }
-      return handler(params);
+    const host = await createTinyHost(iframe, source.id, {
+      onOps: async ({ method, params }) => {
+        const handler = hostApi[method];
+        if (!handler) {
+          throw new Error(`Unknown Tiny UI host method: ${method}`);
+        }
+        return handler(params);
+      },
+      onReady: ({ meta }) => console.log("Plugin ready", meta),
+      onError: ({ message }) => console.error("Plugin failed", message),
     });
-
-    host.onReady(({ meta }) => console.log("Plugin ready", meta));
-    host.onError(({ message }) => console.error("Plugin failed", message));
 
     const compileResult = await compile(source.id, {
       wasmURL: "https://unpkg.com/esbuild-wasm@0.25.10/esbuild.wasm",
@@ -187,8 +186,6 @@ Plugins communicate with the host by calling `remote.ops` (for example through `
 import { createTinyHost } from "@pstdio/tiny-ui";
 
 const iframe = document.querySelector("iframe#plugin")!;
-const host = await createTinyHost(iframe, "sql-explorer");
-
 const hostApi = {
   "actions.log": (params?: Record<string, unknown>) => {
     console.log("[sql-explorer]", params?.message ?? "<no message>");
@@ -196,14 +193,15 @@ const hostApi = {
   },
 };
 
-host.onOps(async ({ method, params }) => {
-  const handler = hostApi[method as keyof typeof hostApi];
-  if (!handler) throw new Error(`Unhandled Tiny UI host method: ${method}`);
-  return handler(params as Record<string, unknown> | undefined);
+const host = await createTinyHost(iframe, "sql-explorer", {
+  onOps: async ({ method, params }) => {
+    const handler = hostApi[method as keyof typeof hostApi];
+    if (!handler) throw new Error(`Unhandled Tiny UI host method: ${method}`);
+    return handler(params as Record<string, unknown> | undefined);
+  },
+  onReady: ({ meta }) => console.log("Plugin ready", meta),
+  onError: ({ message }) => console.error("Plugin failed", message),
 });
-
-host.onReady(({ meta }) => console.log("Plugin ready", meta));
-host.onError(({ message }) => console.error("Plugin failed", message));
 
 const compileResult = await fetch("/precompiled/sql-explorer.json").then((res) => res.json());
 
@@ -220,8 +218,6 @@ import { registerSources } from "@pstdio/tiny-ui-bundler";
 
 const pluginId = "sql-explorer";
 const iframe = document.querySelector("iframe#plugin")!;
-const host = await createTinyHost(iframe, pluginId);
-
 const hostApi = {
   "actions.log": (params?: Record<string, unknown>) => {
     console.log("[sql-explorer]", params?.message ?? "<no message>");
@@ -229,10 +225,14 @@ const hostApi = {
   },
 };
 
-host.onOps(async ({ method, params }) => {
-  const handler = hostApi[method as keyof typeof hostApi];
-  if (!handler) throw new Error(`Unhandled Tiny UI host method: ${method}`);
-  return handler(params as Record<string, unknown> | undefined);
+const host = await createTinyHost(iframe, pluginId, {
+  onOps: async ({ method, params }) => {
+    const handler = hostApi[method as keyof typeof hostApi];
+    if (!handler) throw new Error(`Unhandled Tiny UI host method: ${method}`);
+    return handler(params as Record<string, unknown> | undefined);
+  },
+  onReady: ({ meta }) => console.log("Plugin ready", meta),
+  onError: ({ message }) => console.error("Plugin failed", message),
 });
 
 let result = await getCachedBundle(pluginId);
@@ -324,7 +324,7 @@ async function invalidateBundles() {
 
 ### Low-Level Host Integration
 
-- `createTinyHost(iframe, id)` – low-level host connector exposing `sendInit`, `onReady`, `onError`, `onOps`, and `disconnect`.
+- `createTinyHost(iframe, id, callbacks)` – low-level host connector returning `sendInit` and `disconnect`; handlers (`onReady`, `onError`, `onOps`) are wired via the `callbacks` argument.
 
 ### Constants
 

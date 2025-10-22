@@ -102,9 +102,7 @@
             }
 
             const host = {
-              call: (method, params) => {
-                remote.ops({ method, params });
-              },
+              call: (method, params) => remote.ops({ method, params }),
             };
 
             const mountEl = container(init.mountSelector ?? "#root");
