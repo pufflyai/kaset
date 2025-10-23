@@ -158,10 +158,7 @@ export const useDesktopWallpaper = (wallpaper: string | null): UseDesktopWallpap
               window.clearTimeout(retryHandle);
               retryHandle = null;
             }
-            console.info(
-              "[useDesktopWallpaper] Wallpaper file not found; retrying after reset",
-              wallpaper
-            );
+            console.info("[useDesktopWallpaper] Wallpaper file not found; retrying after reset", wallpaper);
             retryHandle = window.setTimeout(() => {
               void loadWallpaper();
             }, 500);
