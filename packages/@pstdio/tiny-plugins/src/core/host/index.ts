@@ -161,12 +161,12 @@ export function createHost(options: HostOptions) {
   }
 
   async function updateSettings<T = unknown>(pluginId: string, value: T) {
-    const api = buildHostApi({ root, dataRoot, workspaceRoot, pluginId, notify, emitter });
+    const api = buildHostApi({ root, dataRoot, workspaceRoot, pluginId, notify, emitter, states });
     await api.call("settings.write", { value });
   }
 
   async function readSettings<T = unknown>(pluginId: string) {
-    const api = buildHostApi({ root, dataRoot, workspaceRoot, pluginId, notify, emitter });
+    const api = buildHostApi({ root, dataRoot, workspaceRoot, pluginId, notify, emitter, states });
     return api.call("settings.read") as Promise<T>;
   }
 
@@ -177,7 +177,7 @@ export function createHost(options: HostOptions) {
   }
 
   function createHostApiFor(pluginId: string) {
-    return buildHostApi({ root, dataRoot, workspaceRoot, pluginId, notify, emitter });
+    return buildHostApi({ root, dataRoot, workspaceRoot, pluginId, notify, emitter, states });
   }
 
   return {

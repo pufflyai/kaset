@@ -14,6 +14,7 @@ Use it to deliver in-browser automations, command palettes, and custom UI entry 
 - Enforce manifest compatibility via `HOST_API_VERSION` and JSON Schema validation
 - Execute plugin commands with parameter validation and per-command timeouts
 - Persist plugin-scoped settings to OPFS with optional schema validation
+- Seed new `.settings.json` files with defaults derived from `settingsSchema`
 - Surface file change notifications and manifest updates to your UI
 - Adapt plugin commands into Tiny AI Tasks tools with `createToolsForCommands`
 
@@ -77,7 +78,7 @@ await host.stop();
 - `getPluginDependencies()` – inspect the merged dependency map.
 - `listCommands()` – enumerate all registered commands (`pluginId`, `id`, `title`, ...).
 - `runCommand(pluginId, commandId, params?)` – execute a plugin command directly.
-- `readSettings(pluginId)` / `updateSettings(pluginId, value)` – persist JSON settings under `/plugin_data/<id>/.settings.json`.
+- `readSettings(pluginId)` / `updateSettings(pluginId, value)` – persist JSON settings under `/plugin_data/<id>/.settings.json`. When `settingsSchema` defines defaults, the first read seeds the file automatically.
 - `createHostApiFor(pluginId)` – expose the `api.call(method, params?)` bridge (fs/logs/settings) for Tiny UI surfaces.
 
 All subscriptions return an unsubscribe function for teardown.

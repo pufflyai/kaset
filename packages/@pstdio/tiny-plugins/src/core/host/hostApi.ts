@@ -2,8 +2,9 @@ import { createScopedFs, joinUnderWorkspace, ls, normalizeRelPath, normalizeSegm
 import type { Emitter } from "../events";
 import { createPluginDataFs, createPluginFs } from "../fs";
 import { createSettings } from "../settings";
+import { deriveSettingsDefaults } from "../settings-defaults";
 import type { FsScope, HostApi, HostApiHandlerMap, HostApiMethod, HostApiParams, HostApiResult } from "../types";
-import type { Events } from "./internalTypes";
+import type { Events, HostState } from "./internalTypes";
 import { pluginDataPath, pluginRootPath } from "./utils";
 
 export function buildHostApi({
@@ -13,6 +14,7 @@ export function buildHostApi({
   pluginId,
   notify,
   emitter,
+  states,
 }: {
   root: string;
   dataRoot: string;
@@ -20,6 +22,7 @@ export function buildHostApi({
   pluginId: string;
   notify?: (level: "info" | "warn" | "error", message: string) => void;
   emitter: Emitter<Events>;
+  states: Map<string, HostState>;
 }): HostApi {
   const dataBase = normalizeSegments(pluginDataPath(dataRoot, pluginId)).join("/");
   const pluginBase = normalizeSegments(pluginRootPath(root, pluginId)).join("/");
@@ -29,9 +32,18 @@ export function buildHostApi({
   const dataFs = createPluginDataFs(dataRoot, pluginId);
   const workspaceFs = createScopedFs(workspaceBase);
 
-  const settings = createSettings(dataFs, (value) => {
-    emitter.emit("settingsChange", { pluginId, settings: value });
-  });
+  const manifest = states.get(pluginId)?.manifest ?? null;
+  const schema = manifest?.settingsSchema;
+
+  const settings = createSettings(
+    dataFs,
+    (value) => {
+      emitter.emit("settingsChange", { pluginId, settings: value });
+    },
+    {
+      seed: schema ? async () => deriveSettingsDefaults(schema) : undefined,
+    },
+  );
 
   const logPrefix = `[tiny-plugins:${pluginId}]`;
 
