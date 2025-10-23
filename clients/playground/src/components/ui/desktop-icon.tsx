@@ -1,4 +1,4 @@
-import { rgbaFromHex, type AdaptiveWallpaperResult } from "@/hooks/useAdaptiveWallpaperSample";
+import { rgbaFromHex, type AdaptiveWallpaperResult } from "@/services/desktop/hooks/useAdaptiveWallpaperSample";
 import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
 import { Box, chakra } from "@chakra-ui/react";
 import { AppWindowMac } from "lucide-react";

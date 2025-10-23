@@ -1,5 +1,4 @@
 import { PLUGIN_DATA_ROOT, ROOT } from "@/constant";
-import { useDesktopWallpaper } from "@/hooks/useDesktopWallpaper";
 import {
   OPEN_DESKTOP_FILE_EVENT,
   ROOT_FILE_PREFIX,
@@ -7,6 +6,8 @@ import {
   getRootFilePathFromAppId,
   type DesktopOpenFileDetail,
 } from "@/services/desktop/desktop-file-icons";
+import { createDesktopApp } from "@/services/desktop/helpers/createDesktopApp";
+import { useDesktopWallpaper } from "@/services/desktop/hooks/useDesktopWallpaper";
 import { usePluginSources } from "@/services/plugins/hooks/usePluginSources";
 import { host, type PluginSurfacesSnapshot } from "@/services/plugins/host";
 import { deriveDesktopSurfaces } from "@/services/plugins/surfaces";
@@ -25,8 +26,6 @@ import { DesktopIcon } from "./desktop-icon";
 import { MenuItem } from "./menu-item";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
-import { createDesktopApp } from "@/services/desktop/helpers/createDesktopApp";
-import { isNotFoundError, toBlobPart } from "@/utils/opfs";
 
 // WILL FIX: vibe-coded mess
 
@@ -66,6 +65,12 @@ const triggerBlobDownload = (blob: Blob, filename: string) => {
   } finally {
     URL.revokeObjectURL(url);
   }
+};
+
+const isNotFoundError = (error: unknown) => {
+  if (!error) return false;
+  const info = error as { name?: string; code?: string | number };
+  return info?.name === "NotFoundError" || info?.code === "ENOENT" || info?.code === 1;
 };
 
 export const Desktop = () => {
@@ -250,7 +255,6 @@ export const Desktop = () => {
 
       const normalizedPath = rawPath;
       const displayName = typeof detail?.displayName === "string" ? detail.displayName : undefined;
-      console.info("[desktop] Received open file event", { normalizedPath, displayName });
 
       const fallbackApp = appsByIdRef.current.get(`${ROOT_FILE_PREFIX}${normalizedPath}`);
       const result = openDesktopFilePreview(rawPath, { displayName, fallbackApp });
@@ -261,10 +265,7 @@ export const Desktop = () => {
       }
 
       if (result.created) {
-        console.info("[desktop] Registered new desktop app for file", { appId: result.app.id });
         registerEphemeralFileApp(result.app);
-      } else {
-        console.info("[desktop] Reusing existing desktop app for file", { appId: result.app.id });
       }
 
       setSelectedAppId(result.app.id);
@@ -309,7 +310,7 @@ export const Desktop = () => {
         throw new Error("Received unexpected data type when reading file.");
       }
 
-      const blob = new Blob([toBlobPart(fileData)], { type: "application/octet-stream" });
+      const blob = new Blob([fileData], { type: "application/octet-stream" });
       triggerBlobDownload(blob, label);
       toaster.create({ type: "success", title: `Preparing download for ${label}` });
     } catch (error) {

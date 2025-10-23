@@ -20,7 +20,7 @@ import {
   chakra,
   useBreakpointValue,
 } from "@chakra-ui/react";
-import { ls, readFile } from "@pstdio/opfs-utils";
+import { getSpecificMimeType, ls, readFile } from "@pstdio/opfs-utils";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useRef, useState } from "react";
 import { McpServerCard } from "./mcp-server-card";
@@ -46,24 +46,6 @@ const SETTINGS_SECTIONS: Array<{ id: SettingsSectionId; label: string }> = [
 ];
 
 const MobileSectionSelect = chakra("select");
-
-const toBlobPart = (bytes: Uint8Array) => {
-  if (bytes.buffer instanceof ArrayBuffer) {
-    const { buffer, byteOffset, byteLength } = bytes;
-    return buffer.slice(byteOffset, byteOffset + byteLength);
-  }
-
-  const clone = new Uint8Array(bytes);
-  return clone.buffer;
-};
-
-const getWallpaperMimeType = (path: string) => {
-  if (/\.png$/i.test(path)) return "image/png";
-  if (/\.jpe?g$/i.test(path)) return "image/jpeg";
-  if (/\.gif$/i.test(path)) return "image/gif";
-  if (/\.webp$/i.test(path)) return "image/webp";
-  return "application/octet-stream";
-};
 
 export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const { isOpen, onClose } = props;
@@ -172,7 +154,12 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         wallpapers.map(async (wallpaper) => {
           try {
             const fileData = await readFile(wallpaper, { encoding: null });
-            const blob = new Blob([toBlobPart(fileData)], { type: getWallpaperMimeType(wallpaper) });
+            const mimeType = getSpecificMimeType(wallpaper) || "application/octet-stream";
+            if (!(fileData instanceof Uint8Array)) {
+              console.warn("Received unexpected wallpaper preview data type", { wallpaper, mimeType });
+              return null;
+            }
+            const blob = new Blob([fileData], { type: mimeType });
             const objectUrl = URL.createObjectURL(blob);
             urls.push(objectUrl);
             return { wallpaper, url: objectUrl };

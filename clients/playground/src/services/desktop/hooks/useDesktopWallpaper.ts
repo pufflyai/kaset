@@ -1,18 +1,23 @@
+import { getSpecificMimeType, readFile } from "@pstdio/opfs-utils";
+import { FastAverageColor } from "fast-average-color";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildAdaptiveResultFromColor,
   defaultAdaptiveResult,
   type AdaptiveWallpaperResult,
-} from "@/hooks/useAdaptiveWallpaperSample";
-import { readFile } from "@pstdio/opfs-utils";
-import { FastAverageColor } from "fast-average-color";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isNotFoundError, toBlobPart } from "@/utils/opfs";
+} from "./useAdaptiveWallpaperSample";
 
 interface UseDesktopWallpaperResult {
   backgroundImageUrl: string | null;
   handleWallpaperRef: (node: HTMLImageElement | null) => void;
   iconPalette: AdaptiveWallpaperResult;
 }
+
+const isNotFoundError = (error: unknown) => {
+  if (!error) return false;
+  const info = error as { name?: string; code?: string | number };
+  return info?.name === "NotFoundError" || info?.code === "ENOENT" || info?.code === 1;
+};
 
 export const useDesktopWallpaper = (wallpaper: string | null): UseDesktopWallpaperResult => {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
@@ -115,7 +120,15 @@ export const useDesktopWallpaper = (wallpaper: string | null): UseDesktopWallpap
       try {
         const fileData = await readFile(wallpaper, { encoding: null });
 
-        const blob = new Blob([toBlobPart(fileData)], { type: "image/png" });
+        if (!(fileData instanceof Uint8Array)) {
+          disposeObjectUrl();
+          setBackgroundImageUrl(null);
+          setWallpaperElement(null);
+          return;
+        }
+
+        const mimeType = getSpecificMimeType(wallpaper) || "application/octet-stream";
+        const blob = new Blob([fileData], { type: mimeType });
         const nextObjectUrl = URL.createObjectURL(blob);
 
         disposeObjectUrl();

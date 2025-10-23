@@ -39,7 +39,7 @@ const EXAMPLE_PLUGIN_DATA_BUNDLE = import.meta.glob("/src/example-plugin-data/**
   eager: true,
 }) as Record<string, string>;
 
-const WALLPAPER_BUNDLE = import.meta.glob("/src/example-files/wallpaper/*.{png,jpg,jpeg,gif,webp}", {
+const WALLPAPER_BUNDLE = import.meta.glob("/src/example-wallpapers/*.{png,jpg,jpeg,gif,webp}", {
   query: "?url",
   import: "default",
   eager: true,
@@ -73,35 +73,35 @@ async function applyBundle(options: ApplyBundleOptions) {
   const normalizedRoot = bundleRoot.replace(/\/+$/, "");
   const normalizedBase = baseDir.replace(/\\/g, "/").replace(/\/$/, "");
 
-  let written = 0;
+  const writeResults = await Promise.all(
+    Object.entries(files).map(async ([absoluteKey, content]): Promise<number> => {
+      const normalizedKey = absoluteKey.replace(/\\/g, "/");
 
-  for (const [absoluteKey, content] of Object.entries(files)) {
-    const normalizedKey = absoluteKey.replace(/\\/g, "/");
-
-    let relativePath = normalizedKey;
-    if (normalizedBase && normalizedKey.startsWith(normalizedBase)) {
-      relativePath = normalizedKey.slice(normalizedBase.length);
-    }
-
-    relativePath = relativePath.replace(/^\/+/, "");
-    if (!relativePath) continue;
-
-    const target = normalizeOpfsPath(`${normalizedRoot}/${relativePath}`);
-
-    if (!overwrite) {
-      try {
-        await readFile(target);
-        continue;
-      } catch {
-        // file missing — we'll create it below
+      let relativePath = normalizedKey;
+      if (normalizedBase && normalizedKey.startsWith(normalizedBase)) {
+        relativePath = normalizedKey.slice(normalizedBase.length);
       }
-    }
 
-    await writeFile(target, content);
-    written++;
-  }
+      relativePath = relativePath.replace(/^\/+/, "");
+      if (!relativePath) return 0;
 
-  return written;
+      const target = normalizeOpfsPath(`${normalizedRoot}/${relativePath}`);
+
+      if (!overwrite) {
+        try {
+          await readFile(target, { encoding: null });
+          return 0;
+        } catch {
+          // file missing — we'll create it below
+        }
+      }
+
+      await writeFile(target, content);
+      return 1;
+    }),
+  );
+
+  return writeResults.reduce((sum, value) => sum + value, 0);
 }
 
 async function applyWallpaperBundle(options: {
@@ -110,43 +110,44 @@ async function applyWallpaperBundle(options: {
   overwrite: boolean;
 }) {
   const { wallpaperRoot, files, overwrite } = options;
-  let written = 0;
+  const writeResults = await Promise.all(
+    Object.entries(files).map(async ([absoluteKey, url]): Promise<number> => {
+      const normalizedKey = absoluteKey.replace(/\\/g, "/");
+      const filename = normalizedKey.split("/").pop();
 
-  for (const [absoluteKey, url] of Object.entries(files)) {
-    const normalizedKey = absoluteKey.replace(/\\/g, "/");
-    const filename = normalizedKey.split("/").pop();
+      if (!filename) return 0;
 
-    if (!filename) continue;
+      const target = normalizeOpfsPath(`${wallpaperRoot}/${filename}`);
 
-    const target = normalizeOpfsPath(`${wallpaperRoot}/${filename}`);
+      if (!overwrite) {
+        try {
+          await readFile(target);
+          return 0;
+        } catch {
+          // file missing — we'll create it below
+        }
+      }
 
-    if (!overwrite) {
       try {
-        await readFile(target);
-        continue;
-      } catch {
-        // file missing — we'll create it below
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.warn(`Failed to fetch wallpaper ${filename}:`, response.status);
+          return 0;
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+
+        await writeFile(target, uint8Array);
+        return 1;
+      } catch (error) {
+        console.error(`Failed to copy wallpaper ${filename}:`, error);
+        return 0;
       }
-    }
+    }),
+  );
 
-    try {
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.warn(`Failed to fetch wallpaper ${filename}:`, response.status);
-        continue;
-      }
-
-      const arrayBuffer = await response.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
-
-      await writeFile(target, uint8Array);
-      written++;
-    } catch (error) {
-      console.error(`Failed to copy wallpaper ${filename}:`, error);
-    }
-  }
-
-  return written;
+  return writeResults.reduce((sum, value) => sum + value, 0);
 }
 
 export async function setupPlayground(options: SetupOptions = {}) {
