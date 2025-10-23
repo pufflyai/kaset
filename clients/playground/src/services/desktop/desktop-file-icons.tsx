@@ -147,6 +147,5 @@ export const requestOpenDesktopFile = (path: string, options?: { displayName?: s
     detail.displayName = displayName.trim();
   }
 
-  console.info("[desktop] Dispatching open file event", detail);
   window.dispatchEvent(new CustomEvent<DesktopOpenFileDetail>(OPEN_DESKTOP_FILE_EVENT, { detail }));
 };

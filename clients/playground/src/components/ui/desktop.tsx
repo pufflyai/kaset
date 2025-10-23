@@ -255,7 +255,6 @@ export const Desktop = () => {
 
       const normalizedPath = rawPath;
       const displayName = typeof detail?.displayName === "string" ? detail.displayName : undefined;
-      console.info("[desktop] Received open file event", { normalizedPath, displayName });
 
       const fallbackApp = appsByIdRef.current.get(`${ROOT_FILE_PREFIX}${normalizedPath}`);
       const result = openDesktopFilePreview(rawPath, { displayName, fallbackApp });
@@ -266,10 +265,7 @@ export const Desktop = () => {
       }
 
       if (result.created) {
-        console.info("[desktop] Registered new desktop app for file", { appId: result.app.id });
         registerEphemeralFileApp(result.app);
-      } else {
-        console.info("[desktop] Reusing existing desktop app for file", { appId: result.app.id });
       }
 
       setSelectedAppId(result.app.id);
