@@ -39,7 +39,7 @@ const EXAMPLE_PLUGIN_DATA_BUNDLE = import.meta.glob("/src/example-plugin-data/**
   eager: true,
 }) as Record<string, string>;
 
-const WALLPAPER_BUNDLE = import.meta.glob("/src/example-files/wallpaper/*.{png,jpg,jpeg,gif,webp}", {
+const WALLPAPER_BUNDLE = import.meta.glob("/src/example-wallpapers/*.{png,jpg,jpeg,gif,webp}", {
   query: "?url",
   import: "default",
   eager: true,
@@ -89,7 +89,7 @@ async function applyBundle(options: ApplyBundleOptions) {
 
       if (!overwrite) {
         try {
-          await readFile(target);
+          await readFile(target, { encoding: null });
           return 0;
         } catch {
           // file missing — we'll create it below

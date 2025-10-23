@@ -1,18 +1,23 @@
+import { getSpecificMimeType, readFile } from "@pstdio/opfs-utils";
+import { FastAverageColor } from "fast-average-color";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   buildAdaptiveResultFromColor,
   defaultAdaptiveResult,
   type AdaptiveWallpaperResult,
-} from "@/hooks/useAdaptiveWallpaperSample";
-import { readFile } from "@pstdio/opfs-utils";
-import { FastAverageColor } from "fast-average-color";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { isNotFoundError, toBlobPart } from "@/utils/opfs";
+} from "./useAdaptiveWallpaperSample";
 
 interface UseDesktopWallpaperResult {
   backgroundImageUrl: string | null;
   handleWallpaperRef: (node: HTMLImageElement | null) => void;
   iconPalette: AdaptiveWallpaperResult;
 }
+
+const isNotFoundError = (error: unknown) => {
+  if (!error) return false;
+  const info = error as { name?: string; code?: string | number };
+  return info?.name === "NotFoundError" || info?.code === "ENOENT" || info?.code === 1;
+};
 
 export const useDesktopWallpaper = (wallpaper: string | null): UseDesktopWallpaperResult => {
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(null);
@@ -103,9 +108,12 @@ export const useDesktopWallpaper = (wallpaper: string | null): UseDesktopWallpap
     };
 
     const loadWallpaper = async () => {
+      console.info("[useDesktopWallpaper] loadWallpaper invoked", wallpaper);
+
       if (cancelled) return;
 
       if (!wallpaper) {
+        console.info("[useDesktopWallpaper] Wallpaper preference missing; clearing current image");
         disposeObjectUrl();
         setBackgroundImageUrl(null);
         setWallpaperElement(null);
@@ -113,14 +121,34 @@ export const useDesktopWallpaper = (wallpaper: string | null): UseDesktopWallpap
       }
 
       try {
+        console.info("[useDesktopWallpaper] Reading wallpaper file", wallpaper);
         const fileData = await readFile(wallpaper, { encoding: null });
 
-        const blob = new Blob([toBlobPart(fileData)], { type: "image/png" });
+        if (!(fileData instanceof Uint8Array)) {
+          console.error("[useDesktopWallpaper] Expected binary data for wallpaper", {
+            wallpaper,
+            receivedType: typeof fileData,
+          });
+          disposeObjectUrl();
+          setBackgroundImageUrl(null);
+          setWallpaperElement(null);
+          return;
+        }
+
+        const signature = Array.from(fileData.slice(0, 8));
+        console.info("[useDesktopWallpaper] Wallpaper signature bytes", signature);
+
+        const mimeType = getSpecificMimeType(wallpaper) || "application/octet-stream";
+        const blob = new Blob([fileData], { type: mimeType });
         const nextObjectUrl = URL.createObjectURL(blob);
 
         disposeObjectUrl();
         objectUrl = nextObjectUrl;
         setBackgroundImageUrl(nextObjectUrl);
+        console.info("[useDesktopWallpaper] Wallpaper loaded into object URL", nextObjectUrl, {
+          bytes: fileData.byteLength,
+          mimeType,
+        });
       } catch (error) {
         if (cancelled) return;
 
@@ -130,6 +158,10 @@ export const useDesktopWallpaper = (wallpaper: string | null): UseDesktopWallpap
               window.clearTimeout(retryHandle);
               retryHandle = null;
             }
+            console.info(
+              "[useDesktopWallpaper] Wallpaper file not found; retrying after reset",
+              wallpaper
+            );
             retryHandle = window.setTimeout(() => {
               void loadWallpaper();
             }, 500);
@@ -154,11 +186,22 @@ export const useDesktopWallpaper = (wallpaper: string | null): UseDesktopWallpap
         retryHandle = null;
       }
 
+      console.info("[useDesktopWallpaper] Cleaning up wallpaper effect", wallpaper);
       disposeObjectUrl();
     };
   }, [wallpaper]);
 
   const handleWallpaperRef = useCallback((node: HTMLImageElement | null) => {
+    if (node) {
+      console.info("[useDesktopWallpaper] Wallpaper element attached", {
+        src: node.src,
+        complete: node.complete,
+        naturalWidth: node.naturalWidth,
+        naturalHeight: node.naturalHeight,
+      });
+    } else {
+      console.info("[useDesktopWallpaper] Wallpaper element detached");
+    }
     setWallpaperElement(node);
   }, []);
 
