@@ -26,6 +26,7 @@ interface WindowChromeProps {
   onMinimize: () => void;
   onMaximize: () => void;
   isDragging: boolean;
+  isResizing: boolean;
 }
 
 interface WindowContentProps {
@@ -44,7 +45,7 @@ const WindowContent = memo(
 );
 
 const WindowChrome = (props: WindowChromeProps) => {
-  const { window, app, isFocused, onFocus, onClose, onMaximize, isDragging } = props;
+  const { window, app, isFocused, onFocus, onClose, onMaximize, isDragging, isResizing } = props;
 
   return (
     <Flex
@@ -86,7 +87,7 @@ const WindowChrome = (props: WindowChromeProps) => {
           </IconButton>
         </HStack>
       </Flex>
-      <Box flex="1" overflow="hidden" pointerEvents={isDragging ? "none" : undefined}>
+      <Box flex="1" overflow="hidden" pointerEvents={isDragging || isResizing ? "none" : undefined}>
         <WindowContent app={app} windowId={window.id} />
       </Box>
     </Flex>
@@ -137,6 +138,7 @@ export const Window = (props: WindowProps) => {
   const releasedSnapThisDragRef = useRef(false);
   const wasSnappedAtDragStartRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
 
   const desiredWidth = Math.max(window.size.width, MIN_WINDOW_WIDTH);
   const desiredHeight = Math.max(window.size.height, MIN_WINDOW_HEIGHT);
@@ -317,6 +319,13 @@ export const Window = (props: WindowProps) => {
   const minWidth = containerSize ? Math.min(MIN_WINDOW_WIDTH, containerSize.width) : MIN_WINDOW_WIDTH;
   const minHeight = containerSize ? Math.min(MIN_WINDOW_HEIGHT, containerSize.height) : MIN_WINDOW_HEIGHT;
 
+  const handleResizeStart = () => {
+    if (window.isMaximized) return;
+
+    onFocus();
+    setIsResizing(true);
+  };
+
   return (
     <Rnd
       size={{ width: size.width, height: size.height }}
@@ -327,7 +336,9 @@ export const Window = (props: WindowProps) => {
       onDragStart={handleDragStart}
       onDrag={handleDrag}
       onDragStop={handleDragStop}
+      onResizeStart={handleResizeStart}
       onResizeStop={(_, __, ref, ___, positionUpdate) => {
+        setIsResizing(false);
         if (window.isMaximized) return;
         onSizeChange({ width: ref.offsetWidth, height: ref.offsetHeight });
         onPositionChange(positionUpdate);
@@ -350,6 +361,7 @@ export const Window = (props: WindowProps) => {
           onMinimize={onMinimize}
           onMaximize={onMaximize}
           isDragging={isDragging}
+          isResizing={isResizing}
         />
       </Box>
     </Rnd>
