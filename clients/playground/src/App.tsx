@@ -1,11 +1,13 @@
 import { Box, Button, Flex, useBreakpointValue } from "@chakra-ui/react";
 import { Allotment } from "allotment";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { KasUIProvider, type ChatSettings, type ConversationStoreSnapshot } from "./kas-ui";
 import { ConversationHost } from "./components/ui/conversation-host";
 import { Desktop } from "./components/ui/desktop";
 import { GithubCorner } from "./components/ui/github-corner";
 import { Toaster } from "./components/ui/toaster";
 import { TopBar } from "./components/ui/top-bar";
+import { getModelPricing } from "./models";
 import { setupPlayground } from "./services/playground/setup";
 import { updateReactScanState } from "./services/react-scan/init";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
@@ -16,6 +18,9 @@ export function App() {
   const [mobilePane, setMobilePane] = useState<"conversation" | "desktop">("conversation");
   const themePreference = useWorkspaceStore((state) => state.settings.theme);
   const reactScanEnabled = useWorkspaceStore((state) => state.settings.reactScanEnabled);
+  const conversations = useWorkspaceStore((state) => state.conversations);
+  const selectedConversationId = useWorkspaceStore((state) => state.selectedConversationId);
+  const workspaceSettings = useWorkspaceStore((state) => state.settings);
 
   useEffect(() => {
     setupPlayground();
@@ -29,6 +34,19 @@ export function App() {
     updateReactScanState(reactScanEnabled);
   }, [reactScanEnabled]);
 
+  const chatSettings = useMemo<ChatSettings>(() => {
+    const { modelId, approvalGatedTools = [], apiKey, baseUrl } = workspaceSettings;
+
+    return {
+      modelId,
+      approvalGatedTools: approvalGatedTools ?? [],
+      apiKey: apiKey || undefined,
+      baseUrl: baseUrl || undefined,
+      credentialsReady: Boolean(apiKey || baseUrl),
+      modelPricing: getModelPricing(modelId || undefined),
+    };
+  }, [workspaceSettings]);
+
   useEffect(() => {
     if (!isMobile) {
       setMobilePane("conversation");
@@ -38,6 +56,19 @@ export function App() {
   const handleMobileToggle = () => {
     setMobilePane((current) => (current === "conversation" ? "desktop" : "conversation"));
   };
+
+  const handleConversationsChange = useCallback((snapshot: ConversationStoreSnapshot) => {
+    useWorkspaceStore.setState(
+      (state) => {
+        state.conversations = snapshot.conversations;
+        if (snapshot.selectedConversationId) {
+          state.selectedConversationId = snapshot.selectedConversationId;
+        }
+      },
+      false,
+      "kas-ui/conversations/sync",
+    );
+  }, []);
 
   const mobileToggleButton = !isMobile ? undefined : (
     <Button size="sm" variant="outline" onClick={handleMobileToggle} minWidth="140px">
@@ -81,12 +112,19 @@ export function App() {
   );
 
   return (
-    <Flex direction={isMobile ? "column" : "row"} height="100vh" width="100vw">
-      {layout}
+    <KasUIProvider
+      conversations={conversations}
+      selectedConversationId={selectedConversationId}
+      chatSettings={chatSettings}
+      onConversationsChange={handleConversationsChange}
+    >
+      <Flex direction={isMobile ? "column" : "row"} height="100vh" width="100vw">
+        {layout}
 
-      {!isMobile && <GithubCorner href="https://github.com/pufflyai/kaset" />}
+        {!isMobile && <GithubCorner href="https://github.com/pufflyai/kaset" />}
 
-      <Toaster />
-    </Flex>
+        <Toaster />
+      </Flex>
+    </KasUIProvider>
   );
 }

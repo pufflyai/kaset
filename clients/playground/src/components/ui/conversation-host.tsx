@@ -1,23 +1,27 @@
+import {
+  appendConversationMessages,
+  getConversation,
+  getConversationMessages,
+  getSelectedConversationId,
+  setConversationMessages,
+  useConversationStore,
+} from "@/kas-ui";
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
-import { appendConversationMessages } from "@/state/actions/appendConversationMessages";
-import { getConversation } from "@/state/actions/getConversation";
-import { getConversationMessages } from "@/state/actions/getConversationMessages";
-import { getSelectedConversationId } from "@/state/actions/getSelectedConversationId";
-import { hasCredentials } from "@/state/actions/hasCredentials";
-import { setConversationMessages } from "@/state/actions/setConversationMessages";
 import type { ApprovalRequest } from "@pstdio/kas";
 import type { ToolInvocationUIPart, UIMessage } from "@pstdio/kas/kas-ui";
 import { shortUID } from "@pstdio/prompt-utils";
 import { usePluginHost } from "@pstdio/tiny-plugins";
 import debounce from "lodash/debounce";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDisclosure } from "@chakra-ui/react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { host } from "../../services/plugins/host";
-import { useWorkspaceStore } from "../../state/WorkspaceProvider";
+import type { ModelPricing } from "@/models";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
+import { SettingsModal } from "./settings-modal";
 
 const EMPTY_MESSAGES: UIMessage[] = [];
 const ASSISTANT_UPDATE_DEBOUNCE_MS = 400;
@@ -66,16 +70,17 @@ interface ConversationAreaWithMessagesProps {
   examplePrompts: string[];
   onSendMessage: (text: string, fileNames?: string[]) => void | Promise<void>;
   onSelectFile?: (filePath: string) => void;
+  credentialsReady: boolean;
+  modelPricing?: ModelPricing;
+  onOpenSettings?: () => void;
 }
 
 const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
   props: ConversationAreaWithMessagesProps,
 ) {
-  const { streaming, canSend, examplePrompts, onSendMessage, onSelectFile } = props;
-  const messages = useWorkspaceStore((s) =>
-    s.selectedConversationId
-      ? (s.conversations[s.selectedConversationId!]?.messages ?? EMPTY_MESSAGES)
-      : EMPTY_MESSAGES,
+  const { streaming, canSend, examplePrompts, onSendMessage, onSelectFile, credentialsReady, modelPricing, onOpenSettings } = props;
+  const messages = useConversationStore((s) =>
+    s.selectedConversationId ? s.conversations[s.selectedConversationId]?.messages ?? EMPTY_MESSAGES : EMPTY_MESSAGES,
   );
 
   return (
@@ -86,6 +91,9 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
       examplePrompts={examplePrompts}
       onSendMessage={onSendMessage}
       onSelectFile={onSelectFile}
+      credentialsReady={credentialsReady}
+      modelPricing={modelPricing}
+      onOpenSettings={onOpenSettings}
     />
   );
 });
@@ -97,6 +105,32 @@ export function ConversationHost() {
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
   const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
+  const settings = useDisclosure();
+  const credentialsReady = useConversationStore((s) => s.chatSettings.credentialsReady);
+  const modelPricing = useConversationStore((s) => s.chatSettings.modelPricing);
+  const onOpenSettingsFromStore = useConversationStore((s) => s.ui.onOpenSettings);
+
+  useEffect(() => {
+    useConversationStore.setState(
+      (state) => {
+        state.ui.onOpenSettings = settings.onOpen;
+      },
+      false,
+      "kas-ui/ui/open-settings",
+    );
+
+    return () => {
+      useConversationStore.setState(
+        (state) => {
+          if (state.ui.onOpenSettings === settings.onOpen) {
+            state.ui.onOpenSettings = undefined;
+          }
+        },
+        false,
+        "kas-ui/ui/open-settings/cleanup",
+      );
+    };
+  }, [settings.onOpen]);
 
   useEffect(() => {
     setApprovalHandler(
@@ -184,10 +218,13 @@ export function ConversationHost() {
     <>
       <ConversationAreaWithMessages
         streaming={streaming}
-        canSend={hasCredentials() && !streaming}
+        canSend={credentialsReady && !streaming}
         examplePrompts={examplePrompts}
         onSendMessage={handleSendMessage}
         onSelectFile={handleSelectFile}
+        credentialsReady={credentialsReady}
+        modelPricing={modelPricing}
+        onOpenSettings={onOpenSettingsFromStore ?? settings.onOpen}
       />
       <ApprovalModal
         request={approval}
@@ -202,6 +239,7 @@ export function ConversationHost() {
           approvalResolve.current = null;
         }}
       />
+      <SettingsModal isOpen={settings.isOpen} onClose={settings.onClose} />
     </>
   );
 }

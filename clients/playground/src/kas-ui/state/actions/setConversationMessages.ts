@@ -1,5 +1,5 @@
 import type { UIMessage } from "@pstdio/kas/kas-ui";
-import { useWorkspaceStore } from "../WorkspaceProvider";
+import { getConversationStore } from "../KasUIProvider";
 
 export const setConversationMessages = (
   conversationId: string,
@@ -8,10 +8,13 @@ export const setConversationMessages = (
 ) => {
   if (!conversationId) return;
 
-  useWorkspaceStore.setState(
+  const store = getConversationStore();
+
+  store.setState(
     (state) => {
       const conversation = state.conversations[conversationId];
       if (!conversation) return;
+
       conversation.messages = [...messages];
     },
     false,

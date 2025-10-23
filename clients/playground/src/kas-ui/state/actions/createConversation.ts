@@ -1,5 +1,5 @@
 import { shortUID } from "@pstdio/prompt-utils";
-import { useWorkspaceStore } from "../WorkspaceProvider";
+import { getConversationStore } from "../KasUIProvider";
 import type { Conversation } from "../types";
 import { selectConversation } from "./selectConversation";
 
@@ -31,7 +31,8 @@ const buildConversationName = (conversations: Record<string, Conversation>) => {
 };
 
 export const createConversation = () => {
-  const state = useWorkspaceStore.getState();
+  const store = getConversationStore();
+  const state = store.getState();
   const selectedId = state.selectedConversationId;
   const conversationIds = Object.keys(state.conversations);
 
@@ -49,7 +50,7 @@ export const createConversation = () => {
   const id = shortUID();
   const name = buildConversationName(state.conversations);
 
-  useWorkspaceStore.setState(
+  store.setState(
     (draft) => {
       draft.conversations[id] = { id, name, messages: [] };
       draft.selectedConversationId = id;

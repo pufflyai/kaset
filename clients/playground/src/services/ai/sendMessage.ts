@@ -1,5 +1,5 @@
 import { ROOT } from "@/constant";
-import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
+import { getConversationStoreState } from "@/kas-ui";
 import { createApprovalGate, createKasAgent } from "@pstdio/kas";
 import type { UIConversation } from "@pstdio/kas/kas-ui";
 import { decorateWithThought, toBaseMessages, toConversationUI, withClosedThoughts } from "@pstdio/kas/kas-ui";
@@ -12,7 +12,8 @@ import { requestApproval } from "./approval";
 const rootDir = ROOT;
 
 export async function* sendMessage(_conversationId: string, messages: UIConversation, extraTools: Tool[] = []) {
-  const { modelId, approvalGatedTools, apiKey, baseUrl } = getWorkspaceSettings();
+  const { chatSettings } = getConversationStoreState();
+  const { modelId, approvalGatedTools, apiKey, baseUrl } = chatSettings;
 
   const approvalGate = createApprovalGate({ approvalGatedTools, requestApproval });
 

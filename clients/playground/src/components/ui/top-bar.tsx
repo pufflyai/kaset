@@ -1,8 +1,6 @@
-import { Tooltip } from "@/kas-ui";
-import { createConversation } from "@/state/actions/createConversation";
+import { Tooltip, createConversation, selectConversation } from "@/kas-ui";
 import { deleteAllConversations as deleteAllConversationsAction } from "@/state/actions/deleteAllConversations";
 import { resetWorkspace } from "@/state/actions/resetWorkspace";
-import { selectConversation } from "@/state/actions/selectConversation";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import {
   Box,
