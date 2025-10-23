@@ -71,6 +71,51 @@ describe("createSettings", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it("seeds defaults when the settings file is missing", async () => {
+    const onWrite = vi.fn();
+    const { fs } = createFs({ onWrite });
+    const onChange = vi.fn();
+    const seed = vi.fn().mockResolvedValue({ theme: "light" });
+    const settings = createSettings(fs, onChange, { seed });
+
+    const value = await settings.read<{ theme?: string }>();
+
+    expect(seed).toHaveBeenCalledTimes(1);
+    expect(onWrite).toHaveBeenCalledWith(".settings.json", { theme: "light" });
+    expect(onChange).toHaveBeenCalledWith({ theme: "light" });
+    expect(value).toEqual({ theme: "light" });
+  });
+
+  it("does not overwrite existing settings when seeding is configured", async () => {
+    const { fs, setValue } = createFs();
+    const onChange = vi.fn();
+    const seed = vi.fn();
+    setValue({ theme: "dark" });
+    const settings = createSettings(fs, onChange, { seed });
+
+    const value = await settings.read<{ theme?: string }>();
+
+    expect(seed).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(value).toEqual({ theme: "dark" });
+  });
+
+  it("logs a warning when seeding fails", async () => {
+    const { fs } = createFs();
+    const onChange = vi.fn();
+    const seedError = new Error("failed");
+    const seed = vi.fn().mockRejectedValue(seedError);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const settings = createSettings(fs, onChange, { seed });
+
+    const value = await settings.read();
+
+    expect(seed).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledWith("[tiny-plugins] failed to seed settings", seedError);
+    expect(value).toEqual({});
+    warn.mockRestore();
+  });
+
   it("writes settings and emits changes", async () => {
     const onWrite = vi.fn();
     const { fs } = createFs({ onWrite });
