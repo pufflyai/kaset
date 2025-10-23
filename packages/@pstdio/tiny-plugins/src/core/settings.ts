@@ -10,12 +10,30 @@ function isMissingError(error: unknown) {
   return code === "ENOENT" || name === "NotFoundError" || name === "NotFound";
 }
 
-export function createSettings(fs: ScopedFs, onChange: (value: unknown) => void) {
+export function createSettings(
+  fs: ScopedFs,
+  options: { onChange: (value: unknown) => void; seed?: () => Promise<unknown> },
+) {
+  const { onChange, seed } = options;
+
   return {
     async read<T = unknown>(): Promise<T> {
       try {
         return (await fs.readJSON<T>(SETTINGS_FILE)) as T;
       } catch (error) {
+        if (isMissingError(error) && seed) {
+          try {
+            const defaults = await seed();
+            if (defaults !== undefined) {
+              await fs.writeJSON(SETTINGS_FILE, defaults, true);
+              onChange(defaults);
+              return defaults as T;
+            }
+          } catch (seedError) {
+            console.warn("[tiny-plugins] failed to seed default settings", seedError);
+          }
+        }
+
         if (!isMissingError(error) && !(error instanceof SyntaxError)) {
           console.warn("[tiny-plugins] failed to read settings", error);
         }
@@ -30,7 +48,7 @@ export function createSettings(fs: ScopedFs, onChange: (value: unknown) => void)
 }
 
 export function createSettingsAccessor(fs: ScopedFs, pluginId: string, validator?: ValidateFunction) {
-  const settings = createSettings(fs, () => undefined);
+  const settings = createSettings(fs, { onChange: () => undefined });
 
   return {
     async read<T = unknown>(): Promise<T> {

@@ -77,7 +77,7 @@ await host.stop();
 - `getPluginDependencies()` – inspect the merged dependency map.
 - `listCommands()` – enumerate all registered commands (`pluginId`, `id`, `title`, ...).
 - `runCommand(pluginId, commandId, params?)` – execute a plugin command directly.
-- `readSettings(pluginId)` / `updateSettings(pluginId, value)` – persist JSON settings under `/plugin_data/<id>/.settings.json`.
+- `readSettings(pluginId)` / `updateSettings(pluginId, value)` – persist JSON settings under `/plugin_data/<id>/.settings.json`; the first `readSettings` call seeds manifest `settingsSchema` defaults when available.
 - `createHostApiFor(pluginId)` – expose the `api.call(method, params?)` bridge (fs/logs/settings) for Tiny UI surfaces.
 
 All subscriptions return an unsubscribe function for teardown.
@@ -161,7 +161,7 @@ Command handlers receive a lightweight `PluginContext`:
 
 - `ctx.id` / `ctx.manifest` – plugin identity and validated manifest metadata.
 - `ctx.api.call("fs.readFile", { path })` – scoped file-system helpers backed by `@pstdio/opfs-utils` (`fs.writeFile`, `fs.deleteFile`, `fs.moveFile`, `fs.exists`, `fs.mkdirp` follow the same pattern).
-- `ctx.api.call("settings.read")` / `ctx.api.call("settings.write", { value })` – JSON persistence to `/plugin_data/<id>/.settings.json`.
+- `ctx.api.call("settings.read")` / `ctx.api.call("settings.write", { value })` – JSON persistence to `/plugin_data/<id>/.settings.json`, with `settings.read` seeding defaults from `settingsSchema` the first time it runs.
 - `ctx.api.call("log.statusUpdate", { status, detail? })` – emit structured status messages surfaced via `host.onStatus`.
 - `ctx.api.call("log.error", { message })` / `ctx.api.call("log.warn", { message, detail? })` / `ctx.api.call("log.info", { message, detail? })` – forward plugin logs to the host notifier.
 

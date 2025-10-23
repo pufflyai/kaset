@@ -1,8 +1,9 @@
 import { createPluginDataFs, createPluginFs } from "../fs";
 import { createSettings } from "../settings";
+import { deriveSettingsDefaults } from "../settings-defaults";
 import type { Emitter } from "../events";
-import type { HostApi, HostApiHandlerMap, HostApiMethod, HostApiParams, HostApiResult } from "../types";
-import type { Events } from "./internalTypes";
+import type { HostApi, HostApiHandlerMap, HostApiMethod, HostApiParams, HostApiResult, Manifest } from "../types";
+import type { Events, HostRuntime } from "./internalTypes";
 
 export function buildHostApi({
   root,
@@ -10,16 +11,24 @@ export function buildHostApi({
   pluginId,
   notify,
   emitter,
+  states,
+  manifestOverride,
 }: {
   root: string;
   dataRoot: string;
   pluginId: string;
   notify?: (level: "info" | "warn" | "error", message: string) => void;
   emitter: Emitter<Events>;
+  states: HostRuntime["states"];
+  manifestOverride?: Manifest | null;
 }): HostApi {
   const pfs = createPluginFs(root, pluginId);
-  const settings = createSettings(createPluginDataFs(dataRoot, pluginId), (value) => {
-    emitter.emit("settingsChange", { pluginId, settings: value });
+  const manifest = manifestOverride ?? states.get(pluginId)?.manifest ?? null;
+  const settings = createSettings(createPluginDataFs(dataRoot, pluginId), {
+    onChange: (value) => {
+      emitter.emit("settingsChange", { pluginId, settings: value });
+    },
+    seed: manifest?.settingsSchema ? async () => deriveSettingsDefaults(manifest.settingsSchema) : undefined,
   });
 
   const logPrefix = `[tiny-plugins:${pluginId}]`;
