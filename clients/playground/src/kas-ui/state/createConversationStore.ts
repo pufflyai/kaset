@@ -29,3 +29,5 @@ export const createConversationStore = (initial?: Partial<ConversationStoreHydra
 
   return create<ConversationStoreState>()(subscribeWithSelector(immer(() => baseState)));
 };
+
+export type ConversationStore = ReturnType<typeof createConversationStore>;

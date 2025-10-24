@@ -50,12 +50,8 @@ export const createConversation = () => {
   const id = shortUID();
   const name = buildConversationName(state.conversations);
 
-  store.setState(
-    (draft) => {
-      draft.conversations[id] = { id, name, messages: [] };
-      draft.selectedConversationId = id;
-    },
-    false,
-    "conversations/create",
-  );
+  store.setState((draft) => {
+    draft.conversations[id] = { id, name, messages: [] };
+    draft.selectedConversationId = id;
+  });
 };

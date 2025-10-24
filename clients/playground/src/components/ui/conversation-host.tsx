@@ -78,9 +78,18 @@ interface ConversationAreaWithMessagesProps {
 const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
   props: ConversationAreaWithMessagesProps,
 ) {
-  const { streaming, canSend, examplePrompts, onSendMessage, onSelectFile, credentialsReady, modelPricing, onOpenSettings } = props;
+  const {
+    streaming,
+    canSend,
+    examplePrompts,
+    onSendMessage,
+    onSelectFile,
+    credentialsReady,
+    modelPricing,
+    onOpenSettings,
+  } = props;
   const messages = useConversationStore((s) =>
-    s.selectedConversationId ? s.conversations[s.selectedConversationId]?.messages ?? EMPTY_MESSAGES : EMPTY_MESSAGES,
+    s.selectedConversationId ? (s.conversations[s.selectedConversationId]?.messages ?? EMPTY_MESSAGES) : EMPTY_MESSAGES,
   );
 
   return (
@@ -111,24 +120,16 @@ export function ConversationHost() {
   const onOpenSettingsFromStore = useConversationStore((s) => s.ui.onOpenSettings);
 
   useEffect(() => {
-    useConversationStore.setState(
-      (state) => {
-        state.ui.onOpenSettings = settings.onOpen;
-      },
-      false,
-      "kas-ui/ui/open-settings",
-    );
+    useConversationStore.setState((state) => {
+      state.ui.onOpenSettings = settings.onOpen;
+    });
 
     return () => {
-      useConversationStore.setState(
-        (state) => {
-          if (state.ui.onOpenSettings === settings.onOpen) {
-            state.ui.onOpenSettings = undefined;
-          }
-        },
-        false,
-        "kas-ui/ui/open-settings/cleanup",
-      );
+      useConversationStore.setState((state) => {
+        if (state.ui.onOpenSettings === settings.onOpen) {
+          state.ui.onOpenSettings = undefined;
+        }
+      });
     };
   }, [settings.onOpen]);
 
@@ -166,13 +167,13 @@ export function ConversationHost() {
 
       const applyConversationUpdate = debounce(
         (nextMessages: UIMessage[]) => {
-          setConversationMessages(conversationId, nextMessages, "conversations/send/assistant");
+          setConversationMessages(conversationId, nextMessages);
         },
         ASSISTANT_UPDATE_DEBOUNCE_MS,
         { leading: true, trailing: true, maxWait: ASSISTANT_UPDATE_MAX_WAIT_MS },
       );
 
-      setConversationMessages(conversationId, base, "conversations/send/user");
+      setConversationMessages(conversationId, base);
 
       try {
         setStreaming(true);
@@ -201,8 +202,8 @@ export function ConversationHost() {
           const latestMessages = getConversationMessages(id);
           const updatedMessages = markInFlightToolInvocationsAsError(latestMessages, errorText);
 
-          setConversationMessages(id, updatedMessages, "conversations/send/error");
-          appendConversationMessages(id, [assistantError], "conversations/send/error");
+          setConversationMessages(id, updatedMessages);
+          appendConversationMessages(id, [assistantError]);
         }
       } finally {
         applyConversationUpdate.cancel();
@@ -239,7 +240,7 @@ export function ConversationHost() {
           approvalResolve.current = null;
         }}
       />
-      <SettingsModal isOpen={settings.isOpen} onClose={settings.onClose} />
+      <SettingsModal isOpen={settings.open} onClose={settings.onClose} />
     </>
   );
 }

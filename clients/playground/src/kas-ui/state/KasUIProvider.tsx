@@ -1,7 +1,8 @@
 import { createContext, useEffect, useRef } from "react";
-import type { StoreApi, UseBoundStore } from "zustand";
+import type { ReactNode } from "react";
 import { shallow } from "zustand/shallow";
 import { createConversationStore } from "./createConversationStore";
+import type { ConversationStore } from "./createConversationStore";
 import type {
   ChatSettings,
   Conversation,
@@ -10,9 +11,9 @@ import type {
   ConversationStoreState,
 } from "./types";
 
-export const ConversationStoreContext = createContext<UseBoundStore<StoreApi<ConversationStoreState>> | null>(null);
+export const ConversationStoreContext = createContext<ConversationStore | null>(null);
 
-export let useConversationStore: UseBoundStore<StoreApi<ConversationStoreState>>;
+export let useConversationStore: ConversationStore;
 
 const chatSettingsEqual = (a: ChatSettings, b: ChatSettings) => {
   if (a === b) return true;
@@ -33,14 +34,14 @@ const chatSettingsEqual = (a: ChatSettings, b: ChatSettings) => {
 };
 
 interface KasUIProviderProps extends Omit<ConversationStoreHydration, "conversations"> {
-  children: React.ReactNode;
+  children: ReactNode;
   conversations: Record<string, Conversation>;
   onConversationsChange?: (snapshot: ConversationStoreSnapshot) => void;
 }
 
 export function KasUIProvider(props: KasUIProviderProps) {
   const { children, conversations, selectedConversationId, chatSettings, onConversationsChange } = props;
-  const storeRef = useRef<UseBoundStore<StoreApi<ConversationStoreState>> | null>(null);
+  const storeRef = useRef<ConversationStore | null>(null);
 
   if (!storeRef.current) {
     useConversationStore = createConversationStore({
@@ -55,37 +56,26 @@ export function KasUIProvider(props: KasUIProviderProps) {
 
   useEffect(() => {
     const current = store.getState();
-    if (
-      current.conversations === conversations &&
-      current.selectedConversationId === selectedConversationId
-    ) {
+    if (current.conversations === conversations && current.selectedConversationId === selectedConversationId) {
       return;
     }
 
-    store.setState(
-      (draft) => {
-        draft.conversations = conversations;
-        draft.selectedConversationId = selectedConversationId;
-      },
-      false,
-      "kas-ui/hydrate/conversations",
-    );
+    store.setState((draft) => {
+      draft.conversations = conversations;
+      draft.selectedConversationId = selectedConversationId;
+    });
   }, [store, conversations, selectedConversationId]);
 
   useEffect(() => {
     const current = store.getState().chatSettings;
     if (chatSettingsEqual(current, chatSettings)) return;
 
-    store.setState(
-      (draft) => {
-        draft.chatSettings = {
-          ...chatSettings,
-          approvalGatedTools: [...chatSettings.approvalGatedTools],
-        };
-      },
-      false,
-      "kas-ui/hydrate/chat-settings",
-    );
+    store.setState((draft) => {
+      draft.chatSettings = {
+        ...chatSettings,
+        approvalGatedTools: [...chatSettings.approvalGatedTools],
+      };
+    });
   }, [store, chatSettings]);
 
   useEffect(() => {
@@ -96,7 +86,7 @@ export function KasUIProvider(props: KasUIProviderProps) {
         conversations: state.conversations,
         selectedConversationId: state.selectedConversationId,
       }),
-      (snapshot) => {
+      (snapshot: ConversationStoreSnapshot) => {
         onConversationsChange(snapshot);
       },
       { equalityFn: shallow },
@@ -106,7 +96,7 @@ export function KasUIProvider(props: KasUIProviderProps) {
   return <ConversationStoreContext.Provider value={store}>{children}</ConversationStoreContext.Provider>;
 }
 
-export const getConversationStore = (): UseBoundStore<StoreApi<ConversationStoreState>> => {
+export const getConversationStore = (): ConversationStore => {
   if (!useConversationStore) {
     throw new Error("Kas UI store has not been initialized. Ensure KasUIProvider is mounted.");
   }

@@ -13,7 +13,8 @@ const rootDir = ROOT;
 
 export async function* sendMessage(_conversationId: string, messages: UIConversation, extraTools: Tool[] = []) {
   const { chatSettings } = getConversationStoreState();
-  const { modelId, approvalGatedTools, apiKey, baseUrl } = chatSettings;
+  const { approvalGatedTools, apiKey, baseUrl } = chatSettings;
+  const modelId = chatSettings.modelId ?? "gpt-5";
 
   const approvalGate = createApprovalGate({ approvalGatedTools, requestApproval });
 

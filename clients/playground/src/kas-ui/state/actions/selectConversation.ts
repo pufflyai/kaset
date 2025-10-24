@@ -7,11 +7,7 @@ export const selectConversation = (conversationId: string | null | undefined) =>
   const conversation = store.getState().conversations[conversationId];
   if (!conversation) return;
 
-  store.setState(
-    (state) => {
-      state.selectedConversationId = conversationId;
-    },
-    false,
-    "conversations/select",
-  );
+  store.setState((state) => {
+    state.selectedConversationId = conversationId;
+  });
 };
