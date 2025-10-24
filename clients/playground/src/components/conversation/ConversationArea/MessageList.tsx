@@ -1,5 +1,4 @@
 import { EmptyState, MessageContent, MessageRoot } from "@/kas-ui";
-import { hasCredentials } from "../../../state/actions/hasCredentials.ts";
 import type { UIMessage, ToolInvocation } from "@pstdio/kas/kas-ui";
 import { Box, Button, Link, Text, VStack } from "@chakra-ui/react";
 import { CassetteTapeIcon } from "lucide-react";
@@ -125,9 +124,17 @@ interface MessageListProps {
   onOpenFile?: (filePath: string) => void;
   onUseExample?: (text: string) => void;
   examplePrompts?: string[];
+  credentialsReady: boolean;
 }
 
-export function MessageList({ messages, streaming, onOpenFile, onUseExample, examplePrompts = [] }: MessageListProps) {
+export function MessageList({
+  messages,
+  streaming,
+  onOpenFile,
+  onUseExample,
+  examplePrompts = [],
+  credentialsReady,
+}: MessageListProps) {
   const examplesToShow = useMemo(() => pickRandom(examplePrompts, 4), [examplePrompts]);
 
   const plan = useRenderPlan(messages);
@@ -150,7 +157,7 @@ export function MessageList({ messages, streaming, onOpenFile, onUseExample, exa
             </Link>
             .
           </Text>
-          {hasCredentials() && (
+          {credentialsReady && (
             <VStack gap="sm" mt="sm" align="stretch">
               <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
                 Try one of these example prompts to see what it can do:
