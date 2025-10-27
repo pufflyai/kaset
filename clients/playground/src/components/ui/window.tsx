@@ -27,6 +27,7 @@ interface WindowChromeProps {
   onMaximize: () => void;
   isDragging: boolean;
   isResizing: boolean;
+  suppressContentPointerEvents: boolean;
 }
 
 interface WindowContentProps {
@@ -45,7 +46,8 @@ const WindowContent = memo(
 );
 
 const WindowChrome = (props: WindowChromeProps) => {
-  const { window, app, isFocused, onFocus, onClose, onMaximize, isDragging, isResizing } = props;
+  const { window, app, isFocused, onFocus, onClose, onMaximize, isDragging, isResizing, suppressContentPointerEvents } =
+    props;
 
   return (
     <Flex
@@ -87,7 +89,11 @@ const WindowChrome = (props: WindowChromeProps) => {
           </IconButton>
         </HStack>
       </Flex>
-      <Box flex="1" overflow="hidden" pointerEvents={isDragging || isResizing ? "none" : undefined}>
+      <Box
+        flex="1"
+        overflow="hidden"
+        pointerEvents={isDragging || isResizing || suppressContentPointerEvents ? "none" : undefined}
+      >
         <WindowContent app={app} windowId={window.id} />
       </Box>
     </Flex>
@@ -114,6 +120,9 @@ interface WindowProps {
   }) => void;
   onReleaseSnap: () => void;
   snapEnabled: boolean;
+  onInteractionStart: () => void;
+  onInteractionEnd: () => void;
+  suppressPointerEvents: boolean;
 }
 
 export const Window = (props: WindowProps) => {
@@ -132,6 +141,9 @@ export const Window = (props: WindowProps) => {
     onSnap,
     onReleaseSnap,
     snapEnabled,
+    onInteractionStart,
+    onInteractionEnd,
+    suppressPointerEvents,
   } = props;
 
   const pendingSnapReleaseRef = useRef(false);
@@ -139,6 +151,7 @@ export const Window = (props: WindowProps) => {
   const wasSnappedAtDragStartRef = useRef(false);
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const wasInteractingRef = useRef(false);
 
   const desiredWidth = Math.max(window.size.width, MIN_WINDOW_WIDTH);
   const desiredHeight = Math.max(window.size.height, MIN_WINDOW_HEIGHT);
@@ -189,6 +202,27 @@ export const Window = (props: WindowProps) => {
     onSizeChange,
     onPositionChange,
   ]);
+
+  useEffect(() => {
+    const isInteracting = isDragging || isResizing;
+
+    if (isInteracting && !wasInteractingRef.current) {
+      wasInteractingRef.current = true;
+      onInteractionStart();
+    } else if (!isInteracting && wasInteractingRef.current) {
+      wasInteractingRef.current = false;
+      onInteractionEnd();
+    }
+  }, [isDragging, isResizing, onInteractionStart, onInteractionEnd]);
+
+  useEffect(() => {
+    return () => {
+      if (wasInteractingRef.current) {
+        wasInteractingRef.current = false;
+        onInteractionEnd();
+      }
+    };
+  }, [onInteractionEnd]);
 
   const computeSnapPlacement = (side: "left" | "right") => {
     if (!containerSize) return null;
@@ -326,6 +360,8 @@ export const Window = (props: WindowProps) => {
     setIsResizing(true);
   };
 
+  const shouldSuppressPointerEvents = suppressPointerEvents && !isDragging && !isResizing;
+
   return (
     <Rnd
       size={{ width: size.width, height: size.height }}
@@ -345,7 +381,11 @@ export const Window = (props: WindowProps) => {
       }}
       enableResizing={!window.isMaximized && (!window.snapRestore || !snapEnabled)}
       disableDragging={window.isMaximized}
-      style={{ zIndex: window.zIndex, position: "absolute" }}
+      style={{
+        zIndex: window.zIndex,
+        position: "absolute",
+        pointerEvents: shouldSuppressPointerEvents ? "none" : undefined,
+      }}
       maxWidth={containerSize?.width}
       maxHeight={containerSize?.height}
       minWidth={minWidth}
@@ -362,6 +402,7 @@ export const Window = (props: WindowProps) => {
           onMaximize={onMaximize}
           isDragging={isDragging}
           isResizing={isResizing}
+          suppressContentPointerEvents={shouldSuppressPointerEvents}
         />
       </Box>
     </Rnd>
