@@ -1,7 +1,7 @@
 import { Box, Button, Flex, useBreakpointValue } from "@chakra-ui/react";
 import { Allotment } from "allotment";
-import { useCallback, useEffect, useState } from "react";
-import { KasUIProvider, type ConversationStoreSnapshot } from "./kas-ui";
+import { useEffect, useState } from "react";
+import { KasUIProvider } from "./kas-ui";
 import { ConversationHost } from "./components/ui/conversation-host";
 import { Desktop } from "./components/ui/desktop";
 import { GithubCorner } from "./components/ui/github-corner";
@@ -17,8 +17,6 @@ export function App() {
   const [mobilePane, setMobilePane] = useState<"conversation" | "desktop">("conversation");
   const themePreference = useWorkspaceStore((state) => state.settings.theme);
   const reactScanEnabled = useWorkspaceStore((state) => state.settings.reactScanEnabled);
-  const conversations = useWorkspaceStore((state) => state.conversations);
-  const selectedConversationId = useWorkspaceStore((state) => state.selectedConversationId);
 
   useEffect(() => {
     setupPlayground();
@@ -41,19 +39,6 @@ export function App() {
   const handleMobileToggle = () => {
     setMobilePane((current) => (current === "conversation" ? "desktop" : "conversation"));
   };
-
-  const handleConversationsChange = useCallback((snapshot: ConversationStoreSnapshot) => {
-    useWorkspaceStore.setState(
-      (state) => {
-        state.conversations = snapshot.conversations;
-        if (snapshot.selectedConversationId) {
-          state.selectedConversationId = snapshot.selectedConversationId;
-        }
-      },
-      false,
-      "kas-ui/conversations/sync",
-    );
-  }, []);
 
   const mobileToggleButton = !isMobile ? undefined : (
     <Button size="sm" variant="outline" onClick={handleMobileToggle} minWidth="140px">
@@ -97,11 +82,7 @@ export function App() {
   );
 
   return (
-    <KasUIProvider
-      conversations={conversations}
-      selectedConversationId={selectedConversationId ?? null}
-      onConversationsChange={handleConversationsChange}
-    >
+    <KasUIProvider>
       <Flex direction={isMobile ? "column" : "row"} height="100vh" width="100vw">
         {layout}
 

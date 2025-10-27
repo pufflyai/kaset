@@ -1,4 +1,5 @@
 export * from "./appendConversationMessages";
+export * from "./deleteAllConversations";
 export * from "./createConversation";
 export * from "./getConversation";
 export * from "./getConversationMessages";
