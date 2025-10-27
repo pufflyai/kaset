@@ -1,9 +1,11 @@
-import { Tooltip } from "@/kas-ui";
-import { createConversation } from "@/state/actions/createConversation";
-import { deleteAllConversations as deleteAllConversationsAction } from "@/state/actions/deleteAllConversations";
+import {
+  Tooltip,
+  createConversation,
+  deleteAllConversations,
+  selectConversation,
+  useConversationStore,
+} from "@/kas-ui";
 import { resetWorkspace } from "@/state/actions/resetWorkspace";
-import { selectConversation } from "@/state/actions/selectConversation";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import {
   Box,
   Drawer,
@@ -46,11 +48,11 @@ export function TopBar(props: TopBarProps) {
   const deleteAll = useDisclosure();
   const resetProject = useDisclosure();
   const versionHistory = useDisclosure();
-  const conversations = useWorkspaceStore((s) => s.conversations);
-  const selectedId = useWorkspaceStore((s) => s.selectedConversationId);
+  const conversations = useConversationStore((s) => s.conversations);
+  const selectedId = useConversationStore((s) => s.selectedConversationId);
 
   const handleDeleteAllConversations = () => {
-    deleteAllConversationsAction();
+    deleteAllConversations();
   };
 
   const handleResetProject = async () => {
@@ -61,6 +63,7 @@ export function TopBar(props: TopBarProps) {
     }
 
     resetWorkspace();
+    deleteAllConversations();
   };
 
   const handleVersionHistoryChange = (event: { open: boolean }) => {

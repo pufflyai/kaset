@@ -1,23 +1,28 @@
+import {
+  appendConversationMessages,
+  getConversation,
+  getConversationMessages,
+  getSelectedConversationId,
+  setConversationMessages,
+  useConversationStore,
+} from "@/kas-ui";
+import { getModelPricing, type ModelPricing } from "@/models";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
-import { appendConversationMessages } from "@/state/actions/appendConversationMessages";
-import { getConversation } from "@/state/actions/getConversation";
-import { getConversationMessages } from "@/state/actions/getConversationMessages";
-import { getSelectedConversationId } from "@/state/actions/getSelectedConversationId";
-import { hasCredentials } from "@/state/actions/hasCredentials";
-import { setConversationMessages } from "@/state/actions/setConversationMessages";
 import type { ApprovalRequest } from "@pstdio/kas";
 import type { ToolInvocationUIPart, UIMessage } from "@pstdio/kas/kas-ui";
 import { shortUID } from "@pstdio/prompt-utils";
 import { usePluginHost } from "@pstdio/tiny-plugins";
 import debounce from "lodash/debounce";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDisclosure } from "@chakra-ui/react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { host } from "../../services/plugins/host";
-import { useWorkspaceStore } from "../../state/WorkspaceProvider";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
+import { SettingsModal } from "./settings-modal";
 
 const EMPTY_MESSAGES: UIMessage[] = [];
 const ASSISTANT_UPDATE_DEBOUNCE_MS = 400;
@@ -66,16 +71,26 @@ interface ConversationAreaWithMessagesProps {
   examplePrompts: string[];
   onSendMessage: (text: string, fileNames?: string[]) => void | Promise<void>;
   onSelectFile?: (filePath: string) => void;
+  credentialsReady: boolean;
+  modelPricing?: ModelPricing;
+  onOpenSettings?: () => void;
 }
 
 const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
   props: ConversationAreaWithMessagesProps,
 ) {
-  const { streaming, canSend, examplePrompts, onSendMessage, onSelectFile } = props;
-  const messages = useWorkspaceStore((s) =>
-    s.selectedConversationId
-      ? (s.conversations[s.selectedConversationId!]?.messages ?? EMPTY_MESSAGES)
-      : EMPTY_MESSAGES,
+  const {
+    streaming,
+    canSend,
+    examplePrompts,
+    onSendMessage,
+    onSelectFile,
+    credentialsReady,
+    modelPricing,
+    onOpenSettings,
+  } = props;
+  const messages = useConversationStore((s) =>
+    s.selectedConversationId ? (s.conversations[s.selectedConversationId]?.messages ?? EMPTY_MESSAGES) : EMPTY_MESSAGES,
   );
 
   return (
@@ -86,6 +101,9 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
       examplePrompts={examplePrompts}
       onSendMessage={onSendMessage}
       onSelectFile={onSelectFile}
+      credentialsReady={credentialsReady}
+      modelPricing={modelPricing}
+      onOpenSettings={onOpenSettings}
     />
   );
 });
@@ -97,6 +115,12 @@ export function ConversationHost() {
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
   const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
+  const settings = useDisclosure();
+  const apiKey = useWorkspaceStore((s) => s.settings.apiKey);
+  const baseUrl = useWorkspaceStore((s) => s.settings.baseUrl);
+  const modelId = useWorkspaceStore((s) => s.settings.modelId);
+  const credentialsReady = Boolean(apiKey || baseUrl);
+  const modelPricing = useMemo(() => getModelPricing(modelId), [modelId]);
 
   useEffect(() => {
     setApprovalHandler(
@@ -132,13 +156,13 @@ export function ConversationHost() {
 
       const applyConversationUpdate = debounce(
         (nextMessages: UIMessage[]) => {
-          setConversationMessages(conversationId, nextMessages, "conversations/send/assistant");
+          setConversationMessages(conversationId, nextMessages);
         },
         ASSISTANT_UPDATE_DEBOUNCE_MS,
         { leading: true, trailing: true, maxWait: ASSISTANT_UPDATE_MAX_WAIT_MS },
       );
 
-      setConversationMessages(conversationId, base, "conversations/send/user");
+      setConversationMessages(conversationId, base);
 
       try {
         setStreaming(true);
@@ -167,8 +191,8 @@ export function ConversationHost() {
           const latestMessages = getConversationMessages(id);
           const updatedMessages = markInFlightToolInvocationsAsError(latestMessages, errorText);
 
-          setConversationMessages(id, updatedMessages, "conversations/send/error");
-          appendConversationMessages(id, [assistantError], "conversations/send/error");
+          setConversationMessages(id, updatedMessages);
+          appendConversationMessages(id, [assistantError]);
         }
       } finally {
         applyConversationUpdate.cancel();
@@ -184,10 +208,13 @@ export function ConversationHost() {
     <>
       <ConversationAreaWithMessages
         streaming={streaming}
-        canSend={hasCredentials() && !streaming}
+        canSend={credentialsReady && !streaming}
         examplePrompts={examplePrompts}
         onSendMessage={handleSendMessage}
         onSelectFile={handleSelectFile}
+        credentialsReady={credentialsReady}
+        modelPricing={modelPricing}
+        onOpenSettings={settings.onOpen}
       />
       <ApprovalModal
         request={approval}
@@ -202,6 +229,7 @@ export function ConversationHost() {
           approvalResolve.current = null;
         }}
       />
+      <SettingsModal isOpen={settings.open} onClose={settings.onClose} />
     </>
   );
 }

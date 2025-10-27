@@ -1,6 +1,7 @@
 import { Box, Button, Flex, useBreakpointValue } from "@chakra-ui/react";
 import { Allotment } from "allotment";
 import { useEffect, useState } from "react";
+import { KasUIProvider } from "./kas-ui";
 import { ConversationHost } from "./components/ui/conversation-host";
 import { Desktop } from "./components/ui/desktop";
 import { GithubCorner } from "./components/ui/github-corner";
@@ -81,12 +82,14 @@ export function App() {
   );
 
   return (
-    <Flex direction={isMobile ? "column" : "row"} height="100vh" width="100vw">
-      {layout}
+    <KasUIProvider>
+      <Flex direction={isMobile ? "column" : "row"} height="100vh" width="100vw">
+        {layout}
 
-      {!isMobile && <GithubCorner href="https://github.com/pufflyai/kaset" />}
+        {!isMobile && <GithubCorner href="https://github.com/pufflyai/kaset" />}
 
-      <Toaster />
-    </Flex>
+        <Toaster />
+      </Flex>
+    </KasUIProvider>
   );
 }
