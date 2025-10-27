@@ -50,7 +50,7 @@ beforeEach(() => {
 });
 
 describe("buildHostApi settings seeding", () => {
-  it("provides a seeder when a settings schema is present", async () => {
+  it("provides a seeder when a settings schema is present in state", async () => {
     const manifest: Manifest = {
       id: "plugin-a",
       name: "Plugin A",
@@ -71,6 +71,38 @@ describe("buildHostApi settings seeding", () => {
       notify: undefined,
       emitter,
       states,
+    });
+
+    expect(createSettingsMock).toHaveBeenCalledTimes(1);
+    const options = createSettingsMock.mock.calls[0]?.[2];
+    expect(options?.seed).toBeTypeOf("function");
+
+    await options?.seed?.();
+    expect(deriveSettingsDefaultsMock).toHaveBeenCalledWith(manifest.settingsSchema);
+  });
+
+  it("prefers a provided manifest when deriving defaults", async () => {
+    const manifest: Manifest = {
+      id: "plugin-c",
+      name: "Plugin C",
+      version: "1.0.0",
+      api: "v1",
+      entry: "index.js",
+      settingsSchema: { type: "object", properties: { name: { type: "string", default: "Kas" } } },
+    };
+    const states = new Map<string, HostState>([["plugin-c", { manifest: null }]]);
+    const emitter = new Emitter<Events>();
+    deriveSettingsDefaultsMock.mockReturnValue({ name: "Kas" });
+
+    buildHostApi({
+      root: "plugins",
+      dataRoot: "plugin_data",
+      workspaceRoot: "workspace",
+      pluginId: "plugin-c",
+      notify: undefined,
+      emitter,
+      states,
+      manifest,
     });
 
     expect(createSettingsMock).toHaveBeenCalledTimes(1);

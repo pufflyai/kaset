@@ -67,6 +67,7 @@ export async function loadPlugin(
     notify: runtime.notify,
     emitter: runtime.emitter,
     states: runtime.states,
+    manifest,
   });
 
   const ctx: PluginContext = { id: pluginId, manifest, api };

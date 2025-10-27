@@ -3,7 +3,15 @@ import type { Emitter } from "../events";
 import { createPluginDataFs, createPluginFs } from "../fs";
 import { createSettings } from "../settings";
 import { deriveSettingsDefaults } from "../settings-defaults";
-import type { FsScope, HostApi, HostApiHandlerMap, HostApiMethod, HostApiParams, HostApiResult } from "../types";
+import type {
+  FsScope,
+  HostApi,
+  HostApiHandlerMap,
+  HostApiMethod,
+  HostApiParams,
+  HostApiResult,
+  Manifest,
+} from "../types";
 import type { Events, HostState } from "./internalTypes";
 import { pluginDataPath, pluginRootPath } from "./utils";
 
@@ -15,6 +23,7 @@ export function buildHostApi({
   notify,
   emitter,
   states,
+  manifest: manifestOverride,
 }: {
   root: string;
   dataRoot: string;
@@ -23,6 +32,7 @@ export function buildHostApi({
   notify?: (level: "info" | "warn" | "error", message: string) => void;
   emitter: Emitter<Events>;
   states: Map<string, HostState>;
+  manifest?: Manifest | null;
 }): HostApi {
   const dataBase = normalizeSegments(pluginDataPath(dataRoot, pluginId)).join("/");
   const pluginBase = normalizeSegments(pluginRootPath(root, pluginId)).join("/");
@@ -32,7 +42,7 @@ export function buildHostApi({
   const dataFs = createPluginDataFs(dataRoot, pluginId);
   const workspaceFs = createScopedFs(workspaceBase);
 
-  const manifest = states.get(pluginId)?.manifest ?? null;
+  const manifest = manifestOverride ?? states.get(pluginId)?.manifest ?? null;
   const schema = manifest?.settingsSchema;
 
   const settings = createSettings(
