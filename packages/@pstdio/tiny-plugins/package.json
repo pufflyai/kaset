@@ -56,6 +56,7 @@
     "@pstdio/tiny-ai-tasks": "^0.2.0",
     "ajv": "^8.17.1",
     "esbuild-wasm": "^0.25.11",
+    "rimless": "^0.7.0",
     "semver": "^7.7.3"
   },
   "peerDependencies": {

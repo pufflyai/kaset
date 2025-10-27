@@ -1,5 +1,6 @@
 import { host as rimlessHost } from "rimless";
 import PluginWorkerConstructor from "../../runtime/pluginWorker.ts?worker&inline";
+import { markTransferables } from "../../helpers/transferables";
 import type { HostApi, HostApiMethod, HostApiParams, Manifest } from "../types";
 import type { WorkerBridge, WorkerConnection } from "./internalTypes";
 
@@ -30,7 +31,8 @@ export async function createWorkerBridge(pluginId: string, api: HostApi): Promis
 
   const hostHandlers = {
     async callHostApi<M extends HostApiMethod>({ method, params }: HostApiCallPayload<M>) {
-      return api.call(method, params);
+      const result = await api.call(method, params);
+      return markTransferables(result);
     },
   };
 
@@ -61,7 +63,8 @@ export async function createWorkerBridge(pluginId: string, api: HostApi): Promis
 
   const runCommand = async (commandId: string, params?: unknown) => {
     try {
-      return await connection.remote.runCommand({ commandId, params });
+      const payload = markTransferables({ commandId, params });
+      return await connection.remote.runCommand(payload);
     } catch (error) {
       throw toWorkerError(error, `Failed to run command ${commandId} for ${pluginId}`);
     }
