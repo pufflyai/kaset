@@ -6,10 +6,6 @@ import type { ConversationStoreHydration, ConversationStoreState } from "./types
 const DEFAULT_STATE: ConversationStoreState = {
   conversations: {},
   selectedConversationId: null,
-  chatSettings: {
-    approvalGatedTools: [],
-    credentialsReady: false,
-  },
   ui: {},
 };
 
@@ -19,11 +15,6 @@ export const createConversationStore = (initial?: Partial<ConversationStoreHydra
     ...initial,
     conversations: initial?.conversations ?? DEFAULT_STATE.conversations,
     selectedConversationId: initial?.selectedConversationId ?? DEFAULT_STATE.selectedConversationId,
-    chatSettings: {
-      ...DEFAULT_STATE.chatSettings,
-      ...initial?.chatSettings,
-      approvalGatedTools: initial?.chatSettings?.approvalGatedTools ?? [],
-    },
     ui: DEFAULT_STATE.ui,
   };
 

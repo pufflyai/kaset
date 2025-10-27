@@ -6,6 +6,8 @@ import {
   setConversationMessages,
   useConversationStore,
 } from "@/kas-ui";
+import { getModelPricing, type ModelPricing } from "@/models";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
 import type { ApprovalRequest } from "@pstdio/kas";
@@ -18,7 +20,6 @@ import { useDisclosure } from "@chakra-ui/react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { host } from "../../services/plugins/host";
-import type { ModelPricing } from "@/models";
 import { ConversationArea } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
 import { SettingsModal } from "./settings-modal";
@@ -115,8 +116,11 @@ export function ConversationHost() {
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
   const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
   const settings = useDisclosure();
-  const credentialsReady = useConversationStore((s) => s.chatSettings.credentialsReady);
-  const modelPricing = useConversationStore((s) => s.chatSettings.modelPricing);
+  const apiKey = useWorkspaceStore((s) => s.settings.apiKey);
+  const baseUrl = useWorkspaceStore((s) => s.settings.baseUrl);
+  const modelId = useWorkspaceStore((s) => s.settings.modelId);
+  const credentialsReady = Boolean(apiKey || baseUrl);
+  const modelPricing = useMemo(() => getModelPricing(modelId), [modelId]);
   const onOpenSettingsFromStore = useConversationStore((s) => s.ui.onOpenSettings);
 
   useEffect(() => {

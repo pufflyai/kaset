@@ -1,13 +1,12 @@
 import { Box, Button, Flex, useBreakpointValue } from "@chakra-ui/react";
 import { Allotment } from "allotment";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { KasUIProvider, type ChatSettings, type ConversationStoreSnapshot } from "./kas-ui";
+import { useCallback, useEffect, useState } from "react";
+import { KasUIProvider, type ConversationStoreSnapshot } from "./kas-ui";
 import { ConversationHost } from "./components/ui/conversation-host";
 import { Desktop } from "./components/ui/desktop";
 import { GithubCorner } from "./components/ui/github-corner";
 import { Toaster } from "./components/ui/toaster";
 import { TopBar } from "./components/ui/top-bar";
-import { getModelPricing } from "./models";
 import { setupPlayground } from "./services/playground/setup";
 import { updateReactScanState } from "./services/react-scan/init";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
@@ -20,7 +19,6 @@ export function App() {
   const reactScanEnabled = useWorkspaceStore((state) => state.settings.reactScanEnabled);
   const conversations = useWorkspaceStore((state) => state.conversations);
   const selectedConversationId = useWorkspaceStore((state) => state.selectedConversationId);
-  const workspaceSettings = useWorkspaceStore((state) => state.settings);
 
   useEffect(() => {
     setupPlayground();
@@ -33,19 +31,6 @@ export function App() {
   useEffect(() => {
     updateReactScanState(reactScanEnabled);
   }, [reactScanEnabled]);
-
-  const chatSettings = useMemo<ChatSettings>(() => {
-    const { modelId, approvalGatedTools = [], apiKey, baseUrl } = workspaceSettings;
-
-    return {
-      modelId,
-      approvalGatedTools: approvalGatedTools ?? [],
-      apiKey: apiKey || undefined,
-      baseUrl: baseUrl || undefined,
-      credentialsReady: Boolean(apiKey || baseUrl),
-      modelPricing: getModelPricing(modelId || undefined),
-    };
-  }, [workspaceSettings]);
 
   useEffect(() => {
     if (!isMobile) {
@@ -114,8 +99,7 @@ export function App() {
   return (
     <KasUIProvider
       conversations={conversations}
-      selectedConversationId={selectedConversationId}
-      chatSettings={chatSettings}
+      selectedConversationId={selectedConversationId ?? null}
       onConversationsChange={handleConversationsChange}
     >
       <Flex direction={isMobile ? "column" : "row"} height="100vh" width="100vw">
