@@ -1,5 +1,5 @@
 import { Box } from "@chakra-ui/react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   applyDesktopWindowSnap,
   closeDesktopWindow,
@@ -23,6 +23,15 @@ export interface WindowHostProps {
 
 export const WindowHost = ({ windows, containerSize, getAppById }: WindowHostProps) => {
   const [snapPreviewSide, setSnapPreviewSide] = useState<"left" | "right" | null>(null);
+  const [interactionOwnerId, setInteractionOwnerId] = useState<string | null>(null);
+
+  const handleInteractionStart = useCallback((windowId: string) => {
+    setInteractionOwnerId((current) => (current === null ? windowId : current));
+  }, []);
+
+  const handleInteractionEnd = useCallback((windowId: string) => {
+    setInteractionOwnerId((current) => (current === windowId ? null : current));
+  }, []);
 
   const focusedId = useMemo(() => {
     let current: DesktopWindow | undefined;
@@ -104,6 +113,9 @@ export const WindowHost = ({ windows, containerSize, getAppById }: WindowHostPro
               releaseDesktopWindowSnap(window.id);
               setSnapPreviewSide(null);
             }}
+            onInteractionStart={() => handleInteractionStart(window.id)}
+            onInteractionEnd={() => handleInteractionEnd(window.id)}
+            suppressPointerEvents={interactionOwnerId !== null && interactionOwnerId !== window.id}
           />
         );
       })}
