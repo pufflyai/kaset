@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist, subscribeWithSelector } from "zustand/middleware";
+import { devtools, persist, subscribeWithSelector } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import type {
   Conversation,
@@ -31,33 +31,11 @@ export const createConversationStore = (initial?: Partial<ConversationStoreHydra
   const baseState: ConversationStoreState = {
     conversations: initial?.conversations ?? fallback.conversations,
     selectedConversationId: initial?.selectedConversationId ?? fallback.selectedConversationId,
-    ui: {},
   };
 
   return create<ConversationStoreState>()(
-    persist(subscribeWithSelector(immer(() => baseState)), {
-      name: "kaset-conversations",
-      partialize: (state) => ({
-        conversations: state.conversations,
-        selectedConversationId: state.selectedConversationId,
-      }),
-      onRehydrateStorage: () => (state) => {
-        if (!state) return;
-
-        const hasConversations = Object.keys(state.conversations ?? {}).length > 0;
-        if (!hasConversations) {
-          const snapshot = getDefaultConversationSnapshot();
-          state.conversations = snapshot.conversations;
-          state.selectedConversationId = snapshot.selectedConversationId;
-          return;
-        }
-
-        const selected = state.selectedConversationId;
-        if (!selected || !state.conversations[selected]) {
-          const [firstId] = Object.keys(state.conversations);
-          state.selectedConversationId = firstId ?? null;
-        }
-      },
+    persist(devtools(immer(subscribeWithSelector(() => baseState)), { name: "kaset-conversations" }), {
+      name: `kaset-conversations`,
     }),
   );
 };

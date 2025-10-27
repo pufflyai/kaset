@@ -6,14 +6,9 @@ export interface Conversation {
   messages: UIMessage[];
 }
 
-export interface ConversationUiState {
-  onOpenSettings?: () => void;
-}
-
 export interface ConversationStoreState {
   conversations: Record<string, Conversation>;
   selectedConversationId: string | null;
-  ui: ConversationUiState;
 }
 
 export interface ConversationStoreSnapshot {

@@ -121,21 +121,6 @@ export function ConversationHost() {
   const modelId = useWorkspaceStore((s) => s.settings.modelId);
   const credentialsReady = Boolean(apiKey || baseUrl);
   const modelPricing = useMemo(() => getModelPricing(modelId), [modelId]);
-  const onOpenSettingsFromStore = useConversationStore((s) => s.ui.onOpenSettings);
-
-  useEffect(() => {
-    useConversationStore.setState((state) => {
-      state.ui.onOpenSettings = settings.onOpen;
-    });
-
-    return () => {
-      useConversationStore.setState((state) => {
-        if (state.ui.onOpenSettings === settings.onOpen) {
-          state.ui.onOpenSettings = undefined;
-        }
-      });
-    };
-  }, [settings.onOpen]);
 
   useEffect(() => {
     setApprovalHandler(
@@ -229,7 +214,7 @@ export function ConversationHost() {
         onSelectFile={handleSelectFile}
         credentialsReady={credentialsReady}
         modelPricing={modelPricing}
-        onOpenSettings={onOpenSettingsFromStore ?? settings.onOpen}
+        onOpenSettings={settings.onOpen}
       />
       <ApprovalModal
         request={approval}
