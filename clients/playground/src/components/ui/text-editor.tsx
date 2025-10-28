@@ -1,6 +1,6 @@
 import { Box, Text } from "@chakra-ui/react";
 import { useMemo } from "react";
-import { CodeEditor } from "./code-editor";
+import { CodeEditor } from "@/kas-ui";
 
 interface TextEditorProps {
   filePath: string;

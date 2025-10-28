@@ -2,7 +2,7 @@ import { host } from "@/services/plugins/host";
 import { Box, Field, Flex, Text, VStack } from "@chakra-ui/react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { toaster } from "./toaster";
-import { CodeEditor } from "./code-editor";
+import { CodeEditor } from "@/kas-ui";
 import { usePluginHost } from "@pstdio/tiny-plugins";
 
 interface PluginFormState {
@@ -239,7 +239,7 @@ export const PluginSettings = forwardRef<PluginSettingsHandle, PluginSettingsPro
                       code={form?.text ?? "{}"}
                       isEditable
                       wrapLines
-                      onChange={(value) => handlePluginInputChange(entry.pluginId, value)}
+                      onChange={(value: string) => handlePluginInputChange(entry.pluginId, value)}
                     />
                   </Box>
                   {form?.error && (
