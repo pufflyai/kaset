@@ -1,4 +1,4 @@
-import { CodeEditor } from "@/components/ui/code-editor";
+import { CodeEditor } from "../../../../code-editor/code-editor.tsx";
 import { Box } from "@chakra-ui/react";
 import { DecoratorNode, type SerializedLexicalNode } from "lexical";
 import type { ReactNode } from "react";

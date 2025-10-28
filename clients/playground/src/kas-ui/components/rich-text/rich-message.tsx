@@ -1,4 +1,4 @@
-import "../theme/rich-text-theme.css";
+import "./rich-text-theme.css";
 
 import { Flex } from "@chakra-ui/react";
 import { CodeNode } from "@lexical/code";
@@ -12,14 +12,14 @@ import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { HeadingNode, QuoteNode } from "@lexical/rich-text";
-import { ContentEditable } from "../shared/components/content-editable";
-import { ImportCodeBlocksPlugin } from "../shared/plugins/CodePlugin/CodeBlockPlugin";
-import { CodeBlockNode } from "../shared/plugins/CodePlugin/CodeNode";
-import { HRNode } from "../shared/plugins/HorizontalRulePlugin/HorizontalRuleNode";
-import StateUpdatePlugin from "../shared/plugins/StateUpdatePlugin";
-import { TreeViewPlugin } from "../shared/plugins/TreeViewPlugin/TreeViewPlugin";
-import { TRANSFORMERS_EXTENDED } from "../shared/transformers/markdown-transformers";
-import theme from "../theme/rich-text-theme";
+import { ContentEditable } from "./shared/components/content-editable";
+import { ImportCodeBlocksPlugin } from "./shared/plugins/CodePlugin/CodeBlockPlugin";
+import { CodeBlockNode } from "./shared/plugins/CodePlugin/CodeNode";
+import { HRNode } from "./shared/plugins/HorizontalRulePlugin/HorizontalRuleNode";
+import StateUpdatePlugin from "./shared/plugins/StateUpdatePlugin";
+import { TreeViewPlugin } from "./shared/plugins/TreeViewPlugin/TreeViewPlugin";
+import { TRANSFORMERS_EXTENDED } from "./shared/transformers/markdown-transformers";
+import theme from "./rich-text-theme";
 
 interface EditorProps {
   debug?: boolean;

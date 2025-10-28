@@ -1,6 +1,6 @@
 import { DiffEditor as MonacoDiffEditor } from "@monaco-editor/react";
 import { useMemo } from "react";
-import { customTheme } from "../../components/ui/code-editor.tsx";
+import { customTheme } from "./code-editor/code-editor.tsx";
 
 interface DiffEditorProps {
   original: string;
