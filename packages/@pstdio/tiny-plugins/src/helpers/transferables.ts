@@ -1,3 +1,5 @@
+// TODO: I should probably upstream this to rimless
+
 import { withTransferable } from "rimless";
 
 type TransferCandidate =
@@ -8,6 +10,28 @@ type TransferCandidate =
   | TransformStream<unknown, unknown>;
 
 const hasSharedArrayBuffer = typeof SharedArrayBuffer === "function";
+const chaiInspectSymbol =
+  typeof Symbol === "function" && typeof Symbol.for === "function" ? Symbol.for("chai/inspect") : undefined;
+let messagePortInspectPatched = false;
+
+const ensureMessagePortInspectable = () => {
+  if (messagePortInspectPatched || !chaiInspectSymbol) return;
+  if (typeof MessagePort !== "function") {
+    messagePortInspectPatched = true;
+    return;
+  }
+
+  try {
+    Object.defineProperty(MessagePort.prototype, chaiInspectSymbol, {
+      configurable: true,
+      value: () => "MessagePort { [transferable] }",
+    });
+  } catch {
+    // Ignore environments that prevent redefining the inspector.
+  } finally {
+    messagePortInspectPatched = true;
+  }
+};
 
 const isSharedArrayBuffer = (value: ArrayBuffer | SharedArrayBuffer): value is SharedArrayBuffer => {
   return hasSharedArrayBuffer && value instanceof SharedArrayBuffer;
@@ -16,19 +40,23 @@ const isSharedArrayBuffer = (value: ArrayBuffer | SharedArrayBuffer): value is S
 const isArrayBuffer = (value: unknown): value is ArrayBuffer => value instanceof ArrayBuffer;
 
 const isMessagePort = (value: unknown): value is MessagePort => {
-  return typeof MessagePort !== "undefined" && value instanceof MessagePort;
+  return typeof MessagePort === "function" && value instanceof MessagePort;
 };
 
 const isReadableStream = (value: unknown): value is ReadableStream<unknown> => {
-  return typeof ReadableStream !== "undefined" && value instanceof ReadableStream;
+  return typeof ReadableStream === "function" && value instanceof ReadableStream;
 };
 
 const isWritableStream = (value: unknown): value is WritableStream<unknown> => {
-  return typeof WritableStream !== "undefined" && value instanceof WritableStream;
+  return typeof WritableStream === "function" && value instanceof WritableStream;
 };
 
 const isTransformStream = (value: unknown): value is TransformStream<unknown, unknown> => {
-  return typeof TransformStream !== "undefined" && value instanceof TransformStream;
+  return typeof TransformStream === "function" && value instanceof TransformStream;
+};
+
+const makeMessagePortInspectable = () => {
+  ensureMessagePortInspectable();
 };
 
 export const markTransferables = <T>(payload: T): T => {
@@ -60,7 +88,13 @@ export const markTransferables = <T>(payload: T): T => {
       return;
     }
 
-    if (isMessagePort(target) || isReadableStream(target) || isWritableStream(target) || isTransformStream(target)) {
+    if (isMessagePort(target)) {
+      makeMessagePortInspectable();
+      addTransferable(target);
+      return;
+    }
+
+    if (isReadableStream(target) || isWritableStream(target) || isTransformStream(target)) {
       addTransferable(target);
       return;
     }
