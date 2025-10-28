@@ -1,4 +1,4 @@
-import type { TitleSegment } from "@pstdio/kas-ui";
+import type { TitleSegment } from "../components/timeline.tsx";
 import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 
 export type FileChange = { filePath: string; additions: number; deletions: number };
@@ -33,7 +33,6 @@ export function parseUnifiedDiff(diffText?: string): FileChange[] {
 
   const lines = diffText.split(/\r?\n/);
   for (const line of lines) {
-    // File headers
     if (line.startsWith("--- ")) {
       lastMinusHeader = normalizeHeaderPath(line.slice(4));
       inHunk = false;
@@ -52,7 +51,6 @@ export function parseUnifiedDiff(diffText?: string): FileChange[] {
 
     if (!currentPath) continue;
 
-    // Hunk header
     if (line.startsWith("@@")) {
       inHunk = true;
       continue;
@@ -60,16 +58,15 @@ export function parseUnifiedDiff(diffText?: string): FileChange[] {
 
     if (!inHunk) continue;
 
-    // Added/removed lines inside a hunk. Exclude file headers strictly ("+++ ", "--- ").
     if (line.startsWith("+") && !(line.startsWith("+++ ") || line === "+++")) {
-      const c = changes.get(currentPath);
-      if (c) c.additions += 1;
+      const current = changes.get(currentPath);
+      if (current) current.additions += 1;
       continue;
     }
 
     if (line.startsWith("-") && !(line.startsWith("--- ") || line === "---")) {
-      const c = changes.get(currentPath);
-      if (c) c.deletions += 1;
+      const current = changes.get(currentPath);
+      if (current) current.deletions += 1;
       continue;
     }
   }
@@ -81,11 +78,11 @@ export function parseUnifiedDiff(diffText?: string): FileChange[] {
   }));
 }
 
-export function extractFileChanges(inv: ToolInvocation): FileChange[] {
-  if (!inv || (inv as any).type !== "tool-opfs_patch") return [];
+export function extractFileChanges(invocation: ToolInvocation): FileChange[] {
+  if (!invocation || (invocation as any).type !== "tool-opfs_patch") return [];
 
-  const input = (inv as any).input as { diff?: string } | undefined;
-  const output = (inv as any).output as
+  const input = (invocation as any).input as { diff?: string } | undefined;
+  const output = (invocation as any).output as
     | {
         details?: {
           created?: string[];
@@ -102,27 +99,27 @@ export function extractFileChanges(inv: ToolInvocation): FileChange[] {
   if (files.length === 0 && output?.details) {
     const details = output.details;
     const paths = new Set<string>();
-    for (const p of details.created ?? []) paths.add(p);
-    for (const p of details.modified ?? []) paths.add(p);
-    for (const p of details.deleted ?? []) paths.add(p);
-    for (const rn of details.renamed ?? []) paths.add(rn?.to || rn?.from);
+    for (const path of details.created ?? []) paths.add(path);
+    for (const path of details.modified ?? []) paths.add(path);
+    for (const path of details.deleted ?? []) paths.add(path);
+    for (const rename of details.renamed ?? []) paths.add(rename?.to || rename?.from);
 
-    files = Array.from(paths).map((p) => ({ filePath: p, additions: 0, deletions: 0 }));
+    files = Array.from(paths).map((path) => ({ filePath: path, additions: 0, deletions: 0 }));
   }
 
   return files;
 }
 
-export function buildDiffTitleSegments(inv: ToolInvocation): TitleSegment[] {
-  const files = extractFileChanges(inv);
+export function buildDiffTitleSegments(invocation: ToolInvocation): TitleSegment[] {
+  const files = extractFileChanges(invocation);
   if (files.length === 0) return [];
 
-  return files.map((f) => ({
+  return files.map((file) => ({
     kind: "diff",
-    fileName: basenameSafe(f.filePath),
-    filePath: f.filePath,
-    additions: f.additions,
-    deletions: f.deletions,
+    fileName: basenameSafe(file.filePath),
+    filePath: file.filePath,
+    additions: file.additions,
+    deletions: file.deletions,
   }));
 }
 

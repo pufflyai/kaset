@@ -1,11 +1,11 @@
 import { useEffect, useRef } from "react";
 import { useStickToBottomContext } from "use-stick-to-bottom";
 
-interface AutoScrollProps {
+export interface AutoScrollProps {
   userMessageCount: number;
 }
 
-export const AutoScroll = (props: AutoScrollProps) => {
+export function AutoScroll(props: AutoScrollProps) {
   const { userMessageCount } = props;
   const { scrollToBottom } = useStickToBottomContext();
   const previousCountRef = useRef(userMessageCount);
@@ -19,4 +19,4 @@ export const AutoScroll = (props: AutoScrollProps) => {
   }, [userMessageCount, scrollToBottom]);
 
   return null;
-};
+}

@@ -1,10 +1,12 @@
-import { ResourceBadge, Response, TimelineFromJSON } from "@pstdio/kas-ui";
+import { ResourceBadge } from "../resource-badge.tsx";
+import { Response } from "../ai-response.tsx";
+import { TimelineFromJSON } from "../timeline.tsx";
 import { Box, Text } from "@chakra-ui/react";
 import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 import type { ReactNode } from "react";
-import { invocationsToTimeline } from "../utils/timeline";
+import { invocationsToTimeline } from "../../conversation/invocations-to-timeline.tsx";
 
-interface MessagePartsProps {
+export interface MessagePartsProps {
   message: UIMessage;
   streaming?: boolean;
   onOpenFile?: (filePath: string) => void;

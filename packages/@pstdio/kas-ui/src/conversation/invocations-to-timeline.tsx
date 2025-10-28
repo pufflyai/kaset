@@ -1,10 +1,10 @@
-import type { TimelineDoc, TitleSegment } from "@pstdio/kas-ui";
+import type { TimelineDoc, TitleSegment } from "../components/timeline.tsx";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
-import { buildDiffTitleSegments, buildFileDiffPreviews } from "./diff";
-import { toolTypeToIconName } from "./toolIcon";
-import { renderOpfsTool } from "./opfsTools";
+import { buildDiffTitleSegments, buildFileDiffPreviews } from "./diff.ts";
+import { renderOpfsTool } from "./opfs-tools.tsx";
+import { toolTypeToIconName } from "./tool-icon.ts";
 
-const toJson = (value: any) => {
+const toJson = (value: unknown): string => {
   try {
     if (value == null) return "";
     if (typeof value === "string") return value;
@@ -27,21 +27,24 @@ function guessLanguageFromPath(filePath?: string): string | undefined {
   return undefined;
 }
 
-export function invocationsToTimeline(invocations: ToolInvocation[], opts?: { labeledBlocks?: boolean }): TimelineDoc {
-  const labeled = opts?.labeledBlocks ?? false;
+export function invocationsToTimeline(
+  invocations: ToolInvocation[],
+  options?: { labeledBlocks?: boolean },
+): TimelineDoc {
+  const labeled = options?.labeledBlocks ?? false;
 
   return {
-    items: invocations.map((inv) => {
-      const toolLabel = (inv.type || "tool").replace(/^tool-/, "");
-      const isError = (inv as any).state === "output-error";
+    items: invocations.map((invocation) => {
+      const toolLabel = (invocation.type || "tool").replace(/^tool-/, "");
+      const isError = (invocation as any).state === "output-error";
 
-      const custom = renderOpfsTool(inv);
+      const custom = renderOpfsTool(invocation);
       if (custom) {
         return {
-          id: inv.toolCallId,
+          id: invocation.toolCallId,
           indicator: {
             type: "icon" as const,
-            icon: toolTypeToIconName((inv as any).type),
+            icon: toolTypeToIconName((invocation as any).type),
             color: isError ? "foreground.feedback.alert" : undefined,
           },
           title: custom.title,
@@ -50,30 +53,28 @@ export function invocationsToTimeline(invocations: ToolInvocation[], opts?: { la
         };
       }
 
-      const diffSegments = buildDiffTitleSegments(inv);
+      const diffSegments = buildDiffTitleSegments(invocation);
       const blocks: NonNullable<TimelineDoc["items"][number]["blocks"]> = [];
 
-      const input = (inv as any).input;
-      const output = (inv as any).output;
-      const errorText = (inv as any).errorText as string | undefined;
+      const input = (invocation as any).input;
+      const output = (invocation as any).output;
+      const errorText = (invocation as any).errorText as string | undefined;
 
-      // If this invocation produced diff bubbles, prefer rendering diff editors
       if (diffSegments.length > 0) {
         const previews = buildFileDiffPreviews((input as any)?.diff);
         if (previews.length > 0) {
-          for (const p of previews) {
+          for (const preview of previews) {
             blocks.push({
               type: "diff",
-              language: guessLanguageFromPath(p.filePath),
-              original: p.original,
-              modified: p.modified,
+              language: guessLanguageFromPath(preview.filePath),
+              original: preview.original,
+              modified: preview.modified,
               sideBySide: false,
             });
           }
         }
       }
 
-      // Fallback to regular input/output blocks when not rendering diffs
       if (blocks.length === 0) {
         if (input != null) {
           if (labeled) blocks.push({ type: "text", text: "Input" });
@@ -92,10 +93,10 @@ export function invocationsToTimeline(invocations: ToolInvocation[], opts?: { la
       }
 
       return {
-        id: inv.toolCallId,
+        id: invocation.toolCallId,
         indicator: {
           type: "icon" as const,
-          icon: toolTypeToIconName((inv as any).type),
+          icon: toolTypeToIconName((invocation as any).type),
           color: isError ? "foreground.feedback.alert" : undefined,
         },
         title:
