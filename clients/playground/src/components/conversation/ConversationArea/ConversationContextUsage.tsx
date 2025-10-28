@@ -1,17 +1,17 @@
 import { Tooltip } from "@/kas-ui";
-import type { ModelPricing } from "@/models";
 import { Button, ProgressCircle, Stack, Text } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { useEstimatedTokens } from "../hooks/useEstimatedTokens";
+import type { ConversationModelInfo } from "./ConversationArea";
 
 interface ConversationContextUsageProps {
   messages: UIMessage[];
   input: string;
-  modelPricing?: ModelPricing;
+  model?: ConversationModelInfo;
 }
 
 export const ConversationContextUsage = (props: ConversationContextUsageProps) => {
-  const { messages, input, modelPricing } = props;
+  const { messages, input, model } = props;
 
   const tokenUsage = useEstimatedTokens(messages, input);
   const conversationTotalTokens = tokenUsage.conversationTotalTokens;
@@ -19,7 +19,7 @@ export const ConversationContextUsage = (props: ConversationContextUsageProps) =
 
   const contextTokenUsage = conversationPromptTokens > 0 ? conversationPromptTokens : conversationTotalTokens;
   const contextTokenUsageDisplay = contextTokenUsage.toLocaleString();
-  const contextWindowTokens = modelPricing?.contextWindow;
+  const contextWindowTokens = model?.contextWindowTokens;
   const contextUsagePercent =
     contextWindowTokens && contextWindowTokens > 0 ? Math.min((contextTokenUsage / contextWindowTokens) * 100, 100) : 0;
 

@@ -1,5 +1,4 @@
 import { ChangeBubble, ConversationContent, ConversationRoot, ConversationScrollButton } from "@/kas-ui";
-import type { ModelPricing } from "@/models";
 import { Alert, Button, Flex, HStack, Input, Stack, type FlexProps } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { memo, useCallback, useMemo, useState } from "react";
@@ -7,6 +6,10 @@ import { summarizeConversationChanges } from "../utils/diff";
 import { AutoScroll } from "./AutoScroll";
 import { ConversationContextUsage } from "./ConversationContextUsage";
 import { MessageList } from "./MessageList";
+
+export interface ConversationModelInfo {
+  contextWindowTokens?: number;
+}
 
 interface ConversationAreaProps extends FlexProps {
   messages: UIMessage[];
@@ -19,7 +22,7 @@ interface ConversationAreaProps extends FlexProps {
   examplePrompts?: string[];
   credentialsReady: boolean;
   onOpenSettings?: () => void;
-  modelPricing?: ModelPricing;
+  model?: ConversationModelInfo;
 }
 
 interface ConversationMessagesProps {
@@ -62,7 +65,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
     examplePrompts = [],
     credentialsReady,
     onOpenSettings,
-    modelPricing,
+    model,
     ...rest
   } = props;
   const [input, setInput] = useState("");
@@ -108,7 +111,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
                 streaming={streaming}
               />
             )}
-            <ConversationContextUsage messages={messages} input={input} modelPricing={modelPricing} />
+            <ConversationContextUsage messages={messages} input={input} model={model} />
           </Flex>
 
           {!credentialsReady && (

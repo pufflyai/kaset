@@ -6,7 +6,7 @@ import {
   setConversationMessages,
   useConversationStore,
 } from "@/kas-ui";
-import { getModelPricing, type ModelPricing } from "@/models";
+import { getModelPricing } from "@/models";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
@@ -20,7 +20,7 @@ import { useDisclosure } from "@chakra-ui/react";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { host } from "../../services/plugins/host";
-import { ConversationArea } from "../conversation/ConversationArea";
+import { ConversationArea, type ConversationModelInfo } from "../conversation/ConversationArea";
 import { ApprovalModal } from "./approval-modal";
 import { SettingsModal } from "./settings-modal";
 
@@ -72,7 +72,7 @@ interface ConversationAreaWithMessagesProps {
   onSendMessage: (text: string, fileNames?: string[]) => void | Promise<void>;
   onSelectFile?: (filePath: string) => void;
   credentialsReady: boolean;
-  modelPricing?: ModelPricing;
+  model?: ConversationModelInfo;
   onOpenSettings?: () => void;
 }
 
@@ -86,7 +86,7 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
     onSendMessage,
     onSelectFile,
     credentialsReady,
-    modelPricing,
+    model,
     onOpenSettings,
   } = props;
   const messages = useConversationStore((s) =>
@@ -102,7 +102,7 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
       onSendMessage={onSendMessage}
       onSelectFile={onSelectFile}
       credentialsReady={credentialsReady}
-      modelPricing={modelPricing}
+      model={model}
       onOpenSettings={onOpenSettings}
     />
   );
@@ -121,6 +121,13 @@ export function ConversationHost() {
   const modelId = useWorkspaceStore((s) => s.settings.modelId);
   const credentialsReady = Boolean(apiKey || baseUrl);
   const modelPricing = useMemo(() => getModelPricing(modelId), [modelId]);
+  const model = useMemo<ConversationModelInfo | undefined>(() => {
+    if (!modelPricing) return undefined;
+
+    return {
+      contextWindowTokens: modelPricing.contextWindow,
+    };
+  }, [modelPricing]);
 
   useEffect(() => {
     setApprovalHandler(
@@ -213,7 +220,7 @@ export function ConversationHost() {
         onSendMessage={handleSendMessage}
         onSelectFile={handleSelectFile}
         credentialsReady={credentialsReady}
-        modelPricing={modelPricing}
+        model={model}
         onOpenSettings={settings.onOpen}
       />
       <ApprovalModal
