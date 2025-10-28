@@ -37,11 +37,18 @@
     "test": "npm run typecheck && vitest run --passWithNoTests",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "visualize-bundle": "npx vite-bundle-visualizer"
+    "visualize-bundle": "npx vite-bundle-visualizer",
+    "storybook": "storybook dev -p 6006",
+    "storybook:build": "storybook build"
   },
   "devDependencies": {
     "@au-re/vite-plugin-externalize-deps": "^0.9.1",
     "@types/node": "^22.15.18",
+    "@storybook/addon-a11y": "^9.1.1",
+    "@storybook/addon-docs": "^9.1.1",
+    "@storybook/addon-themes": "^9.1.1",
+    "@storybook/react-vite": "^9.1.1",
+    "storybook": "^9.1.2",
     "eslint": "^9.32.0",
     "typescript": "^5.7.3",
     "vite": "^7.1.0",

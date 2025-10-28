@@ -1,0 +1,90 @@
+import { extendTheme } from "@chakra-ui/react";
+
+const theme = extendTheme({
+  config: {
+    useSystemColorMode: false,
+    initialColorMode: "light",
+  },
+  fonts: {
+    heading: "'Inter', 'Segoe UI', sans-serif",
+    body: "'Inter', 'Segoe UI', sans-serif",
+    label: "'Inter', 'Segoe UI', sans-serif",
+    display: "'Inter', 'Segoe UI', sans-serif",
+    mono: "'JetBrains Mono', 'Fira Code', monospace",
+  },
+  semanticTokens: {
+    colors: {
+      "foreground.primary": { default: "#0F172A", _dark: "#F8FAFC" },
+      "foreground.secondary": { default: "#475569", _dark: "#94A3B8" },
+      "foreground.feedback.success": { default: "#22C55E", _dark: "#4ADE80" },
+      "foreground.feedback.alert": { default: "#EF4444", _dark: "#F87171" },
+      "foreground.blue-dark": { default: "#1D4ED8", _dark: "#93C5FD" },
+      "foreground.accent-blue-dark": { default: "#1E40AF", _dark: "#BFDBFE" },
+      "accent.primary": { default: "#2563EB", _dark: "#60A5FA" },
+      "border.secondary": { default: "#CBD5F5", _dark: "#1E293B" },
+      "border.subtle": { default: "#E2E8F0", _dark: "#1F2937" },
+      "bg.primary": { default: "#FFFFFF", _dark: "#0F172A" },
+      "bg.accent-secondary.red-light": { default: "#FEE2E2", _dark: "#7F1D1D" },
+      "background.secondary": { default: "#F1F5F9", _dark: "#1F2937" },
+      "background.tertiary": { default: "#E2E8F0", _dark: "#111827" },
+      "color.primary": { default: "#0F172A", _dark: "#F8FAFC" },
+      "fg.muted": { default: "#64748B", _dark: "#94A3B8" },
+    },
+  },
+  textStyles: {
+    "label/XS": {
+      fontFamily: "label",
+      fontSize: "0.75rem",
+      lineHeight: "150%",
+      letterSpacing: "0.01rem",
+      fontWeight: 400,
+    },
+    "label/S/regular": {
+      fontFamily: "label",
+      fontSize: "0.875rem",
+      lineHeight: "150%",
+      letterSpacing: "0.012rem",
+      fontWeight: 400,
+    },
+    "label/SM/regular": {
+      fontFamily: "label",
+      fontSize: "0.8125rem",
+      lineHeight: "150%",
+      letterSpacing: "0.011rem",
+      fontWeight: 400,
+    },
+    "label/M/regular": {
+      fontFamily: "label",
+      fontSize: "1rem",
+      lineHeight: "150%",
+      letterSpacing: "0.014rem",
+      fontWeight: 400,
+    },
+  },
+  space: {
+    none: "0",
+    "2xs": "0.25rem",
+    xxs: "0.375rem",
+    xs: "0.5rem",
+    sm: "0.75rem",
+    md: "1rem",
+    lg: "1.5rem",
+    xl: "2rem",
+    "2xl": "2.5rem",
+    "3xl": "3rem",
+    "3.5xl": "3.5rem",
+    "4xl": "4rem",
+  },
+  radii: {
+    none: "0",
+    "2xs": "0.125rem",
+    xs: "0.25rem",
+    sm: "0.5rem",
+    md: "0.75rem",
+    lg: "1rem",
+    xl: "2rem",
+    full: "9999px",
+  },
+});
+
+export default theme;

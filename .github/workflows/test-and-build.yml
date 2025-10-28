@@ -28,5 +28,8 @@ jobs:
       - name: build monorepo packages
         run: npx lerna run build
 
+      - name: build Kas UI Storybook
+        run: npm run storybook:build --workspace @pstdio/kas-ui
+
       - name: test monorepo
         run: npx lerna run test
