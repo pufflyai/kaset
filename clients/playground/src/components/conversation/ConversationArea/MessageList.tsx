@@ -1,4 +1,4 @@
-import { EmptyState, MessageContent, MessageRoot } from "@/kas-ui";
+import { EmptyState, MessageContent, MessageRoot } from "@pstdio/kas-ui";
 import type { UIMessage, ToolInvocation } from "@pstdio/kas/kas-ui";
 import { Box, Button, Link, Text, VStack } from "@chakra-ui/react";
 import { CassetteTapeIcon } from "lucide-react";

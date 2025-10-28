@@ -5,7 +5,7 @@ import {
   getSelectedConversationId,
   setConversationMessages,
   useConversationStore,
-} from "@/kas-ui";
+} from "@pstdio/kas-ui";
 import { getModelPricing, type ModelPricing } from "@/models";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { setApprovalHandler } from "@/services/ai/approval";

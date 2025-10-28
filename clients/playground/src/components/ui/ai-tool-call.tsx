@@ -1,9 +1,9 @@
 import { Action } from "@/components/ui/action";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
-import { getIconComponent } from "@/kas-ui";
+import { getIconComponent } from "@pstdio/kas-ui";
 import { Box, HStack, Separator, Stack, Text } from "@chakra-ui/react";
 import { CopyIcon } from "lucide-react";
-import { Response } from "@/kas-ui";
+import { Response } from "@pstdio/kas-ui";
 
 const ToolIcon = getIconComponent("plugin");
 const CopyOutputIcon = getIconComponent("copy");

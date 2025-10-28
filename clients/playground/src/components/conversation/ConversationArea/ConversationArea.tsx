@@ -1,4 +1,4 @@
-import { ChangeBubble, ConversationContent, ConversationRoot, ConversationScrollButton } from "@/kas-ui";
+import { ChangeBubble, ConversationContent, ConversationRoot, ConversationScrollButton } from "@pstdio/kas-ui";
 import type { ModelPricing } from "@/models";
 import { Alert, Button, Flex, HStack, Input, Stack, type FlexProps } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";

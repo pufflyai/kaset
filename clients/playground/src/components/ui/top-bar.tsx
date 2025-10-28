@@ -4,7 +4,7 @@ import {
   deleteAllConversations,
   selectConversation,
   useConversationStore,
-} from "@/kas-ui";
+} from "@pstdio/kas-ui";
 import { resetWorkspace } from "@/state/actions/resetWorkspace";
 import {
   Box,

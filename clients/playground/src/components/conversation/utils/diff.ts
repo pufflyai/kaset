@@ -1,4 +1,4 @@
-import type { TitleSegment } from "@/kas-ui";
+import type { TitleSegment } from "@pstdio/kas-ui";
 import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 
 export type FileChange = { filePath: string; additions: number; deletions: number };

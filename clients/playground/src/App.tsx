@@ -1,7 +1,7 @@
 import { Box, Button, Flex, useBreakpointValue } from "@chakra-ui/react";
 import { Allotment } from "allotment";
 import { useEffect, useState } from "react";
-import { KasUIProvider } from "./kas-ui";
+import { KasUIProvider } from "@pstdio/kas-ui";
 import { ConversationHost } from "./components/ui/conversation-host";
 import { Desktop } from "./components/ui/desktop";
 import { GithubCorner } from "./components/ui/github-corner";

@@ -1,4 +1,4 @@
-import type { Block, TitleSegment } from "@/kas-ui";
+import type { Block, TitleSegment } from "@pstdio/kas-ui";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { buildDiffTitleSegments, buildFileDiffPreviews } from "./diff";
 import { OpfsLsBlock, OpfsWriteFileBlock } from "../ConversationArea/OpfsToolBlocks";

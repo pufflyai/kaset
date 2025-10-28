@@ -1,4 +1,4 @@
-import { Tooltip } from "@/kas-ui";
+import { Tooltip } from "@pstdio/kas-ui";
 import type { ModelPricing } from "@/models";
 import { Button, ProgressCircle, Stack, Text } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";

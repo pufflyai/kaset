@@ -2,7 +2,7 @@ import { host } from "@/services/plugins/host";
 import { Box, Field, Flex, Text, VStack } from "@chakra-ui/react";
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import { toaster } from "./toaster";
-import { CodeEditor } from "@/kas-ui";
+import { CodeEditor } from "@pstdio/kas-ui";
 import { usePluginHost } from "@pstdio/tiny-plugins";
 
 interface PluginFormState {

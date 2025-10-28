@@ -1,6 +1,6 @@
 import { MenuItem as ChakraMenuItem, Flex, Text } from "@chakra-ui/react";
 import React from "react";
-import { Tooltip } from "@/kas-ui";
+import { Tooltip } from "@pstdio/kas-ui";
 
 interface MenuItemProps {
   id?: string;
