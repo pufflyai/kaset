@@ -13,10 +13,10 @@ interface MenuItemProps {
   leftIcon?: ReactNode;
   rightIcon?: ReactNode;
   tabIndex?: number;
-  setRefElement?: (element: HTMLButtonElement | null) => void;
-  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
-  onMouseDown?: (event: MouseEvent<HTMLButtonElement>) => void;
-  onMouseEnter?: (event: MouseEvent<HTMLButtonElement>) => void;
+  setRefElement?: (element: HTMLDivElement | null) => void;
+  onClick?: (event: MouseEvent<HTMLDivElement>) => void;
+  onMouseDown?: (event: MouseEvent<HTMLDivElement>) => void;
+  onMouseEnter?: (event: MouseEvent<HTMLDivElement>) => void;
 }
 
 export function MenuItem(props: MenuItemProps) {
