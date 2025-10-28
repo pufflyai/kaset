@@ -79,16 +79,8 @@ interface ConversationAreaWithMessagesProps {
 const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
   props: ConversationAreaWithMessagesProps,
 ) {
-  const {
-    streaming,
-    canSend,
-    examplePrompts,
-    onSendMessage,
-    onSelectFile,
-    credentialsReady,
-    model,
-    onOpenSettings,
-  } = props;
+  const { streaming, canSend, examplePrompts, onSendMessage, onSelectFile, credentialsReady, model, onOpenSettings } =
+    props;
   const messages = useConversationStore((s) =>
     s.selectedConversationId ? (s.conversations[s.selectedConversationId]?.messages ?? EMPTY_MESSAGES) : EMPTY_MESSAGES,
   );
