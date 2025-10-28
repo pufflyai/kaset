@@ -4,6 +4,7 @@ import {
   deleteAllConversations,
   selectConversation,
   useConversationStore,
+  MenuItem,
 } from "@pstdio/kas-ui";
 import { resetWorkspace } from "@/state/actions/resetWorkspace";
 import {
@@ -36,7 +37,6 @@ import { SettingsModal } from "../../components/ui/settings-modal";
 import { resetPlayground } from "../../services/playground/reset";
 import { CommitHistory } from "./commit-history";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
-import { MenuItem } from "./menu-item";
 
 interface TopBarProps {
   mobileCenterContent?: ReactNode;

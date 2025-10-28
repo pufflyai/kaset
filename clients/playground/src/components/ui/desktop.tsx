@@ -19,11 +19,11 @@ import type { DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
 import { ls, readFile, watchDirectory } from "@pstdio/opfs-utils";
 import { deletePluginDirectories, downloadPluginBundle } from "@pstdio/tiny-plugins";
 import { setLockfile } from "@pstdio/tiny-ui";
+import { MenuItem } from "@pstdio/kas-ui";
 import { Download, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { DesktopIcon } from "./desktop-icon";
-import { MenuItem } from "./menu-item";
 import { toaster } from "./toaster";
 import { WindowHost } from "./window-host";
 

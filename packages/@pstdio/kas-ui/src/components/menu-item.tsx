@@ -1,25 +1,25 @@
-import { MenuItem as ChakraMenuItem, Flex, Text } from "@chakra-ui/react";
-import React from "react";
-import { Tooltip } from "@pstdio/kas-ui";
+import { Flex, MenuItem as ChakraMenuItem, Text } from "@chakra-ui/react";
+import type { MouseEvent, ReactNode } from "react";
+import { Tooltip } from "./tooltip";
 
 interface MenuItemProps {
   id?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   isDisabled?: boolean;
   isSelected?: boolean;
   primaryLabel: string;
   secondaryLabel?: string;
-  tooltipLabel?: React.ReactNode;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
+  tooltipLabel?: ReactNode;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
   tabIndex?: number;
-  setRefElement?: any;
-  onClick?: (e: any) => void;
-  onMouseDown?: (e: any) => void;
-  onMouseEnter?: (e: any) => void;
+  setRefElement?: (element: HTMLButtonElement | null) => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+  onMouseDown?: (event: MouseEvent<HTMLButtonElement>) => void;
+  onMouseEnter?: (event: MouseEvent<HTMLButtonElement>) => void;
 }
 
-export const MenuItem = (props: MenuItemProps) => {
+export function MenuItem(props: MenuItemProps) {
   const {
     id,
     primaryLabel,
@@ -31,8 +31,10 @@ export const MenuItem = (props: MenuItemProps) => {
     isSelected,
     tabIndex,
     setRefElement,
+    onClick,
+    onMouseDown,
+    onMouseEnter,
   } = props;
-  const { onClick, onMouseDown, onMouseEnter } = props;
 
   return (
     <ChakraMenuItem
@@ -50,7 +52,7 @@ export const MenuItem = (props: MenuItemProps) => {
       minHeight="2rem"
       role="option"
       maxWidth="20rem"
-      overflow={"hidden"}
+      overflow="hidden"
       cursor={isDisabled ? "default" : "pointer"}
       value={id ?? primaryLabel}
     >
@@ -76,4 +78,4 @@ export const MenuItem = (props: MenuItemProps) => {
       </Flex>
     </ChakraMenuItem>
   );
-};
+}

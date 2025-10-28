@@ -1,6 +1,6 @@
 import "./FloatingTextFormatToolbarPlugin.css";
 
-import { Tooltip } from "@/kas-ui";
+import { Tooltip } from "../../../../tooltip";
 import { Bold, Italic, Underline, Heading1, Heading2, Heading3 } from "lucide-react";
 import { IconButton, Stack } from "@chakra-ui/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
