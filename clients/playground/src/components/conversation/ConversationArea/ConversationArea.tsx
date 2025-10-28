@@ -1,12 +1,17 @@
-import { ChangeBubble, ConversationContent, ConversationRoot, ConversationScrollButton } from "@pstdio/kas-ui";
+import {
+  AutoScroll,
+  ChangeBubble,
+  ConversationContent,
+  ConversationRoot,
+  ConversationScrollButton,
+  MessageList,
+  summarizeConversationChanges,
+} from "@pstdio/kas-ui";
 import type { ModelPricing } from "@/models";
 import { Alert, Button, Flex, HStack, Input, Stack, type FlexProps } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { memo, useCallback, useMemo, useState } from "react";
-import { summarizeConversationChanges } from "../utils/diff";
-import { AutoScroll } from "./AutoScroll";
 import { ConversationContextUsage } from "./ConversationContextUsage";
-import { MessageList } from "./MessageList";
 
 interface ConversationAreaProps extends FlexProps {
   messages: UIMessage[];

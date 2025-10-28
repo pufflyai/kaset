@@ -1,7 +1,7 @@
-import type { Block, TitleSegment } from "@pstdio/kas-ui";
+import type { Block, TitleSegment } from "../components/timeline.tsx";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
-import { buildDiffTitleSegments, buildFileDiffPreviews } from "./diff";
-import { OpfsLsBlock, OpfsWriteFileBlock } from "../ConversationArea/OpfsToolBlocks";
+import { buildDiffTitleSegments, buildFileDiffPreviews } from "./diff.ts";
+import { OpfsLsBlock, OpfsWriteFileBlock } from "../components/conversation/opfs-tool-blocks.tsx";
 
 interface RenderResult {
   title: TitleSegment[];
@@ -27,8 +27,8 @@ const toEntryArray = (value: unknown): Array<{ path: string; kind: "file" | "dir
   const entries: Array<{ path: string; kind: "file" | "directory" }> = [];
   for (const item of value) {
     if (typeof item === "string") {
-      const isDir = item.endsWith("/");
-      entries.push({ path: isDir ? item.slice(0, -1) : item, kind: isDir ? "directory" : "file" });
+      const isDirectory = item.endsWith("/");
+      entries.push({ path: isDirectory ? item.slice(0, -1) : item, kind: isDirectory ? "directory" : "file" });
       continue;
     }
     if (item && typeof item === "object" && typeof (item as any).path === "string") {

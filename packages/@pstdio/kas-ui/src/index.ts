@@ -11,7 +11,13 @@ export * from "./components/rich-text/rich-message.tsx";
 export * from "./components/resource-badge.tsx";
 export * from "./components/timeline.tsx";
 export * from "./components/tooltip.tsx";
+export * from "./components/conversation/auto-scroll.tsx";
+export * from "./components/conversation/collapsible-tool-timeline.tsx";
+export * from "./components/conversation/message-list.tsx";
+export * from "./components/conversation/message-parts-renderer.tsx";
+export * from "./components/conversation/opfs-tool-blocks.tsx";
 
 export * from "./utils/getIcon.ts";
 
 export * from "./state";
+export * from "./conversation";

@@ -1,20 +1,21 @@
-import { EmptyState, MessageContent, MessageRoot } from "@pstdio/kas-ui";
+import { EmptyState } from "../empty-state.tsx";
+import { MessageContent, MessageRoot } from "../ai-message.tsx";
+import { CollapsibleToolTimeline } from "./collapsible-tool-timeline.tsx";
+import { MessagePartsRenderer } from "./message-parts-renderer.tsx";
 import type { UIMessage, ToolInvocation } from "@pstdio/kas/kas-ui";
 import { Box, Button, Link, Text, VStack } from "@chakra-ui/react";
 import { CassetteTapeIcon } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
-import { CollapsibleToolTimeline } from "./CollapsibleToolTimeline";
-import { MessagePartsRenderer } from "./MessagePartsRenderer";
 
-const isToolOnlyMessage = (m: UIMessage) =>
-  m.parts.length > 0 && m.parts.every((p) => (p as any).type === "tool-invocation");
+const isToolOnlyMessage = (message: UIMessage) =>
+  message.parts.length > 0 && message.parts.every((part) => (part as any).type === "tool-invocation");
 
 function pickRandom<T>(arr: readonly T[], n: number): T[] {
   const shuffled = [...arr].sort(() => Math.random() - 0.5);
   return shuffled.slice(0, n);
 }
 
-function shallowArrayEqual<T>(a: readonly T[], b: readonly T[]) {
+function shallowArrayEqual<T>(a: readonly T[], b: readonly T[]): boolean {
   if (a === b) return true;
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
@@ -25,15 +26,8 @@ const MemoMessagePartsRenderer = memo(MessagePartsRenderer);
 const MemoCollapsibleToolTimeline = memo(CollapsibleToolTimeline);
 
 const MessageRow = memo(
-  function MessageRow({
-    message,
-    isStreaming,
-    onOpenFile,
-  }: {
-    message: UIMessage;
-    isStreaming: boolean;
-    onOpenFile?: (filePath: string) => void;
-  }) {
+  function MessageRow(props: { message: UIMessage; isStreaming: boolean; onOpenFile?: (filePath: string) => void }) {
+    const { isStreaming, message, onOpenFile } = props;
     return (
       <MessageRoot from={message.role as any}>
         <MessageContent>
@@ -47,15 +41,12 @@ const MessageRow = memo(
 );
 
 const ToolGroupRow = memo(
-  function ToolGroupRow({
-    invocations,
-    completed,
-    onOpenFile,
-  }: {
+  function ToolGroupRow(props: {
     invocations: ToolInvocation[];
     completed: boolean;
     onOpenFile?: (filePath: string) => void;
   }) {
+    const { completed, invocations, onOpenFile } = props;
     return (
       <MessageRoot from="assistant">
         <MessageContent>
@@ -85,16 +76,16 @@ function useRenderPlan(messages: UIMessage[]): RenderItem[] {
     let i = 0;
 
     while (i < messages.length) {
-      const m = messages[i];
+      const message = messages[i];
 
-      if (m.role === "assistant" && isToolOnlyMessage(m)) {
-        const startId = m.id;
+      if (message.role === "assistant" && isToolOnlyMessage(message)) {
+        const startId = message.id;
         const invocations: ToolInvocation[] = [];
         let j = i;
 
         while (j < messages.length && messages[j].role === "assistant" && isToolOnlyMessage(messages[j])) {
-          for (const p of messages[j].parts as any[]) {
-            invocations.push((p as any).toolInvocation as ToolInvocation);
+          for (const part of messages[j].parts as any[]) {
+            invocations.push((part as any).toolInvocation as ToolInvocation);
           }
           j += 1;
         }
@@ -109,7 +100,7 @@ function useRenderPlan(messages: UIMessage[]): RenderItem[] {
 
         i = j;
       } else {
-        items.push({ kind: "message", key: m.id, message: m });
+        items.push({ kind: "message", key: message.id, message });
         i += 1;
       }
     }
@@ -118,7 +109,7 @@ function useRenderPlan(messages: UIMessage[]): RenderItem[] {
   }, [messages]);
 }
 
-interface MessageListProps {
+export interface MessageListProps {
   messages: UIMessage[];
   streaming: boolean;
   onOpenFile?: (filePath: string) => void;
@@ -127,14 +118,8 @@ interface MessageListProps {
   credentialsReady: boolean;
 }
 
-export function MessageList({
-  messages,
-  streaming,
-  onOpenFile,
-  onUseExample,
-  examplePrompts = [],
-  credentialsReady,
-}: MessageListProps) {
+export function MessageList(props: MessageListProps) {
+  const { credentialsReady, examplePrompts = [], messages, onOpenFile, onUseExample, streaming } = props;
   const examplesToShow = useMemo(() => pickRandom(examplePrompts, 4), [examplePrompts]);
 
   const plan = useRenderPlan(messages);
@@ -162,9 +147,9 @@ export function MessageList({
               <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
                 Try one of these example prompts to see what it can do:
               </Text>
-              {examplesToShow.map((p) => (
-                <Button key={p} variant="outline" size="sm" onClick={() => handleUseExample(p)}>
-                  {p}
+              {examplesToShow.map((prompt) => (
+                <Button key={prompt} variant="outline" size="sm" onClick={() => handleUseExample(prompt)}>
+                  {prompt}
                 </Button>
               ))}
             </VStack>
