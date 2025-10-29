@@ -31,6 +31,7 @@
     }
   },
   "scripts": {
+    "start": "storybook dev -p 6006",
     "prepublishOnly": "npm run build",
     "build": "vite build",
     "dev": "vite build --watch",

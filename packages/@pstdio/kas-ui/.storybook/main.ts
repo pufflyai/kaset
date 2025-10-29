@@ -1,33 +1,28 @@
-import { dirname, join } from "path";
 import type { StorybookConfig } from "@storybook/react-vite";
-import { fileURLToPath } from "url";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+import { dirname, join } from "path";
+
+/**
+ * This function is used to resolve the absolute path of a package.
+ * It is needed in projects that use Yarn PnP or are set up within a monorepo.
+ */
+function getAbsolutePath(value: string): any {
+  return dirname(require.resolve(join(value, "package.json")));
+}
 
 const config: StorybookConfig = {
-  stories: ["../src/**/*.mdx", "../src/**/*.stories.@(ts|tsx)"],
-  addons: ["@storybook/addon-docs", "@storybook/addon-a11y", "@storybook/addon-themes"],
+  stories: ["../playground/**/*.stories.@(js|jsx|mjs|ts|tsx)", "../src/**/*.stories.@(js|jsx|mjs|ts|tsx)"],
+  addons: [
+    getAbsolutePath("@chromatic-com/storybook"),
+    getAbsolutePath("@storybook/addon-docs"),
+    getAbsolutePath("@storybook/addon-a11y"),
+    getAbsolutePath("@storybook/addon-vitest"),
+    getAbsolutePath("@storybook/addon-themes"),
+    getAbsolutePath("storybook-addon-vis"),
+  ],
   framework: {
-    name: "@storybook/react-vite",
+    name: getAbsolutePath("@storybook/react-vite"),
     options: {},
-  },
-  docs: {
-    autodocs: "tag",
-  },
-  viteFinal: async (config) => {
-    config.resolve = config.resolve ?? {};
-    config.resolve.alias = config.resolve.alias ?? {};
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      "@pstdio/kas-ui": join(__dirname, "../src"),
-      "@pstdio/kas": join(__dirname, "../../kas/src"),
-      "@pstdio/opfs-utils": join(__dirname, "../../opfs-utils/src"),
-      "@pstdio/opfs-hooks": join(__dirname, "../../opfs-hooks/src"),
-      "@pstdio/prompt-utils": join(__dirname, "../../prompt-utils/src"),
-      "@pstdio/tiny-ai-tasks": join(__dirname, "../../tiny-ai-tasks/src"),
-    };
-
-    return config;
   },
 };
 

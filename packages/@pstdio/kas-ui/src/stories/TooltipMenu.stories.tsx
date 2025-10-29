@@ -13,7 +13,10 @@ export default meta;
 export const TooltipExample: StoryObj = {
   render: () => (
     <Tooltip content="Kaset keeps track of your agent conversations.">
-      <Button leftIcon={<Info size={16} />}>Hover for details</Button>
+      <Button>
+        Hover for details
+        <Info size={16} />
+      </Button>
     </Tooltip>
   ),
 };

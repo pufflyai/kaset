@@ -1,7 +1,7 @@
+import { ChakraProvider } from "@chakra-ui/react";
 import type { Preview } from "@storybook/react";
-import { ChakraProvider, PortalManager } from "@chakra-ui/react";
 import { KasUIProvider } from "../src/state/KasUIProvider";
-import theme from "./theme";
+import system from "./theme";
 
 const preview: Preview = {
   parameters: {
@@ -16,11 +16,9 @@ const preview: Preview = {
   },
   decorators: [
     (Story) => (
-      <ChakraProvider theme={theme}>
+      <ChakraProvider value={system}>
         <KasUIProvider>
-          <PortalManager>
-            <Story />
-          </PortalManager>
+          <Story />
         </KasUIProvider>
       </ChakraProvider>
     ),
