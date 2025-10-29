@@ -15,9 +15,11 @@ export * from "./components/conversation/auto-scroll.tsx";
 export * from "./components/conversation/collapsible-tool-timeline.tsx";
 export * from "./components/conversation/message-list.tsx";
 export * from "./components/conversation/message-parts-renderer.tsx";
+export * from "./components/conversation/tool-invocation-timeline.tsx";
 export * from "./components/conversation/opfs-tool-blocks.tsx";
 
 export * from "./utils/getIcon.ts";
 
 export * from "./state";
 export * from "./conversation";
+export * from "./adapters/tool-rendering";

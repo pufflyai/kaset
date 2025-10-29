@@ -1,10 +1,9 @@
 import { ResourceBadge } from "../resource-badge.tsx";
 import { Response } from "../ai-response.tsx";
-import { TimelineFromJSON } from "../timeline.tsx";
 import { Box, Text } from "@chakra-ui/react";
 import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 import type { ReactNode } from "react";
-import { invocationsToTimeline } from "../../conversation/invocations-to-timeline.tsx";
+import { ToolInvocationTimeline } from "./tool-invocation-timeline.tsx";
 
 export interface MessagePartsProps {
   message: UIMessage;
@@ -61,10 +60,7 @@ export function MessagePartsRenderer(props: MessagePartsProps) {
 
       nodes.push(
         <Box key={key} width="full">
-          <TimelineFromJSON
-            data={invocationsToTimeline(invocations, { labeledBlocks: true })}
-            onOpenFile={onOpenFile}
-          />
+          <ToolInvocationTimeline invocations={invocations} labeledBlocks onOpenFile={onOpenFile} />
         </Box>,
       );
       continue;
