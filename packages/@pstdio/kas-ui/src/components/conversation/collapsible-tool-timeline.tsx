@@ -1,9 +1,8 @@
-import { TimelineFromJSON, type TimelineDoc } from "../timeline.tsx";
 import { Box, HStack, Text } from "@chakra-ui/react";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { ChevronUpIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { invocationsToTimeline } from "../../conversation/invocations-to-timeline.tsx";
+import { useEffect, useRef, useState } from "react";
+import { ToolInvocationTimeline } from "./tool-invocation-timeline.tsx";
 
 export interface CollapsibleToolTimelineProps {
   invocations: ToolInvocation[];
@@ -26,11 +25,6 @@ export function CollapsibleToolTimeline(props: CollapsibleToolTimelineProps) {
     previousCompletedRef.current = completed;
   }, [completed]);
   const toggle = () => setOpen((value) => !value);
-
-  const data: TimelineDoc | null = useMemo(() => {
-    if (!open) return null;
-    return invocationsToTimeline(invocations, { labeledBlocks: false });
-  }, [open, invocations]);
 
   return (
     <Box width="full" maxW="820px" mx="auto">
@@ -59,9 +53,9 @@ export function CollapsibleToolTimeline(props: CollapsibleToolTimelineProps) {
           </Box>
         </HStack>
       </HStack>
-      {open && data ? (
+      {open ? (
         <Box mt="sm">
-          <TimelineFromJSON data={data} onOpenFile={onOpenFile} />
+          <ToolInvocationTimeline invocations={invocations} labeledBlocks={false} onOpenFile={onOpenFile} />
         </Box>
       ) : null}
     </Box>
