@@ -47,7 +47,7 @@
     "@supabase/supabase-js": "^2.48.1",
     "@types/node": "^22.10.2",
     "@vitest/coverage-v8": "^3.2.4",
-    "@vitest/ui": "^3.2.4",
+    "@vitest/ui": "^4.0.5",
     "fake-indexeddb": "^6.2.2",
     "happy-dom": "^20.0.0",
     "vite": "^7.1.0",
