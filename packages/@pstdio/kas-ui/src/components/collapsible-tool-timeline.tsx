@@ -1,8 +1,8 @@
 import { Box, HStack, Text } from "@chakra-ui/react";
-import type { ToolInvocation } from "@pstdio/kas/kas-ui";
+import type { ToolInvocation } from "../adapters/kas";
 import { ChevronUpIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { ToolInvocationTimeline } from "./tool-invocation-timeline.tsx";
+import { ToolInvocationTimeline } from "./tool-invocation-timeline";
 
 export interface CollapsibleToolTimelineProps {
   invocations: ToolInvocation[];

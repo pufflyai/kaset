@@ -1,45 +1,39 @@
-import type { Meta, StoryObj } from "@storybook/react";
 import { Box } from "@chakra-ui/react";
+import type { Meta, StoryObj } from "@storybook/react";
 import { ConversationContent, ConversationRoot, ConversationScrollButton } from "./ai-conversation";
 import { MessageList } from "./message-list";
-import type { UIMessage } from "@pstdio/kas/kas-ui";
+import type { UIMessage } from "../adapters/kas";
 import {
   emptyConversation,
   streamingConversation,
   toolErrorConversation,
   toolInvocationConversation,
-  examplePrompts,
 } from "../mocks/conversation";
 
 interface ConversationExampleProps {
   messages: UIMessage[];
   streaming?: boolean;
-  credentialsReady?: boolean;
 }
-
-const onUseExample = (value: string) => {
-  console.info("onUseExample", value);
-};
 
 const onOpenFile = (value: string) => {
   console.info("onOpenFile", value);
 };
 
 const ConversationExample = (props: ConversationExampleProps) => {
-  const { credentialsReady = true, messages, streaming = false } = props;
+  const { messages, streaming = false } = props;
+  const hasMessages = messages.length > 0;
 
   return (
     <Box width="960px" maxW="100%" height="600px" borderWidth="1px" borderRadius="lg" overflow="hidden">
       <ConversationRoot>
         <ConversationContent>
-          <MessageList
-            messages={messages}
-            streaming={streaming}
-            credentialsReady={credentialsReady}
-            examplePrompts={examplePrompts}
-            onUseExample={onUseExample}
-            onOpenFile={onOpenFile}
-          />
+          {hasMessages ? (
+            <MessageList messages={messages} streaming={streaming} onOpenFile={onOpenFile} />
+          ) : (
+            <Box p="lg" textAlign="center" color="fg.muted">
+              No messages yet.
+            </Box>
+          )}
         </ConversationContent>
         <ConversationScrollButton aria-label="Scroll to bottom" />
       </ConversationRoot>
@@ -53,7 +47,6 @@ const meta: Meta<typeof ConversationExample> = {
   args: {
     messages: emptyConversation,
     streaming: false,
-    credentialsReady: true,
   },
 };
 

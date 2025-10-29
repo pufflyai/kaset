@@ -4,5 +4,7 @@ export * from "./createConversation";
 export * from "./getConversation";
 export * from "./getConversationMessages";
 export * from "./getSelectedConversationId";
+export * from "./getConversationStreaming";
 export * from "./selectConversation";
 export * from "./setConversationMessages";
+export * from "./setConversationStreaming";

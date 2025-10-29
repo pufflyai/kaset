@@ -1,4 +1,4 @@
-import type { UIMessage } from "@pstdio/kas/kas-ui";
+import type { UIMessage } from "../../adapters/kas";
 import { getConversationStoreState } from "../KasUIProvider";
 
 export const getConversationMessages = (conversationId: string | null | undefined): UIMessage[] => {

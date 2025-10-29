@@ -1,11 +1,7 @@
-import type { ToolInvocation } from "@pstdio/kas/kas-ui";
-import type { TimelineDoc } from "../../components/timeline.tsx";
-import {
-  createDefaultToolRenderers,
-  genericToolRenderer,
-  getDefaultIndicatorForInvocation,
-} from "./default-renderers.tsx";
-import type { BuildToolTimelineOptions, ToolRenderer, ToolRendererResult, ToolRenderersMap } from "./types.ts";
+import type { ToolInvocation } from "../kas";
+import type { TimelineDoc } from "../../components/timeline";
+import { createDefaultToolRenderers, genericToolRenderer, getDefaultIndicatorForInvocation } from "./default-renderers";
+import type { BuildToolTimelineOptions, ToolRenderer, ToolRendererResult, ToolRenderersMap } from "./types";
 
 const BASE_RENDERERS = createDefaultToolRenderers();
 

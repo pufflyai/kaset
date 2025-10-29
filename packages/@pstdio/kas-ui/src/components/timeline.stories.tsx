@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Box } from "@chakra-ui/react";
-import type { ToolInvocation } from "@pstdio/kas/kas-ui";
+import type { ToolInvocation } from "../adapters/kas";
 import { TimelineFromJSON } from "./timeline";
-import { invocationsToTimeline } from "../conversation/invocations-to-timeline";
+import { buildTimelineDocFromInvocations } from "../adapters/tool-rendering/build-timeline";
 import { sampleToolInvocations } from "../mocks/conversation";
 
 interface TimelineStoryProps {
@@ -11,7 +11,7 @@ interface TimelineStoryProps {
 
 const TimelineShowcase = (props: TimelineStoryProps) => {
   const { invocations } = props;
-  const data = invocationsToTimeline(invocations, { labeledBlocks: true });
+  const data = buildTimelineDocFromInvocations(invocations, { labeledBlocks: true });
 
   return (
     <Box width="960px" maxW="100%">

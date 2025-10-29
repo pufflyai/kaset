@@ -1,4 +1,4 @@
-import "./rich-text-theme.css";
+import "./theme/message-theme.css";
 
 import { Flex } from "@chakra-ui/react";
 import { CodeNode } from "@lexical/code";

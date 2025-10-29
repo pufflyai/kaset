@@ -1,10 +1,11 @@
-import { IconButton, type IconButtonProps, Kbd, Portal, Span, Tooltip } from "@chakra-ui/react";
+import { IconButton, type IconButtonProps, Kbd, Portal, Tooltip } from "@chakra-ui/react";
 import type { ReactElement } from "react";
 
 export interface SendButtonProps extends IconButtonProps {
   icon?: ReactElement;
   active?: boolean;
   shortcut?: string;
+  title?: string;
 }
 
 export const SendButton = (props: SendButtonProps) => {
@@ -12,15 +13,14 @@ export const SendButton = (props: SendButtonProps) => {
 
   const button = (
     <IconButton
-      size="xs"
-      variant="ghost"
-      bg={active ? "background.secondary" : "transparent"}
-      _hover={{ bg: active ? "background.tertiary" : "background.secondary" }}
-      colorPalette="secondary"
+      size="sm"
+      variant="solid"
+      borderRadius="full"
+      colorPalette="primary"
+      aria-pressed={active ?? false}
       {...rest}
     >
       {icon}
-      <Span srOnly>{title}</Span>
     </IconButton>
   );
 

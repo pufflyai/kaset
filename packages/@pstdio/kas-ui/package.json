@@ -1,6 +1,6 @@
 {
   "name": "@pstdio/kas-ui",
-  "description": "",
+  "description": "Chat UI for the kas coding agents",
   "version": "0.2.0",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
@@ -44,12 +44,15 @@
     "react-dom": "^19.1.1"
   },
   "dependencies": {
-    "@pstdio/kas": "^0.2.0",
-    "@pstdio/opfs-utils": "^0.2.0",
-    "@pstdio/prompt-utils": "^0.1.4",
-    "@pstdio/tiny-ai-tasks": "^0.2.0"
+    "react": "^19.1.1",
+    "lucide-react": "^0.542.0",
+    "@chakra-ui/react": "^3.24.2",
+    "@pstdio/opfs-utils": "*",
+    "@pstdio/prompt-utils": "*",
+    "@pstdio/tiny-ai-tasks": "*"
   },
   "peerDependencies": {
+    "lucide-react": "^0.542.0",
     "@chakra-ui/react": "^3.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"

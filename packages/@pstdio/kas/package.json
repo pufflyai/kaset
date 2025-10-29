@@ -17,10 +17,6 @@
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
-    "./kas-ui": {
-      "import": "./dist/kas-ui.js",
-      "types": "./dist/kas-ui.d.ts"
-    },
     "./opfs-tools": {
       "import": "./dist/opfs-tools.js",
       "types": "./dist/opfs-tools.d.ts"
@@ -49,6 +45,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@pstdio/kas-ui": "^0.2.0",
     "@pstdio/opfs-utils": "^0.2.0",
     "@pstdio/prompt-utils": "^0.1.4",
     "@pstdio/tiny-ai-tasks": "^0.2.0"

@@ -1,4 +1,4 @@
-import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
+import type { ToolInvocation, UIMessage } from "../adapters/kas";
 
 const diffExample = `diff --git a/src/example.ts b/src/example.ts
 index 1111111..2222222 100644

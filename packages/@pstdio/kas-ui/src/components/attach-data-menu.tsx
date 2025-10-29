@@ -1,7 +1,7 @@
 import { Box, IconButton, Input, Menu, Portal, Span, Tooltip } from "@chakra-ui/react";
+import { FileText, Paperclip, UploadCloud } from "lucide-react";
 import { useState } from "react";
 import { MenuItem } from "./menu-item";
-import { Paperclip, UploadCloud, FileText } from "lucide-react";
 
 export interface AttachDataMenuProps {
   availableResources?: string[];

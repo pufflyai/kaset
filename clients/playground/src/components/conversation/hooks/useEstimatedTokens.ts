@@ -1,4 +1,4 @@
-import { toBaseMessages, type UIMessage } from "@pstdio/kas/kas-ui";
+import { toBaseMessages, type UIMessage } from "@pstdio/kas-ui";
 import { roughCounter, type BaseMessage } from "@pstdio/tiny-ai-tasks";
 import { useMemo } from "react";
 

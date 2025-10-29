@@ -1,9 +1,10 @@
-import type { UIMessage } from "@pstdio/kas/kas-ui";
+import type { UIMessage } from "../adapters/kas";
 
 export interface Conversation {
   id: string;
   name: string;
   messages: UIMessage[];
+  streaming: boolean;
 }
 
 export interface ConversationStoreState {

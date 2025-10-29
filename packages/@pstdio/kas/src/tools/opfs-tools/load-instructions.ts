@@ -1,14 +1,14 @@
 import { readFile } from "@pstdio/opfs-utils";
 import { shortUID } from "@pstdio/prompt-utils";
-import type { UIMessage, UIConversation } from "./adapters/kas-ui/types";
+import type { BaseMessage, MessageHistory } from "@pstdio/tiny-ai-tasks";
 
 export type AgentInstructions = {
-  messages: UIConversation;
+  messages: MessageHistory;
   agentsPath: string | null;
 };
 
 export async function loadAgentInstructions(rootDir: string): Promise<AgentInstructions> {
-  const messages: UIConversation = [];
+  const messages: MessageHistory = [];
   const candidates = [`${rootDir}/agents.md`, `${rootDir}/AGENTS.md`];
   let agentsPath: string | null = null;
 
@@ -21,11 +21,14 @@ export async function loadAgentInstructions(rootDir: string): Promise<AgentInstr
         continue;
       }
 
-      const systemAgents: UIMessage = {
+      const systemAgents: BaseMessage & {
+        id: string;
+        meta: { tags: string[]; source: string };
+      } = {
         id: `agents-${shortUID()}`,
         role: "system",
+        content,
         meta: { tags: ["agents"], source: "agents.md" },
-        parts: [{ type: "text", text: content }],
       };
 
       messages.push(systemAgents);

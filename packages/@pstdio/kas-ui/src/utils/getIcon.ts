@@ -72,6 +72,8 @@ const iconMap = {
 export type IconName = keyof typeof iconMap;
 export type OpfsToolIconName = keyof typeof opfsToolIconMap;
 
+const DEFAULT_TOOL_ICON: IconName = "dot";
+
 export function isOpfsToolIconName(value: string): value is OpfsToolIconName {
   return Object.prototype.hasOwnProperty.call(opfsToolIconMap, value);
 }
@@ -160,6 +162,27 @@ export function getFileTypeIcon(filename: string): LucideIcon {
 
   // Default for unknown files
   return File;
+}
+
+export function toolTypeToIconName(type?: string): IconName {
+  if (!type) return DEFAULT_TOOL_ICON;
+
+  const normalized = type.replace(/^tool-/, "");
+  if (isOpfsToolIconName(normalized)) {
+    return normalized;
+  }
+
+  switch (normalized) {
+    case "search":
+      return "search";
+    case "browser":
+      return "browser";
+    case "fs":
+    case "file":
+      return "file";
+    default:
+      return DEFAULT_TOOL_ICON;
+  }
 }
 
 export function getIndicatorIcon(indicator: IconName): LucideIcon {

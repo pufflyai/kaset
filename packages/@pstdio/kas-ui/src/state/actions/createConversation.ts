@@ -51,7 +51,7 @@ export const createConversation = () => {
   const name = buildConversationName(state.conversations);
 
   store.setState((draft) => {
-    draft.conversations[id] = { id, name, messages: [] };
+    draft.conversations[id] = { id, name, messages: [], streaming: false };
     draft.selectedConversationId = id;
   });
 };

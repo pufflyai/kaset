@@ -1,6 +1,6 @@
 import type { EditorThemeClasses } from "lexical";
 
-import "./rich-text-theme.css";
+import "./message-theme.css";
 
 const theme: EditorThemeClasses = {
   code: "rich-text__code",

@@ -1,22 +1,25 @@
+import { getModelPricing, type ModelPricing } from "@/models";
+import { setApprovalHandler } from "@/services/ai/approval";
+import { useMcpService } from "@/services/mcp/useMcpService";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
+import { useDisclosure } from "@chakra-ui/react";
+import type { ApprovalRequest } from "@pstdio/kas";
 import {
   appendConversationMessages,
   getConversation,
   getConversationMessages,
   getSelectedConversationId,
   setConversationMessages,
+  setConversationStreaming,
   useConversationStore,
+  type ToolInvocationUIPart,
+  type UIMessage,
 } from "@pstdio/kas-ui";
-import { getModelPricing, type ModelPricing } from "@/models";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { setApprovalHandler } from "@/services/ai/approval";
-import { useMcpService } from "@/services/mcp/useMcpService";
-import type { ApprovalRequest } from "@pstdio/kas";
-import type { ToolInvocationUIPart, UIMessage } from "@pstdio/kas/kas-ui";
 import { shortUID } from "@pstdio/prompt-utils";
 import { usePluginHost } from "@pstdio/tiny-plugins";
 import debounce from "lodash/debounce";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDisclosure } from "@chakra-ui/react";
+import type { DebouncedFunc } from "lodash";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { host } from "../../services/plugins/host";
@@ -27,6 +30,12 @@ import { SettingsModal } from "./settings-modal";
 const EMPTY_MESSAGES: UIMessage[] = [];
 const ASSISTANT_UPDATE_DEBOUNCE_MS = 400;
 const ASSISTANT_UPDATE_MAX_WAIT_MS = 1200;
+
+type ActiveStream = {
+  conversationId: string;
+  iterator: AsyncGenerator<UIMessage[], void, unknown>;
+  applyConversationUpdate: DebouncedFunc<(nextMessages: UIMessage[]) => void>;
+};
 
 function markInFlightToolInvocationsAsError(messages: UIMessage[], errorText: string) {
   return messages.map((message) => {
@@ -66,10 +75,10 @@ function markInFlightToolInvocationsAsError(messages: UIMessage[], errorText: st
 }
 
 interface ConversationAreaWithMessagesProps {
-  streaming: boolean;
   canSend: boolean;
   examplePrompts: string[];
   onSendMessage: (text: string, fileNames?: string[]) => void | Promise<void>;
+  onInterrupt?: () => void | Promise<void>;
   onSelectFile?: (filePath: string) => void;
   credentialsReady: boolean;
   modelPricing?: ModelPricing;
@@ -80,15 +89,22 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
   props: ConversationAreaWithMessagesProps,
 ) {
   const {
-    streaming,
     canSend,
     examplePrompts,
     onSendMessage,
+    onInterrupt,
     onSelectFile,
     credentialsReady,
     modelPricing,
     onOpenSettings,
   } = props;
+  const streaming = useConversationStore((s) => {
+    const id = s.selectedConversationId;
+    if (!id) return false;
+
+    const conversation = s.conversations[id];
+    return conversation?.streaming ?? false;
+  });
   const messages = useConversationStore((s) =>
     s.selectedConversationId ? (s.conversations[s.selectedConversationId]?.messages ?? EMPTY_MESSAGES) : EMPTY_MESSAGES,
   );
@@ -100,6 +116,7 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
       canSend={canSend}
       examplePrompts={examplePrompts}
       onSendMessage={onSendMessage}
+      onInterrupt={onInterrupt}
       onSelectFile={onSelectFile}
       credentialsReady={credentialsReady}
       modelPricing={modelPricing}
@@ -111,9 +128,16 @@ const ConversationAreaWithMessages = memo(function ConversationAreaWithMessages(
 export function ConversationHost() {
   const { tools: mcpTools } = useMcpService();
   const { tools: pluginTools } = usePluginHost(host);
-  const [streaming, setStreaming] = useState(false);
+  const streaming = useConversationStore((s) => {
+    const id = s.selectedConversationId;
+    if (!id) return false;
+
+    const conversation = s.conversations[id];
+    return conversation?.streaming ?? false;
+  });
   const [approval, setApproval] = useState<ApprovalRequest | null>(null);
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
+  const activeStreamRef = useRef<ActiveStream | null>(null);
   const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
   const settings = useDisclosure();
   const apiKey = useWorkspaceStore((s) => s.settings.apiKey);
@@ -164,9 +188,16 @@ export function ConversationHost() {
 
       setConversationMessages(conversationId, base);
 
+      const iterator = sendMessage(conversationId, base, toolset);
+      activeStreamRef.current = {
+        conversationId,
+        iterator,
+        applyConversationUpdate,
+      };
+
       try {
-        setStreaming(true);
-        for await (const updated of sendMessage(conversationId, base, toolset)) {
+        setConversationStreaming(conversationId, true);
+        for await (const updated of iterator) {
           applyConversationUpdate(updated);
         }
 
@@ -195,22 +226,47 @@ export function ConversationHost() {
           appendConversationMessages(id, [assistantError]);
         }
       } finally {
+        if (activeStreamRef.current?.iterator === iterator) {
+          activeStreamRef.current = null;
+        }
         applyConversationUpdate.cancel();
-        setStreaming(false);
+        setConversationStreaming(conversationId, false);
       }
     },
     [toolset],
   );
+
+  const handleInterrupt = useCallback(async () => {
+    const active = activeStreamRef.current;
+    if (!active) return;
+
+    activeStreamRef.current = null;
+
+    const { iterator, applyConversationUpdate, conversationId } = active;
+
+    applyConversationUpdate.flush();
+
+    if (typeof iterator.return === "function") {
+      try {
+        await iterator.return();
+      } catch (error) {
+        console.warn("Failed to stop conversation stream", error);
+      }
+    }
+
+    applyConversationUpdate.cancel();
+    setConversationStreaming(conversationId, false);
+  }, []);
 
   const handleSelectFile = useCallback((_: string) => {}, []);
 
   return (
     <>
       <ConversationAreaWithMessages
-        streaming={streaming}
         canSend={credentialsReady && !streaming}
         examplePrompts={examplePrompts}
         onSendMessage={handleSendMessage}
+        onInterrupt={handleInterrupt}
         onSelectFile={handleSelectFile}
         credentialsReady={credentialsReady}
         modelPricing={modelPricing}

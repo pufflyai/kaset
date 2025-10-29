@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
-import { buildTimelineDocFromInvocations } from "../adapters/tool-rendering/build-timeline.ts";
-import { createDefaultToolRenderers } from "../adapters/tool-rendering/default-renderers.tsx";
-import type { ToolRenderer, ToolRenderersMap, ToolTimelineBuilder } from "../adapters/tool-rendering/types.ts";
+import { buildTimelineDocFromInvocations } from "../adapters/tool-rendering/build-timeline";
+import { createDefaultToolRenderers } from "../adapters/tool-rendering/default-renderers";
+import type { ToolRenderer, ToolRenderersMap, ToolTimelineBuilder } from "../adapters/tool-rendering/types";
 import { createConversationStore } from "./createConversationStore";
 import type { ConversationStore } from "./createConversationStore";
 import type { ConversationStoreState } from "./types";

@@ -1,19 +1,11 @@
-import { EmptyState } from "../empty-state.tsx";
-import { MessageContent, MessageRoot } from "../ai-message.tsx";
-import { CollapsibleToolTimeline } from "./collapsible-tool-timeline.tsx";
-import { MessagePartsRenderer } from "./message-parts-renderer.tsx";
-import type { UIMessage, ToolInvocation } from "@pstdio/kas/kas-ui";
-import { Box, Button, Link, Text, VStack } from "@chakra-ui/react";
-import { CassetteTapeIcon } from "lucide-react";
-import { memo, useCallback, useMemo } from "react";
+import { memo, useMemo } from "react";
+import type { ToolInvocation, UIMessage } from "../adapters/kas";
+import { MessageContent, MessageRoot } from "./ai-message";
+import { CollapsibleToolTimeline } from "./collapsible-tool-timeline";
+import { MessagePartsRenderer } from "./message-parts-renderer";
 
 const isToolOnlyMessage = (message: UIMessage) =>
-  message.parts.length > 0 && message.parts.every((part) => (part as any).type === "tool-invocation");
-
-function pickRandom<T>(arr: readonly T[], n: number): T[] {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, n);
-}
+  message.parts.length > 0 && message.parts.every((part: unknown) => (part as any).type === "tool-invocation");
 
 function shallowArrayEqual<T>(a: readonly T[], b: readonly T[]): boolean {
   if (a === b) return true;
@@ -113,71 +105,24 @@ export interface MessageListProps {
   messages: UIMessage[];
   streaming: boolean;
   onOpenFile?: (filePath: string) => void;
-  onUseExample?: (text: string) => void;
-  examplePrompts?: string[];
-  credentialsReady: boolean;
 }
 
 export function MessageList(props: MessageListProps) {
-  const { credentialsReady, examplePrompts = [], messages, onOpenFile, onUseExample, streaming } = props;
-  const examplesToShow = useMemo(() => pickRandom(examplePrompts, 4), [examplePrompts]);
+  const { messages, onOpenFile, streaming } = props;
 
   const plan = useRenderPlan(messages);
   const lastMessageId = messages.length ? messages[messages.length - 1].id : undefined;
 
-  const handleUseExample = useCallback((text: string) => onUseExample?.(text), [onUseExample]);
-
-  if (plan.length === 0) {
-    return (
-      <Box w="100%">
-        <EmptyState
-          icon={<CassetteTapeIcon />}
-          title="Welcome to the Kaset playground!"
-          description="Kaset [ka'set] is an experimental open source toolkit to make your webapps agentic and customizable by your users."
-        >
-          <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
-            Check out our{" "}
-            <Link color="blue" href="https://kaset.dev">
-              documentation
-            </Link>
-            .
-          </Text>
-          {credentialsReady && (
-            <VStack gap="sm" mt="sm" align="stretch">
-              <Text textAlign="center" textStyle="label/S/regular" color="fg.muted">
-                Try one of these example prompts to see what it can do:
-              </Text>
-              {examplesToShow.map((prompt) => (
-                <Button key={prompt} variant="outline" size="sm" onClick={() => handleUseExample(prompt)}>
-                  {prompt}
-                </Button>
-              ))}
-            </VStack>
-          )}
-        </EmptyState>
-      </Box>
-    );
-  }
-
-  return (
-    <>
-      {plan.map((item) =>
-        item.kind === "message" ? (
-          <MessageRow
-            key={item.key}
-            message={item.message}
-            isStreaming={Boolean(streaming && item.message.id === lastMessageId)}
-            onOpenFile={onOpenFile}
-          />
-        ) : (
-          <ToolGroupRow
-            key={item.key}
-            invocations={item.invocations}
-            completed={item.completed}
-            onOpenFile={onOpenFile}
-          />
-        ),
-      )}
-    </>
+  return plan.map((item) =>
+    item.kind === "message" ? (
+      <MessageRow
+        key={item.key}
+        message={item.message}
+        isStreaming={Boolean(streaming && item.message.id === lastMessageId)}
+        onOpenFile={onOpenFile}
+      />
+    ) : (
+      <ToolGroupRow key={item.key} invocations={item.invocations} completed={item.completed} onOpenFile={onOpenFile} />
+    ),
   );
 }

@@ -1,9 +1,9 @@
-import { OpfsLsBlock, OpfsWriteFileBlock } from "../../components/conversation/opfs-tool-blocks.tsx";
-import { buildDiffTitleSegments, buildFileDiffPreviews } from "../../conversation/diff.ts";
-import { toolTypeToIconName } from "../../conversation/tool-icon.ts";
-import type { TitleSegment } from "../../components/timeline.tsx";
-import type { ToolInvocation } from "@pstdio/kas/kas-ui";
-import type { ToolRenderer, ToolRendererResult, ToolRenderersMap } from "./types.ts";
+import { OpfsLsBlock, OpfsWriteFileBlock } from "../../components/opfs-tool-blocks";
+import { buildDiffTitleSegments, buildFileDiffPreviews } from "../../utils/diff";
+import { toolTypeToIconName } from "../../utils/getIcon";
+import type { TitleSegment } from "../../components/timeline";
+import type { ToolInvocation } from "../kas";
+import type { ToolRenderer, ToolRendererResult, ToolRenderersMap } from "./types";
 
 const toJson = (value: unknown): string => {
   try {
@@ -383,6 +383,18 @@ const BASE_TOOL_RENDERERS = Object.freeze(createBaseToolRenderers());
 
 export const createDefaultToolRenderers = (): ToolRenderersMap => {
   return { ...BASE_TOOL_RENDERERS };
+};
+
+const DEFAULT_OPFS_RENDERERS = createDefaultToolRenderers();
+
+export const renderOpfsTool = (invocation: ToolInvocation): ToolRendererResult | null => {
+  const type = ensureString((invocation as any).type);
+  if (!type) return null;
+
+  const renderer = DEFAULT_OPFS_RENDERERS[type];
+  if (!renderer) return null;
+
+  return renderer(invocation, { labeledBlocks: false });
 };
 
 export const getDefaultIndicatorForInvocation = (invocation: ToolInvocation): ToolRendererResult["indicator"] => {

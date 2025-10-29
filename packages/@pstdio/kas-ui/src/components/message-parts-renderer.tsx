@@ -1,9 +1,9 @@
-import { ResourceBadge } from "../resource-badge.tsx";
-import { Response } from "../ai-response.tsx";
+import { ResourceBadge } from "./resource-badge";
+import { Response } from "./ai-response";
 import { Box, Text } from "@chakra-ui/react";
-import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
+import type { ToolInvocation, UIMessage } from "../adapters/kas";
 import type { ReactNode } from "react";
-import { ToolInvocationTimeline } from "./tool-invocation-timeline.tsx";
+import { ToolInvocationTimeline } from "./tool-invocation-timeline";
 
 export interface MessagePartsProps {
   message: UIMessage;

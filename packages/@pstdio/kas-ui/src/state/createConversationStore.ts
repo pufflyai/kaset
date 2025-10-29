@@ -11,10 +11,20 @@ import type {
 const DEFAULT_CONVERSATION_ID_VALUE = "default";
 const DEFAULT_CONVERSATION_NAME = "Conversation 1";
 
+const toConversationWithStreaming = (raw: Conversation): Conversation => {
+  const conversation = raw as Conversation & { streaming?: boolean };
+
+  return {
+    ...conversation,
+    streaming: typeof conversation.streaming === "boolean" ? conversation.streaming : false,
+  };
+};
+
 const buildDefaultConversation = (): Conversation => ({
   id: DEFAULT_CONVERSATION_ID_VALUE,
   name: DEFAULT_CONVERSATION_NAME,
   messages: [],
+  streaming: false,
 });
 
 const buildDefaultSnapshot = (): ConversationStoreSnapshot => ({
@@ -28,8 +38,13 @@ export const getDefaultConversationSnapshot = (): ConversationStoreSnapshot => b
 
 export const createConversationStore = (initial?: Partial<ConversationStoreHydration>) => {
   const fallback = getDefaultConversationSnapshot();
+  const sourceConversations = initial?.conversations ?? fallback.conversations;
+  const conversations = Object.fromEntries(
+    Object.entries(sourceConversations).map(([id, conversation]) => [id, toConversationWithStreaming(conversation)]),
+  ) as Record<string, Conversation>;
+
   const baseState: ConversationStoreState = {
-    conversations: initial?.conversations ?? fallback.conversations,
+    conversations,
     selectedConversationId: initial?.selectedConversationId ?? fallback.selectedConversationId,
   };
 

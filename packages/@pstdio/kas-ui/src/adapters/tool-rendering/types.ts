@@ -1,5 +1,5 @@
-import type { Block, Indicator, TimelineDoc, TitleSegment } from "../../components/timeline.tsx";
-import type { ToolInvocation } from "@pstdio/kas/kas-ui";
+import type { Block, Indicator, TimelineDoc, TitleSegment } from "../../components/timeline";
+import type { ToolInvocation } from "../kas";
 
 export interface ToolRendererOptions {
   labeledBlocks: boolean;

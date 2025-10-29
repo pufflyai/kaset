@@ -1,1 +1,1 @@
-export * from "./adapters/kas-ui";
+export * from "@pstdio/kas-ui";

@@ -1,7 +1,6 @@
-import type { UIMessage } from "../../adapters/kas";
 import { getConversationStore } from "../KasUIProvider";
 
-export const setConversationMessages = (conversationId: string, messages: UIMessage[]) => {
+export const setConversationStreaming = (conversationId: string | null | undefined, streaming: boolean) => {
   if (!conversationId) return;
 
   const store = getConversationStore();
@@ -10,6 +9,6 @@ export const setConversationMessages = (conversationId: string, messages: UIMess
     const conversation = state.conversations[conversationId];
     if (!conversation) return;
 
-    conversation.messages = [...messages];
+    conversation.streaming = streaming;
   });
 };

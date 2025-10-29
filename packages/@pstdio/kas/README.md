@@ -54,7 +54,7 @@ With UI adapters
 
 ```ts
 import { loadAgentInstructions } from "@pstdio/kas/opfs-utils";
-import { toConversationUI } from "@pstdio/kas/kas-ui";
+import { toConversationUI } from "@pstdio/kas-ui";
 
 const messages = [{ role: "user", content: "Create a simple React component" }];
 

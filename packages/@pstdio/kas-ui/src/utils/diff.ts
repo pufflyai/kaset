@@ -1,5 +1,5 @@
-import type { TitleSegment } from "../components/timeline.tsx";
-import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
+import type { TitleSegment } from "../components/timeline";
+import type { ToolInvocation, UIMessage } from "../adapters/kas";
 
 export type FileChange = { filePath: string; additions: number; deletions: number };
 
