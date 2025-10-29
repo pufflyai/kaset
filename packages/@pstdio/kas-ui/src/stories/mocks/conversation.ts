@@ -88,6 +88,89 @@ const toolInvocationError: ToolInvocation = {
   errorText: "patch: unable to apply hunk at line 4",
 };
 
+const toolInvocationLsComplete: ToolInvocation = {
+  type: "tool-opfs_ls",
+  toolCallId: "opfs-ls-complete",
+  state: "output-available",
+  input: { path: "/src" },
+  output: {
+    entries: [
+      { path: "components/", kind: "directory" },
+      { path: "hooks/", kind: "directory" },
+      { path: "App.tsx", kind: "file" },
+      { path: "timeline.mock.ts", kind: "file" },
+    ],
+  },
+};
+
+const toolInvocationReadFile: ToolInvocation = {
+  type: "tool-opfs_read_file",
+  toolCallId: "opfs-read-file",
+  state: "output-available",
+  input: { file: "/src/components/Timeline.tsx" },
+  output: {
+    file: "/src/components/Timeline.tsx",
+    returnDisplay: 'import { Timeline } from "@pstdio/kas-ui";',
+  },
+};
+
+const toolInvocationWriteFile: ToolInvocation = {
+  type: "tool-opfs_write_file",
+  toolCallId: "opfs-write-file",
+  state: "output-available",
+  input: {
+    file: "/src/components/Timeline.tsx",
+    content: 'export const TimelineTitle = "Kas Timeline";\n',
+  },
+  output: {
+    previousContent: 'export const TimelineTitle = "Timeline";\n',
+  },
+};
+
+const toolInvocationShell: ToolInvocation = {
+  type: "tool-opfs_shell",
+  toolCallId: "opfs-shell-test",
+  state: "output-available",
+  input: { command: "npm test" },
+  output: {
+    stdout: "PASS packages/@pstdio/kas-ui/src/timeline.test.tsx",
+    stderr: "",
+    exitCode: 0,
+  },
+};
+
+const toolInvocationSearch: ToolInvocation = {
+  type: "tool-search",
+  toolCallId: "search-docs",
+  state: "output-available",
+  input: { query: "kas timeline component" },
+  output: {
+    hits: [
+      {
+        title: "Kas Timeline API",
+        url: "https://docs.pstdio.dev/kas/timeline",
+        snippet: "Timeline renders tool invocations with diff previews and summaries.",
+      },
+      {
+        title: "Kas Agent Overview",
+        url: "https://docs.pstdio.dev/kas/overview",
+        snippet: "Learn how the Kas agent orchestrates tools and renders UI updates.",
+      },
+    ],
+  },
+};
+
+const toolInvocationBrowser: ToolInvocation = {
+  type: "tool-browser",
+  toolCallId: "browser-open-docs",
+  state: "output-available",
+  input: { url: "https://docs.pstdio.dev/kas/timeline" },
+  output: {
+    status: 200,
+    note: "Captured page metadata and stored summary in session context.",
+  },
+};
+
 export const emptyConversation: UIMessage[] = [];
 
 export const streamingConversation: UIMessage[] = [userQuestion, assistantStreaming];
@@ -145,4 +228,10 @@ export const sampleToolInvocations = {
   pending: toolInvocationPending,
   complete: toolInvocationComplete,
   error: toolInvocationError,
+  lsComplete: toolInvocationLsComplete,
+  readFile: toolInvocationReadFile,
+  writeFile: toolInvocationWriteFile,
+  shell: toolInvocationShell,
+  search: toolInvocationSearch,
+  browser: toolInvocationBrowser,
 };

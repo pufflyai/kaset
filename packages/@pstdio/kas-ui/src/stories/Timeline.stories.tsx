@@ -52,6 +52,60 @@ export const ErrorState: Story = {
 
 export const MixedSequence: Story = {
   args: {
-    invocations: [sampleToolInvocations.pending, sampleToolInvocations.complete, sampleToolInvocations.error],
+    invocations: [
+      sampleToolInvocations.pending,
+      sampleToolInvocations.complete,
+      sampleToolInvocations.error,
+      sampleToolInvocations.shell,
+      sampleToolInvocations.search,
+    ],
+  },
+};
+
+export const DirectoryListing: Story = {
+  args: {
+    invocations: [sampleToolInvocations.lsComplete],
+  },
+};
+
+export const ReadFile: Story = {
+  args: {
+    invocations: [sampleToolInvocations.readFile],
+  },
+};
+
+export const WriteFile: Story = {
+  args: {
+    invocations: [sampleToolInvocations.writeFile],
+  },
+};
+
+export const ShellCommand: Story = {
+  args: {
+    invocations: [sampleToolInvocations.shell],
+  },
+};
+
+export const SearchResults: Story = {
+  args: {
+    invocations: [sampleToolInvocations.search],
+  },
+};
+
+export const BrowserNavigation: Story = {
+  args: {
+    invocations: [sampleToolInvocations.browser],
+  },
+};
+
+export const MultiToolSession: Story = {
+  args: {
+    invocations: [
+      sampleToolInvocations.search,
+      sampleToolInvocations.browser,
+      sampleToolInvocations.lsComplete,
+      sampleToolInvocations.writeFile,
+      sampleToolInvocations.complete,
+    ],
   },
 };

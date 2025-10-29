@@ -43,6 +43,7 @@
     "storybook:build": "storybook build"
   },
   "devDependencies": {
+    "@chakra-ui/react": "^3.24.2",
     "@au-re/vite-plugin-externalize-deps": "^0.9.1",
     "@types/node": "^22.15.18",
     "@storybook/addon-a11y": "^9.1.1",
@@ -54,13 +55,22 @@
     "typescript": "^5.7.3",
     "vite": "^7.1.0",
     "vite-plugin-dts": "^4.5.4",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "@types/react": "^19.1.9",
+    "@types/react-dom": "^19.1.7",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "dependencies": {
     "@pstdio/kas": "^0.2.0",
     "@pstdio/opfs-utils": "^0.2.0",
     "@pstdio/prompt-utils": "^0.1.4",
     "@pstdio/tiny-ai-tasks": "^0.2.0"
+  },
+  "peerDependencies": {
+    "@chakra-ui/react": "^3.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "publishConfig": {
     "access": "public"

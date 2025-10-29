@@ -49,7 +49,7 @@ const config = defineConfig({
         display: { value: "'Inter', 'Segoe UI', sans-serif" },
         mono: { value: "'JetBrains Mono', 'Fira Code', monospace" },
       },
-      space: {
+      spacing: {
         none: { value: "0" },
         "2xs": { value: "0.25rem" },
         xxs: { value: "0.375rem" },
