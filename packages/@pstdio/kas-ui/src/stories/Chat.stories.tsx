@@ -2,11 +2,11 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { Alert, Box, Button, Flex, HStack, Input, Stack, Text } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { useCallback, useMemo, useState } from "react";
-import { AutoScroll } from "../components/conversation/auto-scroll.tsx";
-import { ChangeBubble } from "../components/change-bubble.tsx";
-import { ConversationContent, ConversationRoot, ConversationScrollButton } from "../components/ai-conversation.tsx";
-import { MessageList } from "../components/conversation/message-list.tsx";
-import { summarizeConversationChanges } from "../conversation/diff.ts";
+import { AutoScroll } from "../components/conversation/auto-scroll";
+import { ChangeBubble } from "../components/change-bubble";
+import { ConversationContent, ConversationRoot, ConversationScrollButton } from "../components/ai-conversation";
+import { MessageList } from "../components/conversation/message-list";
+import { summarizeConversationChanges } from "../conversation/diff";
 import {
   emptyConversation,
   examplePrompts,
