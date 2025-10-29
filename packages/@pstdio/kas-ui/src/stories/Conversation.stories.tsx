@@ -18,12 +18,10 @@ interface ConversationExampleProps {
 }
 
 const onUseExample = (value: string) => {
-  // eslint-disable-next-line no-console
   console.info("onUseExample", value);
 };
 
 const onOpenFile = (value: string) => {
-  // eslint-disable-next-line no-console
   console.info("onOpenFile", value);
 };
 
