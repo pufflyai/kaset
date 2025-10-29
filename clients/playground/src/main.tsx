@@ -1,4 +1,5 @@
 import "allotment/dist/style.css";
+import "@pstdio/kas-ui/dist/kas-ui.css";
 
 import { ChakraProvider } from "@chakra-ui/react";
 import { Buffer } from "buffer";

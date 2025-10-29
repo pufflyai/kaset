@@ -12,24 +12,6 @@
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./kas-ui": {
-      "import": "./dist/kas-ui.js",
-      "types": "./dist/kas-ui.d.ts"
-    },
-    "./opfs-tools": {
-      "import": "./dist/opfs-tools.js",
-      "types": "./dist/opfs-tools.d.ts"
-    },
-    "./plugin-tools": {
-      "import": "./dist/plugin-tools.js",
-      "types": "./dist/plugin-tools.d.ts"
-    }
-  },
   "scripts": {
     "start": "storybook dev -p 6006",
     "prepublishOnly": "npm run build",
