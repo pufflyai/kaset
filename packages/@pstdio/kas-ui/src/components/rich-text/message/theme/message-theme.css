@@ -1,7 +1,3 @@
-/* -----------------------------------------------------------------------------
-   Rich Text styles (Chakra UI v3 semantic tokens & variable names)
-   ----------------------------------------------------------------------------- */
-
 .rich-text__ltr {
   text-align: left;
 }
@@ -480,10 +476,6 @@ ol.rich-text__ol5 :where(ul, ol) {
   border-radius: var(--chakra-radii-sm);
 }
 
-.rich-text__layoutItem:hover {
-  /* background-color: var(--chakra-colors-background-light); */
-}
-
 .rich-text__layoutItem > :first-child {
   margin-top: 0;
   margin-bottom: 0;
@@ -530,7 +522,6 @@ ol.rich-text__ol5 :where(ul, ol) {
   margin-bottom: var(--chakra-spacing-md);
 }
 
-/* Keep for completeness if these classes are used elsewhere */
 .rich-text__textUnderline {
   text-decoration: underline;
 }

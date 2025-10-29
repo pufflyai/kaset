@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { ChangeBubble } from "../components/change-bubble";
+import { ChangeBubble } from "./change-bubble";
 
 const meta: Meta<typeof ChangeBubble> = {
-  title: "Kas UI/ChangeBubble",
+  title: "Components/ChangeBubble",
   component: ChangeBubble,
   args: {
     additions: 8,

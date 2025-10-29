@@ -1,7 +1,7 @@
-import { useMemo } from "react";
-import { TimelineFromJSON } from "../timeline.tsx";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
-import { useToolTimelineBuilder } from "../../state";
+import { useMemo } from "react";
+import { useToolTimelineBuilder } from "../state";
+import { TimelineFromJSON } from "./timeline.tsx";
 
 export interface ToolInvocationTimelineProps {
   invocations: ToolInvocation[];

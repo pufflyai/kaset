@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Box } from "@chakra-ui/react";
-import { ConversationContent, ConversationRoot, ConversationScrollButton } from "../components/ai-conversation";
-import { MessageList } from "../components/conversation/message-list";
+import { ConversationContent, ConversationRoot, ConversationScrollButton } from "./ai-conversation";
+import { MessageList } from "./message-list";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import {
   emptyConversation,
@@ -9,7 +9,7 @@ import {
   toolErrorConversation,
   toolInvocationConversation,
   examplePrompts,
-} from "./mocks/conversation";
+} from "../mocks/conversation";
 
 interface ConversationExampleProps {
   messages: UIMessage[];
@@ -48,7 +48,7 @@ const ConversationExample = (props: ConversationExampleProps) => {
 };
 
 const meta: Meta<typeof ConversationExample> = {
-  title: "Kas UI/Conversation",
+  title: "Components/Conversation",
   component: ConversationExample,
   args: {
     messages: emptyConversation,

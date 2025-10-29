@@ -1,16 +1,19 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Box, Button, Menu, Stack } from "@chakra-ui/react";
 import { Info, Play, Square } from "lucide-react";
-import { Tooltip } from "../components/tooltip";
-import { MenuItem } from "../components/menu-item";
+import { Tooltip } from "./tooltip";
+import { MenuItem } from "./menu-item";
 
-const meta: Meta = {
-  title: "Kas UI/Tooltip & Menu",
+const meta: Meta<typeof Tooltip> = {
+  title: "Components/Tooltip",
+  component: Tooltip,
 };
 
 export default meta;
 
-export const TooltipExample: StoryObj = {
+type Story = StoryObj<typeof Tooltip>;
+
+export const TooltipExample: Story = {
   render: () => (
     <Tooltip content="Kaset keeps track of your agent conversations.">
       <Button>
@@ -21,7 +24,7 @@ export const TooltipExample: StoryObj = {
   ),
 };
 
-export const MenuExample: StoryObj = {
+export const MenuExample: Story = {
   render: () => (
     <Box>
       <Menu.Root>

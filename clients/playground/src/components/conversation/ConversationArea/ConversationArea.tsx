@@ -5,13 +5,17 @@ import {
   ConversationRoot,
   ConversationScrollButton,
   MessageList,
+  PromptEditor,
+  generateEditorStateFromString,
   summarizeConversationChanges,
 } from "@pstdio/kas-ui";
 import type { ModelPricing } from "@/models";
-import { Alert, Button, Flex, HStack, Input, Stack, type FlexProps } from "@chakra-ui/react";
+import { Alert, Button, Flex, HStack, Stack, type FlexProps } from "@chakra-ui/react";
 import type { UIMessage } from "@pstdio/kas/kas-ui";
 import { memo, useCallback, useMemo, useState } from "react";
 import { ConversationContextUsage } from "./ConversationContextUsage";
+
+const EMPTY_PROMPT_STATE = JSON.stringify(generateEditorStateFromString());
 
 interface ConversationAreaProps extends FlexProps {
   messages: UIMessage[];
@@ -70,7 +74,8 @@ export const ConversationArea = (props: ConversationAreaProps) => {
     modelPricing,
     ...rest
   } = props;
-  const [input, setInput] = useState("");
+  const [inputText, setInputText] = useState("");
+  const [editorRevision, setEditorRevision] = useState(0);
   const conversationChanges = useMemo(() => summarizeConversationChanges(messages), [messages]);
   const showChangeBubble = conversationChanges.fileCount > 0;
 
@@ -79,17 +84,23 @@ export const ConversationArea = (props: ConversationAreaProps) => {
       const trimmed = text.trim();
       if (!trimmed || !canSend) return;
       onSendMessage?.(trimmed);
-      setInput("");
+      setInputText("");
+      setEditorRevision((revision) => revision + 1);
     },
-    [canSend, onSendMessage, setInput],
+    [canSend, onSendMessage],
   );
 
-  const handleSend = () => {
-    const text = input.trim();
+  const handleEditorChange = useCallback((text: string) => {
+    setInputText(text);
+  }, []);
+
+  const handleSend = useCallback(() => {
+    const text = inputText.trim();
     if (!text || !canSend) return;
     onSendMessage?.(text);
-    setInput("");
-  };
+    setInputText("");
+    setEditorRevision((revision) => revision + 1);
+  }, [canSend, inputText, onSendMessage]);
 
   return (
     <Flex position="relative" direction="column" w="full" h="full" overflow="hidden" {...rest}>
@@ -113,7 +124,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
                 streaming={streaming}
               />
             )}
-            <ConversationContextUsage messages={messages} input={input} modelPricing={modelPricing} />
+            <ConversationContextUsage messages={messages} input={inputText} modelPricing={modelPricing} />
           </Flex>
 
           {!credentialsReady && (
@@ -129,19 +140,15 @@ export const ConversationArea = (props: ConversationAreaProps) => {
             </Alert.Root>
           )}
 
-          <Input
-            placeholder="Type a message..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
+          <PromptEditor
+            key={editorRevision}
+            defaultState={EMPTY_PROMPT_STATE}
+            isEditable
+            onChange={handleEditorChange}
+            onSubmit={handleSend}
           />
           <HStack gap="sm">
-            <Button onClick={handleSend} disabled={!input.trim() || !canSend}>
+            <Button onClick={handleSend} disabled={!inputText.trim() || !canSend}>
               Send
             </Button>
           </HStack>

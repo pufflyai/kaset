@@ -14,8 +14,8 @@ import {
 import { ChevronUpIcon } from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { CodeEditor } from "./code-editor/code-editor.tsx";
-import { DiffBubble } from "./diff-bubble/diff-bubble.tsx";
+import { CodeEditor } from "./code-editor.tsx";
+import { DiffBubble } from "./diff-bubble.tsx";
 import { DiffEditor } from "./diff-editor.tsx";
 import { ResourceBadge } from "./resource-badge.tsx";
 

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { Box } from "@chakra-ui/react";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
-import { TimelineFromJSON } from "../components/timeline";
+import { TimelineFromJSON } from "./timeline";
 import { invocationsToTimeline } from "../conversation/invocations-to-timeline";
-import { sampleToolInvocations } from "./mocks/conversation";
+import { sampleToolInvocations } from "../mocks/conversation";
 
 interface TimelineStoryProps {
   invocations: ToolInvocation[];
@@ -21,7 +21,7 @@ const TimelineShowcase = (props: TimelineStoryProps) => {
 };
 
 const meta: Meta<typeof TimelineShowcase> = {
-  title: "Kas UI/Timeline",
+  title: "Components/Timeline",
   component: TimelineShowcase,
   args: {
     invocations: [sampleToolInvocations.complete],
