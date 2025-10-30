@@ -8,43 +8,23 @@ export const TODO_LISTS_DIR = "lists";
 
 const textDecoder = new TextDecoder();
 
-// IN THE FUTURE WE SHOULD NOT SERIALIZE/DE-SERIALIZE ARRAY BUFFERS LIKE THIS
-// WE NEED TO UPGRADE RIMLESS
+function decodeFileContents(value: unknown): string {
+  if (typeof value === "string") return value;
 
-function isNodeBufferLike(value: unknown): value is { type: "Buffer"; data: number[] } {
-  if (!value || typeof value !== "object") return false;
-  if (Array.isArray(value)) return false;
-  const record = value as { type?: unknown; data?: unknown };
-  return record.type === "Buffer" && Array.isArray(record.data);
-}
-
-function toUint8Array(value: unknown): Uint8Array {
-  if (value instanceof Uint8Array) return value;
+  if (value instanceof Uint8Array) {
+    return textDecoder.decode(value);
+  }
 
   if (value instanceof ArrayBuffer) {
-    return new Uint8Array(value);
+    return textDecoder.decode(new Uint8Array(value));
   }
 
   if (ArrayBuffer.isView(value)) {
     const view = value as ArrayBufferView;
-    return new Uint8Array(view.buffer, view.byteOffset, view.byteLength);
-  }
-
-  if (Array.isArray(value)) {
-    return Uint8Array.from(value);
-  }
-
-  if (isNodeBufferLike(value)) {
-    return Uint8Array.from(value.data);
+    return textDecoder.decode(new Uint8Array(view.buffer, view.byteOffset, view.byteLength));
   }
 
   throw new Error("Unsupported file contents");
-}
-
-function decodeFileContents(value: unknown): string {
-  if (typeof value === "string") return value;
-  const bytes = toUint8Array(value);
-  return textDecoder.decode(bytes);
 }
 
 function parseMarkdownTodos(md: string): TodoItem[] {
