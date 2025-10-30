@@ -22,6 +22,7 @@ export { usePlugins } from "./react/usePlugins";
 export { createToolsForCommands } from "./adapters/tiny-ai-tasks";
 export { mergeDependencies as mergeManifestDependencies } from "./core/dependencies";
 export { createSettingsAccessor } from "./core/settings";
+export { markTransferables } from "./helpers/transferables";
 
 export { usePluginHost } from "./react/usePluginHost";
 export {

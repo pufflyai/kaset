@@ -50,6 +50,17 @@ describe("createAgent", () => {
   });
 
   it("runs multiple tool calls in parallel", async () => {
+    const createDeferred = <T>() => {
+      let resolve: (value: T | PromiseLike<T>) => void;
+      let reject: (reason?: unknown) => void;
+      const promise = new Promise<T>((res, rej) => {
+        resolve = res;
+        reject = rej;
+      });
+      return { promise, resolve: resolve!, reject: reject! };
+    };
+    const slowGate = createDeferred<void>();
+
     const llmImpl = vi.fn(async function* () {
       const msg: AssistantMessage = {
         role: "assistant",
@@ -65,19 +76,24 @@ describe("createAgent", () => {
 
     const llm = task("llm", llmImpl);
 
-    const completions: Record<string, number> = {};
+    const events: string[] = [];
+    let slowCompleted = false;
 
     const slow = vi.fn(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      completions.slow = Date.now();
+      events.push("slow:start");
+      await slowGate.promise;
+      slowCompleted = true;
+      events.push("slow:end");
       return {
         messages: [{ role: "tool", tool_call_id: "1", content: JSON.stringify({ success: true }) }],
       };
     });
 
     const fast = vi.fn(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 10));
-      completions.fast = Date.now();
+      events.push("fast:start");
+      expect(slowCompleted).toBe(false);
+      slowGate.resolve();
+      events.push("fast:end");
       return {
         messages: [{ role: "tool", tool_call_id: "2", content: JSON.stringify({ success: true }) }],
       };
@@ -94,18 +110,13 @@ describe("createAgent", () => {
 
     const initial: MessageHistory = [{ role: "user", content: "hi" }];
 
-    const start = Date.now();
     for await (const _ of agent(initial)) {
       // exhaust iterator
     }
-    const duration = Date.now() - start;
 
     expect(slow).toHaveBeenCalledTimes(1);
     expect(fast).toHaveBeenCalledTimes(1);
 
-    expect(completions.fast).toBeLessThan(completions.slow);
-
-    // Sequential execution would take >= 60ms; ensure we finish faster than that.
-    expect(duration).toBeLessThan(60);
+    expect(events).toEqual(["slow:start", "fast:start", "fast:end", "slow:end"]);
   });
 });

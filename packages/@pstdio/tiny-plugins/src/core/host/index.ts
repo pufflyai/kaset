@@ -3,10 +3,10 @@ import { CommandRegistry } from "../commands";
 import { Emitter } from "../events";
 import type { HostOptions, PluginChangePayload, StatusUpdate } from "../types";
 import { watchPluginsRoot } from "../watchers";
-import { collectMetadata, deriveWorkspaceRoot, getPluginDependencies } from "./utils";
+import { buildHostApi } from "./hostApi";
 import type { Events, HostRuntime, LifecycleHooks } from "./internalTypes";
 import { handlePluginAddition, handlePluginRemoval, loadPlugin, startPluginWatcher, unloadPlugin } from "./plugins";
-import { buildHostApi } from "./hostApi";
+import { collectMetadata, deriveWorkspaceRoot, getPluginDependencies } from "./utils";
 
 const DEFAULT_HOST_API_VERSION = "v1";
 

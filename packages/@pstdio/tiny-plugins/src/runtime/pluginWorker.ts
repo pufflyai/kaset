@@ -1,4 +1,5 @@
 import { guest } from "rimless";
+import { markTransferables } from "../helpers/transferables";
 import type {
   HostApi,
   HostApiMethod,
@@ -100,7 +101,8 @@ async function activatePlugin(remote: HostBridgeRemote) {
       ...args: HostApiParams[M] extends undefined ? [params?: HostApiParams[M]] : [params: HostApiParams[M]]
     ) => {
       const params = (args.length > 0 ? args[0] : undefined) as HostApiParams[M];
-      return remote.callHostApi({ method, params });
+      const payload = markTransferables<HostApiCallPayload<M>>({ method, params });
+      return remote.callHostApi(payload);
     },
   };
 
@@ -176,7 +178,8 @@ const workerApi: WorkerApi = {
     if (typeof handler !== "function") {
       throw new Error(`Command ${commandId} is not registered for plugin ${pluginId}`);
     }
-    return handler(ctx, params);
+    const result = await handler(ctx, params);
+    return markTransferables(result);
   },
 
   async shutdown() {
