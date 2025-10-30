@@ -1,4 +1,4 @@
-import { Box, Flex, HStack, Spacer } from "@chakra-ui/react";
+import { Box, Flex, HStack, Spacer, Text } from "@chakra-ui/react";
 import { ArrowUp, Square } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AttachDataMenu } from "./attach-data-menu";
@@ -10,6 +10,7 @@ import { generateEditorStateFromString, getTextFromSerializedEditorState } from 
 
 interface ChatInputProps {
   defaultState: string;
+  placeholder?: string;
   onSubmit?: (text: string, attachments: string[]) => void;
   onInterrupt?: () => void;
   streaming?: boolean;
@@ -41,6 +42,7 @@ export const ChatInput = (props: ChatInputProps) => {
     onClearAttachments,
     isDisabled = false,
     onChange,
+    placeholder,
   } = props;
   const [isSelected, setIsSelected] = useState(false);
   const [editorState, setEditorState] = useState(defaultState);
@@ -100,11 +102,19 @@ export const ChatInput = (props: ChatInputProps) => {
 
   const canInterrupt = streaming && Boolean(onInterrupt);
 
+  const attachMenuDisabled = streaming || isDisabled;
+
   const sendIcon = streaming ? (
     <Square size={16} strokeWidth={2} fill="currentColor" />
   ) : (
     <ArrowUp size={16} strokeWidth={2} />
   );
+
+  const placeholderNode = placeholder ? (
+    <Text textStyle="label/M/regular" color="text.placeholder" pointerEvents="none" position="absolute" top="0">
+      {placeholder}
+    </Text>
+  ) : undefined;
 
   return (
     <Box
@@ -136,6 +146,7 @@ export const ChatInput = (props: ChatInputProps) => {
         <PromptEditor
           key={editorKey}
           defaultState={editorState}
+          placeholder={placeholderNode}
           onChange={(t) => {
             setText(t);
             onChange?.(t);
@@ -148,7 +159,7 @@ export const ChatInput = (props: ChatInputProps) => {
             attachedResources={attachedResources}
             onAttach={onAttachResource}
             onFileUpload={onFileUpload}
-            isDisabled={streaming || isDisabled}
+            isDisabled={attachMenuDisabled}
           />
           <Spacer />
           <SendButton

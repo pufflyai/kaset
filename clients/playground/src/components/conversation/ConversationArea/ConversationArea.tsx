@@ -9,8 +9,8 @@ import {
   summarizeConversationChanges,
   type UIMessage,
 } from "@pstdio/kas-ui";
-import { useCallback, useMemo, useState } from "react";
 import { CassetteTapeIcon } from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
 import { ConversationContextUsage } from "./ConversationContextUsage";
 
 const EMPTY_PROMPT_STATE = JSON.stringify(generateEditorStateFromString());
@@ -93,15 +93,6 @@ export const ConversationArea = (props: ConversationAreaProps) => {
   const conversationChanges = useMemo(() => summarizeConversationChanges(messages), [messages]);
   const showChangeBubble = conversationChanges.fileCount > 0;
   const [attachedFiles, setAttachedFiles] = useState<string[]>([]);
-  const suggestions = useMemo(
-    () =>
-      examplePrompts.map((prompt, index) => ({
-        id: String(index),
-        summary: prompt,
-        prompt,
-      })),
-    [examplePrompts],
-  );
 
   const handleUseExample = useCallback(
     (text: string) => {
@@ -157,6 +148,15 @@ export const ConversationArea = (props: ConversationAreaProps) => {
     [canSend, credentialsReady, examplePrompts, handleUseExample],
   );
 
+  const inputPlaceholder = useMemo(() => {
+    if (!credentialsReady) return "Add your API key or base URL to start chatting.";
+
+    const suggestedPrompt = examplePrompts[0]?.trim();
+    if (suggestedPrompt) return `Try "${suggestedPrompt}"`;
+
+    return "Ask Kaset something...";
+  }, [credentialsReady, examplePrompts]);
+
   const inputDisabled = !canSend && !streaming;
 
   return (
@@ -198,6 +198,7 @@ export const ConversationArea = (props: ConversationAreaProps) => {
           <ChatInput
             key={editorRevision}
             defaultState={EMPTY_PROMPT_STATE}
+            placeholder={inputPlaceholder}
             onSubmit={handleSend}
             onChange={handleInputChange}
             streaming={streaming}

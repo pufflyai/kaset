@@ -48,6 +48,7 @@ const initialState = JSON.stringify(
 export const Default: Story = {
   args: {
     defaultState: initialState,
+    placeholder: "Ask Kaset something...",
     availableResources: ["workspace/project-overview.md", "workspace/data/users.csv"],
     onSubmit: (text: string, attachments: string[]) => {
       console.log("Submitted text:", text);
@@ -99,6 +100,7 @@ export const WithAttachments: Story = {
   },
   args: {
     defaultState: initialState,
+    placeholder: "Summarize the attached files...",
     availableResources: [
       "workspace/customer-data.csv",
       "workspace/analysis-report.md",

@@ -644,6 +644,7 @@ const ChatPlayground = (props: ChatPlaygroundProps) => {
           <Stack direction="column" gap="xs">
             <ChatInput
               defaultState={editorState}
+              placeholder="Ask Kaset something..."
               streaming={streamingState}
               isDisabled={!canSend && !streamingState}
               onSubmit={handleSubmit}
