@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/tiny-ui-bundler",
   "description": "Wrapper around esbuild-wasm including a service worker for in-browser caching of js code.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -48,7 +48,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@pstdio/opfs-utils": "^0.2.0",
+    "@pstdio/opfs-utils": "^0.2.1",
     "esbuild-wasm": "^0.25.10"
   },
   "peerDependencies": {

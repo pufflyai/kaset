@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/kas",
   "description": "A simple coding agent for the browser.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -49,9 +49,9 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@pstdio/opfs-utils": "^0.2.0",
+    "@pstdio/opfs-utils": "^0.2.1",
     "@pstdio/prompt-utils": "^0.1.4",
-    "@pstdio/tiny-ai-tasks": "^0.2.0"
+    "@pstdio/tiny-ai-tasks": "^0.2.1"
   },
   "publishConfig": {
     "access": "public"

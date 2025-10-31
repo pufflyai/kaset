@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/tiny-ui",
   "description": "Browser micro-frontend runtime that builds plugin UIs with esbuild-wasm and serves them through a service worker + iframe.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -60,9 +60,9 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@pstdio/opfs-utils": "^0.2.0",
-    "@pstdio/tiny-plugins": "^0.2.0",
-    "@pstdio/tiny-ui-bundler": "^0.1.1",
+    "@pstdio/opfs-utils": "^0.2.1",
+    "@pstdio/tiny-plugins": "^0.2.1",
+    "@pstdio/tiny-ui-bundler": "^0.1.2",
     "rimless": "^0.7.0"
   },
   "peerDependencies": {

@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/tiny-plugins",
   "description": "Plugin host for OPFS plugins with manifest validation, command routing, and settings storage.",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -52,8 +52,8 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@pstdio/opfs-utils": "^0.2.0",
-    "@pstdio/tiny-ai-tasks": "^0.2.0",
+    "@pstdio/opfs-utils": "^0.2.1",
+    "@pstdio/tiny-ai-tasks": "^0.2.1",
     "ajv": "^8.17.1",
     "esbuild-wasm": "^0.25.11",
     "rimless": "^0.7.0",
