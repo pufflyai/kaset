@@ -29,6 +29,7 @@
     "@modelcontextprotocol/sdk": "^1.18.1",
     "@monaco-editor/react": "^4.7.0",
     "@pstdio/kas": "*",
+    "@pstdio/kas-ui": "*",
     "@pstdio/opfs-hooks": "*",
     "@pstdio/opfs-utils": "*",
     "@pstdio/prompt-utils": "*",

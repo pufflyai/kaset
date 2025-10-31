@@ -1,8 +1,13 @@
 import { ROOT } from "@/constant";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { createApprovalGate, createKasAgent } from "@pstdio/kas";
-import type { UIConversation } from "@pstdio/kas/kas-ui";
-import { decorateWithThought, toBaseMessages, toConversationUI, withClosedThoughts } from "@pstdio/kas/kas-ui";
+import {
+  decorateWithThought,
+  toBaseMessages,
+  toConversationUI,
+  withClosedThoughts,
+  type UIConversation,
+} from "@pstdio/kas-ui";
 import { createOpfsTools, loadAgentInstructions } from "@pstdio/kas/opfs-tools";
 import { safeAutoCommit } from "@pstdio/opfs-utils";
 import { type Tool } from "@pstdio/tiny-ai-tasks";
@@ -35,13 +40,13 @@ export async function* sendMessage(_conversationId: string, messages: UIConversa
     dangerouslyAllowBrowser: true,
   });
 
-  const initialMessages = [...agentInstructions.messages, ...messages];
-
   const { messages: initialUIMessages, thought } = decorateWithThought(messages);
 
   yield initialUIMessages;
 
-  for await (const ui of toConversationUI(agent(toBaseMessages(initialMessages)))) {
+  const agentHistory = [...agentInstructions.messages, ...toBaseMessages(messages)];
+
+  for await (const ui of toConversationUI(agent(agentHistory))) {
     const next = withClosedThoughts([...initialUIMessages, ...ui], thought);
     yield next;
   }

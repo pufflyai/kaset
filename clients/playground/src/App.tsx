@@ -1,7 +1,7 @@
 import { Box, Button, Flex, useBreakpointValue } from "@chakra-ui/react";
 import { Allotment } from "allotment";
-import { useEffect, useState } from "react";
-import { KasUIProvider } from "./kas-ui";
+import { useEffect, useMemo, useState } from "react";
+import { KasUIProvider, createDefaultToolRenderers } from "@pstdio/kas-ui";
 import { ConversationHost } from "./components/ui/conversation-host";
 import { Desktop } from "./components/ui/desktop";
 import { GithubCorner } from "./components/ui/github-corner";
@@ -17,6 +17,7 @@ export function App() {
   const [mobilePane, setMobilePane] = useState<"conversation" | "desktop">("conversation");
   const themePreference = useWorkspaceStore((state) => state.settings.theme);
   const reactScanEnabled = useWorkspaceStore((state) => state.settings.reactScanEnabled);
+  const toolRenderers = useMemo(() => createDefaultToolRenderers(), []);
 
   useEffect(() => {
     setupPlayground();
@@ -82,7 +83,7 @@ export function App() {
   );
 
   return (
-    <KasUIProvider>
+    <KasUIProvider toolRenderers={toolRenderers}>
       <Flex direction={isMobile ? "column" : "row"} height="100vh" width="100vw">
         {layout}
 

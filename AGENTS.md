@@ -408,3 +408,5 @@ Avoid unnecessary complexity or excessive defensive coding. Code should be as si
 ## 12. Keep tests next to the file they test
 
 Tests should live alongside the code they validate. This makes it easier to find, update, and run relevant tests when modifying code. For example, if you have a file agent.py, its corresponding test file should be test_agent.py in the same directory.
+
+## 13. Do not add file extensions to imports.
