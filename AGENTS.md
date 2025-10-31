@@ -39,6 +39,9 @@ packages/@pstdio/
   prompt-utils/    # Prompt & JSON utilities
   tiny-ai-tasks/   # AI workflows and tool-using agents (LLM + tools)
   tiny-tasks/      # Composable, interrupt-friendly workflows (pause/resume)
+  tiny-plugins/    # Plugin host for OPFS-backed plugins
+  tiny-ui/         # Browser plugin runtime (esbuild-wasm + service worker)
+  tiny-ui-bundler/ # Service worker bundler and runtime asset manager for Tiny UI
   describe-context/# Analyze a folder and emit markdown context (library + CLI)
 clients/
   documentation/   # VitePress docs site
@@ -184,6 +187,21 @@ Run (from root):
 ```bash
 npm run build --workspace @pstdio/tiny-ui
 npm run test --workspace @pstdio/tiny-ui
+```
+
+### @pstdio/tiny-ui-bundler
+
+Service worker bundler and runtime asset manager for Tiny UI plugins.
+
+- Compile OPFS-backed source trees with `esbuild-wasm`, publish bundles into Cache API
+- Manage service worker lifecycle, lockfiles, and import maps for plugin runtime
+- Scripts: `build`, `lint`, `test`, `storybook`, `visualize-bundle`
+
+Run (from root):
+
+```bash
+npm run build --workspace @pstdio/tiny-ui-bundler
+npm run test --workspace @pstdio/tiny-ui-bundler
 ```
 
 ### describe-context
