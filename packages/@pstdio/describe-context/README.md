@@ -6,7 +6,7 @@
 
 Analyze a folder and generate a compact Markdown "context" for LLM prompts, code reviews, and summaries. Includes a simple CLI and a small, reusable API.
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/describe).
+For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/describe-context).
 
 ## Quick Start
 

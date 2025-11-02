@@ -7,6 +7,8 @@
 > Composable AI workflows and tool-using agents for TypeScript / JavaScript
 > Stream LLM outputs, call tools, summarize context, and iterate.
 
+For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/tiny-ai-tasks).
+
 ## ✨ Why?
 
 Modern AI apps need to:

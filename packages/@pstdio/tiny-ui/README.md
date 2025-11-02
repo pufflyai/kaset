@@ -7,6 +7,8 @@
 > **Browser-first plugin runtime for sandboxed micro frontends.**
 > Compile OPFS-backed sources with `esbuild-wasm`, cache bundles in a service worker, and expose audited host capabilities to plugin iframes.
 
+For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/tiny-ui).
+
 ## ✨ Why?
 
 - Build and ship third-party plugin UIs entirely in the browser—no server build step required.

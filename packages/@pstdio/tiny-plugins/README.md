@@ -7,6 +7,8 @@
 > **OPFS-backed plugin host with manifest validation, hot-reload watchers, and command routing.**
 > Load sandboxed plugins from the browser's file system, surface their commands, and keep per-plugin settings in sync.
 
+For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/tiny-plugins).
+
 ## ✨ Why?
 
 - Treat each plugin as an OPFS directory containing a `manifest.json` and entry module.

@@ -20,7 +20,7 @@ No coding experience required.
 
 Directly _inside_ your app.
 
-Curious? Check out our [documentation](https://kaset.dev).
+Curious? Check out our [documentation](https://pufflyai.github.io/kaset/).
 
 ## Contents
 
@@ -70,7 +70,7 @@ Curious? Check out our [documentation](https://kaset.dev).
 >
 > Service worker bundler and runtime asset manager for Tiny UI plugins.
 
-> ### [@pstdio/describe-context](https://pufflyai.github.io/kaset/packages/describe)
+> ### [@pstdio/describe-context](https://pufflyai.github.io/kaset/packages/describe-context)
 >
 > Generate an LLM‑ready Markdown context for a folder (library + CLI).
 
