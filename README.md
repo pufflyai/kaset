@@ -34,6 +34,10 @@ Curious? Check out our [documentation](https://kaset.dev).
 >
 > A simple coding agent for the browser.
 
+> ### [@pstdio/opfs-hooks](https://pufflyai.github.io/kaset/packages/opfs-hooks)
+>
+> React hooks for working with the browser's Origin Private File System.
+
 > ### [@pstdio/opfs-utils](https://pufflyai.github.io/kaset/packages/opfs-utils)
 >
 > OPFS helpers: ls/tree, grep, safe file reads (text/binary/SVG/PDF), patch utilities.
@@ -50,9 +54,21 @@ Curious? Check out our [documentation](https://kaset.dev).
 >
 > AI task building blocks: streaming LLM tasks with tool calls, a minimal agent loop, history truncation/summarization, and scratchpad utilities.
 
+> ### [@pstdio/tiny-plugins](https://pufflyai.github.io/kaset/packages/tiny-plugins)
+>
+> Plugin runtime for OPFS-backed plugins with manifest validation, command routing, and settings persistence.
+
 > ### [@pstdio/tiny-tasks](https://pufflyai.github.io/kaset/packages/tiny-tasks)
 >
 > Composable, interrupt-friendly workflows for TypeScript/JavaScript. Pause, persist, and resume long-running work.
+
+> ### [@pstdio/tiny-ui](https://pufflyai.github.io/kaset/packages/tiny-ui)
+>
+> Browser-first plugin runtime that compiles OPFS sources with esbuild-wasm and exposes host capabilities to plugin iframes.
+
+> ### [@pstdio/tiny-ui-bundler](https://pufflyai.github.io/kaset/packages/tiny-ui-bundler)
+>
+> Service worker bundler and runtime asset manager for Tiny UI plugins.
 
 > ### [@pstdio/describe-context](https://pufflyai.github.io/kaset/packages/describe)
 >
