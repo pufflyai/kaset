@@ -33,6 +33,7 @@ Utilities:
 
 ```
 packages/@pstdio/
+  kas/             # Browser-ready coding agent runtime
   opfs-utils/      # OPFS helpers (ls/grep/read/patch)
   opfs-hooks/      # React hooks for OPFS (uses opfs-utils)
   opfs-sync/       # OPFS <-> remote sync (Supabase remote included)
@@ -45,6 +46,7 @@ packages/@pstdio/
   describe-context/# Analyze a folder and emit markdown context (library + CLI)
 clients/
   documentation/   # VitePress docs site
+  playground/      # Playground application
 ```
 
 Import rules:

@@ -6,7 +6,7 @@
 
 React hooks for working with the browser's Origin Private File System (OPFS).
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/opfs-hooks).
+For additional information, please refer to the [documentation](https://kaset.dev/packages/opfs-hooks).
 
 ## Quick Start
 

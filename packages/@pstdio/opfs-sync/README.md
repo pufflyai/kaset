@@ -6,7 +6,7 @@
 
 Sync the browser's OPFS with a remote storage provider. Includes a Supabase adapter and a minimal interface for custom backends.
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/opfs-sync).
+For additional information, please refer to the [documentation](https://kaset.dev/packages/opfs-sync).
 
 ## Quick Start
 

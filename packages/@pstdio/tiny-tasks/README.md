@@ -7,6 +7,8 @@
 > **Composable, interrupt-friendly workflows for TypeScript / JavaScript**
 > Pause, persist, and resume long-running work in a single line of code.
 
+For additional information, please refer to the [documentation](https://kaset.dev/packages/tiny-tasks).
+
 ## ✨ Why?
 
 Serverless functions, chat agents, and data pipelines often need to
