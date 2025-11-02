@@ -6,7 +6,7 @@
 
 A simple coding agent for the browser. Works entirely client‑side with an OPFS workspace and approval‑gated writes.
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/kas).
+For additional information, please refer to the [documentation](https://kaset.dev/packages/kas).
 
 ## Quick Start
 

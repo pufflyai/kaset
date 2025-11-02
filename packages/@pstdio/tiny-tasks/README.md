@@ -7,7 +7,7 @@
 > **Composable, interrupt-friendly workflows for TypeScript / JavaScript**
 > Pause, persist, and resume long-running work in a single line of code.
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/tiny-tasks).
+For additional information, please refer to the [documentation](https://kaset.dev/packages/tiny-tasks).
 
 ## ✨ Why?
 

@@ -6,7 +6,7 @@
 
 Small utilities for working with the browser's Origin Private File System (OPFS).
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/opfs-utils).
+For additional information, please refer to the [documentation](https://kaset.dev/packages/opfs-utils).
 
 ## Quick Start
 

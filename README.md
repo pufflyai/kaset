@@ -1,8 +1,8 @@
-![Kaset banner](https://pufflyai.github.io/kaset/images/kaset.png)
+![Kaset banner](https://kaset.dev/images/kaset.png)
 
 **Kaset** [kaˈset] is an open source toolkit to build browser-first, agentic web apps.
 
-[Docs](https://pufflyai.github.io/kaset/) • [Playground](https://kaset.dev) • [Issues](https://github.com/pufflyai/kaset/issues) • [MIT License](https://github.com/pufflyai/kaset/blob/main/LICENSE)
+[Docs](https://kaset.dev/) • [Playground](https://kaset.dev/playground) • [Issues](https://github.com/pufflyai/kaset/issues) • [MIT License](https://github.com/pufflyai/kaset/blob/main/LICENSE)
 
 ![node](https://img.shields.io/badge/node-22.x-3C873A?logo=node.js&logoColor=white)
 ![lerna](https://img.shields.io/badge/monorepo-lerna-9333EA)
@@ -20,7 +20,7 @@ No coding experience required.
 
 Directly _inside_ your app.
 
-Curious? Check out our [documentation](https://pufflyai.github.io/kaset/).
+Curious? Check out our [documentation](https://kaset.dev).
 
 ## Contents
 
@@ -30,47 +30,47 @@ Curious? Check out our [documentation](https://pufflyai.github.io/kaset/).
 
 ## Packages
 
-> ### [@pstdio/kas](https://pufflyai.github.io/kaset/packages/kas)
+> ### [@pstdio/kas](https://kaset.dev/packages/kas)
 >
 > A simple coding agent for the browser.
 
-> ### [@pstdio/opfs-hooks](https://pufflyai.github.io/kaset/packages/opfs-hooks)
+> ### [@pstdio/opfs-hooks](https://kaset.dev/packages/opfs-hooks)
 >
 > React hooks for working with the browser's Origin Private File System.
 
-> ### [@pstdio/opfs-utils](https://pufflyai.github.io/kaset/packages/opfs-utils)
+> ### [@pstdio/opfs-utils](https://kaset.dev/packages/opfs-utils)
 >
 > OPFS helpers: ls/tree, grep, safe file reads (text/binary/SVG/PDF), patch utilities.
 
-> ### [@pstdio/opfs-sync](https://pufflyai.github.io/kaset/packages/opfs-sync)
+> ### [@pstdio/opfs-sync](https://kaset.dev/packages/opfs-sync)
 >
 > Two‑way sync between OPFS and a remote S3 like provider (Supabase adapter included).
 
-> ### [@pstdio/prompt-utils](https://pufflyai.github.io/kaset/packages/prompt-utils)
+> ### [@pstdio/prompt-utils](https://kaset.dev/packages/prompt-utils)
 >
 > Prompt/JSON helpers for LLM workflows.
 
-> ### [@pstdio/tiny-ai-tasks](https://pufflyai.github.io/kaset/packages/tiny-ai-tasks)
+> ### [@pstdio/tiny-ai-tasks](https://kaset.dev/packages/tiny-ai-tasks)
 >
 > AI task building blocks: streaming LLM tasks with tool calls, a minimal agent loop, history truncation/summarization, and scratchpad utilities.
 
-> ### [@pstdio/tiny-plugins](https://pufflyai.github.io/kaset/packages/tiny-plugins)
+> ### [@pstdio/tiny-plugins](https://kaset.dev/packages/tiny-plugins)
 >
 > Plugin runtime for OPFS-backed plugins with manifest validation, command routing, and settings persistence.
 
-> ### [@pstdio/tiny-tasks](https://pufflyai.github.io/kaset/packages/tiny-tasks)
+> ### [@pstdio/tiny-tasks](https://kaset.dev/packages/tiny-tasks)
 >
 > Composable, interrupt-friendly workflows for TypeScript/JavaScript. Pause, persist, and resume long-running work.
 
-> ### [@pstdio/tiny-ui](https://pufflyai.github.io/kaset/packages/tiny-ui)
+> ### [@pstdio/tiny-ui](https://kaset.dev/packages/tiny-ui)
 >
 > Browser-first plugin runtime that compiles OPFS sources with esbuild-wasm and exposes host capabilities to plugin iframes.
 
-> ### [@pstdio/tiny-ui-bundler](https://pufflyai.github.io/kaset/packages/tiny-ui-bundler)
+> ### [@pstdio/tiny-ui-bundler](https://kaset.dev/packages/tiny-ui-bundler)
 >
 > Service worker bundler and runtime asset manager for Tiny UI plugins.
 
-> ### [@pstdio/describe-context](https://pufflyai.github.io/kaset/packages/describe-context)
+> ### [@pstdio/describe-context](https://kaset.dev/packages/describe-context)
 >
 > Generate an LLM‑ready Markdown context for a folder (library + CLI).
 

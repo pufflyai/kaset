@@ -7,7 +7,7 @@
 > **In-browser bundler + cache manifest for Tiny UI plugins.**
 > Compile OPFS snapshots with esbuild-wasm, manage remote deps, and hydrate iframes from a service worker cache.
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/tiny-ui-bundler).
+For additional information, please refer to the [documentation](https://kaset.dev/packages/tiny-ui-bundler).
 
 ## ✨ Why?
 

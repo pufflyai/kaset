@@ -6,7 +6,7 @@
 
 Tiny helpers for building prompts and working with JSON streams.
 
-For additional information, please refer to the [documentation](https://pufflyai.github.io/kaset/packages/prompt-utils).
+For additional information, please refer to the [documentation](https://kaset.dev/packages/prompt-utils).
 
 ## Quick Start
 
