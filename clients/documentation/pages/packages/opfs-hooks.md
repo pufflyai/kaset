@@ -16,8 +16,6 @@ npm i @pstdio/opfs-hooks
 
 The `@pstdio/opfs-hooks` package provides React hooks that make it easy to work with OPFS in your React applications. Built on top of [@pstdio/opfs-utils](/packages/opfs-utils), these hooks manage state synchronization, file watching, and provide a clean React API for filesystem operations.
 
----
-
 ## Core Hooks
 
 ### `useFolder`
@@ -85,8 +83,6 @@ function TodoApp() {
 }
 ```
 
----
-
 ## Features
 
 - **Reactive updates**: Hooks automatically re-render when files or folders change
@@ -95,14 +91,10 @@ function TodoApp() {
 - **Loading states**: Track async operations with loading flags
 - **Integration**: Works seamlessly with [@pstdio/opfs-utils](/packages/opfs-utils) utilities
 
----
-
 ## Dependencies
 
 - [@pstdio/opfs-utils](/packages/opfs-utils) - Core OPFS operations
 - `react` - React 18+
-
----
 
 ## See Also
 

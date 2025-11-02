@@ -246,8 +246,6 @@ _IMPLEMENTATION NOTES_
 - **Layering**: Use `default/` for universal tweaks; add domain‑specific folders for app‑specific behavior.
 - **Recovery**: Keep the 🔴 kill switch reachable even when the target app is broken: URL param/hash + SW consult + UI toggle.
 
----
-
 ## Reference mods
 
 Here are small, self‑contained examples you can drop into `/mods/<target-id>/`.

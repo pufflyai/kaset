@@ -8,15 +8,11 @@ title: "@pstdio/tiny-ui-bundler"
 
 Compile plugin source trees with `esbuild-wasm`, publish bundles into the Cache API, and serve the runtime service worker and import maps needed by `@pstdio/tiny-ui`.
 
----
-
 ## Install
 
 ```bash
 npm i @pstdio/tiny-ui-bundler
 ```
-
----
 
 ## Why Tiny UI Bundler?
 
@@ -24,8 +20,6 @@ npm i @pstdio/tiny-ui-bundler
 - Manage Tiny UI's service worker lifecycle, ensuring runtime assets stay in sync with the latest bundle hash.
 - Generate and persist lockfiles/import maps so bare module specifiers resolve reliably across plugin reloads.
 - Ship companion helpers for OPFS persistence and virtual snapshot loading that the Tiny UI runtime consumes.
-
----
 
 ## Quick Start
 

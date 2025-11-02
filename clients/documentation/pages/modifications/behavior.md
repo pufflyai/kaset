@@ -77,8 +77,6 @@ You operate on Markdown files that represent todo lists for this plugin.
 - “Create a new list chores” → create `chores.md`.
 - “Rename planning to roadmap” → rename the file.
 
----
-
 ## User Rules (additional rules provided by the user)
 
 - Add user-supplied rules for the todo plugin here.

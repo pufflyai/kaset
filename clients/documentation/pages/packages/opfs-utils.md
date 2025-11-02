@@ -1051,8 +1051,6 @@ async function getFileListFromIndexedDB() {
 }
 ```
 
----
-
 ## Requirements
 
 - **Secure Context**: HTTPS or localhost required
