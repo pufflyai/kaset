@@ -271,7 +271,7 @@ const searchDocsTool = Tool(
   {
     name: "search_docs",
     description: "Search project documentation",
-  }
+  },
 );
 
 const workspaceDir = "/workspace";
