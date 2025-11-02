@@ -725,7 +725,18 @@ Reuse agent instances instead of recreating:
 
 ```typescript
 // Good: Create once, reuse
-const agent = createKasAgent({ model: "gpt-5-mini", apiKey: "key", workspaceDir: "/workspace" });
+const approvalGate = createApprovalGate({
+  requestApproval: async ({ tool }) => confirm(`Allow ${tool}?`),
+});
+
+const opfsTools = createOpfsTools({ rootDir: "/workspace", approvalGate });
+
+const agent = createKasAgent({
+  model: "gpt-5-mini",
+  apiKey: "key",
+  tools: opfsTools,
+  dangerouslyAllowBrowser: true,
+});
 
 async function handleMessage(text: string) {
   for await (const response of agent([{ role: "user", content: text }])) {

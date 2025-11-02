@@ -263,7 +263,7 @@ import { createKasAgent, createApprovalGate } from "@pstdio/kas";
 import { createOpfsTools } from "@pstdio/kas/opfs-tools";
 import { Tool } from "@pstdio/tiny-ai-tasks";
 
-const searchDocsT Tool = Tool(
+const searchDocsTool = Tool(
   async ({ query }) => {
     const results = await searchDocs(query);
     return { messages: [{ role: "tool", content: JSON.stringify(results) }] };
