@@ -31,21 +31,34 @@ npm i @pstdio/opfs-hooks
 Point KAS at a workspace folder inside OPFS (a sandboxed directory the agent can see/edit). Writes, deletes, patches, uploads, and moves are approval‑gated by default.
 
 ```ts
-import { createKasAgent } from "@pstdio/kas";
+import { createKasAgent, createApprovalGate } from "@pstdio/kas";
+import { createOpfsTools } from "@pstdio/kas/opfs-tools";
 
 const workspaceDir = "/projects/demo";
 
-const agent = createKasAgent({
-  model: "gpt-5-mini",
-  apiKey: "<YOUR_API_KEY>",
-  workspaceDir,
+// Create approval gate for controlling tool access
+const approvalGate = createApprovalGate({
   // Optional: customize which tools require approval
-  approvalGatedTools: ["opfs_write_file"],
-  // Require permission before the approval gated tool in this workspace
+  approvalGatedTools: ["opfs_write_file", "opfs_delete_file", "opfs_patch", "opfs_upload_files", "opfs_move_file"],
+  // Require permission before the approval gated tool is executed
   requestApproval: async ({ tool, workspaceDir, detail }) => {
     console.log("Needs approval", tool, workspaceDir, detail);
     return confirm(`Allow ${tool} in ${workspaceDir}?`);
   },
+});
+
+// Create OPFS tools with the workspace directory
+const opfsTools = createOpfsTools({
+  rootDir: workspaceDir,
+  approvalGate,
+});
+
+// Create the agent with tools
+const agent = createKasAgent({
+  model: "gpt-5-mini",
+  apiKey: "<YOUR_API_KEY>",
+  tools: opfsTools,
+  dangerouslyAllowBrowser: true, // Required for browser environments
 });
 
 // Run agent with messages
@@ -55,24 +68,45 @@ for await (const response of agent(messages)) {
 }
 ```
 
-## 2. Optional: Build conversation and stream UI updates
+## 2. Optional: Stream UI-friendly updates
 
-Transform your UI messages into an agent‑ready conversation and stream UI‑friendly updates back.
+Transform agent responses into UI-friendly format using conversation adapters:
 
 ```ts
-import { buildInitialConversation, toConversation } from "@pstdio/kas";
+import { createKasAgent, createApprovalGate } from "@pstdio/kas";
+import { createOpfsTools, loadAgentInstructions } from "@pstdio/kas/opfs-tools";
+import { toConversationUI, toBaseMessages } from "@pstdio/kas/kas-ui";
 
-// Your UI conversation (IDs optional but recommended for merges)
-const uiConversation = [
-  { id: "1", role: "user" as const, parts: [{ type: "text", text: "Create a todo list with 5 items" }] },
-];
+const workspaceDir = "/projects/demo";
 
-// Prepare boot messages for the agent and UI
-const { initialForAgent, uiBoot, devNote } = await buildInitialConversation(uiConversation, workspaceDir);
+const approvalGate = createApprovalGate({
+  requestApproval: async ({ tool, detail }) => {
+    return confirm(`Allow ${tool}?`);
+  },
+});
 
-// Stream UI‑friendly updates
-for await (const ui of toConversation(agent(initialForAgent), { boot: uiBoot, devNote })) {
-  console.log(ui);
+const opfsTools = createOpfsTools({ rootDir: workspaceDir, approvalGate });
+
+const agent = createKasAgent({
+  model: "gpt-5-mini",
+  apiKey: "<YOUR_API_KEY>",
+  tools: opfsTools,
+  dangerouslyAllowBrowser: true,
+});
+
+// Load agent instructions from AGENTS.md in workspace (optional)
+const { messages: instructionMessages } = await loadAgentInstructions(workspaceDir);
+
+// Your UI conversation
+const uiMessages = [{ id: "1", role: "user", parts: [{ type: "text", text: "Create a todo list with 5 items" }] }];
+
+// Combine instructions with user messages
+const allMessages = [...instructionMessages, ...uiMessages];
+
+// Convert to base messages and stream UI updates
+for await (const ui of toConversationUI(agent(toBaseMessages(allMessages)))) {
+  console.log(ui); // Array of UIMessage objects
+  // Update your UI with the conversation
 }
 ```
 
