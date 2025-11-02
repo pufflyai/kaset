@@ -10,15 +10,11 @@ title: "Packages Overview"
 
 Features: File operations with approval gates, shell commands, conversation adapters, streaming responses
 
----
-
 ### [@pstdio/opfs-hooks](/packages/opfs-hooks)
 
 **React hooks for OPFS** — React hooks for working with the browser's Origin Private File System with reactive updates.
 
 Includes: `useFolder`, `useFileContent`, `useOpfsStoreBinding`
-
----
 
 ### [@pstdio/opfs-utils](/packages/opfs-utils)
 
@@ -26,15 +22,11 @@ Includes: `useFolder`, `useFileContent`, `useOpfsStoreBinding`
 
 Key features: `ls()`, `grep()`, `processSingleFileContent()`, `patch()`, `formatTree()`
 
----
-
 ### [@pstdio/opfs-sync](/packages/opfs-sync)
 
 **Browser-cloud synchronization** — Two-way sync engine between OPFS and remote providers with conflict resolution.
 
 Includes: Core `OpfsSync` class, `SupabaseRemote` adapter, change detection
-
----
 
 ### [@pstdio/prompt-utils](/packages/prompt-utils)
 
@@ -42,15 +34,11 @@ Includes: Core `OpfsSync` class, `SupabaseRemote` adapter, change detection
 
 Features: `prompt()`, `parseJSONStream()`, `getSchema()`, `safeStringify()`, UUID generation
 
----
-
 ### [@pstdio/tiny-ai-tasks](/packages/tiny-ai-tasks)
 
 **AI task building blocks** — Streaming LLM tasks with tool calls, tiny agent loop, history truncation/summarization, and scratchpad utilities.
 
 Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSummarizer`
-
----
 
 ### [@pstdio/tiny-plugins](/packages/tiny-plugins)
 
@@ -58,15 +46,11 @@ Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSum
 
 Includes: `createHost`, `HOST_API_VERSION`, `mergeManifestDependencies`, Tiny AI Tasks adapter
 
----
-
 ### [@pstdio/tiny-tasks](/packages/tiny-tasks)
 
 **Composable workflows** — Interrupt-friendly async generators you can pause, persist, and resume.
 
 Includes: `task`, `createRuntime`, `MemorySaver`
-
----
 
 ### [@pstdio/tiny-ui](/packages/tiny-ui)
 
@@ -74,15 +58,11 @@ Includes: `task`, `createRuntime`, `MemorySaver`
 
 Includes: `TinyUI`, `compile`, `loadSnapshot`, `createTinyHost`
 
----
-
 ### [@pstdio/tiny-ui-bundler](/packages/tiny-ui-bundler)
 
 **Runtime asset and bundling pipeline** — Manage Tiny UI's service worker, cache storage, and import maps while compiling plugin sources entirely in the browser.
 
 Includes: `registerSources`, `compile`, `setLockfile`, `prepareRuntimeAssets`
-
----
 
 ### [describe-context](/packages/describe-context)
 

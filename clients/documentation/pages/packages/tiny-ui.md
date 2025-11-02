@@ -8,15 +8,11 @@ title: "@pstdio/tiny-ui"
 
 Compile OPFS-backed sources with `esbuild-wasm`, cache bundles in a service worker, and expose audited host capabilities to plugin iframes.
 
----
-
 ## Install
 
 ```bash
 npm i @pstdio/tiny-ui
 ```
-
----
 
 ## Why Tiny UI?
 
@@ -24,8 +20,6 @@ npm i @pstdio/tiny-ui
 - Publish compiled bundles to the Cache API and serve them through a dedicated service worker + runtime iframe.
 - Hand plugins a typed `host` bridge through a single `onActionCall` RPC surface.
 - Reuse the Tiny Plugins lockfile/import-map tooling so bare specifiers resolve deterministically.
-
----
 
 ## Quick Start
 
@@ -182,8 +176,6 @@ Use the lower-level host APIs when you are not rendering the React wrapper. Wire
 
 Plugins invoke `remote.ops` (for example through `host.actions.*`) whenever they need something from the host. `TinyUI` surfaces each of those calls through `onActionCall(method, params)`. Route the call to your own application API, return a result (or throw to reject), and you're done.
 
----
-
 ## API Reference
 
 ### Bootstrap
@@ -223,8 +215,6 @@ Plugins invoke `remote.ops` (for example through `host.actions.*`) whenever they
 ### Constants
 
 - **`CACHE_NAME`**, **`RUNTIME_HTML_PATH`**, **`VIRTUAL_PREFIX`** – constants that mirror the service worker config.
-
----
 
 ## Examples
 
@@ -307,8 +297,6 @@ if (!result) {
 await host.sendInit(result);
 ```
 
----
-
 ## Usage Notes
 
 - The first compile downloads `esbuild-wasm` (≈1 MB); host environments can pass a custom `runtimeUrl` via `setupTinyUI({ runtimeUrl })` or override `wasmURL` on `TinyUiProvider` / `compile()` to point at a local mirror.
@@ -317,16 +305,12 @@ await host.sendInit(result);
 - Use `setLockfile()` to declare CDN-backed dependencies; the runtime injects the import map before loading the bundle. The lockfile is shared across all Tiny UI instances, so the latest call wins—merge specifiers when multiple plugins need different libraries.
 - When running in non-OPFS browsers, build hosts can still register virtual snapshots by supplying file contents directly.
 
----
-
 ## Dependencies
 
 - [@pstdio/opfs-utils](/packages/opfs-utils) - Core OPFS operations
 - [@pstdio/tiny-plugins](/packages/tiny-plugins) - Plugin manifest and runtime
 - `esbuild-wasm` - Browser-based bundling
 - `react` - UI framework support
-
----
 
 ## See Also
 

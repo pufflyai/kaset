@@ -8,8 +8,6 @@ title: "@pstdio/kas"
 
 The `@pstdio/kas` package provides a complete browser-based coding agent that can search, read, write, and modify files in an OPFS workspace with user approval gates.
 
----
-
 ## Installation
 
 ```bash
@@ -23,8 +21,6 @@ npm install @pstdio/kas
 - **Approval gates**: User consent for destructive operations
 - **Conversation adapters**: Easy UI integration with streaming responses
 - **Shell commands**: Read-only OPFS shell with streaming output
-
----
 
 ## Quick Start
 
@@ -70,8 +66,6 @@ for await (const ui of toConversation(agent(initialForAgent), { boot: uiBoot, de
 }
 ```
 
----
-
 ## Type Exports
 
 Import UI and approval types directly from `@pstdio/kas`:
@@ -82,8 +76,6 @@ Import UI and approval types directly from `@pstdio/kas`:
 ```ts
 import type { Message, UIConversation, ToolInvocation, ApprovalRequest, RequestApproval } from "@pstdio/kas";
 ```
-
----
 
 ## API Reference
 
@@ -150,8 +142,6 @@ The default system prompt string used by the agent. Import to customize or exten
 import { defaultSystemPrompt } from "@pstdio/kas";
 ```
 
----
-
 ## Default Approval-Gated Tools
 
 The following tools require user approval by default:
@@ -161,8 +151,6 @@ The following tools require user approval by default:
 - `opfs_patch` - Apply patches to files
 - `opfs_upload_files` - Upload files to workspace
 - `opfs_move_file` - Move/rename files
-
----
 
 ## Built-in Tools
 
@@ -184,8 +172,6 @@ KAS agents come with these OPFS tools:
 - **opfs_shell** - Run read-only shell commands (grep, ls, find, etc.) and stream output
 
 ⚠️ = Requires approval by default
-
----
 
 ## Examples
 
@@ -243,8 +229,6 @@ async function sendMessage(text: string) {
 }
 ```
 
----
-
 ## Dependencies
 
 - [@pstdio/opfs-utils](/packages/opfs-utils) - OPFS file operations
@@ -252,8 +236,6 @@ async function sendMessage(text: string) {
 - [@pstdio/tiny-tasks](/packages/tiny-tasks) - Workflow primitives
 - [@pstdio/prompt-utils](/packages/prompt-utils) - Prompt utilities
 - `openai` - OpenAI API client
-
----
 
 ## See Also
 
