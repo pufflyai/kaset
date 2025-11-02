@@ -102,6 +102,7 @@ const messages = [
 ```
 
 KAS will:
+
 1. Create the component file with TypeScript
 2. Add proper prop types and variants
 3. Create a corresponding story file for Storybook
@@ -121,6 +122,7 @@ const messages = [
 ```
 
 KAS will:
+
 1. Search for class components using `opfs_shell`
 2. Read each component file
 3. Convert to functional components
@@ -141,6 +143,7 @@ const messages = [
 ```
 
 KAS will:
+
 1. List components using `opfs_ls`
 2. Read each component's source
 3. Extract props, usage patterns, and examples

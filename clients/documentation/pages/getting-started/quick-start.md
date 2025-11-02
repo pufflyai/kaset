@@ -98,9 +98,7 @@ const agent = createKasAgent({
 const { messages: instructionMessages } = await loadAgentInstructions(workspaceDir);
 
 // Your UI conversation
-const uiMessages = [
-  { id: "1", role: "user", parts: [{ type: "text", text: "Create a todo list with 5 items" }] },
-];
+const uiMessages = [{ id: "1", role: "user", parts: [{ type: "text", text: "Create a todo list with 5 items" }] }];
 
 // Combine instructions with user messages
 const allMessages = [...instructionMessages, ...uiMessages];

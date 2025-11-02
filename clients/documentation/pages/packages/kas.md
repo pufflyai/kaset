@@ -101,15 +101,18 @@ for await (const ui of toConversationUI(agent(toBaseMessages(allMessages)))) {
 Import types from the appropriate packages:
 
 **From `@pstdio/kas`:**
+
 - `Tool` - Tool type from tiny-ai-tasks
 - `ApprovalRequest`, `RequestApproval`, `ApprovalGate` - Approval system types
 
 **From `@pstdio/kas/kas-ui`:**
+
 - `UIMessage`, `UIConversation` - UI message types
-- `ToolInvocation` - Tool invocation type  
+- `ToolInvocation` - Tool invocation type
 - `TextUIPart`, `ReasoningUIPart`, `ToolInvocationUIPart` - UI part types
 
 **From `@pstdio/kas/opfs-tools`:**
+
 - `AgentInstructions` - Agent instructions type
 - `CreateOpfsToolsOptions` - OPFS tools configuration type
 
@@ -340,13 +343,10 @@ import { createKasAgent, createApprovalGate } from "@pstdio/kas";
 import { createOpfsTools } from "@pstdio/kas/opfs-tools";
 import { Tool } from "@pstdio/tiny-ai-tasks";
 
-const customTool = Tool(
-  async ({ query }) => ({ messages: [{ role: "tool", content: `Result: ${query}` }] }),
-  {
-    name: "search_docs",
-    description: "Search documentation",
-  }
-);
+const customTool = Tool(async ({ query }) => ({ messages: [{ role: "tool", content: `Result: ${query}` }] }), {
+  name: "search_docs",
+  description: "Search documentation",
+});
 
 const approvalGate = createApprovalGate({
   requestApproval: async ({ tool }) => confirm(`Allow ${tool}?`),
@@ -454,9 +454,7 @@ const currentAgent = agents[currentWorkspace];
 Dynamically enable/disable tools based on user permissions:
 
 ```typescript
-const approvalGatedTools = user.isPremium
-  ? ["opfs_write_file"]
-  : ["opfs_write_file", "opfs_delete_file", "opfs_patch"];
+const approvalGatedTools = user.isPremium ? ["opfs_write_file"] : ["opfs_write_file", "opfs_delete_file", "opfs_patch"];
 
 const approvalGate = createApprovalGate({
   approvalGatedTools,

@@ -41,6 +41,7 @@ const agent = createKasAgent({
   model: "gpt-5-mini",
   apiKey: "<YOUR_API_KEY>",
   tools: [...OPFSTools],
+  dangerouslyAllowBrowser: true,
 });
 
 // Run agent with messages
@@ -53,13 +54,23 @@ for await (const response of agent(messages)) {
 With UI adapters
 
 ```ts
-import { loadAgentInstructions } from "@pstdio/kas/opfs-utils";
-import { toConversationUI } from "@pstdio/kas/kas-ui";
+import { loadAgentInstructions } from "@pstdio/kas/opfs-tools";
+import { toConversationUI, toBaseMessages } from "@pstdio/kas/kas-ui";
 
-const messages = [{ role: "user", content: "Create a simple React component" }];
+const rootDir = "/projects/demo";
 
-for await (const response of toConversationUI(agent(messages))) {
-  console.log(response);
+// Load agent instructions from AGENTS.md if present
+const { messages: instructions } = await loadAgentInstructions(rootDir);
+
+// Your UI messages
+const uiMessages = [{ id: "1", role: "user", parts: [{ type: "text", text: "Create a simple React component" }] }];
+
+// Combine and convert to base messages
+const allMessages = [...instructions, ...uiMessages];
+
+// Stream UI-friendly updates
+for await (const uiConversation of toConversationUI(agent(toBaseMessages(allMessages)))) {
+  console.log(uiConversation); // Array of UIMessage objects
 }
 ```
 
