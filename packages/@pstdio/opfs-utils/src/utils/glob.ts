@@ -1,6 +1,6 @@
 // Shared glob helpers for OPFS utilities
 
-import * as picomatch from "picomatch/posix";
+import picomatch from "picomatch/posix.js";
 
 export interface GlobToRegExpOptions {
   // When false, wildcards at the start of a segment do not match a leading dot
