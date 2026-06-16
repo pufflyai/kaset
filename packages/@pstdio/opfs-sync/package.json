@@ -9,6 +9,10 @@
     "type": "git",
     "url": "git+https://github.com/pufflyai/kaset.git"
   },
+  "homepage": "https://github.com/pufflyai/kaset/tree/main/packages/@pstdio/opfs-sync#readme",
+  "bugs": {
+    "url": "https://github.com/pufflyai/kaset/issues"
+  },
   "scripts": {
     "prepublishOnly": "npm run build",
     "build": "tsc -b && vite build",
