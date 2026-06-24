@@ -5,7 +5,7 @@ import type { AssistantMessage, BaseMessage } from "../utils/messageTypes";
 import { messageContentToString } from "../utils/messageTypes";
 import { consumeOpenAIStream } from "./consumeOpenAIStream";
 import type { Model } from "./types";
-import { injectToolCallingPrompt, parseToolCalls } from "./webLLMToolCalling";
+import { injectToolCallingPrompt, parseToolCalls, stripStreamingToolCalls } from "./webLLMToolCalling";
 
 /**
  * WebLLM requires a single system message at the very front, while OpenAI
@@ -24,7 +24,9 @@ function normalizeMessagesForWebLLM(messages: BaseMessage[]): BaseMessage[] {
     }
   }
 
-  if (systemTexts.length <= 1) return messages;
+  if (systemTexts.length === 0) return messages;
+  // A single system message that is already first needs no change.
+  if (systemTexts.length === 1 && messages[0]?.role === "system") return messages;
 
   return [{ role: "system", content: systemTexts.join("\n\n") }, ...rest];
 }
@@ -119,11 +121,18 @@ export function webLLMModel(opts: WebLLMModelOptions): Model {
         return yield* consumeOpenAIStream(stream, startedAt);
       }
 
-      // Stream raw output, then parse `<tool_call>` blocks from the final message.
+      // Stream output with tool-call markup hidden, then parse `<tool_call>`
+      // blocks from the final message.
       const generator = consumeOpenAIStream(stream, startedAt);
       let step = await generator.next();
       while (!step.done) {
-        yield step.value;
+        const snapshot = step.value;
+        const display =
+          typeof snapshot.content === "string"
+            ? { ...snapshot, content: stripStreamingToolCalls(snapshot.content) }
+            : snapshot;
+
+        yield display;
         step = await generator.next();
       }
 

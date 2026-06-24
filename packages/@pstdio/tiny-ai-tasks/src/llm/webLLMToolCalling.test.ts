@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { buildToolCallingSystemPrompt, injectToolCallingPrompt, parseToolCalls } from "./webLLMToolCalling";
+import {
+  buildToolCallingSystemPrompt,
+  injectToolCallingPrompt,
+  parseToolCalls,
+  stripStreamingToolCalls,
+} from "./webLLMToolCalling";
 
 const toolDefs = [{ type: "function", function: { name: "demo", parameters: { type: "object", properties: {} } } }];
 
@@ -58,5 +63,23 @@ describe("parseToolCalls", () => {
   it("ignores malformed tool-call blocks", () => {
     const { toolCalls } = parseToolCalls("<tool_call>not json</tool_call>", "1");
     expect(toolCalls).toEqual([]);
+  });
+});
+
+describe("stripStreamingToolCalls", () => {
+  it("keeps preamble text and hides a completed tool-call block", () => {
+    expect(stripStreamingToolCalls('Sure.\n<tool_call>{"name":"x"}</tool_call>')).toBe("Sure.");
+  });
+
+  it("truncates at an unclosed opening tag mid-stream", () => {
+    expect(stripStreamingToolCalls('Checking <tool_call>{"name":"x"')).toBe("Checking");
+  });
+
+  it("drops a trailing partial of the opening tag", () => {
+    expect(stripStreamingToolCalls("Working on it <tool_ca")).toBe("Working on it");
+  });
+
+  it("leaves plain text untouched", () => {
+    expect(stripStreamingToolCalls("just a < comparison")).toBe("just a < comparison");
   });
 });

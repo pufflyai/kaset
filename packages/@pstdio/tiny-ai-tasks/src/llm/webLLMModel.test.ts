@@ -99,4 +99,44 @@ describe("webLLMModel", () => {
     expect(final?.tool_calls?.[0].id).toMatch(/^call_\d+_0$/);
     expect(final?.content).toBe("");
   });
+
+  it("never streams raw tool-call markup in intermediate snapshots", async () => {
+    const stream = async function* () {
+      yield { choices: [{ delta: { content: "Let me check " } }] } as any;
+      yield { choices: [{ delta: { content: '<tool_call>{"name":"demo",' } }] } as any;
+      yield { choices: [{ delta: { content: '"arguments":{}}</tool_call>' } }] } as any;
+    };
+    const create = vi.fn().mockResolvedValue(stream());
+
+    const model = webLLMModel({ model: "gemma", engine: makeEngine(create) });
+    const tool = Tool(async () => ({}), { name: "demo", parameters: { type: "object", properties: {} } });
+
+    const contents: string[] = [];
+    for await (const [msg] of model({ messages: [{ role: "user", content: "go" }], tools: [tool] })) {
+      const c = (msg as AssistantMessage)?.content;
+      if (typeof c === "string") contents.push(c);
+    }
+
+    expect(contents.every((c) => !c.includes("<tool_call"))).toBe(true);
+  });
+
+  it("moves a lone non-leading system message to the front", async () => {
+    const stream = async function* () {
+      yield { choices: [{ delta: { content: "ok" } }] } as any;
+    };
+    const create = vi.fn().mockResolvedValue(stream());
+
+    const model = webLLMModel({ model: "gemma", engine: makeEngine(create) });
+
+    for await (const _ of model([
+      { role: "user", content: "hi" },
+      { role: "system", content: "be brief" },
+    ])) {
+      // consume
+    }
+
+    const sent = create.mock.calls[0][0].messages;
+    expect(sent[0]).toEqual({ role: "system", content: "be brief" });
+    expect(sent[1]).toEqual({ role: "user", content: "hi" });
+  });
 });

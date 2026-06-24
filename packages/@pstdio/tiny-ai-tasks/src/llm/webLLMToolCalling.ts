@@ -10,6 +10,29 @@ import { messageContentToString } from "../utils/messageTypes";
  */
 
 const TOOL_CALL_PATTERN = /<tool_call>\s*([\s\S]*?)\s*<\/tool_call>/g;
+const TOOL_CALL_OPEN = "<tool_call>";
+
+/**
+ * Clean a partial (streaming) output so raw tool-call markup is never shown to
+ * the user: drop completed blocks, then truncate at an unclosed opening tag or
+ * a trailing partial of one (e.g. "<tool_ca").
+ */
+export function stripStreamingToolCalls(text: string): string {
+  const withoutComplete = text.replace(TOOL_CALL_PATTERN, "");
+
+  const openIndex = withoutComplete.indexOf("<tool_call");
+  if (openIndex !== -1) return withoutComplete.slice(0, openIndex).trimEnd();
+
+  const lastLt = withoutComplete.lastIndexOf("<");
+  if (lastLt !== -1 && TOOL_CALL_OPEN.startsWith(withoutComplete.slice(lastLt))) {
+    return withoutComplete.slice(0, lastLt).trimEnd();
+  }
+
+  // A completed block was removed — trim the trailing whitespace it left behind.
+  if (withoutComplete !== text) return withoutComplete.trimEnd();
+
+  return withoutComplete;
+}
 
 export function buildToolCallingSystemPrompt(toolDefs: unknown[]): string {
   return [
