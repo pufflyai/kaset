@@ -59,10 +59,15 @@ export interface McpServerConfig {
 
 export type ThemePreference = "light" | "dark";
 
+export type ModelProvider = "openai" | "webllm";
+
 export interface WorkspaceSettings {
+  provider: ModelProvider;
   modelId: string;
   apiKey?: string;
   baseUrl?: string;
+  /** MLC model id used when provider is "webllm". */
+  webllmModelId?: string;
   approvalGatedTools?: string[];
   mcpServers: McpServerConfig[];
   activeMcpServerIds?: string[];

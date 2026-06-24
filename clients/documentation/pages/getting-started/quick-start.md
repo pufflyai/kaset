@@ -31,22 +31,18 @@ npm i @pstdio/opfs-hooks
 Point KAS at a workspace folder inside OPFS (a sandboxed directory the agent can see/edit). Writes, deletes, patches, uploads, and moves are approval‑gated by default.
 
 ```ts
-import { createKasAgent } from "@pstdio/kas";
+import { createKasAgent, openaiModel } from "@pstdio/kas";
 
 const workspaceDir = "/projects/demo";
 
-const agent = createKasAgent({
+// Build a model, then hand it to the agent. Swap `openaiModel` for
+// `webLLMModel(...)` to run a model in the browser via WebGPU.
+const model = openaiModel({
   model: "gpt-5-mini",
   apiKey: "<YOUR_API_KEY>",
-  workspaceDir,
-  // Optional: customize which tools require approval
-  approvalGatedTools: ["opfs_write_file"],
-  // Require permission before the approval gated tool in this workspace
-  requestApproval: async ({ tool, workspaceDir, detail }) => {
-    console.log("Needs approval", tool, workspaceDir, detail);
-    return confirm(`Allow ${tool} in ${workspaceDir}?`);
-  },
 });
+
+const agent = createKasAgent({ model });
 
 // Run agent with messages
 const messages = [{ role: "user", content: "Create a simple React component" }];

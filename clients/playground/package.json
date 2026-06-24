@@ -6,12 +6,12 @@
   "type": "module",
   "scripts": {
     "start": "vite",
-    "build": "npm run typegen:tokens && tsc -b && vite build",
+    "build": "bun run typegen:tokens && tsc -b && vite build",
     "typegen:tokens": "chakra typegen ./src/theme/theme.ts",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint": "biome lint src",
     "preview": "vite preview",
-    "format": "prettier --check \"./src/**/*.{js,jsx,ts,tsx,css,scss,html,md}\" --write",
-    "visualize-bundle": "npx vite-bundle-visualizer"
+    "format": "biome check --write .",
+    "visualize-bundle": "bunx vite-bundle-visualizer"
   },
   "dependencies": {
     "@chakra-ui/cli": "^3.27.1",
@@ -25,15 +25,17 @@
     "@lexical/react": "^0.34.0",
     "@lexical/rich-text": "^0.34.0",
     "@lexical/selection": "^0.34.0",
+    "@lexical/table": "^0.34.0",
     "@lexical/utils": "^0.34.0",
+    "@mlc-ai/web-llm": "^0.2.79",
     "@modelcontextprotocol/sdk": "^1.18.1",
     "@monaco-editor/react": "^4.7.0",
     "@pstdio/kas": "*",
     "@pstdio/opfs-hooks": "*",
     "@pstdio/opfs-utils": "*",
     "@pstdio/prompt-utils": "*",
-    "@pstdio/tiny-plugins": "*",
     "@pstdio/tiny-ai-tasks": "*",
+    "@pstdio/tiny-plugins": "*",
     "@pstdio/tiny-ui": "*",
     "allotment": "^1.20.4",
     "buffer": "^6.0.3",
@@ -43,6 +45,8 @@
     "immer": "^10.1.3",
     "katex": "^0.16.22",
     "lexical": "^0.34.0",
+    "lodash": "^4.17.21",
+    "lodash.debounce": "^4.0.8",
     "lottie-react": "^2.4.1",
     "lucide-react": "^0.542.0",
     "react": "^19.1.1",
@@ -55,21 +59,14 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
+    "@types/lodash": "^4.17.20",
+    "@types/lodash.debounce": "^4.0.9",
     "@types/react": "^19.1.9",
     "@types/react-dom": "^19.1.7",
     "@types/react-helmet": "^6.1.11",
     "@vitejs/plugin-react": "^5.0.0",
-    "eslint": "^9.32.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^16.3.0",
     "typescript": "~5.8.3",
-    "typescript-eslint": "^8.39.0",
     "vite": "^7.1.0",
     "vite-plugin-svgr": "^4.3.0"
-  },
-  "volta": {
-    "node": "22.18.0"
   }
 }

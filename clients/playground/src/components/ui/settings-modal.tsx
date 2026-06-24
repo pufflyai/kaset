@@ -1,14 +1,10 @@
-import { APPROVAL_GATED_TOOL_IDS, DEFAULT_THEME, DEFAULT_WALLPAPER, ROOT } from "@/constant";
-import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
-import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
-import type { McpServerConfig, ThemePreference } from "@/state/types";
-import { applyThemePreference } from "@/theme/applyThemePreference";
 import {
   Alert,
   Box,
   Button,
   Checkbox,
   CloseButton,
+  chakra,
   Dialog,
   Field,
   Flex,
@@ -16,13 +12,19 @@ import {
   Input,
   SimpleGrid,
   Text,
-  VStack,
-  chakra,
   useBreakpointValue,
+  VStack,
 } from "@chakra-ui/react";
 import { getSpecificMimeType, ls, readFile } from "@pstdio/opfs-utils";
 import { shortUID } from "@pstdio/prompt-utils";
 import { useEffect, useRef, useState } from "react";
+import { APPROVAL_GATED_TOOL_IDS, DEFAULT_THEME, DEFAULT_WALLPAPER, ROOT } from "@/constant";
+import { getWorkspaceSettings } from "@/state/actions/getWorkspaceSettings";
+import { saveWorkspaceSettings } from "@/state/actions/saveWorkspaceSettings";
+import { DEFAULT_WEBLLM_MODEL_ID, isWebGPUAvailable, preloadWebLLMModel } from "@/services/ai/webllm";
+import { useWebLLMStore } from "@/services/ai/webllmStore";
+import type { McpServerConfig, ModelProvider, ThemePreference } from "@/state/types";
+import { applyThemePreference } from "@/theme/applyThemePreference";
 import { McpServerCard } from "./mcp-server-card";
 import type { PluginSettingsHandle } from "./plugin-settings";
 import { PluginSettings } from "./plugin-settings";
@@ -50,9 +52,12 @@ const MobileSectionSelect = chakra("select");
 export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const { isOpen, onClose } = props;
 
+  const [provider, setProvider] = useState<ModelProvider>("openai");
   const [apiKey, setApiKey] = useState<string>("");
   const [baseUrl, setBaseUrl] = useState<string>("");
   const [model, setModel] = useState<string>("gpt-5");
+  const [webllmModelId, setWebllmModelId] = useState<string>(DEFAULT_WEBLLM_MODEL_ID);
+  const webllmStatus = useWebLLMStore();
   const [showKey, setShowKey] = useState<boolean>(false);
   const [approvalTools, setApprovalTools] = useState<string[]>([]);
   const [mcpServers, setMcpServers] = useState<McpServerConfig[]>([]);
@@ -73,9 +78,11 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
     if (!isOpen) return;
 
     const settings = getWorkspaceSettings();
+    setProvider(settings.provider ?? "openai");
     setApiKey(settings.apiKey ?? "");
     setBaseUrl(settings.baseUrl ?? "");
     setModel(settings.modelId || "gpt-5");
+    setWebllmModelId(settings.webllmModelId || DEFAULT_WEBLLM_MODEL_ID);
     const gatedTools = settings.approvalGatedTools ? [...settings.approvalGatedTools] : [...APPROVAL_GATED_TOOL_IDS];
     setApprovalTools(gatedTools);
 
@@ -297,9 +304,11 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         : [];
 
       saveWorkspaceSettings({
+        provider,
         apiKey: apiKey || undefined,
         baseUrl: baseUrl || undefined,
         modelId: model || "gpt-5-mini",
+        webllmModelId: webllmModelId || undefined,
         approvalGatedTools: [...approvalTools],
         mcpServers: sanitizedServers.map((server) => ({ ...server })),
         activeMcpServerIds: nextActiveIds,
@@ -382,29 +391,124 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                   <Box display={activeSection === "kas" ? "block" : "none"}>
                     <VStack align="stretch" gap="md">
                       <Field.Root>
-                        <Field.Label>Model</Field.Label>
-                        <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
-                      </Field.Root>
-                      <Field.Root>
-                        <Field.Label>API Key</Field.Label>
+                        <Field.Label>Provider</Field.Label>
                         <HStack>
-                          <Input
-                            type={showKey ? "text" : "password"}
-                            placeholder="sk-..."
-                            value={apiKey}
-                            onChange={(e) => setApiKey(e.target.value)}
-                          />
-                          <Button onClick={() => setShowKey((v) => !v)}>{showKey ? "Hide" : "Show"}</Button>
+                          <Button
+                            variant={provider === "openai" ? "solid" : "ghost"}
+                            size="sm"
+                            onClick={() => setProvider("openai")}
+                            aria-pressed={provider === "openai"}
+                          >
+                            OpenAI (cloud)
+                          </Button>
+                          <Button
+                            variant={provider === "webllm" ? "solid" : "ghost"}
+                            size="sm"
+                            onClick={() => setProvider("webllm")}
+                            aria-pressed={provider === "webllm"}
+                            disabled
+                            title="In-browser models are not ready yet"
+                          >
+                            In-browser (WebLLM) — coming soon
+                          </Button>
                         </HStack>
                       </Field.Root>
-                      <Field.Root>
-                        <Field.Label>Base URL (optional)</Field.Label>
-                        <Input
-                          placeholder="https://api.openai.com/v1"
-                          value={baseUrl}
-                          onChange={(e) => setBaseUrl(e.target.value)}
-                        />
-                      </Field.Root>
+
+                      {provider === "openai" ? (
+                        <>
+                          <Field.Root>
+                            <Field.Label>Model</Field.Label>
+                            <Input placeholder="gpt-5-mini" value={model} onChange={(e) => setModel(e.target.value)} />
+                          </Field.Root>
+                          <Field.Root>
+                            <Field.Label>API Key</Field.Label>
+                            <HStack>
+                              <Input
+                                type={showKey ? "text" : "password"}
+                                placeholder="sk-..."
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                              />
+                              <Button onClick={() => setShowKey((v) => !v)}>{showKey ? "Hide" : "Show"}</Button>
+                            </HStack>
+                          </Field.Root>
+                          <Field.Root>
+                            <Field.Label>Base URL (optional)</Field.Label>
+                            <Input
+                              placeholder="https://api.openai.com/v1"
+                              value={baseUrl}
+                              onChange={(e) => setBaseUrl(e.target.value)}
+                            />
+                          </Field.Root>
+                        </>
+                      ) : (
+                        <>
+                          <Field.Root>
+                            <Field.Label>WebLLM Model</Field.Label>
+                            <HStack>
+                              <Input
+                                placeholder={DEFAULT_WEBLLM_MODEL_ID}
+                                value={webllmModelId}
+                                onChange={(e) => setWebllmModelId(e.target.value)}
+                              />
+                              <Button
+                                variant="outline"
+                                onClick={() =>
+                                  preloadWebLLMModel(webllmModelId || DEFAULT_WEBLLM_MODEL_ID).catch(() => {})
+                                }
+                                loading={webllmStatus.loading}
+                                disabled={!isWebGPUAvailable() || webllmStatus.loading}
+                              >
+                                {webllmStatus.ready ? "Reload" : "Load model"}
+                              </Button>
+                            </HStack>
+                          </Field.Root>
+                          {webllmStatus.ready && !webllmStatus.loading && (
+                            <Text fontSize="sm" color="green.500">
+                              ✓ Model loaded and ready
+                            </Text>
+                          )}
+                          {!isWebGPUAvailable() && (
+                            <Alert.Root status="warning">
+                              <Alert.Indicator />
+                              <Alert.Content>
+                                <Alert.Title fontWeight="bold">WebGPU not available</Alert.Title>
+                                <Alert.Description>
+                                  WebLLM runs models in the browser via WebGPU. Use a WebGPU-capable browser such as
+                                  Chrome or Edge.
+                                </Alert.Description>
+                              </Alert.Content>
+                            </Alert.Root>
+                          )}
+                          {webllmStatus.error && (
+                            <Alert.Root status="error">
+                              <Alert.Indicator />
+                              <Alert.Content>
+                                <Alert.Description>{webllmStatus.error}</Alert.Description>
+                              </Alert.Content>
+                            </Alert.Root>
+                          )}
+                          {webllmStatus.loading && (
+                            <Box>
+                              <Text fontSize="sm" color="fg.muted" mb="xs">
+                                {webllmStatus.text || "Loading model…"} ({Math.round(webllmStatus.progress * 100)}%)
+                              </Text>
+                              <Box height="6px" borderRadius="full" bg="background.subtle" overflow="hidden">
+                                <Box
+                                  height="100%"
+                                  width={`${Math.round(webllmStatus.progress * 100)}%`}
+                                  bg="blue.500"
+                                  transition="width 0.2s ease"
+                                />
+                              </Box>
+                            </Box>
+                          )}
+                          <Text fontSize="sm" color="fg.muted">
+                            The model downloads on first use (hundreds of MB) and is cached in the browser. No API key is
+                            required.
+                          </Text>
+                        </>
+                      )}
                     </VStack>
                   </Box>
                   <Box display={activeSection === "display" ? "block" : "none"}>

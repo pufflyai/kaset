@@ -38,7 +38,7 @@ Features: `prompt()`, `parseJSONStream()`, `getSchema()`, `safeStringify()`, UUI
 
 **AI task building blocks** — Streaming LLM tasks with tool calls, tiny agent loop, history truncation/summarization, and scratchpad utilities.
 
-Includes: `createLLMTask`, `createAgent`, `Tool`, `truncateToBudget`, `createSummarizer`
+Includes: `openaiModel`, `createAgent`, `Tool`, `truncateToBudget`, `createSummarizer`
 
 ### [@pstdio/tiny-plugins](/packages/tiny-plugins)
 

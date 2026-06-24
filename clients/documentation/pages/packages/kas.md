@@ -27,16 +27,15 @@ npm install @pstdio/kas
 ### Basic Agent Setup
 
 ```typescript
-import { createKasAgent } from "@pstdio/kas";
+import { createKasAgent, openaiModel } from "@pstdio/kas";
 
-const agent = createKasAgent({
+// Build a model, then hand it to the agent.
+const model = openaiModel({
   model: "gpt-5-mini",
   apiKey: process.env.OPENAI_API_KEY,
-  workspaceDir: "/projects/my-app",
-  requestApproval: async ({ tool, workspaceDir }) => {
-    return confirm(`Allow ${tool} operation in ${workspaceDir}?`);
-  },
 });
+
+const agent = createKasAgent({ model });
 
 // Run agent with messages
 const messages = [{ role: "user", content: "Create a simple React component" }];
@@ -45,19 +44,46 @@ for await (const response of agent(messages)) {
 }
 ```
 
+### In-browser models with WebLLM
+
+Swap `openaiModel` for `webLLMModel` to run a model entirely in the browser via
+WebGPU ([`@mlc-ai/web-llm`](https://github.com/mlc-ai/web-llm), a peer dependency) —
+no API key required.
+
+```typescript
+import { createKasAgent, webLLMModel } from "@pstdio/kas";
+
+const repo = "https://huggingface.co/welcoma/gemma-4-E2B-it-q4f16_1-MLC";
+
+const model = webLLMModel({
+  model: "gemma-4-E2B-it-q4f16_1-MLC",
+  appConfig: {
+    model_list: [
+      {
+        model: repo,
+        model_id: "gemma-4-E2B-it-q4f16_1-MLC",
+        model_lib: `${repo}/resolve/main/libs/gemma-4-E2B-it-q4f16_1-MLC-webgpu.wasm`,
+        required_features: ["shader-f16"],
+      },
+    ],
+  },
+  initProgressCallback: (report) => console.log(report.text),
+});
+
+const agent = createKasAgent({ model });
+```
+
 ### With Conversation Adapters
 
 ```typescript
-import { createKasAgent, buildInitialConversation, toConversation } from "@pstdio/kas";
+import { createKasAgent, openaiModel, buildInitialConversation, toConversation } from "@pstdio/kas";
 
 const conversation = [{ id: "1", role: "user", parts: [{ type: "text", text: "Help me build a login form" }] }];
 
 const { initialForAgent, uiBoot, devNote } = await buildInitialConversation(conversation, "/workspace");
 
 const agent = createKasAgent({
-  model: "gpt-5-mini",
-  apiKey: "your-key",
-  workspaceDir: "/workspace",
+  model: openaiModel({ model: "gpt-5-mini", apiKey: "your-key" }),
 });
 
 // Stream UI-friendly updates
@@ -85,20 +111,24 @@ Creates a new KAS coding agent.
 
 **Options:**
 
-- `model: string` - Model name (e.g., "gpt-5-mini")
-- `apiKey: string` - API key
-- `workspaceDir: string` - OPFS workspace directory path
-- `baseURL?: string` - Custom API base URL
-- `requestApproval?: RequestApproval` - Approval callback for destructive operations
-- `approvalGatedTools?: string[]` - Tools requiring approval (defaults to a predefined list: writes, deletes, patches, uploads, moves)
+- `model: Model` - A model object built with `openaiModel(...)` or `webLLMModel(...)`
+- `tools?: Tool[]` - Tools the agent can call (e.g. `createOpfsTools(...)`)
 - `systemPrompt?: string` - Custom system prompt
-- `effort?: "low" | "medium" | "high"` - Reasoning effort level
 - `maxTurns?: number` - Maximum conversation turns (default: 100)
-- `onShellChunk?: (chunk: string) => void` - Stream chunks from `opfs_shell`
-- `dangerouslyAllowBrowser?: boolean` - Allow browser runtime (default: true)
-- `extraTools?: Tool[]` - Additional tools to include
 
 **Returns:** Agent function that takes messages and returns streaming responses.
+
+### `openaiModel(options)`
+
+Creates a model backed by the OpenAI (compatible) chat completions API.
+
+**Options:** `model: string`, `apiKey?: string`, `baseUrl?: string`, `temperature?: number`, `reasoning?: { effort }`, `dangerouslyAllowBrowser?: boolean`.
+
+### `webLLMModel(options)`
+
+Creates a model that runs in the browser via WebGPU using `@mlc-ai/web-llm` (a peer dependency).
+
+**Options:** `model: string` (MLC model id), `appConfig?` (WebLLM `model_list`), `worker?: Worker` (host the engine off the main thread), `initProgressCallback?` (download/compile progress), `temperature?: number`.
 
 ### `buildInitialConversation(conversation, path)`
 
