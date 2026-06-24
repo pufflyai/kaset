@@ -1,5 +1,5 @@
-import { createAgent, createLLMTask, Tool, mergeStreamingMessages, messageContentToString } from "../src/index";
 import type { MessageHistory } from "../src/index";
+import { createAgent, openaiModel, mergeStreamingMessages, messageContentToString, Tool } from "../src/index";
 
 // Example: A tool that returns both custom messages and structured data
 // The tool emits a tool message (for LLM/history) and also returns
@@ -44,7 +44,7 @@ const agent = createAgent({
         "You are a helpful assistant. For any arithmetic addition request, use the 'sum' tool with appropriate 'a' and 'b' values, then provide the final result.",
     },
   ],
-  llm: createLLMTask({ model: "gpt-5-mini" }),
+  llm: openaiModel({ model: "gpt-5-mini" }),
   tools: [sumTool],
 });
 

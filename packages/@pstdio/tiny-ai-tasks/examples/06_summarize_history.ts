@@ -1,10 +1,10 @@
 import {
-  createLLMTask,
+  openaiModel,
   createSummarizer,
-  truncateToBudget,
-  roughCounter,
   type ExtendedMessage,
   messageContentToString,
+  roughCounter,
+  truncateToBudget,
 } from "../src/index";
 
 // Example: compact a long chat history to fit a token budget
@@ -59,8 +59,8 @@ console.log("\nDeterministic truncate → messages:");
 for (const m of truncated) console.log(`- [${m.role}] ${messageContentToString(m.content).slice(0, 72)}...`);
 
 // 2) LLM summarizer: compress the middle slice into one developer note
-// Provide OpenAI credentials via env or pass apiKey/baseUrl to createLLMTask
-const llm = createLLMTask({ model: "gpt-5-mini" });
+// Provide OpenAI credentials via env or pass apiKey/baseUrl to openaiModel
+const llm = openaiModel({ model: "gpt-5-mini" });
 const summarize = createSummarizer(llm);
 
 for await (const [compacted] of summarize({ history, opts: { budget, markSummary: true } })) {

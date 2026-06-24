@@ -1,4 +1,4 @@
-import { createAgent, createLLMTask, MessageHistory, Tool, mergeStreamingMessages } from "../src/index";
+import { createAgent, openaiModel, type MessageHistory, mergeStreamingMessages, Tool } from "../src/index";
 
 // Weather tool
 const weatherTool = Tool(
@@ -53,7 +53,7 @@ const agent = createAgent({
       content: "You are a helpful assistant with access to weather and news tools.",
     },
   ],
-  llm: createLLMTask({ model: "gpt-5-mini" }),
+  llm: openaiModel({ model: "gpt-5-mini" }),
   tools: [weatherTool, newsTool],
 });
 

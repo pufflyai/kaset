@@ -1,8 +1,8 @@
-import type { Task } from "@pstdio/tiny-tasks";
 import { prompt } from "@pstdio/prompt-utils";
-import { task } from "../runtime";
-import { createLLMTask } from "../llm/createLLMTask";
+import type { Task } from "@pstdio/tiny-tasks";
+import type { Model } from "../llm/types";
 import type { ExtendedMessage } from "../messages/bus";
+import { task } from "../runtime";
 import type { BaseMessage } from "../utils/messageTypes";
 import { messageContentToString } from "../utils/messageTypes";
 import { roughCounter, type TokenCounter } from "./token";
@@ -65,7 +65,7 @@ export function truncateToBudget(
  *   then (if still needed) deterministically drop oldest tail messages.
  */
 export function createSummarizer(
-  callLLM: ReturnType<typeof createLLMTask>,
+  callLLM: Model,
 ): Task<{ history: ExtendedMessage[]; opts: SummarizeOptions }, ExtendedMessage[]> {
   return task<{ history: ExtendedMessage[]; opts: SummarizeOptions }, ExtendedMessage[], ExtendedMessage[]>(
     "summarize_history",

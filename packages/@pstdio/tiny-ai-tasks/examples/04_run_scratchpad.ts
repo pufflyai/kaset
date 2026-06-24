@@ -1,12 +1,12 @@
+import { prompt } from "@pstdio/prompt-utils";
+import type { MessageHistory } from "../src/index";
 import {
   createAgent,
-  createLLMTask,
+  openaiModel,
   createScratchpad,
   createScratchpadTool,
   mergeStreamingMessages,
 } from "../src/index";
-import type { MessageHistory } from "../src/index";
-import { prompt } from "@pstdio/prompt-utils";
 
 // Create a host-side scratchpad and expose it as a tool
 const scratch = createScratchpad({ notes: [] });
@@ -24,7 +24,7 @@ const agent = createAgent({
       `,
     },
   ],
-  llm: createLLMTask({ model: "gpt-5-mini" }),
+  llm: openaiModel({ model: "gpt-5-mini" }),
   tools: [scratchTool],
 });
 

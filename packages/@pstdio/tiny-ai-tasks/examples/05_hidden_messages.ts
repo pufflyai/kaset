@@ -1,9 +1,9 @@
-import { createLLMTask, filterHistory, toBaseMessages, type ExtendedMessage } from "../src/index";
+import { openaiModel, type ExtendedMessage, filterHistory, toBaseMessages } from "../src/index";
 
 // Demonstrates using hidden developer/internal notes in history
 // These notes are kept out of the LLM prompt but available for UI/audit
 
-const llm = createLLMTask({ model: "gpt-5-mini" });
+const llm = openaiModel({ model: "gpt-5-mini" });
 
 const history: ExtendedMessage[] = [
   { role: "system", content: "You are a concise assistant." },

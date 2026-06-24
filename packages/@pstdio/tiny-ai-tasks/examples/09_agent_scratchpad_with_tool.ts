@@ -1,13 +1,13 @@
+import { prompt } from "@pstdio/prompt-utils";
+import type { MessageHistory } from "../src/index";
 import {
   createAgent,
-  createLLMTask,
-  Tool,
-  mergeStreamingMessages,
+  openaiModel,
   createScratchpad,
   createScratchpadTool,
+  mergeStreamingMessages,
+  Tool,
 } from "../src/index";
-import type { MessageHistory } from "../src/index";
-import { prompt } from "@pstdio/prompt-utils";
 
 // Example: Agent that uses a scratchpad for planning + a tool for work
 
@@ -58,7 +58,7 @@ const agent = createAgent({
       `,
     },
   ],
-  llm: createLLMTask({ model: "gpt-5-mini" }),
+  llm: openaiModel({ model: "gpt-5-mini" }),
   tools: [scratchTool, sumTool],
 });
 

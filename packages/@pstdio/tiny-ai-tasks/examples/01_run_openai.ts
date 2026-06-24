@@ -1,12 +1,12 @@
+import { openaiModel } from "../src/llm/openaiModel";
 import { MemorySaver } from "../src/runtime";
-import { createLLMTask } from "../src/llm/createLLMTask";
 
 const runOptions = {
   runId: "example1",
   checkpointer: new MemorySaver(),
 };
 
-const task = createLLMTask({ model: "gpt-5-mini" });
+const task = openaiModel({ model: "gpt-5-mini" });
 
 const messages = [
   {
