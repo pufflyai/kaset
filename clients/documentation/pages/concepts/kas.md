@@ -30,16 +30,14 @@ KAS provides a complete coding agent that can:
 ## Quick Example
 
 ```typescript
-import { createKasAgent } from "@pstdio/kas";
+import { createKasAgent, openaiModel } from "@pstdio/kas";
 
-const agent = createKasAgent({
+const model = openaiModel({
   model: "gpt-5-mini",
   apiKey: "your-openai-key",
-  workspaceDir: "/projects/my-app",
-  requestApproval: async ({ tool, workspaceDir, detail }) => {
-    return confirm(`Allow ${tool} in ${workspaceDir}?`);
-  },
 });
+
+const agent = createKasAgent({ model });
 
 // Use with conversation
 for await (const response of agent(messages)) {

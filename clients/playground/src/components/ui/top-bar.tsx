@@ -1,12 +1,4 @@
 import {
-  Tooltip,
-  createConversation,
-  deleteAllConversations,
-  selectConversation,
-  useConversationStore,
-} from "@/kas-ui";
-import { resetWorkspace } from "@/state/actions/resetWorkspace";
-import {
   Box,
   Drawer,
   Flex,
@@ -31,7 +23,15 @@ import {
   Settings as SettingsIcon,
   Trash2 as TrashIcon,
 } from "lucide-react";
-import { type ReactNode } from "react";
+import type { ReactNode } from "react";
+import {
+  createConversation,
+  deleteAllConversations,
+  selectConversation,
+  Tooltip,
+  useConversationStore,
+} from "@/kas-ui";
+import { resetWorkspace } from "@/state/actions/resetWorkspace";
 import { SettingsModal } from "../../components/ui/settings-modal";
 import { resetPlayground } from "../../services/playground/reset";
 import { CommitHistory } from "./commit-history";

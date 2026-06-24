@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getOPFSRoot } from "../__helpers__/test-opfs";
+import { getOPFSRoot, setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
 import { globToRegExp, grep, shouldSkip, toGlobalRegex } from "./opfs-grep";
-import { setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
 
 describe("toGlobalRegex", () => {
   it("ensures global flag", () => {

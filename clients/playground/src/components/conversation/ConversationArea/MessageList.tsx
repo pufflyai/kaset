@@ -1,8 +1,8 @@
-import { EmptyState, MessageContent, MessageRoot } from "@/kas-ui";
-import type { UIMessage, ToolInvocation } from "@pstdio/kas/kas-ui";
 import { Box, Button, Link, Text, VStack } from "@chakra-ui/react";
+import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 import { CassetteTapeIcon } from "lucide-react";
 import { memo, useCallback, useMemo } from "react";
+import { EmptyState, MessageContent, MessageRoot } from "@/kas-ui";
 import { CollapsibleToolTimeline } from "./CollapsibleToolTimeline";
 import { MessagePartsRenderer } from "./MessagePartsRenderer";
 

@@ -1,5 +1,4 @@
 import { guest } from "rimless";
-import { markTransferables } from "../helpers/transferables";
 import type {
   HostApi,
   HostApiMethod,
@@ -9,6 +8,7 @@ import type {
   PluginContext,
   PluginModule,
 } from "../core/types";
+import { markTransferables } from "../helpers/transferables";
 
 type HostApiCallPayload<M extends HostApiMethod = HostApiMethod> = {
   method: M;

@@ -1,7 +1,7 @@
 import type { Task } from "@pstdio/tiny-tasks";
 import { task } from "../runtime";
-import type { Tool } from "../tools/Tool";
 import { createToolTask } from "../tools/createToolTask";
+import type { Tool } from "../tools/Tool";
 import type { AssistantMessage, BaseMessage, ToolMessage } from "../utils/messageTypes";
 
 export interface CallToolResult {

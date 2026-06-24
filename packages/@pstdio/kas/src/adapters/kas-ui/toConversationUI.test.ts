@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AssistantMessage, ToolMessage } from "@pstdio/tiny-ai-tasks";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { UIConversation } from "./types";
 
 const shortUIDMock = vi.fn<() => string>();

@@ -1,5 +1,5 @@
-import { getConversationStore } from "../KasUIProvider";
 import { getDefaultConversationSnapshot } from "../createConversationStore";
+import { getConversationStore } from "../KasUIProvider";
 
 export const deleteAllConversations = () => {
   const store = getConversationStore();

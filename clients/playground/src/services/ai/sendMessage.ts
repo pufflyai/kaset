@@ -1,19 +1,21 @@
-import { ROOT } from "@/constant";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { createApprovalGate, createKasAgent } from "@pstdio/kas";
+import { createApprovalGate, createKasAgent, type Model, openaiModel } from "@pstdio/kas";
 import type { UIConversation } from "@pstdio/kas/kas-ui";
 import { decorateWithThought, toBaseMessages, toConversationUI, withClosedThoughts } from "@pstdio/kas/kas-ui";
 import { createOpfsTools, loadAgentInstructions } from "@pstdio/kas/opfs-tools";
 import { safeAutoCommit } from "@pstdio/opfs-utils";
-import { type Tool } from "@pstdio/tiny-ai-tasks";
+import type { Tool } from "@pstdio/tiny-ai-tasks";
+import { ROOT } from "@/constant";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { desktopTools } from "../desktop/tools";
 import { requestApproval } from "./approval";
+import { DEFAULT_WEBLLM_MODEL_ID, getWebLLMModel, isWebGPUAvailable } from "./webllm";
 
 const rootDir = ROOT;
 
 export async function* sendMessage(_conversationId: string, messages: UIConversation, extraTools: Tool[] = []) {
   const { settings } = useWorkspaceStore.getState();
   const approvalGatedTools = settings.approvalGatedTools ?? [];
+  const provider = settings.provider ?? "openai";
   const apiKey = settings.apiKey;
   const baseUrl = settings.baseUrl;
   const modelId = settings.modelId ?? "gpt-5";
@@ -27,13 +29,22 @@ export async function* sendMessage(_conversationId: string, messages: UIConversa
 
   const tools: Tool<any, any>[] = [...OPFSTools, ...desktopTools, ...extraTools];
 
-  const agent = createKasAgent({
-    model: modelId,
-    tools,
-    apiKey: apiKey ?? "PLACEHOLDER_KEY",
-    ...(baseUrl ? { baseURL: baseUrl } : {}),
-    dangerouslyAllowBrowser: true,
-  });
+  let model: Model;
+  if (provider === "webllm") {
+    if (!isWebGPUAvailable()) {
+      throw new Error("WebLLM requires a WebGPU-capable browser (e.g. Chrome/Edge). No navigator.gpu found.");
+    }
+    model = getWebLLMModel(settings.webllmModelId || DEFAULT_WEBLLM_MODEL_ID);
+  } else {
+    model = openaiModel({
+      model: modelId,
+      apiKey: apiKey ?? "PLACEHOLDER_KEY",
+      ...(baseUrl ? { baseUrl } : {}),
+      dangerouslyAllowBrowser: true,
+    });
+  }
+
+  const agent = createKasAgent({ model, tools });
 
   const initialMessages = [...agentInstructions.messages, ...messages];
 

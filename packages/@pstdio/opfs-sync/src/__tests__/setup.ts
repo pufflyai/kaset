@@ -73,4 +73,4 @@ const createMockDirectoryHandle = (name: string = "", entries: Map<string, any> 
 };
 
 // Export test utilities
-export { createMockFileHandle, createMockDirectoryHandle };
+export { createMockDirectoryHandle, createMockFileHandle };

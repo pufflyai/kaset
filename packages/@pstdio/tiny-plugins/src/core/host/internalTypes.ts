@@ -1,4 +1,6 @@
 import type { Connection } from "rimless";
+import type { CommandRegistry } from "../commands";
+import type { Emitter } from "../events";
 import type {
   HostOptions,
   Manifest,
@@ -8,8 +10,6 @@ import type {
   PluginModule,
   StatusUpdate,
 } from "../types";
-import type { Emitter } from "../events";
-import type { CommandRegistry } from "../commands";
 
 export type Events = {
   pluginChange: { pluginId: string; payload: PluginChangePayload };

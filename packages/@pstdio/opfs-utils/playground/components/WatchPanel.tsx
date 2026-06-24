@@ -1,9 +1,9 @@
 import { useState } from "react";
 import {
-  watchDirectory,
   type ChangeRecord,
   type DirectoryWatcherCleanup,
   type WatchOptions,
+  watchDirectory,
 } from "../../src/utils/opfs-watch";
 import { Button, MonoBlock, Row, Section, TextInput } from "./ui";
 

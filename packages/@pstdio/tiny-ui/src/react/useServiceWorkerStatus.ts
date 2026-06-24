@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getTinyUISetupState, subscribeToTinyUISetup, toTinyUIError } from "../setupTinyUI";
-import { TinyUIStatus } from "../types";
+import type { TinyUIStatus } from "../types";
 
 interface TinyUIServiceWorkerState {
   serviceWorkerReady: boolean;

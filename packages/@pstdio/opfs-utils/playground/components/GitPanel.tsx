@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { getFs } from "../../src/adapter/fs";
 import {
+  attachHeadToBranch,
+  type CommitEntry,
+  checkoutAtCommit,
   commitAll,
   ensureRepo,
+  type GitContext,
+  getHeadState,
   getRepoStatus,
   listCommits,
   revertToCommit,
-  checkoutAtCommit,
-  getHeadState,
-  attachHeadToBranch,
-  type CommitEntry,
-  type GitContext,
 } from "../../src/git/git";
 import { getDirHandle } from "../helpers";
 import { Button, Label, MonoBlock, Row, Section, TextArea, TextInput } from "./ui";

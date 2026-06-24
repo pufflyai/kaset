@@ -1,16 +1,14 @@
 import * as esbuild from "esbuild-wasm";
-
-import { getVirtualPrefix } from "../constants";
 import { publishBundleToSW } from "../cache/cache";
 import { getCachedBundle, setCachedCompileResult } from "../cache/cache-manifest";
+import { ENTRY_NAME, getVirtualPrefix, OUTPUT_DIR } from "../constants";
 import { computeHash, computeLockfileHash } from "../core/hash";
 import { getLockfile } from "../core/idb";
 import { readSnapshot } from "../core/snapshot";
 import { getSource } from "../core/sources";
-import { ENTRY_NAME, OUTPUT_DIR } from "../constants";
+import type { BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "../types";
 import { createLockfilePlugin } from "./plugins/lockfile-plugin";
 import { createVirtualFsPlugin } from "./plugins/virtual-fs-plugin";
-import type { BuildWithEsbuildOptions, CompileResult, SnapshotFileMap } from "../types";
 
 let initializePromise: Promise<void> | null = null;
 

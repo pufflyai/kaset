@@ -1,8 +1,8 @@
-import { TimelineFromJSON, type TimelineDoc } from "@/kas-ui";
 import { Box, HStack, Text } from "@chakra-ui/react";
 import type { ToolInvocation } from "@pstdio/kas/kas-ui";
 import { ChevronUpIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { type TimelineDoc, TimelineFromJSON } from "@/kas-ui";
 import { invocationsToTimeline } from "../utils/timeline";
 
 export function CollapsibleToolTimeline({

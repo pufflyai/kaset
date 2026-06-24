@@ -1,5 +1,5 @@
-import type { TitleSegment } from "@/kas-ui";
 import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
+import type { TitleSegment } from "@/kas-ui";
 
 export type FileChange = { filePath: string; additions: number; deletions: number };
 
@@ -70,7 +70,6 @@ export function parseUnifiedDiff(diffText?: string): FileChange[] {
     if (line.startsWith("-") && !(line.startsWith("--- ") || line === "---")) {
       const c = changes.get(currentPath);
       if (c) c.deletions += 1;
-      continue;
     }
   }
 

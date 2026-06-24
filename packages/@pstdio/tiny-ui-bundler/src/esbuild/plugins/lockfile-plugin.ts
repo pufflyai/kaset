@@ -1,8 +1,7 @@
-import * as esbuild from "esbuild-wasm";
-
+import type * as esbuild from "esbuild-wasm";
+import { REMOTE_NAMESPACE } from "../../constants";
 import type { Lockfile } from "../../core/import-map";
 import { isHttpUrl, loaderFromPath } from "../../utils";
-import { REMOTE_NAMESPACE } from "../../constants";
 
 const createRemoteResolver = (lockfile: Lockfile) => {
   const resolveFromLockfile = (specifier: string) => lockfile?.[specifier] ?? null;

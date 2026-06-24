@@ -1,3 +1,10 @@
+import { useDisclosure } from "@chakra-ui/react";
+import type { ApprovalRequest } from "@pstdio/kas";
+import type { ToolInvocationUIPart, UIMessage } from "@pstdio/kas/kas-ui";
+import { shortUID } from "@pstdio/prompt-utils";
+import { usePluginHost } from "@pstdio/tiny-plugins";
+import debounce from "lodash/debounce";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   appendConversationMessages,
   getConversation,
@@ -7,16 +14,9 @@ import {
   useConversationStore,
 } from "@/kas-ui";
 import { getModelPricing, type ModelPricing } from "@/models";
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { setApprovalHandler } from "@/services/ai/approval";
 import { useMcpService } from "@/services/mcp/useMcpService";
-import type { ApprovalRequest } from "@pstdio/kas";
-import type { ToolInvocationUIPart, UIMessage } from "@pstdio/kas/kas-ui";
-import { shortUID } from "@pstdio/prompt-utils";
-import { usePluginHost } from "@pstdio/tiny-plugins";
-import debounce from "lodash/debounce";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useDisclosure } from "@chakra-ui/react";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { examplePrompts } from "../../constant";
 import { sendMessage } from "../../services/ai/sendMessage";
 import { host } from "../../services/plugins/host";
@@ -116,10 +116,12 @@ export function ConversationHost() {
   const approvalResolve = useRef<((ok: boolean) => void) | null>(null);
   const toolset = useMemo(() => [...pluginTools, ...mcpTools], [pluginTools, mcpTools]);
   const settings = useDisclosure();
+  const provider = useWorkspaceStore((s) => s.settings.provider);
   const apiKey = useWorkspaceStore((s) => s.settings.apiKey);
   const baseUrl = useWorkspaceStore((s) => s.settings.baseUrl);
   const modelId = useWorkspaceStore((s) => s.settings.modelId);
-  const credentialsReady = Boolean(apiKey || baseUrl);
+  // WebLLM runs in-browser and needs no credentials.
+  const credentialsReady = provider === "webllm" || Boolean(apiKey || baseUrl);
   const modelPricing = useMemo(() => getModelPricing(modelId), [modelId]);
 
   useEffect(() => {

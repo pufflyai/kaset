@@ -1,5 +1,5 @@
-import { ROOT_FILE_PREFIX, createDesktopFileApp } from "@/services/desktop/desktop-file-icons";
 import { shortUID } from "@pstdio/prompt-utils";
+import { createDesktopFileApp, ROOT_FILE_PREFIX } from "@/services/desktop/desktop-file-icons";
 import type { DesktopApp, DesktopWindow, Position, Size } from "../types";
 import { useWorkspaceStore } from "../WorkspaceProvider";
 

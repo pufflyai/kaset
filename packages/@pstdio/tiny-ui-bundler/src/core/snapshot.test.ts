@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { registerVirtualSnapshot, readSnapshot, unregisterVirtualSnapshot } from "./snapshot";
+import { readSnapshot, registerVirtualSnapshot, unregisterVirtualSnapshot } from "./snapshot";
 import { registerSources, removeSource } from "./sources";
 
 describe("snapshot", () => {

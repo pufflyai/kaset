@@ -1,4 +1,4 @@
-import type { RequestApproval, ApprovalRequest } from "@pstdio/kas";
+import type { ApprovalRequest, RequestApproval } from "@pstdio/kas";
 
 let handler: RequestApproval | null = null;
 

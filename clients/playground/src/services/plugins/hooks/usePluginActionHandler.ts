@@ -1,8 +1,8 @@
+import { type HostApi, isHostApiMethod, markTransferables } from "@pstdio/tiny-plugins";
+import type { TinyUIActionHandler } from "@pstdio/tiny-ui";
+import { useMemo } from "react";
 import { desktopAPI } from "@/services/desktop/desktop-api";
 import { host } from "@/services/plugins/host";
-import { isHostApiMethod, markTransferables, type HostApi } from "@pstdio/tiny-plugins";
-import { useMemo } from "react";
-import type { TinyUIActionHandler } from "@pstdio/tiny-ui";
 
 export const usePluginActionHandler = (pluginId: string): TinyUIActionHandler => {
   return useMemo(() => {

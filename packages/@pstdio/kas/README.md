@@ -20,7 +20,7 @@ npm i @pstdio/kas
 
 ```ts
 import { createOpfsTools } from "@pstdio/kas/opfs-tools";
-import { createKasAgent, createApprovalGate } from "@pstdio/kas";
+import { createKasAgent, createApprovalGate, openaiModel } from "@pstdio/kas";
 
 const rootDir = "/projects/demo";
 
@@ -37,9 +37,14 @@ const OPFSTools = createOpfsTools({
   }),
 });
 
-const agent = createKasAgent({
+// Build a model, then hand it to the agent.
+const model = openaiModel({
   model: "gpt-5-mini",
   apiKey: "<YOUR_API_KEY>",
+});
+
+const agent = createKasAgent({
+  model,
   tools: [...OPFSTools],
 });
 
@@ -49,6 +54,42 @@ for await (const response of agent(messages)) {
   console.log(response);
 }
 ```
+
+### Running models in the browser with WebLLM
+
+`webLLMModel` runs a model fully in the browser via WebGPU using
+[`@mlc-ai/web-llm`](https://github.com/mlc-ai/web-llm) — no API key and no network
+round-trip after the weights are downloaded. Install `@mlc-ai/web-llm` (a peer
+dependency) alongside `@pstdio/kas`.
+
+```ts
+import { createKasAgent, webLLMModel } from "@pstdio/kas";
+
+const repo = "https://huggingface.co/welcoma/gemma-4-E2B-it-q4f16_1-MLC";
+
+const model = webLLMModel({
+  model: "gemma-4-E2B-it-q4f16_1-MLC",
+  appConfig: {
+    model_list: [
+      {
+        model: repo,
+        model_id: "gemma-4-E2B-it-q4f16_1-MLC",
+        model_lib: `${repo}/resolve/main/libs/gemma-4-E2B-it-q4f16_1-MLC-webgpu.wasm`,
+        required_features: ["shader-f16"],
+      },
+    ],
+  },
+  // Optional: run the engine in a Web Worker (your app bundles the worker file).
+  // worker: new Worker(new URL("./webllm.worker.ts", import.meta.url), { type: "module" }),
+  initProgressCallback: (report) => console.log(report.text),
+});
+
+const agent = createKasAgent({ model, tools: [...OPFSTools] });
+```
+
+> **Note:** WebLLM requires a WebGPU-capable browser, and tool calling depends on
+> the chosen model. Pick an MLC build with strong function-calling support for
+> agentic use.
 
 With UI adapters
 

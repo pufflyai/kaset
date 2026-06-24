@@ -1,5 +1,5 @@
 import { shortUID } from "@pstdio/prompt-utils";
-import { UIConversation, UIMessage } from "./types";
+import type { UIConversation, UIMessage } from "./types";
 
 type ThoughtPart = {
   type: "reasoning";

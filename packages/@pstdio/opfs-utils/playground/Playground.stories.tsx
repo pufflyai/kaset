@@ -1,18 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useEffect, useState } from "react";
+import { getFs } from "../src/adapter/fs";
 import { CrudPanel } from "./components/CrudPanel";
+import { GetFsPanel } from "./components/GetFsPanel";
+import { GitPanel } from "./components/GitPanel";
 import { GrepPanel } from "./components/GrepPanel";
 import { LsPanel } from "./components/LsPanel";
-import { GetFsPanel } from "./components/GetFsPanel";
 import { PatchPanel } from "./components/PatchPanel";
 import { ReadPanel } from "./components/ReadPanel";
 import { SetupPanel } from "./components/SetupPanel";
 import { ShellPanel } from "./components/ShellPanel";
 import { UploadPanel } from "./components/UploadPanel";
-import { WatchPanel } from "./components/WatchPanel";
-import { GitPanel } from "./components/GitPanel";
 import { Row, TextInput } from "./components/ui";
-import { getFs } from "../src/adapter/fs";
+import { WatchPanel } from "./components/WatchPanel";
 
 const meta: Meta = {
   title: "opfs-utils/Playground",

@@ -1,8 +1,8 @@
-import { useMcpClient } from "@/services/mcp/useMcpService";
-import type { McpClientStatus } from "@/services/mcp/useMcpService";
-import type { McpServerConfig } from "@/state/types";
 import { Button, Field, Flex, HStack, Input, Text } from "@chakra-ui/react";
 import type { ChangeEvent } from "react";
+import type { McpClientStatus } from "@/services/mcp/useMcpService";
+import { useMcpClient } from "@/services/mcp/useMcpService";
+import type { McpServerConfig } from "@/state/types";
 
 const STATUS_LABELS: Record<McpClientStatus, { label: string; color: string }> = {
   idle: { label: "Idle", color: "fg.muted" },

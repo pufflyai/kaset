@@ -1,15 +1,15 @@
 import {
+  type CommitEntry,
   commitAll,
   continueFromCommit,
   ensureDirExists,
   ensureRepo,
+  type GitContext,
   getHeadState,
   getRepoStatus,
   listAllCommits,
   previewCommit,
   resolveOid,
-  type CommitEntry,
-  type GitContext,
 } from "@pstdio/opfs-utils";
 
 export type { CommitEntry, GitContext } from "@pstdio/opfs-utils";
@@ -58,7 +58,7 @@ export async function saveAllChanges(ctx: GitContext, options: SaveOptions = {})
 
   const head = await getHeadState(ctx);
 
-  let targetBranch: string | undefined = undefined;
+  let targetBranch: string | undefined;
   if (!head.detached && head.currentBranch) targetBranch = head.currentBranch;
 
   const res = await commitAll(ctx, {

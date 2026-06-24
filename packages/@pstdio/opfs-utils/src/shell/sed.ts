@@ -1,6 +1,6 @@
 import { processSingleFileContent } from "../utils/opfs-files";
 import { joinPath, normalizeSlashes } from "../utils/path";
-import { Ctx, unquote } from "./helpers";
+import { type Ctx, unquote } from "./helpers";
 
 export async function cmdSed(args: string[], ctx: Ctx, stdin: string): Promise<string> {
   let quiet = false;
@@ -29,9 +29,8 @@ export async function cmdSed(args: string[], ctx: Ctx, stdin: string): Promise<s
     const res = await processSingleFileContent(fullPath, ctx.cwd || "", undefined, offset, limit);
     const text = typeof res.llmContent === "string" ? res.llmContent : String(res.llmContent ?? "");
     return quiet ? text : text;
-  } else {
-    const lines = (stdin ?? "").split("\n");
-    const slice = lines.slice(offset, offset + limit);
-    return slice.join("\n");
   }
+  const lines = (stdin ?? "").split("\n");
+  const slice = lines.slice(offset, offset + limit);
+  return slice.join("\n");
 }

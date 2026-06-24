@@ -1,6 +1,6 @@
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import type { DesktopWindow } from "@/state/types";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
+import type { DesktopWindow } from "@/state/types";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 
 type DesktopWindowState = "normal" | "minimized" | "maximized";
 

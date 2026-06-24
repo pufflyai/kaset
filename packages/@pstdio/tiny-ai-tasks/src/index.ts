@@ -1,23 +1,24 @@
-export { createAgent } from "./agents/createAgent";
 export type { MessageHistory } from "./agents/createAgent";
-
-export { createLLMTask } from "./llm/createLLMTask";
+export { createAgent } from "./agents/createAgent";
 export type { LLMTaskOptions } from "./llm/createLLMTask";
-
-export { createMcpTool } from "./tools/createMCPTool";
-export { createToolTask } from "./tools/createToolTask";
-export type { ToolResult } from "./tools/createToolTask";
-export { Tool } from "./tools/Tool";
-export type { ToolConfig, ToolDefinition } from "./tools/Tool";
-export { toOpenAITools } from "./tools/toOpenAITools";
-
+export { createLLMTask } from "./llm/createLLMTask";
+export type { OpenAIModelOptions, OpenAIToolDef } from "./llm/openaiModel";
+export { openaiModel } from "./llm/openaiModel";
+export type { Model } from "./llm/types";
+export type { WebLLMModelOptions } from "./llm/webLLMModel";
+export { webLLMModel } from "./llm/webLLMModel";
 export * from "./messages/bus";
 export { mergeStreamingMessages } from "./messages/mergeStreaming";
 export * from "./messages/scratchpad";
+export type { SummarizeOptions } from "./summarize/summarizeHistory";
+export { createSummarizer, truncateToBudget } from "./summarize/summarizeHistory";
+export type { TokenCounter } from "./summarize/token";
+export { roughCounter } from "./summarize/token";
+export { createMcpTool } from "./tools/createMCPTool";
+export type { ToolResult } from "./tools/createToolTask";
+export { createToolTask } from "./tools/createToolTask";
+export type { ToolConfig, ToolDefinition } from "./tools/Tool";
+export { Tool } from "./tools/Tool";
+export { toOpenAITools } from "./tools/toOpenAITools";
 export * from "./utils/errors";
 export * from "./utils/messageTypes";
-
-export { createSummarizer, truncateToBudget } from "./summarize/summarizeHistory";
-export type { SummarizeOptions } from "./summarize/summarizeHistory";
-export { roughCounter } from "./summarize/token";
-export type { TokenCounter } from "./summarize/token";

@@ -1,4 +1,3 @@
-import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import {
   Box,
   Button,
@@ -11,11 +10,12 @@ import {
   Input,
   Portal,
   Text,
-  VStack,
   useBreakpointValue,
+  VStack,
 } from "@chakra-ui/react";
 import { Menu as MenuIcon, PencilIcon, Trash2 } from "lucide-react";
 import { Fragment } from "react";
+import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { useTodoStore } from "./state/TodoProvider";
 
 function displayListName(name: string) {

@@ -1,5 +1,5 @@
 import { hasParentTraversal, joinUnderWorkspace, runOpfsCommandLine } from "@pstdio/opfs-utils";
-import { OPFSToolRunner } from "../types";
+import type { OPFSToolRunner } from "../types";
 
 export interface OpfsShellParams {
   command: string;

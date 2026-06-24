@@ -1,7 +1,7 @@
-import { ResourceBadge, Response, TimelineFromJSON } from "@/kas-ui";
 import { Box, Text } from "@chakra-ui/react";
 import type { ToolInvocation, UIMessage } from "@pstdio/kas/kas-ui";
 import type { ReactNode } from "react";
+import { ResourceBadge, Response, TimelineFromJSON } from "@/kas-ui";
 import { invocationsToTimeline } from "../utils/timeline";
 
 interface MessagePartsProps {

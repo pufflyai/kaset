@@ -1,10 +1,9 @@
 import { ENTRY_PATH, type SnapshotVariant } from "../compileScenarioShared";
-import type { SnapshotDefinition } from "./types";
-import { applyReplacements } from "./utils";
-
 import indexSource from "./default/files/index.ts?raw";
 import messageTemplate from "./default/files/message.ts?raw";
 import stylesTemplate from "./default/files/styles.css?raw";
+import type { SnapshotDefinition } from "./types";
+import { applyReplacements } from "./utils";
 
 const MESSAGE_VARIANTS: Record<SnapshotVariant, string> = {
   fresh: "Hello from the Tiny UI bundler story.",

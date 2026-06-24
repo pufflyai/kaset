@@ -1,5 +1,5 @@
 import { hasParentTraversal, joinUnderWorkspace, ls } from "@pstdio/opfs-utils";
-import { OPFSToolRunner } from "../types";
+import type { OPFSToolRunner } from "../types";
 
 export type OpfsLsParams = {
   path?: string;

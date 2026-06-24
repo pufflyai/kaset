@@ -1,6 +1,6 @@
 import { task } from "../runtime";
-import { ToolCall, ToolMessage } from "../utils/messageTypes";
-import { toolNotFound, invalidToolCall } from "../utils/errors";
+import { invalidToolCall, toolNotFound } from "../utils/errors";
+import type { ToolCall, ToolMessage } from "../utils/messageTypes";
 import type { Tool } from "./Tool";
 
 export interface ToolResult<T = unknown> {

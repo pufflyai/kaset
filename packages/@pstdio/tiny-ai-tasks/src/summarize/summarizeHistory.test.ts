@@ -1,11 +1,11 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import OpenAI from "openai";
-import { MemorySaver } from "../runtime";
-import { truncateToBudget, createSummarizer } from "./summarizeHistory";
-import { roughCounter } from "./token";
-import type { ExtendedMessage } from "../messages/bus";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createLLMTask } from "../llm/createLLMTask";
+import type { ExtendedMessage } from "../messages/bus";
+import { MemorySaver } from "../runtime";
 import { messageContentToString } from "../utils/messageTypes";
+import { createSummarizer, truncateToBudget } from "./summarizeHistory";
+import { roughCounter } from "./token";
 
 vi.mock("openai", () => ({ default: vi.fn() }));
 const MockedOpenAI: any = OpenAI;

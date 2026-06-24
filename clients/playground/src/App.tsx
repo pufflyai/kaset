@@ -1,12 +1,13 @@
 import { Box, Button, Flex, useBreakpointValue } from "@chakra-ui/react";
 import { Allotment } from "allotment";
 import { useEffect, useState } from "react";
-import { KasUIProvider } from "./kas-ui";
 import { ConversationHost } from "./components/ui/conversation-host";
 import { Desktop } from "./components/ui/desktop";
 import { GithubCorner } from "./components/ui/github-corner";
+import { LoadingState } from "./components/ui/loading-state";
 import { Toaster } from "./components/ui/toaster";
 import { TopBar } from "./components/ui/top-bar";
+import { KasUIProvider } from "./kas-ui";
 import { setupPlayground } from "./services/playground/setup";
 import { updateReactScanState } from "./services/react-scan/init";
 import { useWorkspaceStore } from "./state/WorkspaceProvider";
@@ -15,11 +16,26 @@ import { applyThemePreference } from "./theme/applyThemePreference";
 export function App() {
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
   const [mobilePane, setMobilePane] = useState<"conversation" | "desktop">("conversation");
+  const [playgroundReady, setPlaygroundReady] = useState(false);
   const themePreference = useWorkspaceStore((state) => state.settings.theme);
   const reactScanEnabled = useWorkspaceStore((state) => state.settings.reactScanEnabled);
 
   useEffect(() => {
-    setupPlayground();
+    let cancelled = false;
+
+    setupPlayground()
+      .catch((error) => {
+        console.error("[playground] Failed to set up workspace", error);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setPlaygroundReady(true);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -45,6 +61,18 @@ export function App() {
       {mobilePane === "conversation" ? "Show Desktop" : "Show Chat"}
     </Button>
   );
+
+  if (!playgroundReady) {
+    return (
+      <KasUIProvider>
+        <Flex align="center" height="100vh" justify="center" width="100vw">
+          <LoadingState title="Preparing workspace" />
+        </Flex>
+
+        <Toaster />
+      </KasUIProvider>
+    );
+  }
 
   const conversationPane = (
     <Flex direction="column" height="100%" padding={["1", "3"]} gap="3" flex="1" width="100%">

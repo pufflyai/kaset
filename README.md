@@ -4,7 +4,7 @@
 
 [Docs](https://kaset.dev/) • [Playground](https://kaset.dev/playground) • [Issues](https://github.com/pufflyai/kaset/issues) • [MIT License](https://github.com/pufflyai/kaset/blob/main/LICENSE)
 
-![node](https://img.shields.io/badge/node-22.x-3C873A?logo=node.js&logoColor=white)
+![bun](https://img.shields.io/badge/bun-%3E%3D1.3.13-000000?logo=bun&logoColor=white)
 ![lerna](https://img.shields.io/badge/monorepo-lerna-9333EA)
 ![docs](https://img.shields.io/badge/docs-vitepress-2ea043)
 
@@ -76,26 +76,26 @@ Curious? Check out our [documentation](https://kaset.dev).
 
 ## Local development
 
-Requires Node.js 22 (see Volta pin in `package.json`). From repo root:
+Requires Bun >=1.3.13. From repo root:
 
 ```bash
-npm i               # install
-npm run build       # build all packages (lerna)
-npm run test        # run all tests
+bun install         # install
+bun run build       # build all packages (lerna)
+bun run test        # run all tests
 ```
 
 Helpful scripts:
 
-- `npm run format` • `npm run format:check`
-- `npm run lint`
-- `npm run clean`
-- `npm run reset:all` (clean → install → lint → build → test)
+- `bun run format` • `bun run format:check`
+- `bun run lint`
+- `bun run clean`
+- `bun run reset:all` (clean → install → lint → build → test)
 
 Per‑workspace examples:
 
 ```bash
-npm run build --workspace @pstdio/opfs-utils
-npm run test  --workspace @pstdio/opfs-sync
+bun run --filter @pstdio/opfs-utils build
+bun run --filter @pstdio/opfs-sync test
 ```
 
 ## Docs site
@@ -103,8 +103,8 @@ npm run test  --workspace @pstdio/opfs-sync
 VitePress site lives in `clients/documentation/`.
 
 ```bash
-npm run start --workspace documentation   # dev server
-npm run build --workspace documentation   # static build
+bun run --filter documentation start   # dev server
+bun run --filter documentation build   # static build
 ```
 
 ## License

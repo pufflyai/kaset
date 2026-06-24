@@ -1,5 +1,5 @@
-import { Tool } from "../tools/Tool";
 import type { ToolResult } from "../tools/createToolTask";
+import { Tool } from "../tools/Tool";
 import type { ToolMessage } from "../utils/messageTypes";
 
 export interface Scratchpad {

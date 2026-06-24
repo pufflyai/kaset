@@ -1,5 +1,5 @@
-import { joinPath, normalizeSlashes } from "../utils/path";
 import { getFileHandle, resolveSubdir } from "../shared";
+import { joinPath, normalizeSlashes } from "../utils/path";
 
 export type Ctx = { cwd: string; onChunk?: (s: string) => void };
 

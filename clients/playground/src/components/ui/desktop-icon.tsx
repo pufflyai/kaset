@@ -1,33 +1,57 @@
-import { rgbaFromHex, type AdaptiveWallpaperResult } from "@/services/desktop/hooks/useAdaptiveWallpaperSample";
-import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
 import { Box, chakra } from "@chakra-ui/react";
 import { AppWindowMac } from "lucide-react";
 import { DynamicIcon, type IconName } from "lucide-react/dynamic";
-import { forwardRef, type KeyboardEvent, type MouseEvent } from "react";
+import { forwardRef, type ComponentPropsWithoutRef, type KeyboardEvent, type MouseEvent } from "react";
+import { type AdaptiveWallpaperResult, rgbaFromHex } from "@/services/desktop/hooks/useAdaptiveWallpaperSample";
+import { DEFAULT_DESKTOP_APP_ICON } from "@/state/types";
 
-interface DesktopIconProps {
+interface DesktopIconProps extends Omit<ComponentPropsWithoutRef<"button">, "color" | "onSelect"> {
   icon?: IconName;
   label: string;
   isSelected?: boolean;
-  tabIndex?: number;
   onSelect?: () => void;
   onOpen?: () => void;
-  onFocus?: () => void;
-  onContextMenu?: (event: MouseEvent<HTMLButtonElement>) => void;
   palette: AdaptiveWallpaperResult;
 }
 
 const DesktopIconRoot = chakra.button;
 
 export const DesktopIcon = forwardRef<HTMLButtonElement, DesktopIconProps>((props, ref) => {
-  const { icon: iconName, label, isSelected, tabIndex = 0, onSelect, onOpen, onFocus, onContextMenu, palette } = props;
+  const {
+    icon: iconName,
+    label,
+    isSelected,
+    tabIndex = 0,
+    onSelect,
+    onOpen,
+    onClick,
+    onKeyDown,
+    onContextMenu,
+    onFocus,
+    className,
+    palette,
+    ...rootProps
+  } = props;
   const icon = iconName ?? DEFAULT_DESKTOP_APP_ICON;
+  const rootClassName = ["group", className].filter(Boolean).join(" ");
   const baseAlpha = palette.overlayAlpha > 0 ? palette.overlayAlpha : 0.05;
   const hoverAlpha = clamp(baseAlpha, 0.14, 0.28);
   const iconPadBaseBackground = rgbaFromHex(palette.overlayBase, clamp(baseAlpha, 0.16, 0.32));
   const iconPadHoverBackground = rgbaFromHex(palette.overlayBase, clamp(hoverAlpha + 0.04, 0.16, 0.32));
 
+  const handleClick = (event: MouseEvent<HTMLButtonElement>) => {
+    onClick?.(event);
+    if (event.defaultPrevented) return;
+
+    event.preventDefault();
+    onSelect?.();
+    onOpen?.();
+  };
+
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    onKeyDown?.(event);
+    if (event.defaultPrevented) return;
+
     if (event.key !== "Enter" && event.key !== " ") return;
 
     event.preventDefault();
@@ -37,8 +61,9 @@ export const DesktopIcon = forwardRef<HTMLButtonElement, DesktopIconProps>((prop
 
   return (
     <DesktopIconRoot
+      {...rootProps}
       ref={ref}
-      className="group"
+      className={rootClassName}
       type="button"
       display="flex"
       flexDirection="column"
@@ -53,11 +78,7 @@ export const DesktopIcon = forwardRef<HTMLButtonElement, DesktopIconProps>((prop
       _hover={{ transform: "translateY(-2px)" }}
       data-selected={isSelected ? "true" : undefined}
       tabIndex={tabIndex}
-      onClick={(event) => {
-        event.preventDefault();
-        onSelect?.();
-        onOpen?.();
-      }}
+      onClick={handleClick}
       onKeyDown={handleKeyDown}
       onFocus={onFocus}
       onContextMenu={onContextMenu}

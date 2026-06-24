@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 
 import {
+  type CommitEntry,
   ensureRepoReady,
   fetchCommitList,
   hasUncommittedChanges,
   previewCommitOid,
   saveAllChanges,
-  type CommitEntry,
 } from "@/services/git/history";
 
 interface UseCommitHistoryResult {

@@ -1,10 +1,10 @@
 import { Box, Flex, HStack, IconButton, Text } from "@chakra-ui/react";
-import { Minimize2, Square, X, AppWindowMac } from "lucide-react";
+import { AppWindowMac, Minimize2, Square, X } from "lucide-react";
 import { DynamicIcon } from "lucide-react/dynamic";
-import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
 import { memo, useEffect, useRef, useState } from "react";
 import type { DraggableData } from "react-rnd";
 import { Rnd } from "react-rnd";
+import type { DesktopApp, DesktopWindow, Position, Size } from "@/state/types";
 
 const clampBounds = (value: number, max: number) => {
   if (Number.isNaN(value)) return 0;

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { processSingleFileContent, type ProcessedFileReadResult } from "../../src/utils/opfs-files";
+import { type ProcessedFileReadResult, processSingleFileContent } from "../../src/utils/opfs-files";
 import { getDirHandle } from "../helpers";
 import { Button, MonoBlock, Row, Section, TextInput } from "./ui";
 

@@ -10,10 +10,10 @@
     "url": "git+https://github.com/pufflyai/kaset.git"
   },
   "scripts": {
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "bun run build",
     "build": "tsc -b && vite build",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
-    "visualize-bundle": "npx vite-bundle-visualizer",
+    "lint": "biome lint src",
+    "visualize-bundle": "bunx vite-bundle-visualizer",
     "test": "vitest run --passWithNoTests"
   },
   "keywords": [
@@ -50,8 +50,5 @@
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
-  },
-  "volta": {
-    "node": "22.18.0"
   }
 }

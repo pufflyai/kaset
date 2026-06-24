@@ -1,6 +1,6 @@
+import { setLockfile } from "@pstdio/tiny-ui";
 import { useEffect, useState } from "react";
 import { host } from "@/services/plugins/host";
-import { setLockfile } from "@pstdio/tiny-ui";
 
 const normalizeLockfile = (dependencies: Record<string, string>) => {
   const entries = Object.entries(dependencies);

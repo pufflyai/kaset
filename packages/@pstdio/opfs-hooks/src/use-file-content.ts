@@ -1,4 +1,4 @@
-import { readFile, watchDirectory, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import { type DirectoryWatcherCleanup, readFile, watchDirectory } from "@pstdio/opfs-utils";
 import { useEffect, useState } from "react";
 
 export const useFileContent = (path?: string) => {

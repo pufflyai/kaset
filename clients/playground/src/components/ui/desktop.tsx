@@ -1,10 +1,17 @@
+import { Box, chakra, Menu, Portal } from "@chakra-ui/react";
+import type { DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import { ls, readFile, watchDirectory } from "@pstdio/opfs-utils";
+import { deletePluginDirectories, downloadPluginBundle } from "@pstdio/tiny-plugins";
+import { setLockfile } from "@pstdio/tiny-ui";
+import { Download, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PLUGIN_DATA_ROOT, ROOT } from "@/constant";
 import {
+  createDesktopFileApp,
+  type DesktopOpenFileDetail,
+  getRootFilePathFromAppId,
   OPEN_DESKTOP_FILE_EVENT,
   ROOT_FILE_PREFIX,
-  createDesktopFileApp,
-  getRootFilePathFromAppId,
-  type DesktopOpenFileDetail,
 } from "@/services/desktop/desktop-file-icons";
 import { createDesktopApp } from "@/services/desktop/helpers/createDesktopApp";
 import { useDesktopWallpaper } from "@/services/desktop/hooks/useDesktopWallpaper";
@@ -12,15 +19,8 @@ import { usePluginSources } from "@/services/plugins/hooks/usePluginSources";
 import { host, type PluginSurfacesSnapshot } from "@/services/plugins/host";
 import { deriveDesktopSurfaces } from "@/services/plugins/surfaces";
 import { openDesktopApp, openDesktopFilePreview } from "@/state/actions/desktop";
-import { type DesktopApp, type Size } from "@/state/types";
+import type { DesktopApp, Size } from "@/state/types";
 import { useWorkspaceStore } from "@/state/WorkspaceProvider";
-import { Box, Menu, Portal, chakra } from "@chakra-ui/react";
-import type { DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
-import { ls, readFile, watchDirectory } from "@pstdio/opfs-utils";
-import { deletePluginDirectories, downloadPluginBundle } from "@pstdio/tiny-plugins";
-import { setLockfile } from "@pstdio/tiny-ui";
-import { Download, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DeleteConfirmationModal } from "./delete-confirmation-modal";
 import { DesktopIcon } from "./desktop-icon";
 import { MenuItem } from "./menu-item";
@@ -461,7 +461,7 @@ export const Desktop = () => {
 
           return (
             <Menu.Root key={app.id}>
-              <Menu.ContextTrigger>
+              <Menu.ContextTrigger asChild>
                 <DesktopIcon
                   icon={app.icon}
                   label={app.title}

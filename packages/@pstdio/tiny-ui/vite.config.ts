@@ -1,6 +1,6 @@
-import { externalizeDeps } from "@au-re/vite-plugin-externalize-deps";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { externalizeDeps } from "@au-re/vite-plugin-externalize-deps";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 

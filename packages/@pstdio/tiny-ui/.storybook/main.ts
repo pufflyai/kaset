@@ -1,8 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-
-import { build as bundleServiceWorker } from "esbuild";
 import type { StorybookConfig } from "@storybook/react-vite";
+import { build as bundleServiceWorker } from "esbuild";
 import type { PluginOption } from "vite";
 
 /**

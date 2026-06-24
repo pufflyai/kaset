@@ -1,5 +1,5 @@
 import { hasParentTraversal, joinUnderWorkspace, moveFile as moveFileAtRoot } from "@pstdio/opfs-utils";
-import { OPFSToolRunner } from "../types";
+import type { OPFSToolRunner } from "../types";
 
 export type OpfsMoveFileParams = {
   from: string;

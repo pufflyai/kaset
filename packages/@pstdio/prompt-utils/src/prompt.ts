@@ -1,5 +1,4 @@
 import {
-  TemplateTag,
   commaListsAnd,
   commaListsOr,
   html,
@@ -7,6 +6,7 @@ import {
   oneLineCommaListsOr,
   replaceResultTransformer,
   stripIndentTransformer,
+  TemplateTag,
   trimResultTransformer,
 } from "common-tags";
 

@@ -172,13 +172,14 @@ export function sortFileEntries(entries: GlobPath[], nowTimestamp: number, recen
 
     if (aIsRecent && bIsRecent) {
       return mtimeB - mtimeA;
-    } else if (aIsRecent) {
-      return -1;
-    } else if (bIsRecent) {
-      return 1;
-    } else {
-      return a.fullpath().localeCompare(b.fullpath());
     }
+    if (aIsRecent) {
+      return -1;
+    }
+    if (bIsRecent) {
+      return 1;
+    }
+    return a.fullpath().localeCompare(b.fullpath());
   });
   return sortedEntries;
 }

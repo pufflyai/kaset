@@ -1,4 +1,4 @@
-import { CACHE_NAME, buildVirtualUrl, getVirtualPrefix } from "../constants";
+import { buildVirtualUrl, CACHE_NAME, getVirtualPrefix } from "../constants";
 import { ensureVirtualFetchFallback } from "../runtime/fetch-fallback";
 
 export const getBundleCacheName = () => CACHE_NAME;

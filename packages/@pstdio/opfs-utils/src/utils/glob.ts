@@ -24,7 +24,6 @@ export function globToRegExp(glob: string, opts: GlobToRegExpOptions = {}): RegE
     dot,
     nocase: !caseSensitive,
     windows: false,
-    posixSlashes: true,
   });
 
   if (!regex) {

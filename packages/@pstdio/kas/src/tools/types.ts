@@ -1,5 +1,5 @@
-import { ToolConfig } from "@pstdio/tiny-ai-tasks";
-import { ApprovalGate } from "../approval";
+import type { ToolConfig } from "@pstdio/tiny-ai-tasks";
+import type { ApprovalGate } from "../approval";
 
 export interface OPFSToolOptions {
   rootDir: string;

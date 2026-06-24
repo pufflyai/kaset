@@ -1,4 +1,4 @@
-import { ensureUint8Array, type BinaryLike } from "../shared";
+import { type BinaryLike, ensureUint8Array } from "../shared";
 
 class MemFileHandle {
   kind = "file" as const;

@@ -1,5 +1,5 @@
+import { openaiModel } from "../src/llm/openaiModel";
 import { MemorySaver } from "../src/runtime";
-import { createLLMTask } from "../src/llm/createLLMTask";
 import { Tool } from "../src/tools/Tool";
 
 const runOptions = {
@@ -31,7 +31,7 @@ const weatherTool = Tool(
   },
 );
 
-const task = createLLMTask({ model: "gpt-5-mini" });
+const task = openaiModel({ model: "gpt-5-mini" });
 
 const messages = [
   {

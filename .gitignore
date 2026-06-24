@@ -155,3 +155,9 @@ deployment/docker/volumes/db/data
 
 # Tests
 .tmp-tests
+
+.agents
+.claude
+.opencode
+.pstdio
+.playwright-mcp

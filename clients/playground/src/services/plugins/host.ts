@@ -1,6 +1,6 @@
+import { createPluginHostRuntime } from "@pstdio/tiny-plugins";
 import { toaster } from "@/components/ui/toaster";
 import { PLUGIN_DATA_ROOT, PLUGIN_ROOT } from "@/constant";
-import { createPluginHostRuntime } from "@pstdio/tiny-plugins";
 
 export type {
   PluginCommand,

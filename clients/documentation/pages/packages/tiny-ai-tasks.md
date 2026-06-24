@@ -17,10 +17,10 @@ Provide your API key via `OPENAI_API_KEY` or pass `apiKey` to the LLM task.
 ## Quick Start
 
 ```ts
-import { createLLMTask } from "@pstdio/tiny-ai-tasks";
+import { openaiModel } from "@pstdio/tiny-ai-tasks";
 import { MemorySaver } from "@pstdio/tiny-tasks";
 
-const llm = createLLMTask({ model: "gpt-5-mini" });
+const llm = openaiModel({ model: "gpt-5-mini" });
 
 const opts = { runId: "demo", checkpointer: new MemorySaver() };
 const messages = [{ role: "user" as const, content: "Write a haiku about databases." }];
@@ -33,7 +33,7 @@ for await (const [assistant] of llm(messages, opts)) {
 ## Add a Tool
 
 ```ts
-import { createLLMTask, Tool } from "@pstdio/tiny-ai-tasks";
+import { openaiModel, Tool } from "@pstdio/tiny-ai-tasks";
 
 const weather = Tool(async (location: string) => ({ location, temperature: 72, condition: "Sunny" }), {
   name: "weather",
@@ -45,7 +45,7 @@ const weather = Tool(async (location: string) => ({ location, temperature: 72, c
   },
 });
 
-const llm = createLLMTask({ model: "gpt-5-mini" });
+const llm = openaiModel({ model: "gpt-5-mini" });
 
 for await (const [assistant] of llm({
   messages: [{ role: "user" as const, content: "What’s the weather in Miami?" }],
@@ -58,7 +58,7 @@ for await (const [assistant] of llm({
 ## A Tiny Agent
 
 ```ts
-import { createAgent, createLLMTask, Tool } from "@pstdio/tiny-ai-tasks";
+import { createAgent, openaiModel, Tool } from "@pstdio/tiny-ai-tasks";
 
 const news = Tool(async (topic: string = "general") => ({ topic, articles: [{ title: "Demo" }] }), {
   name: "news",
@@ -68,7 +68,7 @@ const news = Tool(async (topic: string = "general") => ({ topic, articles: [{ ti
 
 const agent = createAgent({
   template: [{ role: "system", content: "You are a concise analyst." }],
-  llm: createLLMTask({ model: "gpt-5-mini" }),
+  llm: openaiModel({ model: "gpt-5-mini" }),
   tools: [news],
 });
 
@@ -80,9 +80,9 @@ for await (const [msgs] of agent([{ role: "user", content: "Summarize today’s 
 ## Summarize & Trim History
 
 ```ts
-import { createLLMTask, createSummarizer, truncateToBudget } from "@pstdio/tiny-ai-tasks";
+import { openaiModel, createSummarizer, truncateToBudget } from "@pstdio/tiny-ai-tasks";
 
-const callLLM = createLLMTask({ model: "gpt-5-mini" });
+const callLLM = openaiModel({ model: "gpt-5-mini" });
 const summarize = createSummarizer(callLLM);
 
 const history = [
@@ -102,12 +102,12 @@ for await (const [msgs] of summarize({ history, opts: { budget: 200, markSummary
 ## Optional Scratchpad Tool
 
 ```ts
-import { createScratchpad, createScratchpadTool, createLLMTask } from "@pstdio/tiny-ai-tasks";
+import { createScratchpad, createScratchpadTool, openaiModel } from "@pstdio/tiny-ai-tasks";
 
 const scratch = createScratchpad();
 const scratchTool = createScratchpadTool(scratch);
 
-const llm = createLLMTask({ model: "gpt-5-mini" });
+const llm = openaiModel({ model: "gpt-5-mini" });
 const input = { messages: [{ role: "user" as const, content: "Plan a trip" }], tools: [scratchTool] };
 
 for await (const _ of llm(input)) {
@@ -117,8 +117,9 @@ console.log("scratch:", scratch.get());
 
 ## API Overview
 
-- createLLMTask(options): Stream assistant deltas with accumulated `tool_calls`.
-- createAgent({ template?, llm, tools?, maxTurns? }): Minimal loop that plans → runs tools → continues.
+- openaiModel(options): Model backed by the OpenAI (compatible) chat completions API. Streams assistant deltas with accumulated `tool_calls`. (Formerly `createLLMTask`, still exported as a deprecated alias.)
+- webLLMModel(options): Model that runs in the browser via WebGPU using `@mlc-ai/web-llm` (an optional peer dependency). Same streaming/tool-call contract as `openaiModel`.
+- createAgent({ template?, llm, tools?, maxTurns? }): Minimal loop that plans → runs tools → continues. The `llm` is any `Model`.
 - Tool(run, definition): Define a JSON‑schema validated tool; returns `{ messages, data? }` or a plain value.
 - createToolTask(tools): Route a `ToolCall` to the matching tool and package a `ToolResult`.
 - toOpenAITools(tools): Convert tools to OpenAI’s `tools` shape.

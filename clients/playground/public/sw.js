@@ -46,9 +46,9 @@ r.addEventListener("fetch", (t) => {
         if (new URL(a.url).pathname === c)
           try {
             const i = await fetch(a);
-            return (i && i.ok && (await s.put(c, i.clone())), i);
+            return i && i.ok && (await s.put(c, i.clone())), i;
           } catch (i) {
-            return (console.error("SW runtime fetch failed:", i), new Response("Runtime unavailable", { status: 503 }));
+            return console.error("SW runtime fetch failed:", i), new Response("Runtime unavailable", { status: 503 });
           }
         return new Response("Not found", { status: 404 });
       })(),

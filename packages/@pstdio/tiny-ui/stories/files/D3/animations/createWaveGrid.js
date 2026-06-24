@@ -1,5 +1,5 @@
-import { select } from "d3-selection";
 import { range } from "d3-array";
+import { select } from "d3-selection";
 import { timer } from "d3-timer";
 
 export function createWaveGrid(container) {
@@ -39,27 +39,25 @@ export function createWaveGrid(container) {
     const time = elapsed / 850;
 
     circles
-      .attr("cx", function (d) {
+      .attr("cx", (d) => {
         const offset = Math.sin(time + d.row * 0.45 + d.col * 0.25) * 14;
         return d.x + offset;
       })
-      .attr("cy", function (d) {
+      .attr("cy", (d) => {
         const offset = Math.cos(time * 0.9 + d.row * 0.32 + d.col * 0.4) * 14;
         return d.y + offset;
       })
-      .attr("r", function (d) {
+      .attr("r", (d) => {
         const scale = Math.sin(time * 1.4 + d.row * 0.4 + d.col * 0.5);
         return 3.5 + Math.abs(scale) * 6;
       })
-      .attr("fill", function (d) {
+      .attr("fill", (d) => {
         const hue = (280 + (d.row + d.col) * 8 + Math.sin(time + d.row * 0.3) * 60) % 360;
         const saturation = 75 + Math.sin(time * 0.8 + d.col * 0.4) * 18;
         const lightness = 60 + Math.cos(time + d.row * 0.5) * 10;
         return "hsl(" + hue + ", " + saturation + "%, " + lightness + "%)";
       })
-      .attr("opacity", function (d) {
-        return 0.35 + Math.abs(Math.sin(time * 0.9 + (d.row + d.col) * 0.12)) * 0.65;
-      });
+      .attr("opacity", (d) => 0.35 + Math.abs(Math.sin(time * 0.9 + (d.row + d.col) * 0.12)) * 0.65);
   });
 
   return () => {

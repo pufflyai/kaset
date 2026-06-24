@@ -11,9 +11,10 @@
  *   // When tearing down:
  *   prepared.cleanup();
  */
-import { ensureVirtualFetchFallback, isServiceWorkerControlled } from "./fetch-fallback";
+
 import { getVirtualPrefix } from "../constants";
 import type { CompileResult } from "../types";
+import { ensureVirtualFetchFallback, isServiceWorkerControlled } from "./fetch-fallback";
 
 export interface InlineStyleEntry {
   id: string;

@@ -14,13 +14,13 @@
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "bun run build",
     "build": "vite build",
     "dev": "vite build --watch",
-    "test": "npm run typecheck && vitest run",
-    "lint": "eslint .",
+    "test": "bun run typecheck && vitest run",
+    "lint": "biome lint src",
     "typecheck": "tsc --noEmit",
-    "visualize-bundle": "npx vite-bundle-visualizer"
+    "visualize-bundle": "bunx vite-bundle-visualizer"
   },
   "devDependencies": {
     "@au-re/vite-plugin-externalize-deps": "^0.9.1",
@@ -41,8 +41,5 @@
   ],
   "publishConfig": {
     "access": "public"
-  },
-  "volta": {
-    "node": "22.18.0"
   }
 }

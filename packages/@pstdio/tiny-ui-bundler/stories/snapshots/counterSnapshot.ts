@@ -1,10 +1,9 @@
 import { ENTRY_PATH, type SnapshotVariant } from "../compileScenarioShared";
+import counterTemplate from "./counter/files/counter.ts?raw";
+import indexTemplate from "./counter/files/index.ts?raw";
+import stylesTemplate from "./counter/files/styles.css?raw";
 import type { SnapshotDefinition } from "./types";
 import { applyReplacements } from "./utils";
-
-import indexTemplate from "./counter/files/index.ts?raw";
-import counterTemplate from "./counter/files/counter.ts?raw";
-import stylesTemplate from "./counter/files/styles.css?raw";
 
 const COUNTER_VARIANTS: Record<
   SnapshotVariant,

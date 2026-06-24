@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OpfsSync } from "../opfsSync";
 import { MockRemoteProvider } from "./MockRemoteProvider";
 import { createMockDirectoryHandle, createMockFileHandle } from "./setup";

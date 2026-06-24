@@ -1,4 +1,4 @@
-import { ls, watchDirectory, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import { type DirectoryWatcherCleanup, ls, watchDirectory } from "@pstdio/opfs-utils";
 import { useEffect, useState } from "react";
 
 export type FileNode = {

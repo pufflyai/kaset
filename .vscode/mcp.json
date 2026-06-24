@@ -1,8 +1,0 @@
-{
-  "servers": {
-    "chakra-ui": {
-      "command": "npx",
-      "args": ["-y", "@chakra-ui/react-mcp"]
-    }
-  }
-}

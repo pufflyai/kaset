@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
-import { getOPFSRoot } from "../__helpers__/test-opfs";
-import { LsEntry, formatLong, formatMtime, formatSize, formatTree, ls } from "./opfs-ls";
+import { getOPFSRoot, setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
+import { formatLong, formatMtime, formatSize, formatTree, type LsEntry, ls } from "./opfs-ls";
 
 describe("formatSize", () => {
   it("formats bytes with units", () => {

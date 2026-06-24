@@ -1,8 +1,7 @@
 import { ENTRY_PATH, type SnapshotVariant } from "../compileScenarioShared";
+import brokenEntrySource from "./broken/files/index.ts?raw";
 import type { SnapshotDefinition } from "./types";
 import { applyReplacements } from "./utils";
-
-import brokenEntrySource from "./broken/files/index.ts?raw";
 
 const ERROR_NOTES: Record<SnapshotVariant, string> = {
   fresh: "Fresh snapshot references helper modules that were never registered.",

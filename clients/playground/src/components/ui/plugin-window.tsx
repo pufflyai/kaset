@@ -1,9 +1,9 @@
-import { usePluginDependenciesReady } from "@/services/plugins/hooks/usePluginDependenciesReady";
-import { usePluginFilesRefresh } from "@/services/plugins/hooks/usePluginFileRefresh";
-import { usePluginActionHandler } from "@/services/plugins/hooks/usePluginActionHandler";
 import { Box, Button, Center, Text } from "@chakra-ui/react";
 import { TinyUI, type TinyUIStatus } from "@pstdio/tiny-ui";
 import { useCallback, useState } from "react";
+import { usePluginActionHandler } from "@/services/plugins/hooks/usePluginActionHandler";
+import { usePluginDependenciesReady } from "@/services/plugins/hooks/usePluginDependenciesReady";
+import { usePluginFilesRefresh } from "@/services/plugins/hooks/usePluginFileRefresh";
 import { LoadingState } from "./loading-state";
 
 export interface PluginWindowProps {

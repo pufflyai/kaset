@@ -1,10 +1,9 @@
 import type { CSSProperties } from "react";
 import { useMemo } from "react";
-
+import { useTodoStore } from "./store/useTodoStore";
 import { TodoInput } from "./TodoInput";
 import { TodoList } from "./TodoList";
 import { TodoStats } from "./TodoStats";
-import { useTodoStore } from "./store/useTodoStore";
 
 const containerStyle: CSSProperties = {
   fontFamily: "system-ui, sans-serif",

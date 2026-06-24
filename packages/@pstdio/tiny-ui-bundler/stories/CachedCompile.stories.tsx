@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
 import {
-  CompileScenarioStory,
-  type CompileScenarioProps,
   COMPONENT_DESCRIPTION,
-  SCENARIO_STORY_DESCRIPTIONS,
+  type CompileScenarioProps,
+  CompileScenarioStory,
   DEFAULT_SNAPSHOT_ID,
+  SCENARIO_STORY_DESCRIPTIONS,
   SNAPSHOT_IDS,
   SNAPSHOT_LABELS,
 } from "./CompileScenarioStory";

@@ -2,12 +2,12 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { createTwoFilesPatch } from "diff";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { scan, setOptions } from "react-scan";
+import { getFs } from "../src/adapter/fs";
 import type { ApplyPatchOptions, FileOperationResult } from "../src/git/patch";
 import { applyPatchInOPFS } from "../src/git/patch";
-import { getFs } from "../src/adapter/fs";
+import { Button, MonoBlock, Row, Section, TextInput } from "./components/ui";
 import { getDirHandle, readTextFile, resetDemoProject, setupDemoProject } from "./helpers";
 import { PATCH_MODIFY_INDEX, PATCH_MULTI_FILE } from "./samples";
-import { Button, MonoBlock, Row, Section, TextInput } from "./components/ui";
 
 interface BenchmarkScenario {
   id: string;

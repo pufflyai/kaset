@@ -1,4 +1,3 @@
-import { getIconComponent, type IconName } from "../utils/getIcon.ts";
 import {
   Avatar,
   Box,
@@ -12,8 +11,9 @@ import {
   Text,
 } from "@chakra-ui/react";
 import { ChevronUpIcon } from "lucide-react";
-import { useState } from "react";
 import type { ReactNode } from "react";
+import { useState } from "react";
+import { getIconComponent, type IconName } from "../utils/getIcon.ts";
 import { CodeEditor } from "./code-editor/code-editor.tsx";
 import { DiffBubble } from "./diff-bubble/diff-bubble.tsx";
 import { DiffEditor } from "./diff-editor.tsx";

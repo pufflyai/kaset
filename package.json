@@ -2,6 +2,7 @@
   "name": "root",
   "private": true,
   "type": "module",
+  "packageManager": "bun@1.3.14",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -10,38 +11,32 @@
     "url": "git+https://github.com/pufflyai/kaset.git"
   },
   "scripts": {
-    "reset:all": "npm run clean && npm i && npm run lint && npm run build && npm run test",
-    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" npx lerna run build",
-    "test": "npx lerna run test",
-    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,html,md,yml,yaml}\" --ignore-path .gitignore",
-    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,scss,html,md,yml,yaml}\" --ignore-path .gitignore",
-    "lint": "npx lerna run lint",
+    "reset:all": "bun run clean && bun install && bun run lint && bun run build && bun run test",
+    "build": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" lerna run build",
+    "test": "lerna run test",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "lerna run lint",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "publish-packages": "changeset publish",
     "clean": "find . -type d -name \"node_modules\" -prune -exec rm -rf '{}' + && find . -type d -name \"dist\" -prune -exec rm -rf '{}' + && find . -type d -name \".cache\" -prune -exec rm -rf '{}' + && rm -rf .nx",
     "knip": "knip"
   },
   "engines": {
-    "node": "22"
+    "bun": ">=1.3.13"
   },
   "workspaces": [
     "packages/**",
     "clients/*"
   ],
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
+    "@biomejs/biome": "^2.5.1",
+    "@changesets/cli": "^2.31.0",
     "@types/node": "^24.8.1",
     "cross-env": "^10.0.0",
-    "eslint": "^9.32.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "eslint-plugin-storybook": "^9.1.1",
-    "globals": "^16.3.0",
     "knip": "^5.66.1",
     "lerna": "^8.2.3",
-    "prettier": "^3.6.2",
-    "typescript": "^5.9.3",
-    "typescript-eslint": "^8.39.0"
-  },
-  "volta": {
-    "node": "22.18.0"
+    "typescript": "^5.9.3"
   }
 }

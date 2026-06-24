@@ -49,10 +49,7 @@ const createRegistration = () =>
   }) as unknown as ServiceWorkerRegistration;
 
 const setServiceWorkerMock = (
-  options: {
-    register?: () => Promise<ServiceWorkerRegistration>;
-    controller?: ServiceWorker | null;
-  } = {},
+  options: { register?: () => Promise<ServiceWorkerRegistration>; controller?: ServiceWorker | null } = {},
 ) => {
   let controllerRef: ServiceWorker | null | undefined =
     options.controller ??

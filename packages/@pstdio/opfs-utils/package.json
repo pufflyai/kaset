@@ -11,15 +11,15 @@
     "url": "git+https://github.com/pufflyai/kaset.git"
   },
   "scripts": {
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "bun run build",
     "build": "tsc -b && vite build",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
-    "visualize-bundle": "npx vite-bundle-visualizer",
+    "lint": "biome lint src",
+    "visualize-bundle": "bunx vite-bundle-visualizer",
     "start": "storybook dev -p 6006",
     "storybook": "storybook dev -p 6006",
     "storybook:ci": "storybook dev -p 6006 --ci",
     "storybook:test": "test-storybook --url http://127.0.0.1:6006 --browsers chromium",
-    "test-storybook": "concurrently -k -s first -n \"SB,TEST\" \"npm run storybook:ci\" \"wait-on http://127.0.0.1:6006 && npm run storybook:test\"",
+    "test-storybook": "concurrently -k -s first -n \"SB,TEST\" \"bun run storybook:ci\" \"wait-on http://127.0.0.1:6006 && bun run storybook:test\"",
     "build-storybook": "storybook build",
     "test": "vitest run"
   },
@@ -76,8 +76,5 @@
     "diff": "^8.0.2",
     "isomorphic-git": "^1.33.1",
     "picomatch": "^4.0.3"
-  },
-  "volta": {
-    "node": "22.18.0"
   }
 }

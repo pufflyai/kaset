@@ -1,5 +1,5 @@
-import { describe, test, expect } from "vitest";
-import { Pregel, MemorySaver, Command } from "./pregel.js";
+import { describe, expect, test } from "vitest";
+import { Command, MemorySaver, Pregel } from "./pregel.js";
 
 describe("Pregel", () => {
   test("invoke and stream", async () => {

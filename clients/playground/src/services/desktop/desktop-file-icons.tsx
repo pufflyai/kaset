@@ -1,8 +1,8 @@
-import { ROOT } from "@/constant";
+import type { IconName } from "lucide-react/dynamic";
 import { ImagePreview } from "@/components/ui/image-preview";
 import { TextEditor } from "@/components/ui/text-editor";
+import { ROOT } from "@/constant";
 import type { DesktopApp } from "@/state/types";
-import type { IconName } from "lucide-react/dynamic";
 
 export const ROOT_FILE_PREFIX = "root-file:";
 export const OPEN_DESKTOP_FILE_EVENT = "kaset:desktop-open-file";

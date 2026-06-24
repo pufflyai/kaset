@@ -1,8 +1,8 @@
 import { chakra, IconButton, Spacer, Text } from "@chakra-ui/react";
-import { Tooltip } from "./tooltip.tsx";
 import type { LucideIcon } from "lucide-react";
 import { AlertTriangle, X } from "lucide-react";
 import { getFileTypeIcon } from "../utils/getIcon.ts";
+import { Tooltip } from "./tooltip.tsx";
 
 export interface MissingResourceBadgeProps {
   referenceId: string;

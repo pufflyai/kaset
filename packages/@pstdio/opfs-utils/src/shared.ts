@@ -43,6 +43,15 @@ async function ensureParentDirectories(fs: typeof import("@zenfs/core").fs, path
   return dir;
 }
 
+async function deleteExistingFile(fs: typeof import("@zenfs/core").fs, absPath: string) {
+  try {
+    await fs.promises.unlink(absPath);
+  } catch (e: any) {
+    if (e && (e.code === "ENOENT" || e.name === "NotFoundError" || e.code === 1)) return;
+    throw e;
+  }
+}
+
 export async function ensureDirExists(targetDir: string, create: boolean) {
   const fs = await getFs();
 
@@ -155,6 +164,7 @@ export async function writeTextFile(path: string, content: string) {
   const fs = await getFs();
   const absPath = toAbsolutePath(path);
   await ensureParentDirectories(fs, path);
+  await deleteExistingFile(fs, absPath);
   await fs.promises.writeFile(absPath, content, "utf8");
 }
 
@@ -163,6 +173,7 @@ export async function writeBinaryFile(path: string, content: BinaryLike) {
   const absPath = toAbsolutePath(path);
   await ensureParentDirectories(fs, path);
   const bytes = await ensureUint8Array(content);
+  await deleteExistingFile(fs, absPath);
   await fs.promises.writeFile(absPath, bytes);
 }
 

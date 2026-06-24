@@ -1,4 +1,4 @@
-import { normalizeRoot, type ChangeRecord } from "@pstdio/opfs-utils";
+import { type ChangeRecord, normalizeRoot } from "@pstdio/opfs-utils";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import { createToolsForCommands } from "../adapters/tiny-ai-tasks";
 import { createHost } from "../core/host";

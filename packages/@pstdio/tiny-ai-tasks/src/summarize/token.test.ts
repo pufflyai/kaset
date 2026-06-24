@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { roughCounter } from "./token";
+import { describe, expect, it } from "vitest";
 import type { AssistantMessage, BaseMessage } from "../utils/messageTypes";
+import { roughCounter } from "./token";
 
 describe("roughCounter", () => {
   it("is deterministic and accounts for tool_calls", () => {

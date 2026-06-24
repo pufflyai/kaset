@@ -1,5 +1,3 @@
-import { MenuItem } from "@/components/ui/menu-item";
-import { getIconComponent } from "@/kas-ui";
 import { Box, IconButton, Menu } from "@chakra-ui/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { useLexicalEditable } from "@lexical/react/useLexicalEditable";
@@ -14,6 +12,8 @@ import {
 import { $getSelection, $isRangeSelection } from "lexical";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { MenuItem } from "@/components/ui/menu-item";
+import { getIconComponent } from "@/kas-ui";
 
 const MenuTriggerIcon = getIconComponent("chevron-down");
 const MENU_TRIGGER_ICON_SIZE = 14;

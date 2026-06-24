@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { task } from "../runtime";
 import { Tool } from "../tools/Tool";
-import { createAgent, type MessageHistory } from "./createAgent";
-
 import type { AssistantMessage } from "../utils/messageTypes";
+import { createAgent, type MessageHistory } from "./createAgent";
 
 describe("createAgent", () => {
   it("runs a simple tool call end-to-end", async () => {

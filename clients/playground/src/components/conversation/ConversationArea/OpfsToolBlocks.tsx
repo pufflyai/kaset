@@ -1,5 +1,5 @@
-import { DiffEditor, ResourceBadge } from "@/kas-ui";
 import { Card, Stack, Text } from "@chakra-ui/react";
+import { DiffEditor, ResourceBadge } from "@/kas-ui";
 
 export interface OpfsLsBlockProps {
   entries: Array<{ path: string; kind: "file" | "directory" }>;

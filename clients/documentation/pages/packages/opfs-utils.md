@@ -194,7 +194,7 @@ Want to experiment with `@pstdio/opfs-utils`? The package includes a comprehensi
 
 ```bash
 cd packages/@pstdio/opfs-utils
-npm run storybook
+bun run --filter @pstdio/opfs-utils storybook
 ```
 
 Then navigate to the "Playground" story for an interactive OPFS environment.

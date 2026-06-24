@@ -1,8 +1,8 @@
 import { Box, Breadcrumb, Flex, Text } from "@chakra-ui/react";
 import { FileText, FolderClosed } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { type FsNode, useFsTree } from "../hooks/useFsTree";
 import type { FsScope, TinyUiHost } from "../host";
-import { useFsTree, type FsNode } from "../hooks/useFsTree";
 
 interface FileExplorerProps {
   host: TinyUiHost;

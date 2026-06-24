@@ -1,8 +1,8 @@
-import { ChakraProvider, Flex, defaultSystem } from "@chakra-ui/react";
+import { ChakraProvider, defaultSystem, Flex } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
-import type { FsScope, TinyUiHost } from "./host";
 import { FileExplorer } from "./components/file-explorer";
+import type { FsScope, TinyUiHost } from "./host";
 
 const ROOT_DIR = "playground";
 const CHANNEL_NAME = "file-explorer:open-folder";

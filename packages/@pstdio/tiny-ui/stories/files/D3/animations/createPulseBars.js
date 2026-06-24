@@ -1,5 +1,5 @@
-import { select } from "d3-selection";
 import { range } from "d3-array";
+import { select } from "d3-selection";
 import { timer } from "d3-timer";
 
 export function createPulseBars(container) {
@@ -24,9 +24,7 @@ export function createPulseBars(container) {
     .data(range(count))
     .enter()
     .append("rect")
-    .attr("x", function (_, index) {
-      return index * xStep + xStep * 0.1;
-    })
+    .attr("x", (_, index) => index * xStep + xStep * 0.1)
     .attr("width", xStep * 0.8)
     .attr("rx", 6)
     .attr("ry", 6)
@@ -47,25 +45,23 @@ export function createPulseBars(container) {
     const time = elapsed / 1000;
 
     bars
-      .attr("y", function (_, index) {
+      .attr("y", (_, index) => {
         const wave = Math.sin(time * 2 + index * 0.32) + Math.cos(time * 1.4 + index * 0.45);
         const normalized = (wave + 2) / 4;
         const barHeight = 28 + normalized * (innerHeight - 36);
         return innerHeight - barHeight;
       })
-      .attr("height", function (_, index) {
+      .attr("height", (_, index) => {
         const wave = Math.sin(time * 2 + index * 0.32) + Math.cos(time * 1.4 + index * 0.45);
         const normalized = (wave + 2) / 4;
         return 28 + normalized * (innerHeight - 36);
       })
-      .attr("fill", function (_, index) {
+      .attr("fill", (_, index) => {
         const hue = (188 + Math.sin(time + index * 0.18) * 40 + 360) % 360;
         const light = 55 + Math.sin(time * 1.5 + index * 0.28) * 14;
         return "hsl(" + hue + ", 85%, " + light + "%)";
       })
-      .attr("opacity", function (_, index) {
-        return 0.55 + Math.abs(Math.sin(time * 1.2 + index * 0.24)) * 0.45;
-      });
+      .attr("opacity", (_, index) => 0.55 + Math.abs(Math.sin(time * 1.2 + index * 0.24)) * 0.45);
   });
 
   return () => {

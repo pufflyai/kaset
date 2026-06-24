@@ -1,4 +1,4 @@
-import { ls, watchDirectory, type ChangeRecord, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import { type ChangeRecord, type DirectoryWatcherCleanup, ls, watchDirectory } from "@pstdio/opfs-utils";
 
 const IGNORED = [/\.settings\.json$/i, /\.keep$/i];
 

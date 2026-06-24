@@ -1,6 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ToolConfig } from "@pstdio/tiny-ai-tasks";
 import type { LsEntry } from "@pstdio/opfs-utils";
+import type { ToolConfig } from "@pstdio/tiny-ai-tasks";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { opfs_ls } from "./opfs-ls";
 
 vi.mock("@pstdio/opfs-utils", () => ({

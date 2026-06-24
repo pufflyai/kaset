@@ -1,8 +1,8 @@
 import type { ChangeRecord } from "@pstdio/opfs-utils";
 import { createPluginFs } from "../fs";
 import { readManifestStrict } from "../manifest";
-import { listFiles, watchPluginDir } from "../watchers";
 import type { Manifest, PluginContext, PluginModule } from "../types";
+import { listFiles, watchPluginDir } from "../watchers";
 import { buildHostApi } from "./hostApi";
 import type { HostRuntime, HostState, LifecycleHooks } from "./internalTypes";
 import { pluginRootPath, shouldEmitPluginsChange } from "./utils";

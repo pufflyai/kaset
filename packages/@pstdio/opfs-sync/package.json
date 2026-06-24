@@ -14,9 +14,9 @@
     "url": "https://github.com/pufflyai/kaset/issues"
   },
   "scripts": {
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "bun run build",
     "build": "tsc -b && vite build",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
+    "lint": "biome lint src",
     "test": "vitest run",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage"
@@ -57,8 +57,5 @@
     "vite": "^7.1.0",
     "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4"
-  },
-  "volta": {
-    "node": "22.18.0"
   }
 }

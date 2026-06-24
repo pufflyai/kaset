@@ -1,8 +1,8 @@
 import { analyticsSnapshot } from "./analyticsSnapshot";
+import { brokenSnapshot } from "./brokenSnapshot";
 import { counterSnapshot } from "./counterSnapshot";
 import { defaultSnapshot } from "./defaultSnapshot";
 import { reactD3Snapshot } from "./reactD3Snapshot";
-import { brokenSnapshot } from "./brokenSnapshot";
 import type { SnapshotDefinition } from "./types";
 
 const registry = {

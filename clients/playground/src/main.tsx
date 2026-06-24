@@ -1,10 +1,10 @@
 import "allotment/dist/style.css";
 
 import { ChakraProvider } from "@chakra-ui/react";
+import { TinyUiProvider } from "@pstdio/tiny-ui";
 import { Buffer } from "buffer";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { TinyUiProvider } from "@pstdio/tiny-ui";
 import { App } from "./App";
 import { WorkspaceProvider } from "./state/WorkspaceProvider";
 import theme from "./theme/theme";

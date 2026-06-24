@@ -1,8 +1,8 @@
-import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { createMcpTool, type Tool } from "@pstdio/tiny-ai-tasks";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useWorkspaceStore } from "@/state/WorkspaceProvider";
 
 type RemoteTool = {
   name: string;

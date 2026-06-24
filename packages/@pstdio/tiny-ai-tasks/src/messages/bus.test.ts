@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { filterHistory, mergeHistory, busToBaseMessages, type ExtendedMessage } from "./bus";
+import { describe, expect, it } from "vitest";
+import { busToBaseMessages, type ExtendedMessage, filterHistory, mergeHistory } from "./bus";
 
 describe("filterHistory", () => {
   const base: ExtendedMessage[] = [

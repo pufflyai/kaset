@@ -252,8 +252,6 @@ export async function getRepoStatus(ctx: GitContext) {
         // Index still has file → deletion not staged
         unstagedDeleted.push(filepath);
       }
-
-      continue;
     }
   }
 
@@ -754,9 +752,8 @@ export async function continueFromCommit(
       throw new Error(
         `continueFromCommit: branch '${branch}' exists at ${existingTarget.slice(0, 7)}; choose a different name`,
       );
-    } else {
-      await isogit.writeRef({ fs, dir, ref: `refs/heads/${branch}`, value: oid, force: true });
     }
+    await isogit.writeRef({ fs, dir, ref: `refs/heads/${branch}`, value: oid, force: true });
   }
 
   // Attach HEAD to the branch and checkout to update workdir
