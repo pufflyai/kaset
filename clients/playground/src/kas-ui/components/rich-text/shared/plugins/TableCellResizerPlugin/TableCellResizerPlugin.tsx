@@ -11,7 +11,7 @@ import {
   $isTableRowNode,
   $isTableSelection,
   getDOMCellFromTarget,
-  TableCellNode,
+  type TableCellNode,
 } from "@lexical/table";
 import type { LexicalEditor } from "lexical";
 import { $getNearestNodeFromDOMNode, $getSelection, COMMAND_PRIORITY_HIGH, SELECTION_CHANGE_COMMAND } from "lexical";

@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ToolConfig } from "@pstdio/tiny-ai-tasks";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { opfs_patch } from "./opfs-patch";
 
 vi.mock("@pstdio/opfs-utils", () => ({
@@ -8,7 +8,7 @@ vi.mock("@pstdio/opfs-utils", () => ({
   patch: vi.fn(),
 }));
 
-import { hasParentTraversal, joinUnderWorkspace, patch as applyPatchInOPFS } from "@pstdio/opfs-utils";
+import { patch as applyPatchInOPFS, hasParentTraversal, joinUnderWorkspace } from "@pstdio/opfs-utils";
 
 describe("opfs_patch", () => {
   const rootDir = "/workspace";

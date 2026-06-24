@@ -1,4 +1,4 @@
-import { isOpfsToolIconName, type IconName } from "@/kas-ui";
+import { type IconName, isOpfsToolIconName } from "@/kas-ui";
 
 const DEFAULT_TOOL_ICON: IconName = "dot";
 

@@ -1,8 +1,8 @@
+import { getFileHandle, resolveSubdir } from "../shared";
 import { globToRegExp as globToRegExpGrep } from "../utils/opfs-grep";
 import { ls } from "../utils/opfs-ls";
 import { basename, joinPath, normalizeSlashes } from "../utils/path";
-import { resolveSubdir, getFileHandle } from "../shared";
-import { Ctx } from "./helpers";
+import type { Ctx } from "./helpers";
 
 export async function cmdFind(args: string[], ctx: Ctx): Promise<string> {
   let startPathArg: string | undefined;

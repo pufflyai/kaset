@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
-import { CompileScenarioStory, type CompileScenarioProps, COMPONENT_DESCRIPTION } from "./CompileScenarioStory";
+import { COMPONENT_DESCRIPTION, type CompileScenarioProps, CompileScenarioStory } from "./CompileScenarioStory";
 
 const meta = {
   title: "Tiny UI Bundler/Compile/Broken Bundle",

@@ -1,7 +1,7 @@
 import {
+  type BindStoreOptions,
   bindStoreToJsonFile,
   createJsonFileStorage,
-  type BindStoreOptions,
   type JsonFileStorageOptions,
   type StoreAdapter,
 } from "@pstdio/opfs-utils";

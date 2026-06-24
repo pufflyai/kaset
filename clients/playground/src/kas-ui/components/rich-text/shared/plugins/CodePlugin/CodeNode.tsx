@@ -1,7 +1,7 @@
-import { CodeEditor } from "../../../../code-editor/code-editor.tsx";
 import { Box } from "@chakra-ui/react";
 import { DecoratorNode, type SerializedLexicalNode } from "lexical";
 import type { ReactNode } from "react";
+import { CodeEditor } from "../../../../code-editor/code-editor.tsx";
 
 export interface SerializedCodeBlockNode extends SerializedLexicalNode {
   type: "codeblock";

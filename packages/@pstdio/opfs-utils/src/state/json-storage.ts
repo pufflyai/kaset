@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "../utils/opfs-crud";
-import { parentOf, normalizeRelPath } from "../utils/path";
-import { watchDirectory, type ChangeRecord, type DirectoryWatcherCleanup } from "../utils/opfs-watch";
+import { type ChangeRecord, type DirectoryWatcherCleanup, watchDirectory } from "../utils/opfs-watch";
+import { normalizeRelPath, parentOf } from "../utils/path";
 
 export interface JsonFileStorageOptions<T> {
   /** Initial fallback used when the file is missing or cannot be parsed. */

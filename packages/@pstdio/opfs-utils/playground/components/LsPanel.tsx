@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { formatLong, formatTree, ls, type LsEntry } from "../../src/utils/opfs-ls";
+import { formatLong, formatTree, type LsEntry, ls } from "../../src/utils/opfs-ls";
 import { Button, MonoBlock, Row, Section, TextInput } from "./ui";
 
 export function LsPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (s: string) => void }) {

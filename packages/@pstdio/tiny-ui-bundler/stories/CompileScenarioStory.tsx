@@ -1,12 +1,10 @@
+import esbuildWasmUrl from "esbuild-wasm/esbuild.wasm?url";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
 import { compile, getCachedBundle, setLockfile } from "../src";
 import { buildVirtualUrl } from "../src/constants";
 import { registerVirtualSnapshot } from "../src/core/snapshot";
 import { registerSources } from "../src/core/sources";
 import type { BuildWithEsbuildOptions, CompileResult } from "../src/types";
-
-import esbuildWasmUrl from "esbuild-wasm/esbuild.wasm?url";
 
 import { SCENARIO_DESCRIPTIONS, SCENARIO_LABELS, SCENARIO_RUNNERS, type Scenario } from "./compileScenarioConfig";
 import {
@@ -16,13 +14,13 @@ import {
   resetServiceWorker,
   verifyBundleAccessibility,
 } from "./compileScenarioEnvironment";
-import { ENTRY_PATH, SOURCE_ID, STORY_ROOT, type SnapshotVariant } from "./compileScenarioShared";
+import { ENTRY_PATH, type SnapshotVariant, SOURCE_ID, STORY_ROOT } from "./compileScenarioShared";
 import {
+  type CompileStep,
   describeAccessibility,
   formatDuration,
   INITIAL_STATE,
   now,
-  type CompileStep,
   type ScenarioState,
 } from "./compileScenarioState";
 import { DEFAULT_SNAPSHOT_ID, getSnapshotDefinition, type SnapshotId } from "./snapshots";
@@ -720,8 +718,8 @@ export const CompileScenarioStory = ({ scenario, snapshotId }: CompileScenarioPr
   );
 };
 
-export { COMPONENT_DESCRIPTION, SCENARIO_STORY_DESCRIPTIONS } from "./compileScenarioConfig";
 export type { Scenario } from "./compileScenarioConfig";
+export { COMPONENT_DESCRIPTION, SCENARIO_STORY_DESCRIPTIONS } from "./compileScenarioConfig";
 export { compileStoryHelpers } from "./compileScenarioEnvironment";
-export { DEFAULT_SNAPSHOT_ID, SNAPSHOT_IDS, SNAPSHOT_LABELS, SNAPSHOT_OPTION_LIST } from "./snapshots";
 export type { SnapshotId } from "./snapshots";
+export { DEFAULT_SNAPSHOT_ID, SNAPSHOT_IDS, SNAPSHOT_LABELS, SNAPSHOT_OPTION_LIST } from "./snapshots";

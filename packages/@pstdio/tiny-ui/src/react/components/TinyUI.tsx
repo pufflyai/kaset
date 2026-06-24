@@ -1,8 +1,8 @@
-import { type CompileResult } from "@pstdio/tiny-ui-bundler";
-import React from "react";
+import type { CompileResult } from "@pstdio/tiny-ui-bundler";
+import type React from "react";
 import { getTinyUIRuntimePath } from "../../setupTinyUI";
 import type { TinyUIStatus } from "../../types";
-import { useTinyUiInstance, type TinyUIActionHandler } from "../hooks/useTinyUiInstance";
+import { type TinyUIActionHandler, useTinyUiInstance } from "../hooks/useTinyUiInstance";
 
 export type { TinyUIActionHandler } from "../hooks/useTinyUiInstance";
 

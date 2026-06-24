@@ -1,5 +1,5 @@
 import { downloadFile as downloadFileAtRoot, hasParentTraversal, joinUnderWorkspace } from "@pstdio/opfs-utils";
-import { OPFSToolRunner } from "../types";
+import type { OPFSToolRunner } from "../types";
 
 export type OpfsDownloadFileParams = {
   file: string;

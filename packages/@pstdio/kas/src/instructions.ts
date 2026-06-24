@@ -1,6 +1,6 @@
 import { readFile } from "@pstdio/opfs-utils";
 import { shortUID } from "@pstdio/prompt-utils";
-import type { UIMessage, UIConversation } from "./adapters/kas-ui/types";
+import type { UIConversation, UIMessage } from "./adapters/kas-ui/types";
 
 export type AgentInstructions = {
   messages: UIConversation;

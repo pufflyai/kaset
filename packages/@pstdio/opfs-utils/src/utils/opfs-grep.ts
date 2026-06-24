@@ -1,6 +1,6 @@
-import { expandBraces, globToRegExp } from "./glob";
 import { getFs } from "../adapter/fs";
 import { resolveSubdir } from "../shared";
+import { expandBraces, globToRegExp } from "./glob";
 import { joinPath, normalizeSlashes } from "./path";
 
 type Zenfs = Awaited<ReturnType<typeof getFs>>;

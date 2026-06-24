@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getOPFSRoot } from "../__helpers__/test-opfs";
-import { setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
-import { opfsGlob, sortFileEntries, type GlobPath } from "./opfs-glob";
+import { getOPFSRoot, setupTestOPFS, writeFile } from "../__helpers__/test-opfs";
+import { type GlobPath, opfsGlob, sortFileEntries } from "./opfs-glob";
 
 function mockPath(path: string, mtimeMs: number): GlobPath {
   return {

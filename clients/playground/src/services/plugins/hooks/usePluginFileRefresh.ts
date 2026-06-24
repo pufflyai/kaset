@@ -1,6 +1,6 @@
-import { host } from "@/services/plugins/host";
 import debounce from "lodash.debounce";
 import { useEffect, useMemo, useState } from "react";
+import { host } from "@/services/plugins/host";
 
 export const usePluginFilesRefresh = (pluginId: string) => {
   const [refreshToken, setRefreshToken] = useState(0);

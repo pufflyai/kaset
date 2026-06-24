@@ -1,6 +1,6 @@
 import { compile as bundleCompile, type CompileResult } from "@pstdio/tiny-ui-bundler";
-import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from "react";
-import { setupTinyUI, type SetupTinyUIOptions } from "../setupTinyUI";
+import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo } from "react";
+import { type SetupTinyUIOptions, setupTinyUI } from "../setupTinyUI";
 import type { TinyUIStatus } from "../types";
 import { useServiceWorkerStatus } from "./useServiceWorkerStatus";
 

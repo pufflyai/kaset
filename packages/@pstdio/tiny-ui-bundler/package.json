@@ -12,10 +12,10 @@
   "scripts": {
     "start": "storybook dev -p 6006",
     "storybook": "storybook dev -p 6006",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "bun run build",
     "build": "tsc -b && vite build",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
-    "visualize-bundle": "npx vite-bundle-visualizer",
+    "lint": "biome lint src",
+    "visualize-bundle": "bunx vite-bundle-visualizer",
     "test": "vitest run --passWithNoTests"
   },
   "keywords": [],
@@ -44,7 +44,11 @@
     "access": "public"
   },
   "devDependencies": {
+    "@au-re/vite-plugin-externalize-deps": "^0.9.1",
     "@types/node": "^22.18.0",
+    "typescript": "^5.7.3",
+    "vite": "^7.1.0",
+    "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4"
   },
   "dependencies": {
@@ -54,8 +58,5 @@
   "peerDependencies": {
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0"
-  },
-  "volta": {
-    "node": "22.18.0"
   }
 }

@@ -1,13 +1,13 @@
-import { ROOT } from "@/constant";
 import {
   commitAll,
-  deleteFile,
+  ensureDirExists,
   ensureRepo,
   getDirectoryHandle,
   listCommits,
   readFile,
   writeFile,
 } from "@pstdio/opfs-utils";
+import { ROOT } from "@/constant";
 
 export type SetupOptions = {
   rootDir?: string;
@@ -45,22 +45,19 @@ const WALLPAPER_BUNDLE = import.meta.glob("/src/example-wallpapers/*.{png,jpg,jp
   eager: true,
 }) as Record<string, string>;
 
+const setupTasks = new Map<string, ReturnType<typeof runSetupPlayground>>();
+
 async function ensureDirectory(path: string) {
   const normalized = path.replace(/\\/g, "/").replace(/^\/+/, "");
 
-  try {
-    await getDirectoryHandle(normalized);
-    return;
-  } catch (error: any) {
-    if (error?.name !== "NotFoundError" && error?.code !== 404) throw error;
-  }
+  if (!normalized) return;
 
-  const keepFile = `${normalized.replace(/\/+$/, "")}/.keep`;
-  await writeFile(keepFile, "");
   try {
-    await deleteFile(keepFile);
-  } catch {
-    // ignore cleanup failures
+    await ensureDirExists(`/${normalized}`, true);
+  } catch (error: any) {
+    if (error?.code !== "EEXIST" && error?.name !== "InvalidModificationError") throw error;
+
+    await getDirectoryHandle(normalized);
   }
 }
 
@@ -150,7 +147,7 @@ async function applyWallpaperBundle(options: {
   return writeResults.reduce((sum, value) => sum + value, 0);
 }
 
-export async function setupPlayground(options: SetupOptions = {}) {
+async function runSetupPlayground(options: SetupOptions = {}) {
   const rootDir = options.rootDir?.trim() || ROOT;
   const overwrite = options.overwrite ?? false;
 
@@ -228,4 +225,29 @@ export async function setupPlayground(options: SetupOptions = {}) {
     pluginDataFiles: pluginDataFilesWritten,
     wallpaperFiles: wallpaperFilesWritten,
   };
+}
+
+export async function setupPlayground(options: SetupOptions = {}) {
+  const rootDir = options.rootDir?.trim() || ROOT;
+  const normalizedRoot = normalizeOpfsPath(rootDir);
+  const pendingTask = setupTasks.get(normalizedRoot);
+
+  if (pendingTask && !options.overwrite) {
+    return pendingTask;
+  }
+
+  if (pendingTask) {
+    await pendingTask.catch(() => undefined);
+  }
+
+  const task = runSetupPlayground({ ...options, rootDir: normalizedRoot });
+  setupTasks.set(normalizedRoot, task);
+
+  try {
+    return await task;
+  } finally {
+    if (setupTasks.get(normalizedRoot) === task) {
+      setupTasks.delete(normalizedRoot);
+    }
+  }
 }

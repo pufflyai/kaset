@@ -1,6 +1,6 @@
 import { colord } from "colord";
 import { FastAverageColor } from "fast-average-color";
-import { useEffect, useMemo, useRef, useState, type RefObject } from "react";
+import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
 
 export type SampleSource = HTMLImageElement | HTMLCanvasElement | null | undefined;
 
@@ -163,7 +163,7 @@ export function contrast(bgHex: string, fgHex: string) {
 
     const channel = (value: number) => {
       const scaled = value / 255;
-      return scaled <= 0.03928 ? scaled / 12.92 : Math.pow((scaled + 0.055) / 1.055, 2.4);
+      return scaled <= 0.03928 ? scaled / 12.92 : ((scaled + 0.055) / 1.055) ** 2.4;
     };
 
     const rLin = channel(r);

@@ -1,5 +1,5 @@
-import { ErrorType } from "../errors";
 import { getFs } from "../adapter/fs";
+import { ErrorType } from "../errors";
 import { getFileHandle } from "../shared";
 
 // ------------------------------

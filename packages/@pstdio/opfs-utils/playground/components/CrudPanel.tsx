@@ -1,9 +1,9 @@
 import { useState } from "react";
 import {
-  readFile as opfsRead,
-  writeFile as opfsWrite,
   deleteFile as opfsDelete,
   downloadFile as opfsDownload,
+  readFile as opfsRead,
+  writeFile as opfsWrite,
 } from "../../src/utils/opfs-crud";
 import { Button, MonoBlock, Row, Section, TextArea, TextInput } from "./ui";
 

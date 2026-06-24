@@ -1,13 +1,12 @@
 import { ENTRY_PATH, type SnapshotVariant } from "../compileScenarioShared";
-import type { SnapshotDefinition } from "./types";
-import { applyReplacements } from "./utils";
-
 import indexTemplate from "./analytics/files/index.ts?raw";
 import metricsTemplate from "./analytics/files/metrics.ts?raw";
 import reportTemplate from "./analytics/files/report.ts?raw";
 import stylesTemplate from "./analytics/files/styles.css?raw";
 import forecastVendor from "./analytics/files/vendor/forecast.ts?raw";
 import formatVendor from "./analytics/files/vendor/format.ts?raw";
+import type { SnapshotDefinition } from "./types";
+import { applyReplacements } from "./utils";
 
 type AnalyticsVariantConfig = {
   accent: string;

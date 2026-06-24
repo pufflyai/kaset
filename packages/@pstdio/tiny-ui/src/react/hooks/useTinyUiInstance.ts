@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, type RefObject } from "react";
-import { type CompileResult } from "@pstdio/tiny-ui-bundler";
+import type { CompileResult } from "@pstdio/tiny-ui-bundler";
+import { type RefObject, useCallback, useEffect, useRef } from "react";
 import { createTinyHost } from "../../runtime/host";
 import { toTinyUIError } from "../../setupTinyUI";
 import type { TinyUIStatus } from "../../types";

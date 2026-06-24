@@ -1,7 +1,7 @@
+import { externalizeDeps } from "@au-re/vite-plugin-externalize-deps";
 import path from "path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
-import { externalizeDeps } from "@au-re/vite-plugin-externalize-deps";
 
 export default defineConfig({
   build: {

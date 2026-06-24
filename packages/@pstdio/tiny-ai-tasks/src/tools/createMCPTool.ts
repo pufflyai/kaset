@@ -1,5 +1,5 @@
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { Tool } from "./Tool";
+import type { Tool } from "./Tool";
 
 type CallToolResult = {
   content?: Array<{ type?: string; text?: string; [key: string]: unknown }>;

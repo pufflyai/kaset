@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { describe, expect, it, vi } from "vitest";
 import { createMcpTool } from "./createMCPTool";
 
 type NormalizedResult = {

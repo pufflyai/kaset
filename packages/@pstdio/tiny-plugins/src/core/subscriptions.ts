@@ -1,5 +1,5 @@
-import { createHost } from "./host";
-import { PluginChangePayload } from "./types";
+import type { createHost } from "./host";
+import type { PluginChangePayload } from "./types";
 
 type Host = ReturnType<typeof createHost>;
 

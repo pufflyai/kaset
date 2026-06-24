@@ -1,11 +1,10 @@
+import { CACHE_NAME, type CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-
-import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { TinyUI } from "../src/react/components/TinyUI";
 import { TinyUiProvider } from "../src/react/tiny-ui-provider";
 import { setupTinyUI } from "../src/setupTinyUI";
-import { TinyUIStatus } from "../src/types";
+import type { TinyUIStatus } from "../src/types";
 
 import BARS_SOURCE from "./files/D3/animations/createPulseBars.js?raw";
 import SPIRAL_SOURCE from "./files/D3/animations/createSpiral.js?raw";

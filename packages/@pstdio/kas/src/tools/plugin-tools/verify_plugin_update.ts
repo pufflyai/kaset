@@ -1,4 +1,4 @@
-import { OPFSToolRunner } from "../types";
+import type { OPFSToolRunner } from "../types";
 
 export const verify_plugin_update: OPFSToolRunner = (_options) => async (_params, config) => {
   return (async () => {

@@ -1,4 +1,4 @@
-import { ls, normalizeRoot, type ChangeRecord } from "@pstdio/opfs-utils";
+import { type ChangeRecord, ls, normalizeRoot } from "@pstdio/opfs-utils";
 import { CommandRegistry } from "../commands";
 import { Emitter } from "../events";
 import type { HostOptions, PluginChangePayload, StatusUpdate } from "../types";

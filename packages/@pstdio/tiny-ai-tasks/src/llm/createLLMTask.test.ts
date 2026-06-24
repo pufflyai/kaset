@@ -1,9 +1,9 @@
 import type { InterruptObject, Snapshot } from "@pstdio/tiny-tasks";
-import { MemorySaver } from "../runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { MemorySaver } from "../runtime";
+import { Tool } from "../tools/Tool";
 import type { AssistantMessage } from "../utils/messageTypes";
 import { createLLMTask } from "./createLLMTask";
-import { Tool } from "../tools/Tool";
 
 const { OpenAI: MockedOpenAI } = vi.hoisted(() => {
   return {

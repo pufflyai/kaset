@@ -1,5 +1,5 @@
-import { Ctx, resolveAsFile } from "./helpers";
 import { getFs } from "../adapter/fs";
+import { type Ctx, resolveAsFile } from "./helpers";
 
 export async function cmdNl(args: string[], ctx: Ctx, stdin: string): Promise<string> {
   let bodyMode: "a" | "t" = "t";
@@ -46,7 +46,6 @@ export async function cmdNl(args: string[], ctx: Ctx, stdin: string): Promise<st
 
     if (a.startsWith("-s") && a.length > 2) {
       sep = a.slice(2);
-      continue;
     }
   }
 

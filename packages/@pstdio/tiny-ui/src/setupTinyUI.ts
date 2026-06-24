@@ -1,5 +1,5 @@
 import { getRuntimeHtmlPath, resetBasePath, setBasePath } from "@pstdio/tiny-ui-bundler";
-import { TinyUIStatus } from "./types";
+import type { TinyUIStatus } from "./types";
 
 const initializationErrorMessage = "Tiny UI initialization failed";
 const activationTimeoutMs = 10;

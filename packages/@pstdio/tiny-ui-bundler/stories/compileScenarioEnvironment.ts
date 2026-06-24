@@ -1,5 +1,5 @@
 import { clearCachedCompileResult, resetStats, setLockfile } from "../src";
-import { CACHE_NAME, buildVirtualUrl, getManifestUrl } from "../src/constants";
+import { buildVirtualUrl, CACHE_NAME, getManifestUrl } from "../src/constants";
 import type { CompileResult } from "../src/types";
 
 import { SOURCE_ID, STORY_ROOT } from "./compileScenarioShared";

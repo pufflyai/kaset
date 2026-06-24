@@ -1,4 +1,5 @@
 import { getFs } from "../adapter/fs";
+import type { BinaryLike } from "../shared";
 import {
   ensureUint8Array,
   getDirHandle,
@@ -10,8 +11,6 @@ import {
   writeTextFile,
 } from "../shared";
 import { basename, joinPath, normalizeRelPath, parentOf } from "./path";
-
-import type { BinaryLike } from "../shared";
 
 type TextEncoding = "utf8" | "utf-8";
 

@@ -1,7 +1,7 @@
 import { normalizeSegments } from "@pstdio/opfs-utils";
 import { mergeDependencies } from "../dependencies";
-import type { HostState } from "./internalTypes";
 import type { Manifest, PluginMetadata } from "../types";
+import type { HostState } from "./internalTypes";
 
 export function pluginRootPath(root: string, pluginId: string) {
   return [root, pluginId].join("/");

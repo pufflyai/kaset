@@ -1,34 +1,25 @@
-export { compile } from "./esbuild/compile";
-export type { CompileResult, BuildWithEsbuildOptions } from "./types";
-
-export { getCachedBundle, setCachedCompileResult, clearCachedCompileResult } from "./cache/cache-manifest";
-
+export { clearCachedCompileResult, getCachedBundle, setCachedCompileResult } from "./cache/cache-manifest";
+export { CACHE_NAME, getManifestUrl, getRuntimeHtmlPath, getVirtualPrefix } from "./constants";
+export { getBasePath, resetBasePath, resolveBasePath, setBasePath } from "./core/base-path";
+export { getLockfile, getStats, resetStats, setLockfile } from "./core/idb";
+export { buildImportMap, type ImportMap, type Lockfile } from "./core/import-map";
 export {
+  type ProjectSnapshot,
+  readSnapshot,
   registerVirtualSnapshot,
   unregisterVirtualSnapshot,
-  readSnapshot,
   type VirtualSnapshot,
-  type ProjectSnapshot,
 } from "./core/snapshot";
-
 export {
-  registerSources,
-  updateSource,
-  removeSource,
-  listSources,
   getSource,
+  listSources,
+  registerSources,
+  removeSource,
   type SourceConfig,
   type SourceId,
+  updateSource,
 } from "./core/sources";
-
-export { resolveBasePath, setBasePath, resetBasePath, getBasePath } from "./core/base-path";
-
-export { getLockfile, getStats, resetStats, setLockfile } from "./core/idb";
-
-export { buildImportMap, type ImportMap, type Lockfile } from "./core/import-map";
-
-export { CACHE_NAME, getRuntimeHtmlPath, getVirtualPrefix, getManifestUrl } from "./constants";
-
+export { compile } from "./esbuild/compile";
 export { ensureVirtualFetchFallback, isServiceWorkerControlled } from "./runtime/fetch-fallback";
-
-export { prepareRuntimeAssets, type PreparedRuntimeAssets, type InlineStyleEntry } from "./runtime/prepare-runtime";
+export { type InlineStyleEntry, type PreparedRuntimeAssets, prepareRuntimeAssets } from "./runtime/prepare-runtime";
+export type { BuildWithEsbuildOptions, CompileResult } from "./types";

@@ -1,6 +1,6 @@
-import { useMemo } from "react";
 import { scaleLinear } from "d3-scale";
 import { curveMonotoneX, line } from "d3-shape";
+import { useMemo } from "react";
 
 import type { LatencyPoint, LatencySeries } from "./data";
 

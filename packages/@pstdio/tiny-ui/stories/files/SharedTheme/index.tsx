@@ -1,6 +1,6 @@
+import { Box, Button, ChakraProvider, extendTheme, Text, VStack } from "@chakra-ui/react";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ChakraProvider, Box, Button, extendTheme, Text, VStack } from "@chakra-ui/react";
 
 import "./tokens.css";
 

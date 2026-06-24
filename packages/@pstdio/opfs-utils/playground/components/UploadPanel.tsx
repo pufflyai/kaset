@@ -1,9 +1,9 @@
 import { useState } from "react";
 import {
-  pickAndUploadFilesToDirectory,
-  uploadFilesToDirectory,
   type FileUploadBaseOptions,
   type FileUploadResult,
+  pickAndUploadFilesToDirectory,
+  uploadFilesToDirectory,
 } from "../../src/utils/opfs-upload";
 import { getDirHandle } from "../helpers";
 import { Button, MonoBlock, Row, Section, TextInput } from "./ui";

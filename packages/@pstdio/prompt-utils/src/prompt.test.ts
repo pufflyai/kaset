@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { prompt, line, listAnd, listOr, section } from "./prompt";
+import { describe, expect, it } from "vitest";
+import { line, listAnd, listOr, prompt, section } from "./prompt";
 
 describe("prompt utils: prompt tag", () => {
   it("strips common indentation, trims edges, keeps max 2 blank lines", () => {

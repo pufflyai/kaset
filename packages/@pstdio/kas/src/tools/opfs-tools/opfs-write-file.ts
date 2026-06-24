@@ -1,5 +1,5 @@
 import { hasParentTraversal, joinUnderWorkspace, writeFile as writeFileAtRoot } from "@pstdio/opfs-utils";
-import { OPFSToolRunner } from "../types";
+import type { OPFSToolRunner } from "../types";
 
 export type OpfsWriteFileParams = {
   file: string;

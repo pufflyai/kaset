@@ -1,11 +1,11 @@
 import type { SnapshotVariant } from "../compileScenarioShared";
-import type { SnapshotDefinition } from "./types";
-import { applyReplacements } from "./utils";
-
-import indexTemplate from "./react-d3/files/index.tsx?raw";
 import chartTemplate from "./react-d3/files/chart.tsx?raw";
 import dataTemplate from "./react-d3/files/data.ts?raw";
+
+import indexTemplate from "./react-d3/files/index.tsx?raw";
 import stylesTemplate from "./react-d3/files/styles.css?raw";
+import type { SnapshotDefinition } from "./types";
+import { applyReplacements } from "./utils";
 
 const ENTRY_PATH_TSX = "/index.tsx";
 

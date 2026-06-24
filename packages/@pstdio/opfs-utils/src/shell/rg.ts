@@ -1,5 +1,5 @@
 import { grep } from "../utils/opfs-grep";
-import { Ctx, resolveAsDir, unquote } from "./helpers";
+import { type Ctx, resolveAsDir, unquote } from "./helpers";
 
 export async function cmdRg(args: string[], ctx: Ctx): Promise<string> {
   let showLineNums = false;

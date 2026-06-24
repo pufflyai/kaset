@@ -1,5 +1,5 @@
 import { Tool } from "@pstdio/tiny-ai-tasks";
-import { ApprovalGate } from "../../approval";
+import type { ApprovalGate } from "../../approval";
 import { opfs_delete_file, opfs_delete_file_definition } from "./opfs-delete-file";
 import { opfs_download_file, opfs_download_file_definition } from "./opfs-download-file";
 import { opfs_ls, opfs_ls_definition } from "./opfs-ls";

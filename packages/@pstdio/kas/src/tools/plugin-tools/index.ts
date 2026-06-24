@@ -1,5 +1,5 @@
 import { Tool } from "@pstdio/tiny-ai-tasks";
-import { ApprovalGate } from "../../approval";
+import type { ApprovalGate } from "../../approval";
 import { verify_plugin_update, verify_plugin_update_definition } from "./verify_plugin_update";
 
 export type CreatePluginToolsOptions = {

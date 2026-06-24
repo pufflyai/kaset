@@ -1,6 +1,6 @@
 import { host as rimlessHost } from "rimless";
-import PluginWorkerConstructor from "../../runtime/pluginWorker.ts?worker&inline";
 import { markTransferables } from "../../helpers/transferables";
+import PluginWorkerConstructor from "../../runtime/pluginWorker.ts?worker&inline";
 import type { HostApi, HostApiMethod, HostApiParams, Manifest } from "../types";
 import type { WorkerBridge, WorkerConnection } from "./internalTypes";
 

@@ -1,19 +1,18 @@
+import { CACHE_NAME, type CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import type { Meta, StoryObj } from "@storybook/react";
 import debounce from "lodash.debounce";
 import type { ChangeEvent, CSSProperties } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-
-import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { TinyUI } from "../src/react/components/TinyUI";
 import { TinyUiProvider } from "../src/react/tiny-ui-provider";
-import { TinyUIStatus } from "../src/types";
 import { setupTinyUI } from "../src/setupTinyUI";
+import type { TinyUIStatus } from "../src/types";
 
 import {
   calculateLifecycleTimings,
   formatLifecycleTimings,
-  now,
   normalizeRoot,
+  now,
   writeSnapshotFiles,
 } from "./files/helpers";
 import CHAKRA_ENTRY_SOURCE from "./files/SharedTheme/index.tsx?raw";

@@ -1,6 +1,6 @@
-import { normalizeSlashes } from "../utils/path";
-import { Ctx, resolveAsFile } from "./helpers";
 import { getFs } from "../adapter/fs";
+import { normalizeSlashes } from "../utils/path";
+import { type Ctx, resolveAsFile } from "./helpers";
 
 export async function cmdWc(args: string[], ctx: Ctx, stdin: string): Promise<string> {
   let wantLines = false;

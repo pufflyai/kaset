@@ -1,5 +1,5 @@
 import { hasParentTraversal, joinUnderWorkspace, processSingleFileContent } from "@pstdio/opfs-utils";
-import { OPFSToolRunner } from "../types";
+import type { OPFSToolRunner } from "../types";
 
 export type OpfsReadFileParams = {
   file: string;

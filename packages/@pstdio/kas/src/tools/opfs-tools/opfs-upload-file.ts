@@ -1,5 +1,5 @@
 import { hasParentTraversal, joinUnderWorkspace, uploadFilesToDirectory } from "@pstdio/opfs-utils";
-import { OPFSToolRunner } from "../types";
+import type { OPFSToolRunner } from "../types";
 
 export type OpfsUploadFilesParams = {
   destSubdir?: string;

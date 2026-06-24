@@ -1,5 +1,5 @@
-import { select } from "d3-selection";
 import { range } from "d3-array";
+import { select } from "d3-selection";
 import { timer } from "d3-timer";
 
 const TAU = Math.PI * 2;

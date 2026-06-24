@@ -1,5 +1,5 @@
-import { createSpiralAnimation } from "./animations/createSpiral";
 import { createPulseBars } from "./animations/createPulseBars";
+import { createSpiralAnimation } from "./animations/createSpiral";
 import { createWaveGrid } from "./animations/createWaveGrid";
 
 const animations = [

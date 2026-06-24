@@ -1,6 +1,6 @@
-import { LoadingKasetAnimation } from "@/components/animations";
 import { EmptyState as ChakraEmptyState, chakra } from "@chakra-ui/react";
 import * as React from "react";
+import { LoadingKasetAnimation } from "@/components/animations";
 
 export interface LoadingStateProps extends ChakraEmptyState.RootProps {
   title: string;

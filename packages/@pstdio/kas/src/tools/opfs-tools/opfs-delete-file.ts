@@ -1,5 +1,5 @@
 import { deleteFile as deleteFileAtRoot, hasParentTraversal, joinUnderWorkspace } from "@pstdio/opfs-utils";
-import { OPFSToolRunner } from "../types";
+import type { OPFSToolRunner } from "../types";
 
 export type OpfsDeleteFileParams = {
   file: string;

@@ -1,5 +1,5 @@
-import { Box, Center, Spinner, Text, chakra } from "@chakra-ui/react";
-import { readFile, watchDirectory, type DirectoryWatcherCleanup } from "@pstdio/opfs-utils";
+import { Box, Center, chakra, Spinner, Text } from "@chakra-ui/react";
+import { type DirectoryWatcherCleanup, readFile, watchDirectory } from "@pstdio/opfs-utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 interface ImagePreviewProps {

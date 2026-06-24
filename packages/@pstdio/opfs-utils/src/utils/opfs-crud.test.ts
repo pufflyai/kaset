@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setupTestOPFS } from "../__helpers__/test-opfs";
-import { getOPFSRoot } from "../__helpers__/test-opfs";
+import { getOPFSRoot, setupTestOPFS } from "../__helpers__/test-opfs";
 import { getFs } from "../adapter/fs";
 import { deleteDirectoryContents, deleteFile, readFile, writeFile } from "./opfs-crud";
 

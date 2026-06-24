@@ -1,8 +1,8 @@
+import { Box, Text } from "@chakra-ui/react";
+import type { IconName } from "lucide-react/dynamic";
 import { PluginWindow } from "@/components/ui/plugin-window";
 import type { PluginDesktopSurface } from "@/services/plugins/surfaces";
 import { DEFAULT_DESKTOP_APP_ICON, type DesktopApp } from "@/state/types";
-import { Box, Text } from "@chakra-ui/react";
-import type { IconName } from "lucide-react/dynamic";
 import { DEFAULT_WINDOW_SIZE } from "../constants";
 import { normalizePosition, normalizeSize } from "./normalization";
 

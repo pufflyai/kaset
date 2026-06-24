@@ -1,10 +1,10 @@
 import {
   basename,
+  type DirectoryWatcherCleanup,
   normalizeRelPath,
   parentOf,
   readFile,
   watchDirectory,
-  type DirectoryWatcherCleanup,
 } from "@pstdio/opfs-utils";
 import { useEffect, useState } from "react";
 

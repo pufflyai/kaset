@@ -6,7 +6,7 @@ export function GetFsPanel({ baseDir, onStatus }: { baseDir: string; onStatus: (
   const [path, setPath] = useState(`${baseDir}/zenfs-demo/hello.txt`);
   const [contents, setContents] = useState("Hello from getFs + ZenFS!");
   const [output, setOutput] = useState<string>("");
-  const fsRef = useRef<null | (typeof import("@zenfs/core"))["fs"]>(null);
+  const fsRef = useRef<null | typeof import("@zenfs/core")["fs"]>(null);
 
   async function ensureFs() {
     if (fsRef.current) return fsRef.current;

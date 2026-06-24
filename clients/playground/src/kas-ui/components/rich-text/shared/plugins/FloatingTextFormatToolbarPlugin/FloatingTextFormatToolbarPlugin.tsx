@@ -1,7 +1,5 @@
 import "./FloatingTextFormatToolbarPlugin.css";
 
-import { Tooltip } from "@/kas-ui";
-import { Bold, Italic, Underline, Heading1, Heading2, Heading3 } from "lucide-react";
 import { IconButton, Stack } from "@chakra-ui/react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $createHeadingNode, $isHeadingNode, type HeadingTagType } from "@lexical/rich-text";
@@ -19,8 +17,10 @@ import {
   type LexicalEditor,
   SELECTION_CHANGE_COMMAND,
 } from "lexical";
+import { Bold, Heading1, Heading2, Heading3, Italic, Underline } from "lucide-react";
 import React, { type Dispatch, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { Tooltip } from "@/kas-ui";
 import { setFloatingElemPos } from "../LinkEditorPlugin/utils/setFloatingElemPos";
 
 // Increase the vertical gap (negative places it below the selection) to avoid overlap

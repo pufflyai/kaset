@@ -1,7 +1,7 @@
-import { ROOT } from "@/constant";
-import { useCommitHistory } from "@/services/git/hooks";
 import { Box, Button, CloseButton, Dialog, HStack, Stack, Text } from "@chakra-ui/react";
 import { useMemo } from "react";
+import { ROOT } from "@/constant";
+import { useCommitHistory } from "@/services/git/hooks";
 
 export function CommitHistory() {
   const {

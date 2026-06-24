@@ -10,11 +10,11 @@
     "url": "git+https://github.com/pufflyai/kaset.git"
   },
   "scripts": {
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "bun run build",
     "build": "tsc -b && vite build",
     "postbuild": "chmod +x dist/generate-context.js",
-    "lint": "eslint \"src/**/*.{ts,tsx,js,jsx}\" --max-warnings=0",
-    "visualize-bundle": "npx vite-bundle-visualizer"
+    "lint": "biome lint src",
+    "visualize-bundle": "bunx vite-bundle-visualizer"
   },
   "keywords": [
     "llm",
@@ -49,8 +49,5 @@
     "vite-plugin-dts": "^4.5.4",
     "vite-plugin-svgr": "^4.3.0",
     "vitest": "^3.2.4"
-  },
-  "volta": {
-    "node": "22.18.0"
   }
 }

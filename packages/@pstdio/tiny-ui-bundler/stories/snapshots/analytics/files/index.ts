@@ -1,5 +1,5 @@
-import { buildReport } from "./report";
 import { loadMetrics } from "./metrics";
+import { buildReport } from "./report";
 import "./styles.css";
 
 const announcement = __ANNOUNCEMENT__;

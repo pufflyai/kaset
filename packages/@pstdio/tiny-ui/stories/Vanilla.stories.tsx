@@ -1,11 +1,10 @@
+import { CACHE_NAME, type CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-
-import { CACHE_NAME, CompileResult, registerSources, setLockfile } from "@pstdio/tiny-ui-bundler";
 import { TinyUI } from "../src/react/components/TinyUI";
 import { TinyUiProvider } from "../src/react/tiny-ui-provider";
-import { TinyUIStatus } from "../src/types";
 import { setupTinyUI } from "../src/setupTinyUI";
+import type { TinyUIStatus } from "../src/types";
 
 import { calculateLifecycleTimings, createSnapshotInitializer, formatLifecycleTimings, now } from "./files/helpers";
 import VANILLA_ENTRY_SOURCE from "./files/Vanilla/index.js?raw";

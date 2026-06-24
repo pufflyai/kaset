@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import type React from "react";
+import { useState } from "react";
 
 export function Section(props: {
   title: string | React.ReactNode;

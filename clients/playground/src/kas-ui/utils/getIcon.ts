@@ -73,7 +73,7 @@ export type IconName = keyof typeof iconMap;
 export type OpfsToolIconName = keyof typeof opfsToolIconMap;
 
 export function isOpfsToolIconName(value: string): value is OpfsToolIconName {
-  return Object.prototype.hasOwnProperty.call(opfsToolIconMap, value);
+  return Object.hasOwn(opfsToolIconMap, value);
 }
 
 export function getIconComponent(name: IconName): LucideIcon {

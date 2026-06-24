@@ -1,8 +1,8 @@
-import { host, type PluginSurfacesSnapshot } from "@/services/plugins/host";
-import { deriveDesktopSurfaces, type PluginDesktopSurface } from "@/services/plugins/surfaces";
-import { subscribeToPluginFiles, type PluginFilesChange } from "@pstdio/tiny-plugins";
+import { type PluginFilesChange, subscribeToPluginFiles } from "@pstdio/tiny-plugins";
 import { loadSourceFiles } from "@pstdio/tiny-ui";
 import { useEffect } from "react";
+import { host, type PluginSurfacesSnapshot } from "@/services/plugins/host";
+import { deriveDesktopSurfaces, type PluginDesktopSurface } from "@/services/plugins/surfaces";
 
 const buildPluginRoot = (pluginsRoot: string, pluginId: string) => {
   const trimmedRoot = pluginsRoot.replace(/^\/+|\/+$/g, "");

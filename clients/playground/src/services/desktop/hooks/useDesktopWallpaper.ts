@@ -2,9 +2,9 @@ import { getSpecificMimeType, readFile } from "@pstdio/opfs-utils";
 import { FastAverageColor } from "fast-average-color";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  type AdaptiveWallpaperResult,
   buildAdaptiveResultFromColor,
   defaultAdaptiveResult,
-  type AdaptiveWallpaperResult,
 } from "./useAdaptiveWallpaperSample";
 
 interface UseDesktopWallpaperResult {

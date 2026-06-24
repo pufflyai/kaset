@@ -1,5 +1,5 @@
+import { buildImportMap, type CompileResult, getLockfile, prepareRuntimeAssets } from "@pstdio/tiny-ui-bundler";
 import { host } from "rimless";
-import { buildImportMap, getLockfile, prepareRuntimeAssets, type CompileResult } from "@pstdio/tiny-ui-bundler";
 import type { TinyUiOpsHandler, TinyUiOpsRequest } from "../types";
 
 export interface HostAPI {

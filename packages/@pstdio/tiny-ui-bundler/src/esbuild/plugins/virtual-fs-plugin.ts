@@ -1,4 +1,4 @@
-import * as esbuild from "esbuild-wasm";
+import type * as esbuild from "esbuild-wasm";
 
 import { RESOLVE_EXTENSIONS } from "../../constants";
 import type { SnapshotFileMap } from "../../types";

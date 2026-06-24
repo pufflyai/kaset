@@ -1,5 +1,5 @@
 import type { AssistantMessage, BaseMessage, ToolCall, ToolMessage } from "@pstdio/tiny-ai-tasks";
-import { UIMessage, UIConversation } from "./types";
+import type { UIConversation, UIMessage } from "./types";
 
 function extractMessageText(parts: UIMessage["parts"]) {
   return parts

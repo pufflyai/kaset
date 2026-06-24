@@ -1,8 +1,8 @@
-import { getIconComponent } from "../utils/getIcon.ts";
 import type { HTMLChakraProps, IconButtonProps } from "@chakra-ui/react";
 import { AbsoluteCenter, chakra, IconButton } from "@chakra-ui/react";
 import { useCallback } from "react";
 import { StickToBottom as StickToBottomEl, useStickToBottomContext } from "use-stick-to-bottom";
+import { getIconComponent } from "../utils/getIcon.ts";
 
 const ArrowDownIcon = getIconComponent("arrow-down");
 const ARROW_ICON_SIZE = 16;

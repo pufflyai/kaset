@@ -1,5 +1,5 @@
-import { Runtime, GraphInterrupt, type Scratchpad, type RuntimeCtx } from "./runtime";
 import type { Snapshot } from "../types";
+import { GraphInterrupt, Runtime, type RuntimeCtx, type Scratchpad } from "./runtime";
 
 export abstract class Channel<Value> {
   abstract fromCheckpoint(value?: Value): this;

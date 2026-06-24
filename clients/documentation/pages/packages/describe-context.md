@@ -22,10 +22,10 @@ console.log(stats);
 
 ## Usage (CLI)
 
-After building this package (`npm run build` in the repo root), run:
+After building this package (`bun run build` in the repo root), run:
 
 ```
-npx describe-context <folder>
+bunx describe-context <folder>
 ```
 
 Outputs markdown to stdout and basic stats to stderr.

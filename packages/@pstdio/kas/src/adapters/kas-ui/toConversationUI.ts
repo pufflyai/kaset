@@ -1,7 +1,7 @@
 import { shortUID } from "@pstdio/prompt-utils";
 import type { AssistantMessage, ToolMessage } from "@pstdio/tiny-ai-tasks";
 import { messageContentToString } from "@pstdio/tiny-ai-tasks";
-import type { ToolInvocation, ToolInvocationUIPart, TokenUsage, UIConversation, UIMessage } from "./types";
+import type { TokenUsage, ToolInvocation, ToolInvocationUIPart, UIConversation, UIMessage } from "./types";
 
 type AgentStream = AsyncIterable<[AssistantMessage[] | AssistantMessage | any, unknown, unknown]>;
 
@@ -332,7 +332,6 @@ export const toConversationUI = async function* (stream: AgentStream) {
         }
 
         if (mutated) yield uiMessages;
-        continue;
       }
     }
   }

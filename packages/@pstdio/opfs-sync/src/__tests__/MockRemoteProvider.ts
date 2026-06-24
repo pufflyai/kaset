@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { RemoteProvider, RemoteObject } from "../types";
+import type { RemoteObject, RemoteProvider } from "../types";
 
 export class MockRemoteProvider implements RemoteProvider {
   private files = new Map<string, { data: Blob; mtimeMs: number; size: number; sha256?: string }>();

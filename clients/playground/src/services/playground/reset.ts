@@ -1,6 +1,6 @@
-import { ROOT } from "@/constant";
 import { deleteDirectoryContents, ls } from "@pstdio/opfs-utils";
 import { CACHE_NAME } from "@pstdio/tiny-ui";
+import { ROOT } from "@/constant";
 
 import { setupPlayground } from "./setup";
 

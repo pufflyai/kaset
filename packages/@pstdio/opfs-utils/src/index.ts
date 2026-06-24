@@ -1,18 +1,7 @@
+export { createScopedFs, type ScopedFs } from "./adapter/scoped-fs";
 export {
-  attachHeadToBranch,
-  checkoutAtCommit,
-  commitAll,
-  continueFromCommit,
-  ensureRepo,
-  getHeadState,
-  getRepoStatus,
-  listAllCommits,
-  listCommits,
-  previewCommit,
-  resolveOid,
-  revertToCommit,
-  safeAutoCommit,
   type AttachHeadOptions,
+  attachHeadToBranch,
   type CheckoutAtCommitOptions,
   type CheckoutAtCommitResult,
   type CommitAllOptions,
@@ -21,53 +10,64 @@ export {
   type CommitEntry,
   type CommitEntryWithRefs,
   type ContinueFromCommitOptions,
+  checkoutAtCommit,
+  commitAll,
+  continueFromCommit,
+  ensureRepo,
   type GitContext,
+  getHeadState,
+  getRepoStatus,
   type HeadState,
   type ListAllCommitsOptions,
+  listAllCommits,
+  listCommits,
+  previewCommit,
   type RepoStatus,
   type RevertToCommitOptions,
   type RevertToCommitResult,
+  resolveOid,
+  revertToCommit,
+  safeAutoCommit,
 } from "./git/git";
 export { applyPatchInOPFS as patch } from "./git/patch";
 export { ensureDirExists, getDirectoryHandle, stripAnsi } from "./shared";
 export { runOpfsCommandLine } from "./shell/opfs-shell";
 export { createJsonFileStorage, type JsonFileStorage, type JsonFileStorageOptions } from "./state/json-storage";
-export { bindStoreToJsonFile, type BindStoreOptions, type StoreAdapter } from "./state/store-binding";
+export { type BindStoreOptions, bindStoreToJsonFile, type StoreAdapter } from "./state/store-binding";
 export {
-  deleteDirectoryContents,
+  type BinaryLike,
   deleteDirectory,
+  deleteDirectoryContents,
   deleteFile,
   downloadFile,
   moveFile,
-  readFile,
-  writeFile,
-  type BinaryLike,
   type ReadFileOptions,
+  readFile,
   type WriteFileOptions,
+  writeFile,
 } from "./utils/opfs-crud";
-export { createScopedFs, type ScopedFs } from "./adapter/scoped-fs";
 export {
   DEFAULT_MAX_LINES_TEXT_FILE,
   getSpecificMimeType,
   MAX_LINE_LENGTH_TEXT_FILE,
-  processSingleFileContent,
   type ProcessedFileReadResult,
   type ProcessSingleFileOptions,
+  processSingleFileContent,
 } from "./utils/opfs-files";
 export { grep } from "./utils/opfs-grep";
-export { formatTree, ls, type LsEntry, type LsOptions } from "./utils/opfs-ls";
+export { formatTree, type LsEntry, type LsOptions, ls } from "./utils/opfs-ls";
 export {
-  pickAndUploadFilesToDirectory,
-  uploadFilesToDirectory,
   type FileUploadBaseOptions,
   type FileUploadResult,
+  pickAndUploadFilesToDirectory,
+  uploadFilesToDirectory,
 } from "./utils/opfs-upload";
 export {
-  watchDirectory,
-  watchOPFS,
   type ChangeRecord,
   type DirectoryWatcherCleanup,
   type WatchOptions,
+  watchDirectory,
+  watchOPFS,
 } from "./utils/opfs-watch";
 export {
   basename,
@@ -75,10 +75,10 @@ export {
   isWithinRoot,
   joinPath,
   joinUnderWorkspace,
-  normalizeRoot,
   type NormalizeRootOptions,
-  normalizeSegments,
   normalizeRelPath,
+  normalizeRoot,
+  normalizeSegments,
   normalizeSlashes,
   parentOf,
 } from "./utils/path";
