@@ -504,8 +504,8 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                             </Box>
                           )}
                           <Text fontSize="sm" color="fg.muted">
-                            The model downloads on first use (hundreds of MB) and is cached in the browser. No API key is
-                            required.
+                            The model downloads on first use (hundreds of MB) and is cached in the browser. No API key
+                            is required.
                           </Text>
                         </>
                       )}

@@ -1,9 +1,6 @@
 {
   "conditions": {
-    "hover": [
-      "@media (hover: hover)",
-      "&:is(:hover, [data-hover]):not(:disabled, [data-disabled])"
-    ],
+    "hover": ["@media (hover: hover)", "&:is(:hover, [data-hover]):not(:disabled, [data-disabled])"],
     "active": "&:is(:active, [data-active]):not(:disabled, [data-disabled], [data-state=open])",
     "focus": "&:is(:focus, [data-focus])",
     "focusWithin": "&:is(:focus-within, [data-focus-within])",
@@ -110,56 +107,35 @@
   },
   "utilities": {
     "background": {
-      "shorthand": [
-        "bg"
-      ]
+      "shorthand": ["bg"]
     },
     "backgroundColor": {
-      "shorthand": [
-        "bgColor"
-      ]
+      "shorthand": ["bgColor"]
     },
     "backgroundSize": {
-      "shorthand": [
-        "bgSize"
-      ]
+      "shorthand": ["bgSize"]
     },
     "backgroundPosition": {
-      "shorthand": [
-        "bgPos"
-      ]
+      "shorthand": ["bgPos"]
     },
     "backgroundRepeat": {
-      "shorthand": [
-        "bgRepeat"
-      ]
+      "shorthand": ["bgRepeat"]
     },
     "backgroundAttachment": {
-      "shorthand": [
-        "bgAttachment"
-      ]
+      "shorthand": ["bgAttachment"]
     },
     "backgroundClip": {
-      "shorthand": [
-        "bgClip"
-      ],
-      "values": [
-        "text"
-      ]
+      "shorthand": ["bgClip"],
+      "values": ["text"]
     },
     "backgroundGradient": {
-      "shorthand": [
-        "bgGradient"
-      ]
+      "shorthand": ["bgGradient"]
     },
     "gradientFrom": {},
     "gradientTo": {},
     "gradientVia": {},
     "backgroundImage": {
-      "shorthand": [
-        "bgImg",
-        "bgImage"
-      ]
+      "shorthand": ["bgImg", "bgImage"]
     },
     "border": {
       "values": "borders"
@@ -184,27 +160,19 @@
     },
     "borderInlineStart": {
       "values": "borders",
-      "shorthand": [
-        "borderStart"
-      ]
+      "shorthand": ["borderStart"]
     },
     "borderInlineEnd": {
       "values": "borders",
-      "shorthand": [
-        "borderEnd"
-      ]
+      "shorthand": ["borderEnd"]
     },
     "borderInline": {
       "values": "borders",
-      "shorthand": [
-        "borderX"
-      ]
+      "shorthand": ["borderX"]
     },
     "borderBlock": {
       "values": "borders",
-      "shorthand": [
-        "borderY"
-      ]
+      "shorthand": ["borderY"]
     },
     "borderColor": {},
     "borderTopColor": {},
@@ -213,15 +181,11 @@
     "borderBlockEndColor": {},
     "borderLeftColor": {},
     "borderInlineStartColor": {
-      "shorthand": [
-        "borderStartColor"
-      ]
+      "shorthand": ["borderStartColor"]
     },
     "borderRightColor": {},
     "borderInlineEndColor": {
-      "shorthand": [
-        "borderEndColor"
-      ]
+      "shorthand": ["borderEndColor"]
     },
     "borderStyle": {
       "values": "borderStyles"
@@ -240,15 +204,11 @@
     },
     "borderInlineStartStyle": {
       "values": "borderStyles",
-      "shorthand": [
-        "borderStartStyle"
-      ]
+      "shorthand": ["borderStartStyle"]
     },
     "borderInlineEndStyle": {
       "values": "borderStyles",
-      "shorthand": [
-        "borderEndStyle"
-      ]
+      "shorthand": ["borderEndStyle"]
     },
     "borderLeftStyle": {
       "values": "borderStyles"
@@ -258,105 +218,69 @@
     },
     "borderRadius": {
       "values": "radii",
-      "shorthand": [
-        "rounded"
-      ]
+      "shorthand": ["rounded"]
     },
     "borderTopLeftRadius": {
       "values": "radii",
-      "shorthand": [
-        "roundedTopLeft"
-      ]
+      "shorthand": ["roundedTopLeft"]
     },
     "borderStartStartRadius": {
       "values": "radii",
-      "shorthand": [
-        "roundedStartStart",
-        "borderTopStartRadius"
-      ]
+      "shorthand": ["roundedStartStart", "borderTopStartRadius"]
     },
     "borderEndStartRadius": {
       "values": "radii",
-      "shorthand": [
-        "roundedEndStart",
-        "borderBottomStartRadius"
-      ]
+      "shorthand": ["roundedEndStart", "borderBottomStartRadius"]
     },
     "borderTopRightRadius": {
       "values": "radii",
-      "shorthand": [
-        "roundedTopRight"
-      ]
+      "shorthand": ["roundedTopRight"]
     },
     "borderStartEndRadius": {
       "values": "radii",
-      "shorthand": [
-        "roundedStartEnd",
-        "borderTopEndRadius"
-      ]
+      "shorthand": ["roundedStartEnd", "borderTopEndRadius"]
     },
     "borderEndEndRadius": {
       "values": "radii",
-      "shorthand": [
-        "roundedEndEnd",
-        "borderBottomEndRadius"
-      ]
+      "shorthand": ["roundedEndEnd", "borderBottomEndRadius"]
     },
     "borderBottomLeftRadius": {
       "values": "radii",
-      "shorthand": [
-        "roundedBottomLeft"
-      ]
+      "shorthand": ["roundedBottomLeft"]
     },
     "borderBottomRightRadius": {
       "values": "radii",
-      "shorthand": [
-        "roundedBottomRight"
-      ]
+      "shorthand": ["roundedBottomRight"]
     },
     "borderInlineStartRadius": {
       "values": "radii",
       "property": "borderRadius",
-      "shorthand": [
-        "roundedStart",
-        "borderStartRadius"
-      ]
+      "shorthand": ["roundedStart", "borderStartRadius"]
     },
     "borderInlineEndRadius": {
       "values": "radii",
       "property": "borderRadius",
-      "shorthand": [
-        "roundedEnd",
-        "borderEndRadius"
-      ]
+      "shorthand": ["roundedEnd", "borderEndRadius"]
     },
     "borderTopRadius": {
       "values": "radii",
       "property": "borderRadius",
-      "shorthand": [
-        "roundedTop"
-      ]
+      "shorthand": ["roundedTop"]
     },
     "borderBottomRadius": {
       "values": "radii",
       "property": "borderRadius",
-      "shorthand": [
-        "roundedBottom"
-      ]
+      "shorthand": ["roundedBottom"]
     },
     "borderLeftRadius": {
       "values": "radii",
       "property": "borderRadius",
-      "shorthand": [
-        "roundedLeft"
-      ]
+      "shorthand": ["roundedLeft"]
     },
     "borderRightRadius": {
       "values": "radii",
       "property": "borderRadius",
-      "shorthand": [
-        "roundedRight"
-      ]
+      "shorthand": ["roundedRight"]
     },
     "borderWidth": {
       "values": "borderWidths"
@@ -378,30 +302,22 @@
     },
     "borderInlineWidth": {
       "values": "borderWidths",
-      "shorthand": [
-        "borderXWidth"
-      ]
+      "shorthand": ["borderXWidth"]
     },
     "borderInlineStartWidth": {
       "values": "borderWidths",
-      "shorthand": [
-        "borderStartWidth"
-      ]
+      "shorthand": ["borderStartWidth"]
     },
     "borderInlineEndWidth": {
       "values": "borderWidths",
-      "shorthand": [
-        "borderEndWidth"
-      ]
+      "shorthand": ["borderEndWidth"]
     },
     "borderLeftWidth": {
       "values": "borderWidths"
     },
     "borderBlockWidth": {
       "values": "borderWidths",
-      "shorthand": [
-        "borderYWidth"
-      ]
+      "shorthand": ["borderYWidth"]
     },
     "color": {},
     "fill": {},
@@ -423,24 +339,16 @@
     },
     "boxShadow": {
       "values": "shadows",
-      "shorthand": [
-        "shadow"
-      ]
+      "shorthand": ["shadow"]
     },
     "boxShadowColor": {
-      "shorthand": [
-        "shadowColor"
-      ]
+      "shorthand": ["shadowColor"]
     },
     "mixBlendMode": {
-      "shorthand": [
-        "blendMode"
-      ]
+      "shorthand": ["blendMode"]
     },
     "backgroundBlendMode": {
-      "shorthand": [
-        "bgBlendMode"
-      ]
+      "shorthand": ["bgBlendMode"]
     },
     "opacity": {
       "values": "opacity"
@@ -477,20 +385,14 @@
     },
     "rowGap": {
       "values": "spacing",
-      "shorthand": [
-        "gapY"
-      ]
+      "shorthand": ["gapY"]
     },
     "columnGap": {
       "values": "spacing",
-      "shorthand": [
-        "gapX"
-      ]
+      "shorthand": ["gapX"]
     },
     "flexDirection": {
-      "shorthand": [
-        "flexDir"
-      ]
+      "shorthand": ["flexDir"]
     },
     "gridGap": {
       "values": "spacing"
@@ -503,20 +405,10 @@
     },
     "outlineColor": {},
     "focusRing": {
-      "values": [
-        "outside",
-        "inside",
-        "mixed",
-        "none"
-      ]
+      "values": ["outside", "inside", "mixed", "none"]
     },
     "focusVisibleRing": {
-      "values": [
-        "outside",
-        "inside",
-        "mixed",
-        "none"
-      ]
+      "values": ["outside", "inside", "mixed", "none"]
     },
     "focusRingColor": {},
     "focusRingOffset": {
@@ -535,18 +427,14 @@
     },
     "width": {
       "values": "sizes",
-      "shorthand": [
-        "w"
-      ]
+      "shorthand": ["w"]
     },
     "inlineSize": {
       "values": "sizes"
     },
     "height": {
       "values": "sizes",
-      "shorthand": [
-        "h"
-      ]
+      "shorthand": ["h"]
     },
     "blockSize": {
       "values": "sizes"
@@ -557,36 +445,28 @@
     },
     "minWidth": {
       "values": "sizes",
-      "shorthand": [
-        "minW"
-      ]
+      "shorthand": ["minW"]
     },
     "minInlineSize": {
       "values": "sizes"
     },
     "minHeight": {
       "values": "sizes",
-      "shorthand": [
-        "minH"
-      ]
+      "shorthand": ["minH"]
     },
     "minBlockSize": {
       "values": "sizes"
     },
     "maxWidth": {
       "values": "sizes",
-      "shorthand": [
-        "maxW"
-      ]
+      "shorthand": ["maxW"]
     },
     "maxInlineSize": {
       "values": "sizes"
     },
     "maxHeight": {
       "values": "sizes",
-      "shorthand": [
-        "maxH"
-      ]
+      "shorthand": ["maxH"]
     },
     "maxBlockSize": {
       "values": "sizes"
@@ -598,25 +478,16 @@
       "values": "breakpoints"
     },
     "overscrollBehavior": {
-      "shorthand": [
-        "overscroll"
-      ]
+      "shorthand": ["overscroll"]
     },
     "overscrollBehaviorX": {
-      "shorthand": [
-        "overscrollX"
-      ]
+      "shorthand": ["overscrollX"]
     },
     "overscrollBehaviorY": {
-      "shorthand": [
-        "overscrollY"
-      ]
+      "shorthand": ["overscrollY"]
     },
     "scrollbar": {
-      "values": [
-        "visible",
-        "hidden"
-      ]
+      "values": ["visible", "hidden"]
     },
     "scrollbarColor": {},
     "scrollbarGutter": {
@@ -663,15 +534,11 @@
     },
     "scrollPaddingInline": {
       "values": "spacing",
-      "shorthand": [
-        "scrollPaddingX"
-      ]
+      "shorthand": ["scrollPaddingX"]
     },
     "scrollPaddingBlock": {
       "values": "spacing",
-      "shorthand": [
-        "scrollPaddingY"
-      ]
+      "shorthand": ["scrollPaddingY"]
     },
     "scrollSnapType": {
       "values": {
@@ -682,10 +549,7 @@
       }
     },
     "scrollSnapStrictness": {
-      "values": [
-        "mandatory",
-        "proximity"
-      ]
+      "values": ["mandatory", "proximity"]
     },
     "scrollSnapMargin": {
       "values": "spacing"
@@ -703,20 +567,14 @@
       "values": "spacing"
     },
     "listStylePosition": {
-      "shorthand": [
-        "listStylePos"
-      ]
+      "shorthand": ["listStylePos"]
     },
     "listStyleImage": {
       "values": "assets",
-      "shorthand": [
-        "listStyleImg"
-      ]
+      "shorthand": ["listStyleImg"]
     },
     "position": {
-      "shorthand": [
-        "pos"
-      ]
+      "shorthand": ["pos"]
     },
     "zIndex": {
       "values": "zIndex"
@@ -726,15 +584,11 @@
     },
     "insetInline": {
       "values": "spacing",
-      "shorthand": [
-        "insetX"
-      ]
+      "shorthand": ["insetX"]
     },
     "insetBlock": {
       "values": "spacing",
-      "shorthand": [
-        "insetY"
-      ]
+      "shorthand": ["insetY"]
     },
     "top": {
       "values": "spacing"
@@ -756,15 +610,11 @@
     },
     "insetInlineStart": {
       "values": "spacing",
-      "shorthand": [
-        "insetStart"
-      ]
+      "shorthand": ["insetStart"]
     },
     "insetInlineEnd": {
       "values": "spacing",
-      "shorthand": [
-        "insetEnd"
-      ]
+      "shorthand": ["insetEnd"]
     },
     "ring": {},
     "ringColor": {},
@@ -773,91 +623,61 @@
     "ringInset": {},
     "margin": {
       "values": "spacing",
-      "shorthand": [
-        "m"
-      ]
+      "shorthand": ["m"]
     },
     "marginTop": {
       "values": "spacing",
-      "shorthand": [
-        "mt"
-      ]
+      "shorthand": ["mt"]
     },
     "marginBlockStart": {
       "values": "spacing"
     },
     "marginRight": {
       "values": "spacing",
-      "shorthand": [
-        "mr"
-      ]
+      "shorthand": ["mr"]
     },
     "marginBottom": {
       "values": "spacing",
-      "shorthand": [
-        "mb"
-      ]
+      "shorthand": ["mb"]
     },
     "marginBlockEnd": {
       "values": "spacing"
     },
     "marginLeft": {
       "values": "spacing",
-      "shorthand": [
-        "ml"
-      ]
+      "shorthand": ["ml"]
     },
     "marginInlineStart": {
       "values": "spacing",
-      "shorthand": [
-        "ms",
-        "marginStart"
-      ]
+      "shorthand": ["ms", "marginStart"]
     },
     "marginInlineEnd": {
       "values": "spacing",
-      "shorthand": [
-        "me",
-        "marginEnd"
-      ]
+      "shorthand": ["me", "marginEnd"]
     },
     "marginInline": {
       "values": "spacing",
-      "shorthand": [
-        "mx",
-        "marginX"
-      ]
+      "shorthand": ["mx", "marginX"]
     },
     "marginBlock": {
       "values": "spacing",
-      "shorthand": [
-        "my",
-        "marginY"
-      ]
+      "shorthand": ["my", "marginY"]
     },
     "padding": {
       "values": "spacing",
-      "shorthand": [
-        "p"
-      ]
+      "shorthand": ["p"]
     },
     "paddingTop": {
       "values": "spacing",
-      "shorthand": [
-        "pt"
-      ]
+      "shorthand": ["pt"]
     },
     "paddingRight": {
       "values": "spacing",
-      "shorthand": [
-        "pr"
-      ]
+      "shorthand": ["pr"]
     },
     "paddingBottom": {
       "values": "spacing",
-      "shorthand": [
-        "pb"
-      ]
+      "shorthand": ["pb"]
     },
     "paddingBlockStart": {
       "values": "spacing"
@@ -867,42 +687,26 @@
     },
     "paddingLeft": {
       "values": "spacing",
-      "shorthand": [
-        "pl"
-      ]
+      "shorthand": ["pl"]
     },
     "paddingInlineStart": {
       "values": "spacing",
-      "shorthand": [
-        "ps",
-        "paddingStart"
-      ]
+      "shorthand": ["ps", "paddingStart"]
     },
     "paddingInlineEnd": {
       "values": "spacing",
-      "shorthand": [
-        "pe",
-        "paddingEnd"
-      ]
+      "shorthand": ["pe", "paddingEnd"]
     },
     "paddingInline": {
       "values": "spacing",
-      "shorthand": [
-        "px",
-        "paddingX"
-      ]
+      "shorthand": ["px", "paddingX"]
     },
     "paddingBlock": {
       "values": "spacing",
-      "shorthand": [
-        "py",
-        "paddingY"
-      ]
+      "shorthand": ["py", "paddingY"]
     },
     "textDecoration": {
-      "shorthand": [
-        "textDecor"
-      ]
+      "shorthand": ["textDecor"]
     },
     "textDecorationColor": {},
     "textShadow": {
@@ -943,17 +747,7 @@
       "values": "spacing"
     },
     "transition": {
-      "values": [
-        "all",
-        "common",
-        "colors",
-        "opacity",
-        "position",
-        "backgrounds",
-        "size",
-        "shadow",
-        "transform"
-      ]
+      "values": ["all", "common", "colors", "opacity", "position", "backgrounds", "size", "shadow", "transform"]
     },
     "transitionDuration": {
       "values": "durations"
@@ -5439,14 +5233,7 @@
     "slotRecipes": {
       "accordion": {
         "className": "chakra-accordion",
-        "slots": [
-          "root",
-          "item",
-          "itemTrigger",
-          "itemContent",
-          "itemIndicator",
-          "itemBody"
-        ],
+        "slots": ["root", "item", "itemTrigger", "itemContent", "itemIndicator", "itemBody"],
         "base": {
           "root": {
             "width": "full",
@@ -5583,13 +5370,7 @@
       },
       "actionBar": {
         "className": "chakra-action-bar",
-        "slots": [
-          "positioner",
-          "content",
-          "separator",
-          "selectionTrigger",
-          "closeTrigger"
-        ],
+        "slots": ["positioner", "content", "separator", "selectionTrigger", "closeTrigger"],
         "base": {
           "positioner": {
             "position": "fixed",
@@ -5665,13 +5446,7 @@
         }
       },
       "alert": {
-        "slots": [
-          "title",
-          "description",
-          "root",
-          "indicator",
-          "content"
-        ],
+        "slots": ["title", "description", "root", "indicator", "content"],
         "className": "chakra-alert",
         "base": {
           "root": {
@@ -5833,11 +5608,7 @@
         }
       },
       "avatar": {
-        "slots": [
-          "root",
-          "image",
-          "fallback"
-        ],
+        "slots": ["root", "image", "fallback"],
         "className": "chakra-avatar",
         "base": {
           "root": {
@@ -5977,12 +5748,7 @@
       },
       "blockquote": {
         "className": "chakra-blockquote",
-        "slots": [
-          "root",
-          "icon",
-          "content",
-          "caption"
-        ],
+        "slots": ["root", "icon", "content", "caption"],
         "base": {
           "root": {
             "position": "relative",
@@ -6057,15 +5823,7 @@
       },
       "breadcrumb": {
         "className": "chakra-breadcrumb",
-        "slots": [
-          "link",
-          "currentLink",
-          "item",
-          "list",
-          "root",
-          "ellipsis",
-          "separator"
-        ],
+        "slots": ["link", "currentLink", "item", "list", "root", "ellipsis", "separator"],
         "base": {
           "list": {
             "display": "flex",
@@ -6159,14 +5917,7 @@
       },
       "card": {
         "className": "chakra-card",
-        "slots": [
-          "root",
-          "header",
-          "body",
-          "footer",
-          "title",
-          "description"
-        ],
+        "slots": ["root", "header", "body", "footer", "title", "description"],
         "base": {
           "root": {
             "display": "flex",
@@ -6332,13 +6083,7 @@
         "defaultVariants": {}
       },
       "checkbox": {
-        "slots": [
-          "root",
-          "label",
-          "control",
-          "indicator",
-          "group"
-        ],
+        "slots": ["root", "label", "control", "indicator", "group"],
         "className": "chakra-checkbox",
         "base": {
           "root": {
@@ -6465,15 +6210,7 @@
         }
       },
       "checkboxCard": {
-        "slots": [
-          "root",
-          "control",
-          "label",
-          "description",
-          "addon",
-          "indicator",
-          "content"
-        ],
+        "slots": ["root", "control", "label", "description", "addon", "indicator", "content"],
         "className": "chakra-checkbox-card",
         "base": {
           "root": {
@@ -6985,12 +6722,7 @@
         }
       },
       "collapsible": {
-        "slots": [
-          "root",
-          "trigger",
-          "content",
-          "indicator"
-        ],
+        "slots": ["root", "trigger", "content", "indicator"],
         "className": "chakra-collapsible",
         "base": {
           "content": {
@@ -7013,12 +6745,7 @@
         }
       },
       "dataList": {
-        "slots": [
-          "root",
-          "item",
-          "itemLabel",
-          "itemValue"
-        ],
+        "slots": ["root", "item", "itemLabel", "itemValue"],
         "className": "chakra-data-list",
         "base": {
           "itemLabel": {
@@ -8180,13 +7907,7 @@
         }
       },
       "emptyState": {
-        "slots": [
-          "root",
-          "content",
-          "indicator",
-          "title",
-          "description"
-        ],
+        "slots": ["root", "content", "indicator", "title", "description"],
         "className": "chakra-empty-state",
         "base": {
           "root": {
@@ -8343,13 +8064,7 @@
       },
       "fieldset": {
         "className": "fieldset",
-        "slots": [
-          "root",
-          "errorText",
-          "helperText",
-          "legend",
-          "content"
-        ],
+        "slots": ["root", "errorText", "helperText", "legend", "content"],
         "base": {
           "root": {
             "display": "flex",
@@ -8544,13 +8259,7 @@
       },
       "hoverCard": {
         "className": "chakra-hover-card",
-        "slots": [
-          "arrow",
-          "arrowTip",
-          "trigger",
-          "positioner",
-          "content"
-        ],
+        "slots": ["arrow", "arrowTip", "trigger", "positioner", "content"],
         "base": {
           "content": {
             "position": "relative",
@@ -8614,11 +8323,7 @@
       },
       "list": {
         "className": "chakra-list",
-        "slots": [
-          "root",
-          "item",
-          "indicator"
-        ],
+        "slots": ["root", "item", "indicator"],
         "base": {
           "root": {
             "display": "flex",
@@ -9000,11 +8705,7 @@
       },
       "nativeSelect": {
         "className": "chakra-native-select",
-        "slots": [
-          "root",
-          "field",
-          "indicator"
-        ],
+        "slots": ["root", "field", "indicator"],
         "base": {
           "root": {
             "height": "fit-content",
@@ -9171,16 +8872,7 @@
       },
       "numberInput": {
         "className": "chakra-number-input",
-        "slots": [
-          "root",
-          "label",
-          "input",
-          "control",
-          "valueText",
-          "incrementTrigger",
-          "decrementTrigger",
-          "scrubber"
-        ],
+        "slots": ["root", "label", "input", "control", "valueText", "incrementTrigger", "decrementTrigger", "scrubber"],
         "base": {
           "root": {
             "position": "relative",
@@ -9370,12 +9062,7 @@
       },
       "pinInput": {
         "className": "chakra-pin-input",
-        "slots": [
-          "root",
-          "label",
-          "input",
-          "control"
-        ],
+        "slots": ["root", "label", "input", "control"],
         "base": {
           "input": {
             "width": "var(--input-height)",
@@ -9651,17 +9338,7 @@
         }
       },
       "progress": {
-        "slots": [
-          "root",
-          "label",
-          "track",
-          "range",
-          "valueText",
-          "view",
-          "circle",
-          "circleTrack",
-          "circleRange"
-        ],
+        "slots": ["root", "label", "track", "range", "valueText", "view", "circle", "circleTrack", "circleRange"],
         "className": "chakra-progress",
         "base": {
           "root": {
@@ -9792,17 +9469,7 @@
       },
       "progressCircle": {
         "className": "chakra-progress-circle",
-        "slots": [
-          "root",
-          "label",
-          "track",
-          "range",
-          "valueText",
-          "view",
-          "circle",
-          "circleTrack",
-          "circleRange"
-        ],
+        "slots": ["root", "label", "track", "range", "valueText", "view", "circle", "circleTrack", "circleRange"],
         "base": {
           "root": {
             "display": "inline-flex",
@@ -10215,16 +9882,7 @@
       },
       "radioGroup": {
         "className": "chakra-radio-group",
-        "slots": [
-          "root",
-          "label",
-          "item",
-          "itemText",
-          "itemControl",
-          "indicator",
-          "itemAddon",
-          "itemIndicator"
-        ],
+        "slots": ["root", "label", "item", "itemText", "itemControl", "indicator", "itemAddon", "itemIndicator"],
         "base": {
           "item": {
             "display": "inline-flex",
@@ -10359,13 +10017,7 @@
       },
       "ratingGroup": {
         "className": "chakra-rating-group",
-        "slots": [
-          "root",
-          "label",
-          "item",
-          "control",
-          "itemIndicator"
-        ],
+        "slots": ["root", "label", "item", "control", "itemIndicator"],
         "base": {
           "root": {
             "display": "inline-flex"
@@ -10450,14 +10102,7 @@
       },
       "scrollArea": {
         "className": "chakra-scroll-area",
-        "slots": [
-          "root",
-          "viewport",
-          "content",
-          "scrollbar",
-          "thumb",
-          "corner"
-        ],
+        "slots": ["root", "viewport", "content", "scrollbar", "thumb", "corner"],
         "base": {
           "root": {
             "display": "flex",
@@ -10594,14 +10239,7 @@
       },
       "segmentGroup": {
         "className": "chakra-segment-group",
-        "slots": [
-          "root",
-          "label",
-          "item",
-          "itemText",
-          "itemControl",
-          "indicator"
-        ],
+        "slots": ["root", "label", "item", "itemText", "itemControl", "indicator"],
         "base": {
           "root": {
             "--segment-radius": "radii.l2",
@@ -11628,14 +11266,7 @@
       },
       "stat": {
         "className": "chakra-stat",
-        "slots": [
-          "root",
-          "label",
-          "helpText",
-          "valueText",
-          "valueUnit",
-          "indicator"
-        ],
+        "slots": ["root", "label", "helpText", "valueText", "valueUnit", "indicator"],
         "base": {
           "root": {
             "display": "flex",
@@ -11936,13 +11567,7 @@
         }
       },
       "switch": {
-        "slots": [
-          "root",
-          "label",
-          "control",
-          "thumb",
-          "indicator"
-        ],
+        "slots": ["root", "label", "control", "thumb", "indicator"],
         "className": "chakra-switch",
         "base": {
           "root": {
@@ -12100,16 +11725,7 @@
       },
       "table": {
         "className": "chakra-table",
-        "slots": [
-          "root",
-          "header",
-          "body",
-          "row",
-          "columnHeader",
-          "cell",
-          "footer",
-          "caption"
-        ],
+        "slots": ["root", "header", "body", "row", "columnHeader", "cell", "footer", "caption"],
         "base": {
           "root": {
             "fontVariantNumeric": "lining-nums tabular-nums",
@@ -12266,14 +11882,7 @@
         }
       },
       "tabs": {
-        "slots": [
-          "root",
-          "trigger",
-          "list",
-          "content",
-          "contentGroup",
-          "indicator"
-        ],
+        "slots": ["root", "trigger", "list", "content", "contentGroup", "indicator"],
         "className": "chakra-tabs",
         "base": {
           "root": {
@@ -12547,13 +12156,7 @@
         }
       },
       "tag": {
-        "slots": [
-          "root",
-          "label",
-          "closeTrigger",
-          "startElement",
-          "endElement"
-        ],
+        "slots": ["root", "label", "closeTrigger", "startElement", "endElement"],
         "className": "chakra-tag",
         "base": {
           "root": {
@@ -12944,14 +12547,7 @@
         }
       },
       "toast": {
-        "slots": [
-          "root",
-          "title",
-          "description",
-          "indicator",
-          "closeTrigger",
-          "actionTrigger"
-        ],
+        "slots": ["root", "title", "description", "indicator", "closeTrigger", "actionTrigger"],
         "className": "chakra-toast",
         "base": {
           "root": {
@@ -13046,13 +12642,7 @@
         }
       },
       "tooltip": {
-        "slots": [
-          "trigger",
-          "arrow",
-          "arrowTip",
-          "positioner",
-          "content"
-        ],
+        "slots": ["trigger", "arrow", "arrowTip", "positioner", "content"],
         "className": "chakra-tooltip",
         "base": {
           "content": {
@@ -13091,10 +12681,7 @@
       },
       "status": {
         "className": "chakra-status",
-        "slots": [
-          "root",
-          "indicator"
-        ],
+        "slots": ["root", "indicator"],
         "base": {
           "root": {
             "display": "inline-flex",
@@ -13134,16 +12721,7 @@
         }
       },
       "timeline": {
-        "slots": [
-          "root",
-          "item",
-          "content",
-          "separator",
-          "indicator",
-          "connector",
-          "title",
-          "description"
-        ],
+        "slots": ["root", "item", "content", "separator", "indicator", "connector", "title", "description"],
         "className": "chakra-timeline",
         "base": {
           "root": {
@@ -13685,13 +13263,7 @@
         }
       },
       "qrCode": {
-        "slots": [
-          "root",
-          "frame",
-          "pattern",
-          "overlay",
-          "downloadTrigger"
-        ],
+        "slots": ["root", "frame", "pattern", "overlay", "downloadTrigger"],
         "className": "chakra-qr-code",
         "base": {
           "root": {
@@ -13972,13 +13544,7 @@
       },
       "marquee": {
         "className": "chakra-marquee",
-        "slots": [
-          "root",
-          "viewport",
-          "content",
-          "edge",
-          "item"
-        ],
+        "slots": ["root", "viewport", "content", "edge", "item"],
         "base": {
           "root": {
             "position": "relative",
@@ -14148,13 +13714,7 @@
         }
       },
       "form": {
-        "slots": [
-          "root",
-          "errorText",
-          "helperText",
-          "legend",
-          "content"
-        ],
+        "slots": ["root", "errorText", "helperText", "legend", "content"],
         "base": {
           "legend": {
             "mb": "2xs"
@@ -14260,12 +13820,7 @@
         "value": {
           "fontFamily": "display",
           "fontWeight": "600",
-          "fontSize": [
-            "5xl",
-            "5xl",
-            "5xl",
-            "6xl"
-          ],
+          "fontSize": ["5xl", "5xl", "5xl", "6xl"],
           "lineHeight": "120%"
         }
       },
@@ -14273,10 +13828,7 @@
         "value": {
           "fontFamily": "display",
           "fontWeight": "600",
-          "fontSize": [
-            "4xl",
-            "5xl"
-          ],
+          "fontSize": ["4xl", "5xl"],
           "lineHeight": "120%"
         }
       },
@@ -14284,10 +13836,7 @@
         "value": {
           "fontFamily": "display",
           "fontWeight": "600",
-          "fontSize": [
-            "3xl",
-            "4xl"
-          ],
+          "fontSize": ["3xl", "4xl"],
           "lineHeight": "120%"
         }
       },
@@ -14477,10 +14026,7 @@
           "fontFamily": "body",
           "fontWeight": "400",
           "lineHeight": "150%",
-          "fontSize": [
-            "xl",
-            "2xl"
-          ],
+          "fontSize": ["xl", "2xl"],
           "color": "foreground.primary",
           "letterSpacing": "0.14px"
         }
@@ -14490,10 +14036,7 @@
           "fontFamily": "body",
           "fontWeight": "500",
           "lineHeight": "150%",
-          "fontSize": [
-            "xl",
-            "2xl"
-          ],
+          "fontSize": ["xl", "2xl"],
           "color": "foreground.primary",
           "letterSpacing": "0.14px"
         }

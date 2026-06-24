@@ -1,12 +1,6 @@
 import { prompt } from "@pstdio/prompt-utils";
 import type { MessageHistory } from "../src/index";
-import {
-  createAgent,
-  openaiModel,
-  createScratchpad,
-  createScratchpadTool,
-  mergeStreamingMessages,
-} from "../src/index";
+import { createAgent, openaiModel, createScratchpad, createScratchpadTool, mergeStreamingMessages } from "../src/index";
 
 // Create a host-side scratchpad and expose it as a tool
 const scratch = createScratchpad({ notes: [] });
