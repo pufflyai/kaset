@@ -4,18 +4,18 @@ FROM imbios/bun-node:latest-22-debian AS builder
 # Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json to the working directory
-COPY package*.json ./
+# Copy package metadata and Bun lockfile to the working directory
+COPY package.json bun.lock ./
 COPY lerna.json ./
 
 COPY packages/ ./packages/
 COPY clients/ ./clients/
 
 # Install dependencies
-RUN npm ci
+RUN bun install --frozen-lockfile
 
 # Build the mono-repo
-RUN npm run build
+RUN bun run build
 
 # Stage 2: Create the service image
 FROM nginx:alpine

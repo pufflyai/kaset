@@ -18,37 +18,37 @@ Hi! We're excited that you're interested in contributing to Kaset. Before you st
 
 ## Development Setup
 
-Kaset is a Node.js 22 monorepo managed with npm, Lerna, and Nx.
+Kaset is a Bun >=1.3.13 monorepo managed with Bun workspaces, Lerna, and Nx.
 
 ```bash
-npm install      # install dependencies
-npm run lint     # lint all packages
-npm run build    # build all packages via Lerna
-npm run test     # run all package test suites
+bun install      # install dependencies
+bun run lint     # lint all packages
+bun run build    # build all packages via Lerna
+bun run test     # run all package test suites
 ```
 
 Before submitting a pull request, run the same checks CI expects:
 
 ```bash
-npm run format:check
-npm run lint
-npx lerna run build
-npx lerna run test
+bun run format:check
+bun run lint
+bunx lerna run build
+bunx lerna run test
 ```
 
 Additional utilities:
 
-- `npm run format` – auto-format supported files with Prettier.
-- `npm run clean` – remove `node_modules`, build artifacts, and caches.
-- `npm run reset:all` – clean, install, lint, build, and test in one go.
+- `bun run format` - auto-format supported files with Biome.
+- `bun run clean` – remove `node_modules`, build artifacts, and caches.
+- `bun run reset:all` – clean, install, lint, build, and test in one go.
 
 ## Documentation and Playground
 
 The VitePress documentation site lives in `clients/documentation/`:
 
 ```bash
-npm run start --workspace documentation   # start docs locally with HMR
-npm run build --workspace documentation   # build the static site
+bun run --filter documentation start   # start docs locally with HMR
+bun run --filter documentation build   # build the static site
 ```
 
 The playground app lives in `clients/playground/` and can be started with its workspace-specific scripts.

@@ -8,25 +8,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
 
       - name: install monorepo dependencies
-        run: npm ci && npx playwright install --with-deps
+        run: bun install --frozen-lockfile && bunx playwright install --with-deps
 
-      - name: Check Prettier formatting (monorepo)
-        run: npm run format:check
+      - name: Check formatting
+        run: bun run format:check
 
       - name: Lint monorepo
-        run: npm run lint
+        run: bun run lint
 
       - name: build monorepo packages
-        run: npx lerna run build
+        run: bun run build
 
       - name: test monorepo
-        run: npx lerna run test
+        run: bun run test

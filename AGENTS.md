@@ -1,327 +1,186 @@
-# Kaset – Agent Instructions
+# Repo Rules
 
-Guidance for working in this TypeScript monorepo. This repo provides browser‑first utilities under the `@pstdio` scope: OPFS helpers, OPFS↔remote sync, prompt utilities, and a folder‑to‑markdown descriptor.
-
-Key technologies: Node.js 22 (required), npm workspaces, Lerna, TypeScript, Vite, Vitest, Storybook (for `opfs-utils`).
-
-## Build & Validation
-
-CRITICAL: Use npm (not yarn/pnpm). Node.js 22 is required.
-
-Essential commands (from repo root):
-
-1. Lint: `npm run lint`
-2. Build: `npm run build`
-3. Test: `npm run test`
-
-**AFTER ANY CHANGES YOU MUST** follow this validation sequence:
-
-```bash
-npm run format
-npm run lint
-npm run build
-npm run test
-```
-
-Utilities:
-
-- Format: `npm run format`
-- Clean: `npm run clean`
-- End‑to‑end reset: `npm run reset:all`
-
-## Monorepo structure
-
-```
-packages/@pstdio/
-  kas/             # Browser-ready coding agent runtime
-  opfs-utils/      # OPFS helpers (ls/grep/read/patch)
-  opfs-hooks/      # React hooks for OPFS (uses opfs-utils)
-  opfs-sync/       # OPFS <-> remote sync (Supabase remote included)
-  prompt-utils/    # Prompt & JSON utilities
-  tiny-ai-tasks/   # AI workflows and tool-using agents (LLM + tools)
-  tiny-tasks/      # Composable, interrupt-friendly workflows (pause/resume)
-  tiny-plugins/    # Plugin host for OPFS-backed plugins
-  tiny-ui/         # Browser plugin runtime (esbuild-wasm + service worker)
-  tiny-ui-bundler/ # Service worker bundler and runtime asset manager for Tiny UI
-  describe-context/# Analyze a folder and emit markdown context (library + CLI)
-clients/
-  documentation/   # VitePress docs site
-  playground/      # Playground application
-```
-
-Import rules:
-
-- ✅ `import { foo } from "@pstdio/<package>"`
-- ❌ No deep relative imports across packages (e.g., `../../..` between packages)
-- Packages must not import from `clients/*`
-- Imports must always be placed at the top of the file
+- **Lerna + Bun-managed monorepo** with **Nx caching**. **TypeScript only**.
+- Use **Bun**, not `npm`, `yarn`, or `pnpm`. Bun `>=1.3.13` is required.
+- This repo provides browser-first utilities under the `@pstdio` scope: OPFS helpers, OPFS <-> remote sync, prompt utilities, Tiny task/plugin/UI packages, and a folder-to-markdown descriptor.
+- Workspaces live under `packages/**` and `clients/*`.
+- Your work is not done until the required validation passes.
 
 Key configuration:
 
-- Root: `package.json` (workspaces/scripts), `lerna.json`, `nx.json` (cache)
-- Per‑package: `tsconfig.json`, `vite.config.ts`, optional `vitest.config.ts`
+- Root: `package.json`, `lerna.json`, `nx.json`
+- Per package: `package.json`, `tsconfig.json`, `vite.config.ts`, optional `vitest.config.ts`
 
-## Packages
+# Coding Rules
 
-### @pstdio/kas
+Never compromise the project structure. Readability and structure matter more than compact code.
 
-Browser-ready coding agent runtime that composes the Tiny task libraries with OpenAI tooling and OPFS helpers.
+- Keep things simple.
+- Preserve or improve the package boundaries.
+- Assume the happy path first.
+- Do not add defensive or speculative code.
+- Clean up legacy or unused code when it is directly related to the change.
+- Prefer `@pstdio/<package>` imports between packages.
+- Keep imports at the top of the file.
 
-- Includes entrypoints, OPFS wiring, and prompt execution helpers for the Kaset agent
-- Scripts: `build`, `dev`, `lint`, `test` (runs `typecheck`), `typecheck`, `visualize-bundle`
+Not allowed:
 
-Run (from root):
+- Deep relative imports across packages, such as `../../../other-package`.
+- Imports from `clients/*` inside packages.
+- Adding new package managers or package-manager lockfiles.
+- Moving unrelated code while making a focused change.
 
-```bash
-npm run build --workspace @pstdio/kas
-npm run test --workspace @pstdio/kas
-```
+## Required Workflow: TDD
 
-### @pstdio/opfs-utils
+Follow this loop for code changes.
 
-OPFS utilities targeting modern browsers.
+### 1. Red - Write the test first
 
-- Notable APIs: `ls(...)`, `grep(...)`, `processSingleFileContent(...)`, `patch(...)`
-- Storybook available for dev/visual checks
-- Scripts: `build`, `lint`, `test`, `storybook`, `test-storybook`
+- Skip only when no valid test is applicable.
+- Reproduce a bug before fixing it.
+- Write the smallest Vitest test that proves the behavior.
+- Keep tests next to the file they test.
+- Confirm the test fails for the right reason.
 
-Run (from root):
+Not allowed:
 
-```bash
-npm run build --workspace @pstdio/opfs-utils
-npm run test --workspace @pstdio/opfs-utils
-```
+- Tests for documentation-only changes.
+- Tests for config-only changes.
+- Tests that assert generated file wording.
+- Tests that only lock implementation details.
+- Tests that prove removed behavior stays absent.
 
-### @pstdio/opfs-hooks
+### 2. Green - Make it pass
 
-React hooks for working with the browser's OPFS.
+- Write the minimum code needed.
+- Avoid premature generalization.
+- Prefer simple happy-path code.
+- Run focused package tests often.
 
-- Depends on `@pstdio/opfs-utils` for core operations
-- Scripts: `build`, `lint`, `test`
+### 3. Refactor - Clean up
 
-Run (from root):
+- Improve readability.
+- Delete unused or legacy code touched by the change.
+- Keep files under roughly 350 lines.
+- Split files early when responsibilities start to diverge.
+- Update documentation when behavior, commands, or public APIs change.
+- Remove or update tests that only cover old implementation details.
 
-```bash
-npm run build --workspace @pstdio/opfs-hooks
-npm run test --workspace @pstdio/opfs-hooks
-```
+Tests must stay green.
 
-### @pstdio/opfs-sync
+### 4. Prove It Works
 
-Two‑way synchronization between an OPFS directory and a remote provider.
+Skip this only for documentation-only changes.
 
-- Core class: `OpfsSync`
-- Remote: `SupabaseRemote` (Supabase Storage)
-- Scripts: `build`, `lint`, `test`, `test:ui`, `test:coverage`
-
-Run (from root):
-
-```bash
-npm run build --workspace @pstdio/opfs-sync
-npm run test --workspace @pstdio/opfs-sync
-```
-
-### @pstdio/prompt-utils
-
-Prompt and JSON helpers for LLM workflows.
-
-- APIs: `prompt`, `getSchema`, `parseJSONStream`, `safeStringify`, `safeParse`, `shortUID`, `hashString`
-- Scripts: `build`, `lint`, `test`
-
-Run (from root):
+Before completing a task, run this sequence from the repo root:
 
 ```bash
-npm run build --workspace @pstdio/prompt-utils
-npm run test --workspace @pstdio/prompt-utils
+bun run format
+bun run lint
+bun run build
+bun run test
 ```
 
-### @pstdio/tiny-ai-tasks
+Fix any remaining failures.
 
-AI workflows and tool-using agents for building streaming LLM tasks, minimal agents, and history summarization/truncation.
-
-- APIs: `createLLMTask`, `createAgent`, `Tool`, `createToolTask`, `toOpenAITools`, `truncateToBudget`, `createSummarizer`
-- Scripts: `build`, `lint`, `test` (includes `typecheck`), `typecheck`, `visualize-bundle`
-
-Run (from root):
+For focused package checks:
 
 ```bash
-npm run build --workspace @pstdio/tiny-ai-tasks
-npm run test --workspace @pstdio/tiny-ai-tasks
+bun run --filter <name> build
+bun run --filter <name> test
 ```
 
-### @pstdio/tiny-plugins
+Useful root commands:
 
-Plugin host that loads OPFS-backed plugins, validates manifests, and routes commands to plugin sandboxes.
+- `bun run format`
+- `bun run format:check`
+- `bun run lint`
+- `bun run build`
+- `bun run test`
+- `bun run clean`
+- `bun run reset:all`
 
-- Provides manifest parsing, settings storage, and Storybook examples for plugin UIs
-- Scripts: `build`, `lint`, `test`, `storybook`, `visualize-bundle`
+# Fixing Bugs
 
-Run (from root):
+- Always reproduce the issue before fixing it.
+- Always write a regression test first unless no valid test is applicable.
+- Keep the fix scoped to the broken behavior.
+- Prefer testing active user-facing behavior and public contracts over implementation details.
+
+# Package Commands
+
+Common package checks:
 
 ```bash
-npm run build --workspace @pstdio/tiny-plugins
-npm run test --workspace @pstdio/tiny-plugins
+bun run --filter @pstdio/kas build
+bun run --filter @pstdio/kas test
+bun run --filter @pstdio/opfs-utils build
+bun run --filter @pstdio/opfs-utils test
+bun run --filter @pstdio/opfs-hooks build
+bun run --filter @pstdio/opfs-hooks test
+bun run --filter @pstdio/opfs-sync build
+bun run --filter @pstdio/opfs-sync test
+bun run --filter @pstdio/prompt-utils build
+bun run --filter @pstdio/prompt-utils test
+bun run --filter @pstdio/tiny-ai-tasks build
+bun run --filter @pstdio/tiny-ai-tasks test
+bun run --filter @pstdio/tiny-plugins build
+bun run --filter @pstdio/tiny-plugins test
+bun run --filter @pstdio/tiny-tasks build
+bun run --filter @pstdio/tiny-tasks test
+bun run --filter @pstdio/tiny-ui build
+bun run --filter @pstdio/tiny-ui test
+bun run --filter @pstdio/tiny-ui-bundler build
+bun run --filter @pstdio/tiny-ui-bundler test
+bun run --filter describe-context build
 ```
 
-### @pstdio/tiny-tasks
-
-Composable, interrupt-friendly workflows for TypeScript/JavaScript. Turn async functions into checkpoint-able generators that can pause, persist, and resume.
-
-- APIs: `task`, `createRuntime`, `MemorySaver`
-- Scripts: `build`, `lint`, `test` (includes `typecheck`), `typecheck`, `visualize-bundle`
-
-Run (from root):
+Documentation site:
 
 ```bash
-npm run build --workspace @pstdio/tiny-tasks
-npm run test --workspace @pstdio/tiny-tasks
+bun run --filter documentation start
+bun run --filter documentation build
 ```
 
-### @pstdio/tiny-ui
-
-Browser micro-frontend runtime that builds plugin UIs with `esbuild-wasm` and serves them via service worker + iframe bridge.
-
-- Ships the Tiny UI runtime, sandbox service worker, and Storybook reference implementations
-- Scripts: `build`, `lint`, `test`, `storybook`, `visualize-bundle`
-
-Run (from root):
+Playground:
 
 ```bash
-npm run build --workspace @pstdio/tiny-ui
-npm run test --workspace @pstdio/tiny-ui
+bun run --filter playground start
+bun run --filter playground build
 ```
 
-### @pstdio/tiny-ui-bundler
+Storybook packages expose their own `storybook` scripts. Use package-local Storybook checks when a visual UI change is better covered by a story than by a brittle unit test.
 
-Service worker bundler and runtime asset manager for Tiny UI plugins.
+# Git
 
-- Compile OPFS-backed source trees with `esbuild-wasm`, publish bundles into Cache API
-- Manage service worker lifecycle, lockfiles, and import maps for plugin runtime
-- Scripts: `build`, `lint`, `test`, `storybook`, `visualize-bundle`
+- Work with the current branch unless the user asks for a branch change.
+- Keep unrelated worktree changes out of your edits.
+- Do not revert, reset, or rewrite user changes unless explicitly requested.
+- Do not create commits or PRs unless explicitly requested.
 
-Run (from root):
+# Coding Style Rules
 
-```bash
-npm run build --workspace @pstdio/tiny-ui-bundler
-npm run test --workspace @pstdio/tiny-ui-bundler
-```
+- Use whitespace to separate logical sections: setup, async work, parsing/transformation, and return.
+- Group related statements together and separate unrelated steps with blank lines.
+- Prefer clear, spaced code over dense compact code.
+- Split content that will grow into separate files.
+- Prefer pure functions when practical.
+- Comment **why**, not **what**.
+- Do **not** specify return types when TypeScript can infer them.
+- Avoid nested ternaries.
+- Prefer maps or small helper functions over complex `if` / `else` chains.
+- Avoid calling functions with `void`.
+- Keep files shorter than roughly 350 lines.
+- Keep code simple; do not add defensive checks unless they protect an active contract.
 
-### describe-context
+## React Rules
 
-Analyze a folder and produce an LLM‑friendly markdown context (directory tree + selected file content).
+- Extract complex prop objects into an interface.
+- Destructure props inside the function body.
+- Prefer components over render helper functions when UI logic needs extracting.
+- Keep component state and effects scoped to the component that owns the behavior.
 
-- Library: `generateContext(path)`
-- CLI (after building): `node packages/@pstdio/describe-context/dist/generate-context.js <folder> [output-file]`
-- Location: `packages/@pstdio/describe-context`
-- Scripts: `build`, `lint`
-
-Run (from root):
-
-```bash
-npm run build --workspace describe-context
-```
-
-## Docs site
-
-`clients/documentation` uses VitePress.
-
-```bash
-npm run start --workspace documentation
-npm run build --workspace documentation
-```
-
-## Development workflow
-
-1. Format → Lint → Build → Test before PRs.
-2. Use `npx lerna run <script>` for cross‑package tasks when needed.
-3. Nx caching is enabled for builds (`nx.json`).
-4. Tests use Vitest; avoid introducing other frameworks.
-
-Import notes:
-
-- Prefer `@pstdio/<package>` imports where applicable. The `describe-context` package is currently unscoped in its `package.json` and uses the workspace name `describe-context`.
-
-### Quick reference
-
-- Validate: `npm run format:check && npm run lint && npm run build && npm run test`
-- Single package build: `npm run build --workspace <name>`
-- Single package test: `npm run test --workspace <name>`
-
----
-
-## Code Style Guide
-
-## 1. Avoid Code Clumping
-
-- Don’t stack multiple operations together without whitespace.
-- Clumped code makes it harder to visually parse what’s happening.
-
-## 2. Use Whitespace to Communicate Intent
-
-- Insert blank lines between logical sections of code.
-- Each section should represent a distinct step:
-  - variable declarations
-  - async operations (file I/O, network calls)
-  - parsing/transformation
-  - return statements
-
-## 3. Group Related Statements, Separate Unrelated Ones
-
-- Keep closely related lines together.
-- Add a blank line before/after a shift in purpose.
-
-## 4. Prioritize Readability Over Compactness
-
-- Prefer clear, spaced code over dense, hard‑to‑scan blocks.
-
-## 5. Consistency Matters
-
-- Apply spacing consistently; aim for a rhythm of setup → work → finish.
-
----
-
-✅ Example (good):
-
-```ts
-if (!user || items.length === 0) return;
-
-const dir = getUserDir(user);
-const path = getUserFilePath(user);
-
-await fs.mkdirp(dir);
-
-const current = await readFile(path);
-const parsed = current ? JSON.parse(current) : { items: [] };
-
-const existing = new Set(parsed.items.map((i: any) => i.id));
-const newItems = items.filter((i: any) => i && !existing.has(i.id));
-
-parsed.items = [...parsed.items, ...newItems];
-
-await fs.writeFile(path, JSON.stringify(parsed));
-```
-
-❌ Example (bad):
-
-```ts
-if (!user || items.length === 0) return;
-const dir = getUserDir(user);
-const path = getUserFilePath(user);
-await fs.mkdirp(dir);
-const current = await readFile(path);
-const parsed = current ? JSON.parse(current) : { items: [] };
-const existing = new Set(parsed.items.map((i: any) => i.id));
-const newItems = items.filter((i: any) => i && !existing.has(i.id));
-parsed.items = [...parsed.items, ...newItems];
-await fs.writeFile(path, JSON.stringify(parsed));
-```
-
-## 6. React component properties
-
-Extract complex prop objects into an interface and destructure
-outside the function definition to help readability.
-
-✅ Example (good):
+Example:
 
 ```ts
 interface MessagePartsProps {
@@ -332,99 +191,16 @@ interface MessagePartsProps {
 
 export function MessagePartsRenderer(props: MessagePartsProps) {
   const { message, streaming, onOpenFile } = props;
-  ...
 }
 ```
 
-❌ Example (bad):
+## Testing Rules
 
-```ts
-export function MessagePartsRenderer({
-  message,
-  streaming,
-  onOpenFile,
-}: {
-  message: Message;
-  streaming?: boolean;
-  onOpenFile?: (filePath: string) => void;
-}) {
-  ...
-}
-```
+- Tests must live next to the file they test.
+- Use Vitest; do not introduce another test framework.
+- Avoid mocks when the real dependency is practical.
+- Bug fixes must add or update a regression test first.
+- Test supported behavior and active contracts.
+- Negative tests should cover active validation, permissions, and error handling contracts.
+- When removing a feature, delete or update its tests instead of adding absence tests.
 
-## 7. Avoid specifying output types:
-
-✅ Example (good):
-
-```ts
-function getUserName(user: { firstName: string; lastName: string }) {
-  return `${user.firstName} ${user.lastName}`;
-}
-```
-
-❌ Example (bad):
-
-```ts
-function getUserName(user: { firstName: string; lastName: string }): string {
-  return `${user.firstName} ${user.lastName}`;
-}
-```
-
-## 8. Use maps instead of complex if / else or ternaries
-
-✅ Example (good):
-
-```ts
-const statusText = getStatusText({
-  isError,
-  isDone,
-  isInputStreaming,
-  isInputAvailable,
-  providerExecuted,
-  streaming,
-});
-```
-
-❌ Example (bad):
-
-```ts
-const statusText = isError
-  ? "Error"
-  : isDone
-    ? "Done"
-    : isInputStreaming
-      ? "Running"
-      : isInputAvailable
-        ? providerExecuted
-          ? "Running"
-          : "Queued"
-        : streaming
-          ? "Running"
-          : "Waiting";
-```
-
-## 9. Avoid using `void` when calling functions
-
-✅ Example (good):
-
-```ts
-hello("world");
-```
-
-❌ Example (bad):
-
-```ts
-void hello("world");
-```
-
-## 10. Keep files shorter than 350 lines
-
-Large files are harder to read, review, and maintain. Keeping each file under 350 lines encourages modular design, easier debugging, and faster onboarding for new contributors. If a file grows too large, consider breaking it into smaller, focused modules or components.
-
-## 11. Don’t be overly defensive — Keep It Simple, Stupid (KISS)
-
-Avoid unnecessary complexity or excessive defensive coding. Code should be as simple and direct as possible while remaining clear and correct. Prefer readability and maintainability over cleverness. The simplest working solution is usually the best one.
-
-## 12. Keep tests next to the file they test
-
-Tests should live alongside the code they validate. This makes it easier to find, update, and run relevant tests when modifying code. For example, if you have a file agent.py, its corresponding test file should be test_agent.py in the same directory.
