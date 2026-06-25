@@ -17,6 +17,10 @@ export const saveWorkspaceSettings = (settings: WorkspaceSettings, actionName = 
       state.settings.theme = settings.theme ?? DEFAULT_THEME;
       state.settings.wallpaper = settings.wallpaper ?? DEFAULT_WALLPAPER;
       state.settings.reactScanEnabled = settings.reactScanEnabled ?? false;
+      state.settings.tracingEnabled = settings.tracingEnabled ?? false;
+      state.settings.langsmithApiKey = settings.langsmithApiKey || undefined;
+      state.settings.langsmithProject = settings.langsmithProject || undefined;
+      state.settings.langsmithEndpoint = settings.langsmithEndpoint || undefined;
     },
     false,
     actionName,

@@ -74,6 +74,10 @@ export interface WorkspaceSettings {
   theme: ThemePreference;
   wallpaper: string;
   reactScanEnabled: boolean;
+  tracingEnabled: boolean;
+  langsmithApiKey?: string;
+  langsmithProject?: string;
+  langsmithEndpoint?: string;
 }
 
 export interface WorkspaceState {

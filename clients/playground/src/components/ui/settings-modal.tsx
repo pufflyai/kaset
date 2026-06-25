@@ -37,11 +37,12 @@ const TOOL_LABELS: Record<string, string> = {
   opfs_move_file: "Move file",
 };
 
-type SettingsSectionId = "kas" | "display" | "permissions" | "mcp" | "plugins";
+type SettingsSectionId = "kas" | "display" | "tracing" | "permissions" | "mcp" | "plugins";
 
 const SETTINGS_SECTIONS: Array<{ id: SettingsSectionId; label: string }> = [
   { id: "kas", label: "Kas" },
   { id: "display", label: "Display" },
+  { id: "tracing", label: "Tracing" },
   { id: "permissions", label: "Permissions" },
   { id: "mcp", label: "MCP" },
   { id: "plugins", label: "Plugins" },
@@ -71,6 +72,11 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
   const [selectedWallpaper, setSelectedWallpaper] = useState<string>("");
   const [wallpaperPreviews, setWallpaperPreviews] = useState<Record<string, string>>({});
   const [reactScanEnabled, setReactScanEnabled] = useState(false);
+  const [tracingEnabled, setTracingEnabled] = useState(false);
+  const [langsmithApiKey, setLangsmithApiKey] = useState<string>("");
+  const [langsmithProject, setLangsmithProject] = useState<string>("");
+  const [langsmithEndpoint, setLangsmithEndpoint] = useState<string>("");
+  const [showLangsmithKey, setShowLangsmithKey] = useState<boolean>(false);
   const pluginSettingsRef = useRef<PluginSettingsHandle>(null);
   const isMobile = useBreakpointValue({ base: true, md: false }) ?? false;
 
@@ -92,6 +98,10 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
 
     setSelectedWallpaper(settings.wallpaper ?? DEFAULT_WALLPAPER);
     setReactScanEnabled(settings.reactScanEnabled ?? false);
+    setTracingEnabled(settings.tracingEnabled ?? false);
+    setLangsmithApiKey(settings.langsmithApiKey ?? "");
+    setLangsmithProject(settings.langsmithProject ?? "");
+    setLangsmithEndpoint(settings.langsmithEndpoint ?? "");
 
     const storedServers = settings.mcpServers;
     const effectiveServers = storedServers ?? [];
@@ -315,6 +325,10 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
         theme,
         wallpaper: selectedWallpaper,
         reactScanEnabled,
+        tracingEnabled,
+        langsmithApiKey: langsmithApiKey || undefined,
+        langsmithProject: langsmithProject || undefined,
+        langsmithEndpoint: langsmithEndpoint || undefined,
       });
 
       setInitialTheme(theme);
@@ -604,6 +618,55 @@ export function SettingsModal(props: { isOpen: boolean; onClose: () => void }) {
                             );
                           })}
                         </SimpleGrid>
+                      </Field.Root>
+                    </VStack>
+                  </Box>
+                  <Box display={activeSection === "tracing" ? "block" : "none"}>
+                    <VStack align="stretch" gap="md">
+                      <Text fontSize="sm" color="fg.muted">
+                        Send LLM and tool runs to LangSmith for inspection. Your key stays on this device and traces are
+                        sent directly from the browser.
+                      </Text>
+                      <Field.Root>
+                        <Field.Label>Tracing</Field.Label>
+                        <Checkbox.Root
+                          checked={tracingEnabled}
+                          onCheckedChange={(event) => setTracingEnabled(!!event.checked)}
+                        >
+                          <Checkbox.HiddenInput />
+                          <Checkbox.Control />
+                          <Checkbox.Label>Enable LangSmith tracing</Checkbox.Label>
+                        </Checkbox.Root>
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label>LangSmith API Key</Field.Label>
+                        <HStack>
+                          <Input
+                            type={showLangsmithKey ? "text" : "password"}
+                            placeholder="lsv2_..."
+                            value={langsmithApiKey}
+                            onChange={(e) => setLangsmithApiKey(e.target.value)}
+                          />
+                          <Button onClick={() => setShowLangsmithKey((v) => !v)}>
+                            {showLangsmithKey ? "Hide" : "Show"}
+                          </Button>
+                        </HStack>
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label>Project (optional)</Field.Label>
+                        <Input
+                          placeholder="kaset"
+                          value={langsmithProject}
+                          onChange={(e) => setLangsmithProject(e.target.value)}
+                        />
+                      </Field.Root>
+                      <Field.Root>
+                        <Field.Label>Endpoint (optional)</Field.Label>
+                        <Input
+                          placeholder="https://api.smith.langchain.com (use https://eu.api.smith.langchain.com for the EU)"
+                          value={langsmithEndpoint}
+                          onChange={(e) => setLangsmithEndpoint(e.target.value)}
+                        />
                       </Field.Root>
                     </VStack>
                   </Box>

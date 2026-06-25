@@ -2,6 +2,7 @@ import { createApprovalGate, createKasAgent, type Model, openaiModel } from "@ps
 import type { UIConversation } from "@pstdio/kas/kas-ui";
 import { decorateWithThought, toBaseMessages, toConversationUI, withClosedThoughts } from "@pstdio/kas/kas-ui";
 import { createOpfsTools, loadAgentInstructions } from "@pstdio/kas/opfs-tools";
+import { beginAgentRun, configureTracing, traceModel, traceTool } from "@pstdio/kas-tracing";
 import { safeAutoCommit } from "@pstdio/opfs-utils";
 import type { Tool } from "@pstdio/tiny-ai-tasks";
 import { ROOT } from "@/constant";
@@ -19,6 +20,13 @@ export async function* sendMessage(_conversationId: string, messages: UIConversa
   const apiKey = settings.apiKey;
   const baseUrl = settings.baseUrl;
   const modelId = settings.modelId ?? "gpt-5";
+
+  configureTracing({
+    enabled: !!settings.tracingEnabled,
+    apiKey: settings.langsmithApiKey,
+    project: settings.langsmithProject || "kaset",
+    endpoint: settings.langsmithEndpoint || undefined,
+  });
 
   const approvalGate = createApprovalGate({ approvalGatedTools, requestApproval });
 
@@ -44,17 +52,31 @@ export async function* sendMessage(_conversationId: string, messages: UIConversa
     });
   }
 
-  const agent = createKasAgent({ model, tools });
-
   const initialMessages = [...agentInstructions.messages, ...messages];
+  const baseMessages = toBaseMessages(initialMessages);
+
+  const traceHandle = beginAgentRun("kas-agent", { messages: baseMessages });
+
+  const tracedModelId = provider === "webllm" ? settings.webllmModelId || DEFAULT_WEBLLM_MODEL_ID : modelId;
+  const tracedModel = traceModel(model, { name: "llm", model: tracedModelId, provider, parent: traceHandle });
+  const tracedTools = tools.map((tool) => traceTool(tool, { parent: traceHandle }));
+
+  const agent = createKasAgent({ model: tracedModel, tools: tracedTools });
 
   const { messages: initialUIMessages, thought } = decorateWithThought(messages);
 
   yield initialUIMessages;
 
-  for await (const ui of toConversationUI(agent(toBaseMessages(initialMessages)))) {
-    const next = withClosedThoughts([...initialUIMessages, ...ui], thought);
-    yield next;
+  try {
+    for await (const ui of toConversationUI(agent(baseMessages))) {
+      const next = withClosedThoughts([...initialUIMessages, ...ui], thought);
+      yield next;
+    }
+
+    await traceHandle?.end({ status: "ok" });
+  } catch (err) {
+    await traceHandle?.error(err);
+    throw err;
   }
 
   await safeAutoCommit({
