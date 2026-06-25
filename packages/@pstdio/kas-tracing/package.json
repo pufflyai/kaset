@@ -1,7 +1,7 @@
 {
   "name": "@pstdio/kas-tracing",
   "description": "Browser-first LangSmith tracing for @pstdio AI agents: wrap a Model or Tool and stream nested runs to LangSmith.",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "author": "Pufflig AB",
   "email": "support@prompt.studio",
   "license": "MIT",
@@ -34,7 +34,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@pstdio/tiny-ai-tasks": "^0.2.1",
+    "@pstdio/tiny-ai-tasks": "^0.3.0",
     "langsmith": "^0.7.11"
   },
   "devDependencies": {
