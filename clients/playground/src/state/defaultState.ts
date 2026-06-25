@@ -19,5 +19,9 @@ export const DEFAULT_STATE: WorkspaceState = {
     theme: DEFAULT_THEME,
     wallpaper: DEFAULT_WALLPAPER,
     reactScanEnabled: false,
+    tracingEnabled: false,
+    langsmithApiKey: "",
+    langsmithProject: "",
+    langsmithEndpoint: "",
   },
 };
