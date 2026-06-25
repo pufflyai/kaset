@@ -20,6 +20,7 @@ export {
   updateSource,
 } from "./core/sources";
 export { compile } from "./esbuild/compile";
+export { DEFAULT_ESBUILD_WASM_URL } from "./esbuild/wasm-url";
 export { ensureVirtualFetchFallback, isServiceWorkerControlled } from "./runtime/fetch-fallback";
 export { type InlineStyleEntry, type PreparedRuntimeAssets, prepareRuntimeAssets } from "./runtime/prepare-runtime";
 export type { BuildWithEsbuildOptions, CompileResult } from "./types";
