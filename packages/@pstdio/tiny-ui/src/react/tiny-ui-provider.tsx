@@ -1,10 +1,8 @@
-import { compile as bundleCompile, type CompileResult } from "@pstdio/tiny-ui-bundler";
+import { type CompileResult, compile as bundleCompile, DEFAULT_ESBUILD_WASM_URL } from "@pstdio/tiny-ui-bundler";
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo } from "react";
 import { type SetupTinyUIOptions, setupTinyUI } from "../setupTinyUI";
 import type { TinyUIStatus } from "../types";
 import { useServiceWorkerStatus } from "./useServiceWorkerStatus";
-
-const DEFAULT_ESBUILD_WASM_URL = "https://unpkg.com/esbuild-wasm@0.25.11/esbuild.wasm";
 
 interface TinyUiProviderProps extends SetupTinyUIOptions {
   children: ReactNode;

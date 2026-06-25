@@ -9,6 +9,10 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), svgr()],
     base: env.VITE_BASE_URL || "/",
+    // react-rnd's react-draggable reads process.env.DRAGGABLE_DEBUG, which is undefined in the browser.
+    define: {
+      "process.env.DRAGGABLE_DEBUG": "undefined",
+    },
     build: {
       assetsInlineLimit: 0,
     },
